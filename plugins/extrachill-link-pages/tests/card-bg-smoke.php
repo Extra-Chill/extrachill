@@ -8,7 +8,7 @@ function card_bg_check( $condition, $message ) {
 	}
 }
 
-$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish' );
+$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish' );
 $key = '--link-page-card-bg-color';
 $read = ec_read_link_page_persistence( 40 );
 card_bg_check( 'rgba(0, 0, 0, 0.4)' === $read['css_vars'][ $key ], 'Unconfigured pages retain the default' );

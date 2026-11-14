@@ -54,7 +54,6 @@ final class PackageContractTest extends TestCase {
 				'inc/compatibility.php',
 				'inc/edit-entry.php',
 				'inc/fonts.php',
-				'inc/migration.php',
 				'inc/operations.php',
 				'inc/owner-reference.php',
 				'inc/post-type.php',

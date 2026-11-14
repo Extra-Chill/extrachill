@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 final class ContentOwnershipTest extends TestCase {
 	protected function setUp(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Fallback Title', 'post_name' => 'owned-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Fallback Title', 'post_name' => 'owned-page' );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][20] = (object) array( 'ID' => 20, 'post_type' => 'profile', 'post_status' => 'publish' );
 		$this->assertTrue( ec_assign_link_page_owner( 40, 'post:4:profile:20' ) );
 	}

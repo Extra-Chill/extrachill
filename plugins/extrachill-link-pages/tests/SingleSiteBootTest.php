@@ -65,7 +65,7 @@ final class SingleSiteBootTest extends TestCase {
 	/** Post type registration must complete on single site instead of fataling. */
 	public function test_post_type_registers_on_single_site(): void {
 		ec_register_link_page_post_type();
-		$this->assertArrayHasKey( EC_LINK_PAGE_POST_TYPE, $GLOBALS['ec_test']['registered_post_types'] );
+		$this->assertArrayHasKey( 'ec_link_page', $GLOBALS['ec_test']['registered_post_types'] );
 	}
 
 	/** Multisite behavior is unchanged: site records are still consulted. */
