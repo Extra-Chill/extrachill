@@ -81,6 +81,7 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	}
 
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/class-artist-link-pages.php';
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/class-artist-link-page-snapshot-migration.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
 	add_filter( 'ec_link_page_public_query_var', 'ec_artist_link_page_public_query_var' );
 	add_filter( 'ec_link_page_public_query_vars', 'ec_artist_link_page_public_query_vars' );
