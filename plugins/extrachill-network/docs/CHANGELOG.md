@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.8] - 2026-11-14
+
+### Fixed
+- checkout robustness — stored seller status, one open Session per order, expired/failed/dispute events
+
 ## [2.39.7] - 2026-11-14
 
 ### Changed
