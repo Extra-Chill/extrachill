@@ -42,6 +42,7 @@ final class CommerceCredentialTest extends TestCase {
 		$this->assertStringContainsString( "ec_commerce_credential( 'stripe', 'secret_key' )", $connect );
 		$this->assertStringNotContainsString( 'function extrachill_shop_stripe_is_configured', $connect );
 		$this->assertStringNotContainsString( 'function extrachill_shop_get_stripe_publishable_key', $connect );
+		$this->assertStringNotContainsString( 'function extrachill_shop_create_stripe_account(', $connect );
 		$this->assertStringContainsString( "ec_commerce_credential( 'stripe', 'webhook_secret' )", $hooks );
 		$this->assertStringContainsString( "ec_commerce_credential( 'stripe', 'connect_webhook_secret' )", $hooks );
 	}
