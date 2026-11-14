@@ -12,7 +12,8 @@
  * - link_page_profile: Link page profile image (target_id = artist_id)
  * - link_page_background: Link page background (target_id = artist_id)
  * - content_embed: Content image embed (target_id = optional post_id)
- * - product_image: WooCommerce product image (target_id = product_id, uploads to shop site)
+ *
+ * Product images are owned by the Shop: POST/DELETE /shop/products/{id}/images.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -41,7 +42,6 @@ function extrachill_api_register_media_routes() {
 							'link_page_profile',
 							'link_page_background',
 							'content_embed',
-							'product_image',
 						),
 						'validate_callback' => 'rest_validate_request_arg',
 					),
@@ -66,7 +66,6 @@ function extrachill_api_register_media_routes() {
 							'artist_header',
 							'link_page_profile',
 							'link_page_background',
-							'product_image',
 						),
 						'validate_callback' => 'rest_validate_request_arg',
 					),
@@ -144,42 +143,6 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 		return true;
 	}
 
-	// Product image: verify user owns product on shop site
-	if ( 'product_image' === $context ) {
-		$shop_blog_id = ec_get_blog_id( 'shop' );
-		$can_manage   = false;
-
-		try {
-			switch_to_blog( $shop_blog_id );
-
-			$product_post = get_post( $target_id );
-			if ( ! $product_post || 'product' !== $product_post->post_type ) {
-				return new WP_Error(
-					'product_not_found',
-					'Product not found.',
-					array( 'status' => 404 )
-				);
-			}
-
-			// Check if product belongs to user's artist
-			$product_artist_id = get_post_meta( $target_id, '_artist_profile_id', true );
-			if ( $product_artist_id && function_exists( 'ec_can_manage_artist' ) ) {
-				$can_manage = ec_can_manage_artist( $user_id, (int) $product_artist_id );
-			}
-		} finally {
-			restore_current_blog();
-		}
-
-		if ( ! $can_manage ) {
-			return new WP_Error(
-				'rest_forbidden',
-				'You do not have permission to manage this product.',
-				array( 'status' => 403 )
-			);
-		}
-		return true;
-	}
-
 	return false;
 }
 
@@ -245,12 +208,7 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	// Product images upload to shop site media library
-	if ( 'product_image' === $context ) {
-		return extrachill_api_media_upload_product_image( $uploaded_file, $target_id );
-	}
-
-	// Handle upload for non-product contexts
+	// Handle upload
 	if ( ! function_exists( 'wp_handle_upload' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 	}
@@ -311,73 +269,6 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 			'context'       => $context,
 			'target_id'     => $target_id,
 			'attachment'    => wp_prepare_attachment_for_js( $attachment_id ),
-		)
-	);
-}
-
-/**
- * Handle product image upload to shop site media library
- */
-function extrachill_api_media_upload_product_image( $uploaded_file, $product_id ) {
-	$shop_blog_id  = ec_get_blog_id( 'shop' );
-	$attachment_id = null;
-	$url           = null;
-
-	try {
-		switch_to_blog( $shop_blog_id );
-
-		if ( ! function_exists( 'wp_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-		}
-
-		$upload_result = wp_handle_upload( $uploaded_file, array( 'test_form' => false ) );
-
-		if ( ! $upload_result || isset( $upload_result['error'] ) ) {
-			return new WP_Error(
-				'upload_failed',
-				isset( $upload_result['error'] ) ? $upload_result['error'] : 'Upload failed.',
-				array( 'status' => 500 )
-			);
-		}
-
-		$attachment = array(
-			'guid'           => $upload_result['url'],
-			'post_mime_type' => $upload_result['type'],
-			'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $upload_result['file'] ) ),
-			'post_content'   => '',
-			'post_status'    => 'inherit',
-		);
-
-		$attachment_id = wp_insert_attachment( $attachment, $upload_result['file'], $product_id, true );
-
-		if ( is_wp_error( $attachment_id ) ) {
-			return $attachment_id;
-		}
-
-		require_once ABSPATH . 'wp-admin/includes/image.php';
-		$attach_data = wp_generate_attachment_metadata( $attachment_id, $upload_result['file'] );
-		wp_update_attachment_metadata( $attachment_id, $attach_data );
-
-		// Set as product thumbnail (featured image)
-		$old_thumbnail_id = get_post_thumbnail_id( $product_id );
-		set_post_thumbnail( $product_id, $attachment_id );
-
-		// Delete old thumbnail if replaced
-		if ( $old_thumbnail_id && $old_thumbnail_id !== $attachment_id ) {
-			wp_delete_attachment( $old_thumbnail_id, true );
-		}
-
-		$url = wp_get_attachment_url( $attachment_id );
-	} finally {
-		restore_current_blog();
-	}
-
-	return rest_ensure_response(
-		array(
-			'attachment_id' => $attachment_id,
-			'url'           => $url,
-			'context'       => 'product_image',
-			'target_id'     => $product_id,
 		)
 	);
 }
@@ -473,9 +364,6 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 	}
 
 	// Product images delete from shop site
-	if ( 'product_image' === $context ) {
-		return extrachill_api_media_delete_product_image( $target_id );
-	}
 
 	// Get current attachment ID and clear assignment
 	$attachment_id = extrachill_api_media_unassign( $context, $target_id );
@@ -507,49 +395,6 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 			'deleted'   => true,
 			'context'   => $context,
 			'target_id' => $target_id,
-		)
-	);
-}
-
-/**
- * Handle product image deletion from shop site
- */
-function extrachill_api_media_delete_product_image( $product_id ) {
-	$shop_blog_id = ec_get_blog_id( 'shop' );
-	$deleted      = false;
-
-	try {
-		switch_to_blog( $shop_blog_id );
-
-		$attachment_id = get_post_thumbnail_id( $product_id );
-
-		if ( ! $attachment_id ) {
-			return new WP_Error(
-				'no_image',
-				'No image is assigned for this product.',
-				array( 'status' => 404 )
-			);
-		}
-
-		delete_post_thumbnail( $product_id );
-		$deleted = wp_delete_attachment( $attachment_id, true );
-
-		if ( ! $deleted ) {
-			return new WP_Error(
-				'delete_failed',
-				'Failed to delete attachment.',
-				array( 'status' => 500 )
-			);
-		}
-	} finally {
-		restore_current_blog();
-	}
-
-	return rest_ensure_response(
-		array(
-			'deleted'   => true,
-			'context'   => 'product_image',
-			'target_id' => $product_id,
 		)
 	);
 }

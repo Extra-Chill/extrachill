@@ -55,79 +55,42 @@ function ec_can_manage_shop( $user_id = null ) {
 }
 
 /**
- * Returns the total number of shop products for the user.
+ * Returns the total number of published shop products for the user's artists.
  *
- * Performs cross-site query to shop blog (Blog ID 3) to count products
- * associated with the user's artist profiles via _artist_profile_id meta.
+ * Counts products on the shop blog whose typed seller
+ * (`_extrachill_shop_seller_type` / `_extrachill_shop_seller_id`) is one of
+ * the user's artist profiles.
  *
  * @param int|null $user_id User ID (defaults to current).
  * @return int
  */
 function ec_get_shop_product_count_for_user( $user_id = null ) {
 	$user_id = null === $user_id ? get_current_user_id() : (int) $user_id;
-
-	if ( $user_id <= 0 ) {
-		return 0;
-	}
-
-	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
+	if ( $user_id <= 0 || ! function_exists( 'ec_get_artists_for_user' ) ) {
 		return 0;
 	}
 
 	$user_artists = ec_get_artists_for_user( $user_id );
-	if ( empty( $user_artists ) ) {
-		return 0;
-	}
-
 	$shop_blog_id = ec_get_blog_id( 'shop' );
-	if ( ! $shop_blog_id ) {
+	if ( empty( $user_artists ) || ! $shop_blog_id ) {
 		return 0;
 	}
 
-	$current_blog = get_current_blog_id();
-	$needs_switch = $current_blog !== $shop_blog_id;
-	$total_count  = 0;
-
-	if ( $needs_switch ) {
-		if ( function_exists( 'switch_to_blog' ) ) {
-			global $current_user;
-
-			if ( isset( $current_user ) && $current_user instanceof WP_User ) {
-				switch_to_blog( $shop_blog_id );
-				try {
-					$query = new WP_Query(
-						array(
-							'post_type'      => 'product',
-							'post_status'    => 'publish',
-							'posts_per_page' => 1,
-							'fields'         => 'ids',
-							'meta_query'     => array(
-								array(
-									'key'     => '_artist_profile_id',
-									'value'   => array_map( 'absint', $user_artists ),
-									'compare' => 'IN',
-									'type'    => 'NUMERIC',
-								),
-							),
-						)
-					);
-
-					$total_count = $query->found_posts;
-				} finally {
-					restore_current_blog();
-				}
-			}
-		}
-	} else {
+	switch_to_blog( $shop_blog_id );
+	try {
 		$query = new WP_Query(
 			array(
 				'post_type'      => 'product',
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
-				'meta_query'     => array(
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Seller identity is product meta.
 					array(
-						'key'     => '_artist_profile_id',
+						'key'   => '_extrachill_shop_seller_type',
+						'value' => 'artist',
+					),
+					array(
+						'key'     => '_extrachill_shop_seller_id',
 						'value'   => array_map( 'absint', $user_artists ),
 						'compare' => 'IN',
 						'type'    => 'NUMERIC',
@@ -135,9 +98,8 @@ function ec_get_shop_product_count_for_user( $user_id = null ) {
 				),
 			)
 		);
-
-		$total_count = $query->found_posts;
+		return (int) $query->found_posts;
+	} finally {
+		restore_current_blog();
 	}
-
-	return $total_count;
 }

@@ -84,16 +84,8 @@ function extrachill_shop_filter_bar_items( $items ) {
  * @return array|null Dropdown item or null.
  */
 function extrachill_shop_build_seller_dropdown( string $current_seller ) {
-	$sellers = extrachill_shop_get_event_sellers_with_products();
-	foreach ( extrachill_shop_get_artists_with_products() as $artist_id ) {
-		$sellers[] = array(
-			'type' => 'artist',
-			'id'   => (int) $artist_id,
-		);
-	}
-
 	$options = array();
-	foreach ( $sellers as $seller ) {
+	foreach ( extrachill_shop_get_sellers_with_products() as $seller ) {
 		$public = extrachill_shop_get_public_seller( $seller );
 		if ( $public ) {
 			$options[ extrachill_shop_seller_ref_key( $seller ) ] = $public['name'];

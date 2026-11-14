@@ -86,7 +86,7 @@ function extrachill_shop_ability_list_shipping_labels( array $input ): array|WP_
 
 	$labels = array();
 	foreach ( $orders as $order ) {
-		$label = extrachill_shop_read_order_label( $order, $seller );
+		$label = extrachill_shop_get_order_shipment( $order );
 		if ( '' === $label['label_url'] ) {
 			continue;
 		}

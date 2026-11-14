@@ -125,7 +125,7 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 
 	$response_orders = array();
 	foreach ( $paged_orders as $order ) {
-		$response_orders[] = extrachill_shop_ability_build_order_response( $order, extrachill_shop_seller_key( $seller ) );
+		$response_orders[] = extrachill_shop_ability_build_order_response( $order );
 	}
 
 	return array(
@@ -139,31 +139,6 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Scope a `wc_get_orders()` query to one seller through the order seller index.
- *
- * HPOS supports meta_query natively; the CPT adapter translates our query var.
- *
- * @param array $args   Order query args.
- * @param array $seller Seller reference.
- * @return array
- */
-function extrachill_shop_scope_order_query_to_seller( array $args, array $seller ): array {
-	$seller_key = $seller['type'] . ':' . (int) $seller['id'];
-	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
-		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
-		$args['meta_query'] = array(
-			array(
-				'key'   => '_extrachill_order_seller',
-				'value' => $seller_key,
-			),
-		);
-	} else {
-		$args['extrachill_order_seller'] = $seller_key;
-	}
-	return $args;
-}
 
 /**
  * Whether every line in a seller's portion of an order ships free.
@@ -185,49 +160,24 @@ function extrachill_shop_items_ship_free_only( $items ): bool {
 }
 
 /**
- * Build a seller's view of an order.
+ * Build a seller's view of an order from the canonical order records.
  *
- * @param WC_Order   $order     WooCommerce order.
- * @param int|string $artist_id Seller key (`extrachill_shop_seller_key()`).
+ * @param WC_Order $order WooCommerce order.
  * @return array
  */
-function extrachill_shop_ability_build_order_response( $order, int|string $artist_id ): array {
-	$payouts         = $order->get_meta( '_artist_payouts' ) ?: array();
-	$artist_payout   = $payouts[ $artist_id ] ?? array();
-	$tracking_number = $order->get_meta( '_artist_tracking_' . $artist_id ) ?: '';
-
-	// Orders may be indexed before payment projections exist. Never include
-	// another seller's lines when constructing the compatible response shape.
-	if ( empty( $artist_payout['items'] ) ) {
-		$artist_payout['items'] = array();
-		$artist_payout['total'] = 0;
-		foreach ( $order->get_items( 'line_item' ) as $item ) {
-			$seller = extrachill_shop_get_product_payout_seller( $item->get_product_id() );
-			if ( ! $seller || extrachill_shop_seller_key( $seller ) !== $artist_id ) {
-				continue;
-			}
-			$artist_payout['items'][] = array(
-				'product_id' => $item->get_product_id(),
-				'quantity'   => $item->get_quantity(),
-				'line_total' => $item->get_total(),
-			);
-			$artist_payout['total']  += (float) $item->get_total();
-		}
-	}
+function extrachill_shop_ability_build_order_response( $order ): array {
+	$record   = extrachill_shop_get_order_seller_record( $order );
+	$shipment = extrachill_shop_get_order_shipment( $order );
 
 	$items = array();
-	if ( ! empty( $artist_payout['items'] ) ) {
-		foreach ( $artist_payout['items'] as $item_data ) {
-			$product_id = $item_data['product_id'] ?? 0;
-			$product    = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
-
-			$items[] = array(
-				'product_id' => $product_id,
-				'name'       => $product ? $product->get_name() : 'Unknown Product',
-				'quantity'   => $item_data['quantity'] ?? 1,
-				'total'      => (float) ( $item_data['line_total'] ?? 0 ),
-			);
-		}
+	foreach ( $record['items'] ?? array() as $item_data ) {
+		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $item_data['product_id'] ) : null;
+		$items[] = array(
+			'product_id' => $item_data['product_id'],
+			'name'       => $product ? $product->get_name() : 'Unknown Product',
+			'quantity'   => $item_data['quantity'],
+			'total'      => $item_data['line_total'],
+		);
 	}
 
 	$shipping = $order->get_address( 'shipping' );
@@ -252,9 +202,10 @@ function extrachill_shop_ability_build_order_response( $order, int|string $artis
 			),
 		),
 		'items'           => $items,
-		'seller_payout'   => (float) ( $artist_payout['artist_payout'] ?? 0 ),
-		'order_total'     => (float) ( $artist_payout['total'] ?? 0 ),
-		'tracking_number' => $tracking_number,
-		'ships_free_only' => extrachill_shop_items_ship_free_only( $artist_payout['items'] ),
+		'seller_payout'   => (float) ( $record['seller_payout'] ?? 0 ),
+		'order_total'     => (float) ( $record['total'] ?? 0 ),
+		'tracking_number' => $shipment['tracking_number'],
+		'label_url'       => $shipment['label_url'],
+		'ships_free_only' => extrachill_shop_items_ship_free_only( $record['items'] ?? array() ),
 	);
 }

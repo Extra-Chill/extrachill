@@ -177,17 +177,8 @@ function extrachill_shop_get_requested_storefront_seller(): ?array {
  * @return array
  */
 function extrachill_shop_seller_products_meta_query( array $seller ): array {
-	if ( 'artist' === $seller['type'] ) {
-		return array(
-			array(
-				'key'     => '_artist_profile_id',
-				'value'   => (int) $seller['id'],
-				'compare' => '=',
-				'type'    => 'NUMERIC',
-			),
-		);
-	}
 	return array(
+		'relation' => 'AND',
 		array(
 			'key'   => '_extrachill_shop_seller_type',
 			'value' => (string) $seller['type'],
@@ -199,44 +190,4 @@ function extrachill_shop_seller_products_meta_query( array $seller ): array {
 			'type'    => 'NUMERIC',
 		),
 	);
-}
-
-/**
- * Venue and promoter sellers with published products.
- *
- * @return array<int, array{type: string, id: int}>
- */
-function extrachill_shop_get_event_sellers_with_products(): array {
-	global $wpdb;
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinct seller pairs for the public filter.
-	$rows = $wpdb->get_results(
-		$wpdb->prepare(
-			"SELECT DISTINCT t.meta_value AS seller_type, i.meta_value AS seller_id
-			FROM {$wpdb->postmeta} t
-			INNER JOIN {$wpdb->postmeta} i ON i.post_id = t.post_id AND i.meta_key = %s
-			INNER JOIN {$wpdb->posts} p ON p.ID = t.post_id
-			WHERE t.meta_key = %s
-			AND t.meta_value IN ( 'venue', 'promoter' )
-			AND p.post_type = %s
-			AND p.post_status = %s",
-			'_extrachill_shop_seller_id',
-			'_extrachill_shop_seller_type',
-			'product',
-			'publish'
-		),
-		ARRAY_A
-	);
-
-	$sellers = array();
-	foreach ( (array) $rows as $row ) {
-		$id = (int) ( $row['seller_id'] ?? 0 );
-		if ( $id > 0 ) {
-			$sellers[] = array(
-				'type' => (string) $row['seller_type'],
-				'id'   => $id,
-			);
-		}
-	}
-	return $sellers;
 }
