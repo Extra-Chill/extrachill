@@ -13,6 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 final class PriorityBoostTest extends TestCase {
 	protected function setUp(): void {
+		$GLOBALS['test_scheduled_actions'] = array();
+
 		$GLOBALS['test_orders']         = array();
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_owner_calls']    = array();
@@ -210,5 +212,94 @@ final class PriorityBoostTest extends TestCase {
 
 		$this->assertArrayNotHasKey( '_extrachill_priority_boost_receipt_10', $order->meta );
 		$this->assertSame( array( 'Priority boost pending: Events owner returned owner_runtime_unavailable.' ), $order->notes );
+	}
+
+	public function test_failed_grant_schedules_bounded_retry(): void {
+		$GLOBALS['test_owner_callback'] = static function () {
+			return new WP_Error( 'ec_service_assertion_denied', 'Denied.' );
+		};
+		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44] = $order;
+
+		extrachill_shop_handle_priority_boost_purchase( 44 );
+
+		$this->assertCount( 1, $GLOBALS['test_scheduled_actions'] );
+		$action = $GLOBALS['test_scheduled_actions'][0];
+		$this->assertSame( 'extrachill_shop_retry_priority_boost', $action['hook'] );
+		$this->assertSame( array( 44 ), $action['args'] );
+		$this->assertSame( 'extrachill-shop', $action['group'] );
+		$this->assertGreaterThan( time(), $action['timestamp'] );
+		$this->assertSame( 1, $order->meta['_extrachill_priority_boost_retry_attempts'] );
+
+		// A second failure while a retry is queued does not double-schedule.
+		extrachill_shop_handle_priority_boost_purchase( 44 );
+		$this->assertCount( 1, $GLOBALS['test_scheduled_actions'] );
+	}
+
+	public function test_retry_picks_up_pending_grant(): void {
+		$fail                           = true;
+		$GLOBALS['test_owner_callback'] = static function () use ( &$fail ) {
+			return $fail ? new WP_Error( 'ec_service_assertion_denied', 'Denied.' ) : priority_boost_owner_response();
+		};
+		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44] = $order;
+
+		extrachill_shop_handle_priority_boost_purchase( 44 );
+		$this->assertArrayNotHasKey( '_extrachill_priority_boost_receipt_10', $order->meta );
+
+		$fail                              = false;
+		$GLOBALS['test_scheduled_actions'] = array(); // The queued action has now run.
+		extrachill_shop_retry_priority_boost( 44 );
+
+		$this->assertSame( priority_boost_owner_response()['receipt'], $order->meta['_extrachill_priority_boost_receipt_10'] );
+		$this->assertSame( 'Priority boost granted for event: Event title', end( $order->notes ) );
+		$this->assertSame( array(), $GLOBALS['test_scheduled_actions'] );
+		$this->assertSame( 'shop-order:44:item:10', $GLOBALS['test_owner_calls'][1]['args']['body']['input']['idempotency_key'] );
+	}
+
+	public function test_failing_retry_reschedules_with_backoff(): void {
+		$GLOBALS['test_owner_callback'] = static function () {
+			return new WP_Error( 'events_internal_error', 'Down.' );
+		};
+		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44] = $order;
+
+		extrachill_shop_handle_priority_boost_purchase( 44 );
+		$first                             = $GLOBALS['test_scheduled_actions'][0]['timestamp'];
+		$GLOBALS['test_scheduled_actions'] = array(); // The queued action is now running.
+		extrachill_shop_retry_priority_boost( 44 );
+
+		$this->assertCount( 1, $GLOBALS['test_scheduled_actions'] );
+		$this->assertGreaterThan( $first, $GLOBALS['test_scheduled_actions'][0]['timestamp'] );
+		$this->assertSame( 2, $order->meta['_extrachill_priority_boost_retry_attempts'] );
+	}
+
+	public function test_retry_skips_orders_no_longer_completed(): void {
+		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$order->status              = 'refunded';
+		$GLOBALS['test_orders'][44] = $order;
+
+		extrachill_shop_retry_priority_boost( 44 );
+
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+	}
+
+	public function test_retries_stop_after_backoff_is_exhausted(): void {
+		$GLOBALS['test_owner_callback'] = static function () {
+			return new WP_Error( 'events_internal_error', 'Down.' );
+		};
+
+		$order = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+
+		$order->meta['_extrachill_priority_boost_retry_attempts'] = count( extrachill_shop_priority_boost_retry_delays() );
+
+		$GLOBALS['test_orders'][44] = $order;
+
+		extrachill_shop_retry_priority_boost( 44 );
+		extrachill_shop_retry_priority_boost( 44 );
+
+		$this->assertSame( array(), $GLOBALS['test_scheduled_actions'] );
+		$exhausted = array_filter( $order->notes, static fn( $note ) => str_contains( $note, 'retries exhausted' ) );
+		$this->assertCount( 1, $exhausted );
 	}
 }

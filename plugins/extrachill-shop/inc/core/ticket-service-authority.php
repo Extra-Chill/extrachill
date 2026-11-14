@@ -7,8 +7,13 @@ function extrachill_shop_ticket_service_operations() {
 }
 
 function extrachill_shop_register_ticket_source_grants( array $grants ) {
-	$keys   = defined( 'EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS' ) ? EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS : array();
-	$active = defined( 'EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID' ) ? EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID : '';
+	// Network-provisioned keys by default; deployment constants remain an optional override.
+	$auto   = function_exists( 'ec_cross_site_service_assertion_service_keys' ) ? ec_cross_site_service_assertion_service_keys( 'extrachill.events.tickets' ) : array(
+		'active_key_id' => '',
+		'keys'          => array(),
+	);
+	$keys   = defined( 'EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS' ) ? EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS : $auto['keys'];
+	$active = defined( 'EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID' ) ? EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID : $auto['active_key_id'];
 	$keys   = apply_filters( 'extrachill_shop_ticket_service_assertion_keys', $keys );
 	$active = apply_filters( 'extrachill_shop_ticket_service_assertion_active_key_id', $active );
 	$host   = wp_parse_url( (string) ec_get_site_url( 'events' ), PHP_URL_HOST );

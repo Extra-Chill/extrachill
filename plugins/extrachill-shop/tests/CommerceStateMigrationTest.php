@@ -117,7 +117,13 @@ final class CommerceStateMigrationTest extends TestCase {
 				)
 			)
 		);
-		$this->assertSame( array(), extrachill_shop_register_priority_boost_source_grant( array() ) );
+		// Keys removed (e.g. an override clearing them) means no grant at all.
+		add_filter( 'extrachill_shop_priority_boost_service_assertion_keys', static function () {
+			return array();
+		} );
+		$grants = extrachill_shop_register_priority_boost_source_grant( array() );
+		unset( $GLOBALS['test_filters']['extrachill_shop_priority_boost_service_assertion_keys'] );
+		$this->assertSame( array(), $grants );
 	}
 
 	public function test_canonical_artist_identity_uses_artist_read_contract(): void {

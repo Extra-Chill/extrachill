@@ -23,6 +23,12 @@ add_filter( 'woocommerce_get_item_data', 'extrachill_shop_display_event_in_cart'
 add_action( 'woocommerce_checkout_create_order_line_item', 'extrachill_shop_add_event_to_order_item', 10, 4 );
 add_action( 'woocommerce_payment_complete', 'extrachill_shop_auto_complete_priority_boost_order', 20 );
 add_action( 'woocommerce_order_status_completed', 'extrachill_shop_handle_priority_boost_purchase', 10 );
+add_action( 'extrachill_shop_retry_priority_boost', 'extrachill_shop_retry_priority_boost' );
+
+const EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_HOOK     = 'extrachill_shop_retry_priority_boost';
+const EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_GROUP    = 'extrachill-shop';
+const EXTRACHILL_SHOP_PRIORITY_BOOST_ATTEMPTS_META  = '_extrachill_priority_boost_retry_attempts';
+const EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META = '_extrachill_priority_boost_retry_exhausted';
 
 /**
  * Check whether a product is the configured priority boost product.
@@ -311,6 +317,7 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		return;
 	}
 
+	$pending = false;
 	foreach ( $order->get_items() as $item ) {
 		if ( ! extrachill_shop_is_priority_boost_product_id( $item->get_product_id() ) ) {
 			continue;
@@ -333,6 +340,7 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 					$result->get_error_code()
 				)
 			);
+			$pending = true;
 			continue;
 		}
 
@@ -346,7 +354,99 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		);
 	}
 
+	if ( $pending ) {
+		extrachill_shop_schedule_priority_boost_retry( $order );
+	}
+
 	$order->save();
+}
+
+/**
+ * Backoff schedule for failed priority boost grants, in seconds.
+ *
+ * @return int[] Delay before each retry attempt.
+ */
+function extrachill_shop_priority_boost_retry_delays() {
+	return array(
+		5 * MINUTE_IN_SECONDS,
+		15 * MINUTE_IN_SECONDS,
+		HOUR_IN_SECONDS,
+		3 * HOUR_IN_SECONDS,
+		6 * HOUR_IN_SECONDS,
+		12 * HOUR_IN_SECONDS,
+		DAY_IN_SECONDS,
+		DAY_IN_SECONDS,
+		DAY_IN_SECONDS,
+	);
+}
+
+/**
+ * Schedule the next bounded retry for an order with an ungranted boost.
+ *
+ * The caller saves the order. Grants are idempotent on the Events side and
+ * receipted items are skipped, so a retry can never double-grant.
+ *
+ * @param WC_Order $order Order object.
+ * @return bool Whether a retry is scheduled.
+ */
+function extrachill_shop_schedule_priority_boost_retry( $order ) {
+	$args = array( absint( $order->get_id() ) );
+	// Only pending actions count: as_has_scheduled_action() also matches the
+	// running action, which would stop a failing retry from rescheduling.
+	if ( function_exists( 'as_get_scheduled_actions' ) ) {
+		$queued = as_get_scheduled_actions(
+			array(
+				'hook'     => EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_HOOK,
+				'args'     => $args,
+				'group'    => EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_GROUP,
+				'status'   => 'pending',
+				'per_page' => 1,
+			),
+			'ids'
+		);
+		if ( ! empty( $queued ) ) {
+			return true;
+		}
+	}
+
+	$attempts = absint( $order->get_meta( EXTRACHILL_SHOP_PRIORITY_BOOST_ATTEMPTS_META, true ) );
+	$delays   = extrachill_shop_priority_boost_retry_delays();
+	if ( $attempts >= count( $delays ) ) {
+		if ( ! $order->get_meta( EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META, true ) ) {
+			$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META, 1 );
+			$order->add_order_note( __( 'Priority boost retries exhausted: manual fulfilment required.', 'extrachill-shop' ) );
+		}
+		return false;
+	}
+
+	$timestamp = time() + $delays[ $attempts ];
+	if ( function_exists( 'as_schedule_single_action' ) ) {
+		$scheduled = (bool) as_schedule_single_action( $timestamp, EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_HOOK, $args, EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_GROUP );
+	} elseif ( function_exists( 'wp_schedule_single_event' ) ) {
+		$scheduled = true === wp_schedule_single_event( $timestamp, EXTRACHILL_SHOP_PRIORITY_BOOST_RETRY_HOOK, $args );
+	} else {
+		$scheduled = false;
+	}
+
+	if ( $scheduled ) {
+		$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_ATTEMPTS_META, $attempts + 1 );
+	}
+
+	return $scheduled;
+}
+
+/**
+ * Retry ungranted priority boosts on a still-completed order.
+ *
+ * @param int $order_id Order ID.
+ */
+function extrachill_shop_retry_priority_boost( $order_id ) {
+	$order = $order_id ? wc_get_order( $order_id ) : null;
+	if ( ! $order || 'completed' !== $order->get_status() ) {
+		return;
+	}
+
+	extrachill_shop_handle_priority_boost_purchase( $order_id );
 }
 
 /**

@@ -110,6 +110,45 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
+if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+	define( 'DAY_IN_SECONDS', 86400 );
+}
+function get_site_option( $key, $default_value = false ) {
+	// Network options are shared by every blog; TicketTest seeds `ticket_network`.
+	if ( isset( $GLOBALS['test_site_options'] ) && array_key_exists( $key, $GLOBALS['test_site_options'] ) ) {
+		return $GLOBALS['test_site_options'][ $key ];
+	}
+	return $GLOBALS['ticket_network'][ $key ] ?? $default_value;
+}
+function add_site_option( $key, $value ) {
+	if ( isset( $GLOBALS['test_site_options'] ) && array_key_exists( $key, $GLOBALS['test_site_options'] ) ) {
+		return false;
+	}
+	$GLOBALS['test_site_options'][ $key ] = $value;
+	return true;
+}
+function update_site_option( $key, $value ) {
+	$GLOBALS['test_site_options'][ $key ] = $value;
+	return true;
+}
+function as_get_scheduled_actions( $query = array(), $return_format = 'OBJECT' ) {
+	$ids = array();
+	foreach ( $GLOBALS['test_scheduled_actions'] ?? array() as $id => $action ) {
+		if ( 'pending' === $query['status'] && $query['hook'] === $action['hook'] && $query['args'] === $action['args'] && $query['group'] === $action['group'] ) {
+			$ids[] = $id + 1;
+		}
+	}
+	return 'ids' === $return_format ? $ids : array();
+}
+function as_schedule_single_action( $timestamp, $hook, $args = array(), $group = '' ) {
+	$GLOBALS['test_scheduled_actions'][] = array(
+		'timestamp' => $timestamp,
+		'hook'      => $hook,
+		'args'      => $args,
+		'group'     => $group,
+	);
+	return count( $GLOBALS['test_scheduled_actions'] );
+}
 function get_query_var( $key, $default = '' ) {
 	return $GLOBALS['test_query_vars'][ $key ] ?? $default;
 }
@@ -175,6 +214,8 @@ function extrachill_shop_get_account_status() {
 	return $GLOBALS['test_stripe_status'] ?? array( 'success' => false );
 }
 
+// Real Network keyring so grant resolution is exercised without constants.
+require_once dirname( __DIR__, 2 ) . '/extrachill-network/inc/core/service-assertions.php';
 require_once dirname( __DIR__ ) . '/inc/core/commerce-state.php';
 require_once dirname( __DIR__ ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__ ) . '/inc/products/priority-boost.php';
@@ -219,6 +260,7 @@ final class PriorityBoostTestOrder {
 	public $meta       = array();
 	public $notes      = array();
 	public $save_count = 0;
+	public $status     = 'completed';
 
 	public function __construct( $id, array $items, $paid = true ) {
 		$this->id    = $id;
@@ -236,6 +278,10 @@ final class PriorityBoostTestOrder {
 
 	public function is_paid() {
 		return $this->paid;
+	}
+
+	public function get_status() {
+		return $this->status;
 	}
 
 	public function get_meta( $key ) {
