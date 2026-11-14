@@ -26,7 +26,7 @@ function extrachill_artist_platform_ability_get_link_page_data( $input ) {
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
 	}
 
-	$owner_reference = ec_artist_link_page_owner_reference( $artist_id );
+	$owner_reference = \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( $artist_id );
 	if ( is_wp_error( $owner_reference ) ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}
@@ -41,7 +41,7 @@ function extrachill_artist_platform_ability_get_link_page_data( $input ) {
 		if ( $link_page_id ) {
 			return new WP_Error( 'invalid_link_page', 'The link page does not belong to this artist.' );
 		}
-		return 'link_page_operation_forbidden' === $data->get_error_code()
+		return in_array( $data->get_error_code(), array( 'link_page_operation_forbidden', 'artist_profile_link_page_forbidden' ), true )
 			? new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' )
 			: new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}

@@ -27,7 +27,7 @@ function extrachill_artist_platform_ability_update_artist( $input ) {
 	if ( ! $affects_projection ) {
 		return extrachill_artist_platform_ability_update_artist_under_lock( $input, 0 );
 	}
-	return ec_artist_with_link_page_lock(
+	return \ExtraChillArtistPlatform\Artist_Link_Pages::with_link_page_lock(
 		$artist_id,
 		static function ( $link_page_id ) use ( $input ) {
 			return extrachill_artist_platform_ability_update_artist_under_lock( $input, $link_page_id );

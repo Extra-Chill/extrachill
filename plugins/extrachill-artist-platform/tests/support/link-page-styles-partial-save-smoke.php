@@ -18,9 +18,10 @@ function sanitize_hex_color( $value ) {
 	return preg_match( '/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i', $value ) ? $value : null;
 }
 function extrachill_artist_platform_ability_artist_permission( $input ) { return true; }
-function ec_artist_link_page_owner_reference( $artist_id ) {
-	return array( 'artist_id' => $artist_id );
+final class Ec_Smoke_Artist_Link_Pages {
+	public static function owner_reference( $id ) { return array( 'artist_id' => $id ); }
 }
+class_alias( 'Ec_Smoke_Artist_Link_Pages', 'ExtraChillArtistPlatform\\Artist_Link_Pages' );
 function ec_get_link_page_id_for_owner( $owner ) { return 12187; }
 function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 	return ec_sanitize_link_page_css_vars( $vars );

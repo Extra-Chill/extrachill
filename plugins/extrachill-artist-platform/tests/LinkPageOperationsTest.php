@@ -11,7 +11,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		parent::setUp();
 
 		$this->resetRegistry( ec_link_page_operation_provider_registry(), 'providers' );
-		ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
+		ec_register_link_page_operation_provider( 'artist-platform', array( \ExtraChillArtistPlatform\Artist_Link_Pages::class, 'operation_provider' ) );
 
 		$this->owner_id   = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->profile_id = $this->create_artist_profile( 'Test Owner', array( 'post_name' => 'test-owner' ) );
@@ -300,5 +300,194 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( array( 'a-provider', 'b-provider', 'z-provider' ), $GLOBALS['ec_test_provider_order'] );
 		$this->assertFalse( method_exists( ec_link_page_operation_provider_registry(), 'reset' ) );
 		$this->assertFalse( method_exists( ec_link_page_operation_provider_registry(), 'unregister' ) );
+	}
+
+	/**
+	 * Build the definition's snapshot exactly as a refresh would, without the
+	 * refresh's MySQL advisory lock.
+	 */
+	private function storeArtistSnapshot(): array {
+		$definition = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
+		$reference  = $definition::owner_reference( $this->profile_id );
+		$profile_id = $this->profile_id;
+		$build      = Closure::bind(
+			static function () use ( $definition, $profile_id, $reference ) {
+				return $definition::build_snapshot( $profile_id, $reference );
+			},
+			null,
+			\ExtraChill\LinkPages\Owned_Link_Pages::class
+		);
+		$snapshot   = $build();
+		$this->assertIsArray( $snapshot );
+		switch_to_blog( ec_get_link_page_storage_blog_id() );
+		try {
+			update_post_meta( $this->link_page_id, $definition::SNAPSHOT_META_KEY, $snapshot );
+		} finally {
+			restore_current_blog();
+		}
+		return $snapshot;
+	}
+
+	/** Remove any snapshot a canonical save hook already refreshed. */
+	private function deleteArtistSnapshot(): void {
+		switch_to_blog( ec_get_link_page_storage_blog_id() );
+		try {
+			delete_post_meta( $this->link_page_id, \ExtraChillArtistPlatform\Artist_Link_Pages::SNAPSHOT_META_KEY );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	/** Seed artist identity on the canonical profile. */
+	private function seedArtistIdentity(): void {
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			wp_update_post(
+				array(
+					'ID'           => $this->profile_id,
+					'post_excerpt' => 'Artist excerpt.',
+					'post_content' => 'Artist biography.',
+				)
+			);
+			update_post_meta( $this->profile_id, '_website_url', 'https://owner.example' );
+			update_post_meta(
+				$this->profile_id,
+				'_artist_profile_social_links',
+				array(
+					array(
+						'id'   => 'social-1',
+						'type' => 'instagram',
+						'url'  => 'https://instagram.com/test-owner',
+					),
+				)
+			);
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	public function test_artist_definition_reference_management_url_and_registration(): void {
+		$definition = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
+
+		$this->assertSame( 'post:' . $this->artist_blog_id() . ':artist_profile:' . $this->profile_id, $definition::owner_reference( $this->profile_id ) );
+		$this->assertSame( ec_get_site_url( 'artist' ) . '/manage-link-page/?artist_id=' . $this->profile_id, $definition::management_url( $this->profile_id ) );
+		$this->assertSame( 'MusicGroup', ( new ReflectionClassConstant( $definition, 'SCHEMA_TYPE' ) )->getValue() );
+		$this->assertTrue( is_subclass_of( $definition, \ExtraChill\LinkPages\Owned_Link_Pages::class ) );
+		$names = array_column( ec_link_page_public_projection_registry()->snapshot(), 'callback', 'name' );
+		$this->assertSame( array( $definition, 'public_projection_provider' ), $names['artist-platform'] );
+		$this->assertFalse( function_exists( 'ec_artist_link_page_public_projection_provider' ) );
+		$this->assertFalse( function_exists( 'ec_artist_link_page_operation_provider' ) );
+		$this->assertFalse( function_exists( 'ec_artist_with_link_page_lock' ) );
+	}
+
+	public function test_artist_definition_authorizes_through_artist_membership(): void {
+		$definition = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
+
+		$this->assertSame( 'artist_profile_link_page_forbidden', $definition::authorize( $this->profile_id )->get_error_code() );
+		wp_set_current_user( (int) self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+		$this->assertSame( 'artist_profile_link_page_forbidden', $definition::authorize( $this->profile_id )->get_error_code() );
+
+		$this->authorizeOwner();
+		$this->assertTrue( $definition::authorize( $this->profile_id ) );
+		$this->assertSame( 1, get_current_blog_id() );
+	}
+
+	public function test_artist_definition_snapshot_reads_canonical_identity(): void {
+		$this->seedArtistIdentity();
+		$snapshot = $this->storeArtistSnapshot();
+
+		$this->assertSame( 'Test Owner', $snapshot['title'] );
+		$this->assertSame( 'Artist excerpt.', $snapshot['description'] );
+		$this->assertSame( 'https://owner.example', $snapshot['website'] );
+		$this->assertSame(
+			array(
+				array(
+					'type' => 'instagram',
+					'url'  => 'https://instagram.com/test-owner',
+				),
+			),
+			$snapshot['social_links']
+		);
+		$this->assertTrue( $snapshot['published'] );
+		$this->assertSame( $this->profile_id, $snapshot['source']['artist_profile_post_id'] );
+	}
+
+	public function test_public_projection_renders_from_snapshot_with_page_bio_over_artist_bio(): void {
+		$this->seedArtistIdentity();
+		$this->storeArtistSnapshot();
+		// A canonical change the snapshot has not seen must not leak into the
+		// public page: rendering reads only the snapshot plus page content.
+		switch_to_blog( $this->artist_blog_id() );
+		wp_update_post(
+			array(
+				'ID'         => $this->profile_id,
+				'post_title' => 'Renamed Owner',
+			)
+		);
+		restore_current_blog();
+
+		$projection = ec_get_link_page_public_projection( $this->link_page_id );
+		$this->assertIsArray( $projection );
+		$this->assertSame( 'Test Owner', $projection['display_title'] );
+		$this->assertSame( 'Artist excerpt.', $projection['bio'] );
+		$this->assertSame( (string) $this->profile_id, $projection['body_attributes']['data-extrch-artist-id'] );
+		$this->assertSame( array( $this->profile_id ), $projection['legacy_head_arguments'] );
+		$this->assertSame( 'ec_artist_link_page_enqueue_asset_extensions', $projection['assets'] );
+		$this->assertSame( 'MusicGroup', $projection['seo']['schema'][0]['@type'] );
+		// The same MusicGroup node the artist profile page publishes.
+		switch_to_blog( $this->artist_blog_id() );
+		$profile_url = get_permalink( $this->profile_id );
+		restore_current_blog();
+		$this->assertSame( $profile_url . '#musicgroup', $projection['seo']['schema'][0]['@id'] );
+		$this->assertSame( $profile_url, $projection['seo']['schema'][0]['url'] );
+		$this->assertSame( array( '@id' => $profile_url . '#musicgroup' ), $projection['seo']['schema'][1]['mainEntity'] );
+		$this->assertSame( array( 'https://owner.example', 'https://instagram.com/test-owner' ), $projection['seo']['schema'][0]['sameAs'] );
+
+		switch_to_blog( ec_get_link_page_storage_blog_id() );
+		try {
+			// The page-owned bio field ec_save_link_page_persistence() writes.
+			update_post_meta( $this->link_page_id, '_link_page_bio_text', 'Page bio.' );
+		} finally {
+			restore_current_blog();
+		}
+		$projection = ec_get_link_page_public_projection( $this->link_page_id );
+		$this->assertSame( 'Page bio.', $projection['bio'] );
+		$this->assertSame( 'Page bio.', $projection['seo']['description'] );
+		$this->assertSame( 'Artist excerpt.', $projection['seo']['schema'][0]['description'] );
+	}
+
+	public function test_missing_snapshot_renders_from_live_source_without_writing(): void {
+		$this->seedArtistIdentity();
+		$this->deleteArtistSnapshot();
+
+		$projection = ec_get_link_page_public_projection( $this->link_page_id );
+
+		$this->assertIsArray( $projection );
+		$this->assertSame( 'Test Owner', $projection['display_title'] );
+		$this->assertSame( 'Artist excerpt.', $projection['bio'] );
+		switch_to_blog( ec_get_link_page_storage_blog_id() );
+		try {
+			$this->assertFalse( metadata_exists( 'post', $this->link_page_id, \ExtraChillArtistPlatform\Artist_Link_Pages::SNAPSHOT_META_KEY ) );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	public function test_unpublished_artist_is_unavailable_from_snapshot_and_fallback(): void {
+		switch_to_blog( $this->artist_blog_id() );
+		wp_update_post(
+			array(
+				'ID'          => $this->profile_id,
+				'post_status' => 'draft',
+			)
+		);
+		restore_current_blog();
+		$this->deleteArtistSnapshot();
+
+		$this->assertSame( 'link_page_public_owner_unavailable', ec_get_link_page_public_projection( $this->link_page_id )->get_error_code() );
+		$this->storeArtistSnapshot();
+		$result = ec_get_link_page_public_projection( $this->link_page_id );
+		$this->assertSame( 'link_page_public_owner_unavailable', $result->get_error_code() );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 }

@@ -38,6 +38,10 @@ function extrachill_artist_platform_ability_artist_permission( $input ) { return
 function ec_get_blog_id( $site ) { return 4; }
 function ec_normalize_link_page_owner_reference( $owner ) { return 'post:4:artist_profile:' . $owner['object_id']; }
 function ec_get_link_page_id_for_owner( $owner ) { return 12187; }
+final class Ec_Smoke_Artist_Link_Pages {
+	public static function owner_reference( $id ) { return 'post:4:artist_profile:' . $id; }
+}
+class_alias( 'Ec_Smoke_Artist_Link_Pages', 'ExtraChillArtistPlatform\\Artist_Link_Pages' );
 
 // Model only the operation routing and write boundary; execute the real ability,
 // owner-provider response builder and storage reader (including blog switching).
@@ -46,21 +50,26 @@ function ec_handle_link_page_save( $id, $data ) {
 	return true;
 }
 function smoke_resolved() { return array( 'owner' => array( 'object_id' => 77 ), 'link_page_id' => 12187 ); }
+// Mirrors Artist_Link_Pages::operation_save()/operation_read(): the editor
+// save path, then the artist-shaped read. The real definition is exercised
+// by LinkPageOperationsTest and the combined runtime fixture.
 function ec_save_link_page( $target, $data ) {
 	return ec_with_link_page_storage_blog( static function () use ( $data ) {
-		return ec_artist_link_page_operation_save( smoke_resolved(), $data );
+		$resolved = smoke_resolved();
+		ec_handle_link_page_save( $resolved['link_page_id'], $data );
+		return ec_get_link_page_data( $resolved['owner']['object_id'], $resolved['link_page_id'] );
 	} );
 }
 function ec_read_link_page( $target ) {
 	return ec_with_link_page_storage_blog( static function () {
-		return ec_artist_link_page_operation_read( smoke_resolved() );
+		$resolved = smoke_resolved();
+		return ec_get_link_page_data( $resolved['owner']['object_id'], $resolved['link_page_id'] );
 	} );
 }
 
 $plugin = dirname( __DIR__, 2 );
 require_once dirname( $plugin ) . '/extrachill-link-pages/inc/storage.php';
 require_once $plugin . '/inc/core/filters/data.php';
-require_once $plugin . '/inc/link-pages/artist-owner-operations.php';
 require_once $plugin . '/inc/abilities/handlers/save-link-page-settings.php';
 require_once $plugin . '/inc/abilities/handlers/get-link-page-data.php';
 

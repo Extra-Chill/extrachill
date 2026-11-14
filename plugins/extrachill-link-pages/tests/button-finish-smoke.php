@@ -43,7 +43,18 @@ check_finish( false !== strpos( $css, '.extrch-link-button-wrapper:active' ), 'T
 
 /* Exercise the actual ability handler with only its external WordPress/storage boundary stubbed. */
 function extrachill_artist_platform_ability_artist_permission( $input ) { return true; }
-function ec_artist_link_page_owner_reference( $id ) { return array( 'artist_id' => $id ); }
+/** Artist owner definition boundary: only the owner reference is used. */
+final class Ec_Smoke_Artist_Link_Pages {
+	/**
+	 * Return the fixture owner reference.
+	 *
+	 * @param int $id Artist ID.
+	 */
+	public static function owner_reference( $id ) {
+		return array( 'artist_id' => $id );
+	}
+}
+class_alias( 'Ec_Smoke_Artist_Link_Pages', 'ExtraChillArtistPlatform\\Artist_Link_Pages' );
 function ec_get_link_page_id_for_owner( $owner ) { return 42; }
 function extrachill_artist_platform_sanitize_css_vars( $vars ) { return ec_sanitize_link_page_css_vars( $vars ); }
 $GLOBALS['finish_save_calls'] = array();

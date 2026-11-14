@@ -130,10 +130,10 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
  */
 function ec_get_link_page_for_artist( $artist_id, $any_status = false ) {
 	$artist_id = absint( $artist_id );
-	if ( ! $artist_id || ! function_exists( 'ec_artist_link_page_owner_reference' ) ) {
+	if ( ! $artist_id || ! class_exists( \ExtraChillArtistPlatform\Artist_Link_Pages::class ) ) {
 		return false;
 	}
-	$reference = ec_artist_link_page_owner_reference( $artist_id );
+	$reference = \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( $artist_id );
 	if ( is_wp_error( $reference ) ) {
 		return false;
 	}

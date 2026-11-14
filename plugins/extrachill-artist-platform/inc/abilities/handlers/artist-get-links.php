@@ -33,7 +33,7 @@ function extrachill_artist_platform_ability_artist_get_links( array $input ) {
 		return new WP_Error( 'dependency_missing', 'Link page data function not available.' );
 	}
 
-	$owner_reference = ec_artist_link_page_owner_reference( $artist_id );
+	$owner_reference = \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( $artist_id );
 	$data            = is_wp_error( $owner_reference ) ? $owner_reference : ec_read_link_page( $owner_reference );
 
 	if ( is_wp_error( $data ) || empty( $data ) || empty( $data['link_page_id'] ) ) {

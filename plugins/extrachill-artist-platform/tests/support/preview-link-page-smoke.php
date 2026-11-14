@@ -14,7 +14,10 @@ function add_action( ...$args ) {}
 function __( $text, $domain ) { return $text; }
 function wp_register_ability( $name, $config ) { $GLOBALS['abilities'][$name] = $config; }
 function extrachill_artist_platform_ability_artist_permission( $input ) { return $GLOBALS['allowed']; }
-function ec_artist_link_page_owner_reference( $id ) { return 'artist:' . $id; }
+final class Ec_Smoke_Artist_Link_Pages {
+	public static function owner_reference( $id ) { return 'artist:' . $id; }
+}
+class_alias( 'Ec_Smoke_Artist_Link_Pages', 'ExtraChillArtistPlatform\\Artist_Link_Pages' );
 function ec_read_link_page( $owner ) {
 	$GLOBALS['read_owner'] = $owner;
 	return $GLOBALS['missing'] ? new WP_Error( 'not_found', 'Missing' ) : ec_read_link_page_persistence( 12 );
