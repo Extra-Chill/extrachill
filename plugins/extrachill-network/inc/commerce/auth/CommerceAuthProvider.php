@@ -2,8 +2,8 @@
 /**
  * Base auth provider for Extra Chill commerce credentials.
  *
- * Stripe (secret/publishable/connect client id/webhook secret) and Shippo (API
- * key) credentials are held in Data Machine's encrypted auth envelope so they
+ * Stripe (secret/publishable/webhook secrets) and Shippo (API key)
+ * credentials are held in Data Machine's encrypted auth envelope so they
  * live at rest with the same AES-256-GCM protection used by every other Data
  * Machine handler, and so they surface in `wp datamachine auth ...`.
  *
@@ -23,7 +23,6 @@
  *           'config' => [
  *               'secret_key'        => 'dm:enc:v1:...:...:...',
  *               'publishable_key'   => 'pk_live_...',   // plaintext by design
- *               'connect_client_id' => 'dm:enc:v1:...:...:...',
  *               'webhook_secret'    => 'dm:enc:v1:...:...:...',
  *           ],
  *       ],
