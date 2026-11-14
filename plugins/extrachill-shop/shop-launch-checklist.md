@@ -4,35 +4,15 @@ Complete checklist for launching shop.extrachill.com with artist marketplace fun
 
 ---
 
-## Current Status: Admin-Only Development Mode
+## Current Status: Feature-Rollout Gate
 
-The shop system is currently gated to admins only, allowing internal testing and dogfooding before public launch.
+Shop access goes through the network feature-rollout primitive in `extrachill-users`. The old hardcoded `manage_options` checks are gone.
 
-### Admin Gate Implementation (Completed)
+- **Code ceiling:** `ec_feature_ceilings()` in `extrachill-users/inc/core/gating.php` sets the highest tier the code is ready for. `shop` is `public`.
+- **Live tier:** the network option `ec_feature_tier_shop` (`admin` | `team` | `public`) sets the current tier and is clamped to the ceiling by `ec_feature_tier()`. If the option is unset, the tier defaults to the ceiling.
+- **Seller requirement:** `ec_can_manage_shop()` also requires that the user manages at least one artist, venue, or promoter.
 
-- [x] **Navigation Gating**
-  - [x] Secondary header shop links (Create Shop / Manage Shop) - admin only
-  - [x] Avatar menu shop links - admin only
-  - [x] Artist storefront "Manage Shop" button - admin only
-  - [x] Artist creator success screen "Create Shop" button - admin only
-
-- [x] **Helper Functions**
-  - [x] `ec_get_shop_product_count_for_user()` (extrachill-users) - cross-site product count
-
-### Files Modified for Admin Gate
-
-| File | Change |
-|------|--------|
-| `extrachill-shop/inc/core/artist-product-meta.php` | Added user product count helper |
-| `extrachill-artist-platform/inc/core/nav.php` | Admin-gated secondary header link |
-| `extrachill-users/inc/avatar-menu.php` | Admin-gated avatar menu link |
-| `extrachill-shop/inc/core/seller-storefront.php` | Storefront header (seller name, public page, Manage Shop) and artist-archive redirect |
-| `extrachill-artist-platform/src/blocks/artist-creator/render.php` | Admin-gated config URL |
-| `extrachill-artist-platform/src/blocks/artist-creator/view.js` | Conditional Create Shop button |
-
-### To Remove Admin Gate (Pre-Launch)
-
-Search for comments containing "Admin-only during development" or "ADMIN ONLY during development" and remove the `current_user_can('manage_options')` checks.
+Moving the shop between tiers is an operator flag flip, either from the Feature Rollout network admin screen or with `wp site option update ec_feature_tier_shop <tier>`. No code changes are needed.
 
 ---
 
@@ -48,21 +28,24 @@ Must complete before any public transactions.
   - [ ] Verify account status updates via webhook
   - [ ] Create test product linked to artist
   - [ ] Complete purchase with real payment method
-  - [ ] Verify the direct charge settles on the seller's connected account, with the commission as the platform application fee
+  - [ ] Verify destination charge splits correctly (90% artist / 10% platform)
   - [ ] Verify payout appears in artist's Stripe dashboard
   - [ ] Test with Stripe CLI for webhook reliability
 
-- [ ] **Single-Seller Cart Test**
-  - [ ] Add a product from a second seller to a cart that already has one seller's products
-  - [ ] Verify it is rejected ("Your cart has items from another seller")
+- [ ] **Multi-Artist Cart Test**
+  - [ ] Add products from 2+ different artists to cart
+  - [ ] Complete checkout
+  - [ ] Verify separate destination charges per artist
+  - [ ] Verify correct commission applied to each
 
 - [ ] **Refund Workflow Test**
-  - [ ] Process full refund for an order
+  - [ ] Process full refund for single-artist order
+  - [ ] Process full refund for multi-artist order
   - [ ] Verify refund reaches customer
   - [ ] Verify artist payout adjusted correctly
 
 - [ ] **Edge Cases**
-  - [ ] Cart with a seller product plus a platform product (ad-free license) is rejected
+  - [ ] Cart with mixed artist products + platform products (ad-free license)
   - [ ] Artist with pending Stripe account attempts product publish (should block)
   - [ ] Order placed, artist Stripe account becomes restricted before fulfillment
 
@@ -88,11 +71,18 @@ Must complete before any public transactions.
   - [ ] Link to Privacy Policy
   - [ ] Block checkout if not checked
 
-### Tax
+### Tax Configuration
 
-Merch and tickets are direct charges, so the seller is merchant of record and handles its own sales tax. WooCommerce tax calculation stays off (`woocommerce_calc_taxes = no`).
+- [ ] **WooCommerce Tax Setup**
+  - [ ] Enable taxes in WooCommerce settings
+  - [ ] Configure tax rates for nexus states (SC, TX if applicable)
+  - [ ] Decide: Tax on shipping? (varies by state)
+  - [ ] Test tax calculation on checkout
+  - [ ] Verify tax appears on order receipts
 
-- [ ] State seller tax responsibility in the Seller Agreement
+- [ ] **Tax Documentation**
+  - [ ] Document tax strategy for artists (they handle their own)
+  - [ ] Include in Artist Platform Agreement
 
 ---
 
@@ -124,6 +114,7 @@ Should complete before launch, but not technically blocking.
   - [ ] Validate connection before allowing shipping
 
 - [ ] **Order Status Flow**
+  - [ ] Fix multi-artist order shipping (currently marks entire order complete)
   - [ ] Per-artist shipping status tracking
   - [ ] Customer notification with tracking info
 
@@ -180,6 +171,7 @@ Can launch without, add post-launch.
 
 - [ ] Admin dashboard for all artist orders
 - [ ] Platform-wide sales analytics
+- [ ] Automated tax reporting/filing (TaxJar upgrade)
 - [ ] Customer support ticket system
 
 ---
@@ -214,6 +206,7 @@ One week before public launch:
 ### Business
 
 - [ ] Stripe account in live mode (not test mode)
+- [ ] Tax rates configured for live transactions
 - [ ] Customer support email/process defined
 - [ ] Refund policy understood by team
 - [ ] First artist(s) onboarded and ready
@@ -222,7 +215,7 @@ One week before public launch:
 
 ## Launch Day
 
-- [ ] Remove admin gate from shop navigation (see "To Remove Admin Gate" section above)
+- [ ] Set the `ec_feature_tier_shop` network option to the launch tier (see "Feature-Rollout Gate" above)
 - [ ] Rebuild artist-platform block assets after JS changes
 - [ ] Switch Stripe to live mode
 - [ ] Announce launch (newsletter, socials)

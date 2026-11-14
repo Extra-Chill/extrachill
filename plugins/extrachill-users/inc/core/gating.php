@@ -48,8 +48,10 @@ function ec_feature_tier_ladder() {
  */
 function ec_feature_ceilings() {
 	$ceilings = array(
-		// Shop manager: admin-only until the system is ready for the team.
-		'shop'          => 'admin',
+		// Shop manager: code is ready for everyone. The live tier is still the
+		// network rollout option (clamped to this ceiling), so exposure stays
+		// an operator flag flip.
+		'shop'          => 'public',
 		// Shared brand social accounts: admin-only until a review workflow
 		// exists for the team (the official accounts post immediately live).
 		'brand_socials' => 'admin',
