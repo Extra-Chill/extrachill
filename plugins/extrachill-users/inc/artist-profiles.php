@@ -113,6 +113,39 @@ function ec_can_create_artist_profiles( $user_id = null ) {
 }
 
 /**
+ * Resolve the Link Page bound to an artist profile, in any post status.
+ *
+ * The Link Pages runtime owner reference (`post:<artist_blog>:artist_profile:<id>`)
+ * is the only artist/page binding. Returns 0 when the runtime is unavailable,
+ * no page is bound, or the binding is ambiguous.
+ *
+ * @param int $artist_id Artist profile ID on the Artist site.
+ * @return int Link Page ID on the storage blog, or 0.
+ */
+function ec_users_get_artist_link_page_id( $artist_id ) {
+	$artist_id      = absint( $artist_id );
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
+	if ( ! $artist_id || ! $artist_blog_id || ! function_exists( 'ec_format_link_page_owner_reference' ) || ! function_exists( 'ec_get_link_page_id_for_owner' ) ) {
+		return 0;
+	}
+
+	$reference = ec_format_link_page_owner_reference(
+		array(
+			'kind'      => 'post',
+			'blog_id'   => $artist_blog_id,
+			'subtype'   => 'artist_profile',
+			'object_id' => $artist_id,
+		)
+	);
+	if ( is_wp_error( $reference ) ) {
+		return 0;
+	}
+
+	$link_page_id = ec_get_link_page_id_for_owner( $reference );
+	return is_wp_error( $link_page_id ) ? 0 : (int) $link_page_id;
+}
+
+/**
  * Get the most recently active artist ID for a user
  *
  * Determines which artist the user has most recently worked on
@@ -129,25 +162,14 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
-
-	$find_latest_artist_id = static function () use ( $user_artists, $link_page_type ) {
+	$find_latest_artist_id = static function () use ( $user_artists ) {
 		$latest_artist_id          = 0;
 		$latest_modified_timestamp = 0;
 
 		foreach ( $user_artists as $artist_id ) {
-			$link_pages = get_posts(
-				array(
-					'post_type'      => $link_page_type,
-					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
-					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
-					'posts_per_page' => 1,
-					'fields'         => 'ids',
-				)
-			);
+			$link_page_id = ec_users_get_artist_link_page_id( $artist_id );
 
-			if ( ! empty( $link_pages ) ) {
-				$link_page_id      = (int) $link_pages[0];
+			if ( $link_page_id && 'publish' === get_post_status( $link_page_id ) ) {
 				$post_modified_gmt = get_post_field( 'post_modified_gmt', $link_page_id, 'raw' );
 				if ( is_string( $post_modified_gmt ) && $post_modified_gmt ) {
 					$current_timestamp = strtotime( $post_modified_gmt );
@@ -249,24 +271,13 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
-
-	$count_link_pages = static function () use ( $user_artists, $link_page_type ) {
+	$count_link_pages = static function () use ( $user_artists ) {
 		$link_page_count = 0;
 
 		foreach ( $user_artists as $artist_id ) {
-			$link_pages = get_posts(
-				array(
-					'post_type'      => $link_page_type,
-					'post_status'    => 'publish',
-					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
-					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
-					'posts_per_page' => 1,
-					'fields'         => 'ids',
-				)
-			);
+			$link_page_id = ec_users_get_artist_link_page_id( $artist_id );
 
-			if ( ! empty( $link_pages ) ) {
+			if ( $link_page_id && 'publish' === get_post_status( $link_page_id ) ) {
 				++$link_page_count;
 			}
 		}

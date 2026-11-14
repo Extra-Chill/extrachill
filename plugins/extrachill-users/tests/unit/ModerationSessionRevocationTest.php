@@ -68,12 +68,14 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 			$this->markTestSkipped( 'The canonical artist site is unavailable.' );
 		}
 
+		$this->install_link_page_storage_stubs();
+
 		switch_to_blog( $artist_blog_id );
 		register_post_type( 'artist_profile', array( 'public' => true ) );
 		register_post_type( 'artist_link_page', array( 'public' => true ) );
 		$artist_id = self::factory()->post->create( array( 'post_type' => 'artist_profile' ) );
 		$link_id   = self::factory()->post->create( array( 'post_type' => 'artist_link_page' ) );
-		update_post_meta( $link_id, '_associated_artist_profile_id', (string) $artist_id );
+		update_post_meta( $link_id, '_ec_link_page_owner_reference', 'post:' . $artist_blog_id . ':artist_profile:' . $artist_id );
 		restore_current_blog();
 		ec_users_tests_set_user_artists( $user_id, array( $artist_id ) );
 
@@ -114,7 +116,7 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 		switch_to_blog( $storage_blog_id );
 		register_post_type( 'ec_link_page', array( 'public' => true ) );
 		$link_id = self::factory()->post->create( array( 'post_type' => 'ec_link_page' ) );
-		update_post_meta( $link_id, '_associated_artist_profile_id', (string) $artist_id );
+		update_post_meta( $link_id, '_ec_link_page_owner_reference', 'post:' . $artist_blog_id . ':artist_profile:' . $artist_id );
 		restore_current_blog();
 
 		ec_users_tests_set_user_artists( $user_id, array( $artist_id ) );
@@ -167,9 +169,9 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Define the Link Page storage-helper functions that moderation guards
-	 * on with function_exists(), for the (common) case where
-	 * extrachill-link-pages is not loaded in this test process.
+	 * Define the Link Page runtime functions that moderation guards on with
+	 * function_exists(), for the (common) case where extrachill-link-pages is
+	 * not loaded in this test process.
 	 *
 	 * With no $GLOBALS overrides set, these stubs reproduce today's
 	 * gate-off behavior exactly (storage blog resolves to the artist blog,
@@ -196,6 +198,35 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 				unset( $blog_id );
 
 				return $GLOBALS['test_link_page_post_type'] ?? 'artist_link_page';
+			}
+		}
+
+		if ( ! function_exists( 'ec_format_link_page_owner_reference' ) ) {
+			function ec_format_link_page_owner_reference( $owner ) {
+				return sprintf( '%s:%d:%s:%d', $owner['kind'], $owner['blog_id'], $owner['subtype'], $owner['object_id'] );
+			}
+		}
+
+		if ( ! function_exists( 'ec_get_link_page_id_for_owner' ) ) {
+			function ec_get_link_page_id_for_owner( $owner, $allowed_link_pages = array() ) {
+				unset( $allowed_link_pages );
+
+				return ec_with_link_page_storage_blog(
+					static function () use ( $owner ) {
+						$ids = get_posts(
+							array(
+								'post_type'      => ec_link_page_post_type(),
+								'post_status'    => 'any',
+								'posts_per_page' => 1,
+								'fields'         => 'ids',
+								'meta_key'       => '_ec_link_page_owner_reference',
+								'meta_value'     => $owner,
+							)
+						);
+
+						return $ids ? (int) $ids[0] : 0;
+					}
+				);
 			}
 		}
 
