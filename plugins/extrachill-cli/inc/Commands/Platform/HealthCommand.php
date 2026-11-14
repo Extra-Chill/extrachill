@@ -12,6 +12,7 @@
  *   - Return rate           extrachill/get-retention-stats
  *   - Search-gap count      extrachill/get-search-gaps    (may be absent)
  *   - Error rate            extrachill/get-php-error-summary
+ *   - REST 5xx rate         extrachill/get-rest-5xx-summary
  *   - Queue health          datamachine/get-jobs-summary
  *   - Content inventory     wp_count_posts (core read, per registered type)
  *
@@ -126,14 +127,16 @@ class HealthCommand {
 			'retention'  => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-retention-stats' ) : null,
 			'search_gap' => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-search-gaps' ) : null,
 			'errors'     => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-php-error-summary' ) : null,
+			'rest_5xx'   => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-rest-5xx-summary' ) : null,
 			'jobs'       => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/get-jobs-summary' ) : null,
 		);
 
 		// The error log is host-wide. Queue storage is site-owned, and the jobs
 		// ability is bound to the bootstrap site's $wpdb->prefix when WordPress
 		// loads. Switching blogs here would not rebind its repositories.
-		$network = array(
-			'errors_per_day' => $this->compose_errors( $abilities['errors'], $days ),
+		$network = array_merge(
+			array( 'errors_per_day' => $this->compose_errors( $abilities['errors'], $days ) ),
+			$this->compose_rest_5xx( $abilities['rest_5xx'] )
 		);
 		$queue   = array(
 			'blog_id' => get_current_blog_id(),
@@ -164,7 +167,7 @@ class HealthCommand {
 			Utils\format_items(
 				$format,
 				$this->csv_rows( $records, $network ),
-				array_merge( array( 'scope', 'site', 'blog_id' ), self::TRAFFIC_FIELDS, array( 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' ) )
+				array_merge( array( 'scope', 'site', 'blog_id' ), self::TRAFFIC_FIELDS, array( 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'network_rest_5xx_per_day', 'queue_failed', 'queue_stuck' ) )
 			);
 			return;
 		}
@@ -198,7 +201,10 @@ class HealthCommand {
 			array_merge(
 				array( 'scope' => 'network' ),
 				$empty_site,
-				array( 'network_errors_per_day' => $network['errors_per_day'] )
+				array(
+					'network_errors_per_day'   => $network['errors_per_day'],
+					'network_rest_5xx_per_day' => $network['rest_5xx_per_day'],
+				)
 			),
 		);
 
@@ -206,7 +212,10 @@ class HealthCommand {
 			$rows[] = array_merge(
 				array( 'scope' => 'site' ),
 				$record,
-				array( 'network_errors_per_day' => '' )
+				array(
+					'network_errors_per_day'   => '',
+					'network_rest_5xx_per_day' => '',
+				)
 			);
 		}
 
@@ -469,6 +478,41 @@ class HealthCommand {
 	}
 
 	/**
+	 * Compose the last-24h REST 5xx rate and top signature.
+	 *
+	 * REST error responses never reach debug.log, so this is a separate
+	 * network-global signal from errors_per_day. The counter keeps 7 days;
+	 * the scorecard reads the trailing 24 hours so a live incident stands out.
+	 *
+	 * @param \WP_Ability|null $ability REST 5xx summary ability (or null if absent).
+	 * @return array{rest_5xx_per_day:mixed,rest_5xx_top:mixed}
+	 */
+	private function compose_rest_5xx( $ability ) {
+		$gap = array(
+			'rest_5xx_per_day' => self::GAP,
+			'rest_5xx_top'     => self::GAP,
+		);
+		if ( ! $ability ) {
+			return $gap;
+		}
+		$result = $ability->execute(
+			array(
+				'hours' => 24,
+				'limit' => 1,
+			)
+		);
+		if ( is_wp_error( $result ) || ! is_array( $result ) || ! isset( $result['per_day'] ) ) {
+			return $gap;
+		}
+		$top = is_array( $result['top'] ?? null ) ? sprintf( '%s %s ×%d', $result['top']['route'], $result['top']['code'], (int) $result['top']['count'] ) : null;
+
+		return array(
+			'rest_5xx_per_day' => round( (float) $result['per_day'], 1 ),
+			'rest_5xx_top'     => $top,
+		);
+	}
+
+	/**
 	 * Compose a queue-health metric from datamachine/get-jobs-summary.
 	 *
 	 * Data Machine jobs use the current site's table prefix. The resolved
@@ -564,6 +608,7 @@ class HealthCommand {
 			'Return rate'  => (bool) $abilities['retention'],
 			'Search gaps'  => (bool) $abilities['search_gap'],
 			'Error rate'   => (bool) $abilities['errors'],
+			'REST 5xx'     => (bool) $abilities['rest_5xx'],
 			'Queue health' => (bool) $abilities['jobs'],
 		);
 		$present  = array();
@@ -585,6 +630,7 @@ class HealthCommand {
 		// below only for the site whose context bootstrapped the jobs ability.
 		WP_CLI::log( 'Network-wide' );
 		WP_CLI::log( sprintf( '    Errors/day:  %s', $this->fmt( $network['errors_per_day'] ) ) );
+		WP_CLI::log( sprintf( '    REST 5xx/day: %s (last 24h)%s', $this->fmt( $network['rest_5xx_per_day'] ), is_string( $network['rest_5xx_top'] ) && self::GAP !== $network['rest_5xx_top'] ? '   top: ' . $network['rest_5xx_top'] : '' ) );
 		WP_CLI::log( '' );
 		WP_CLI::log( 'Per-surface' );
 		WP_CLI::log( str_repeat( '─', 72 ) );

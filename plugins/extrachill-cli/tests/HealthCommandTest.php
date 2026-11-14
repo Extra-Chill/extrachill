@@ -44,9 +44,10 @@ namespace {
 		$health_command_jobs_ability  = new HealthCommandTestAbility();
 		$health_command_error_ability = new HealthCommandTestAbility();
 		$health_command_ga_ability    = null;
+		$health_command_rest_ability  = null;
 
 		function wp_get_ability( $name ) {
-			global $health_command_error_ability, $health_command_jobs_ability, $health_command_ga_ability;
+			global $health_command_error_ability, $health_command_jobs_ability, $health_command_ga_ability, $health_command_rest_ability;
 			if ( 'datamachine/google-analytics' === $name ) {
 				return $health_command_ga_ability;
 			}
@@ -55,6 +56,9 @@ namespace {
 			}
 			if ( 'extrachill/get-php-error-summary' === $name ) {
 				return $health_command_error_ability;
+			}
+			if ( 'extrachill/get-rest-5xx-summary' === $name ) {
+				return $health_command_rest_ability;
 			}
 			return null;
 		}
@@ -133,7 +137,7 @@ namespace {
 
 		global $health_command_current_blog, $health_command_error_ability, $health_command_formats, $health_command_jobs_ability;
 
-		$command = new HealthCommand();
+		$command                              = new HealthCommand();
 		$health_command_error_ability->result = array( 'active_per_day' => 42.5 );
 
 		// JSON must preserve network and site scopes as distinct typed structures.
@@ -147,7 +151,15 @@ namespace {
 		$command->health( array(), array( 'format' => 'json' ) );
 		$main_json = WP_CLI::$printed[0]['value'];
 		$main_rows = $main_json['sites'];
-		health_command_assert_same( array( 'errors_per_day' => 42.5 ), $main_json['network'], 'JSON must expose the host-wide error rate exactly once in its network scope.' );
+		health_command_assert_same(
+			array(
+				'errors_per_day'   => 42.5,
+				'rest_5xx_per_day' => HealthCommand::GAP,
+				'rest_5xx_top'     => HealthCommand::GAP,
+			),
+			$main_json['network'],
+			'JSON must expose host-wide signals once in network scope; an absent REST 5xx counter is an explicit gap.'
+		);
 		health_command_assert_same( array( 'format' => 'json' ), WP_CLI::$printed[0]['args'], 'JSON must use WP-CLI structured output.' );
 		health_command_assert_same( 0, $main_rows[0]['queue_failed'], 'The bootstrap site must receive its own failed count.' );
 		health_command_assert_same( 0, $main_rows[0]['queue_stuck'], 'The bootstrap site must receive its own stuck count.' );
@@ -158,7 +170,7 @@ namespace {
 		health_command_assert_same( false, array_key_exists( 'errors_per_day', $main_rows[0] ), 'JSON site rows must not imply per-site error attribution.' );
 
 		// Bootstrapping the Events site exposes its site-owned queue on the Events row.
-		$health_command_current_blog = 7;
+		$health_command_current_blog         = 7;
 		$health_command_jobs_ability->result = array(
 			'success' => true,
 			'summary' => array(
@@ -190,7 +202,7 @@ namespace {
 		health_command_assert_same( HealthCommand::GAP, $error_rows[1]['queue_stuck'], 'An owner error must not become a healthy stuck count.' );
 
 		// CSV must carry the host-wide rate only on an explicitly scoped network row.
-		$health_command_current_blog = 1;
+		$health_command_current_blog         = 1;
 		$health_command_jobs_ability->result = array(
 			'success' => true,
 			'summary' => array(
@@ -217,6 +229,36 @@ namespace {
 		health_command_assert_contains( 'Network-wide', $table, 'Table output must retain its network scope label.' );
 		health_command_assert_contains( 'Errors/day:  42.5', $table, 'Table output must retain the network error rate.' );
 		health_command_assert_same( 1, substr_count( $table, 'Errors/day:' ), 'Table output must print the network error rate once.' );
+		health_command_assert_contains( 'REST 5xx/day: not instrumented', $table, 'An absent REST 5xx counter must render as a gap, never as zero.' );
+
+		// #1353: REST 5xx responses are their own network signal, read over the last 24h.
+		global $health_command_rest_ability;
+		$health_command_rest_ability         = new HealthCommandTestAbility();
+		$health_command_rest_ability->result = array(
+			'per_day' => 15012.0,
+			'top'     => array(
+				'route' => '/wp-abilities/v1/abilities/(?P<name>[a-zA-Z0-9\-\/]+?)/run [extrachill/resolve-experiment-assignment]',
+				'code'  => 'ability_invalid_output',
+				'count' => 15012,
+			),
+		);
+		$printed_before                      = count( WP_CLI::$printed );
+		$command->health( array(), array( 'format' => 'json' ) );
+		$rest_network = WP_CLI::$printed[ $printed_before ]['value']['network'];
+		health_command_assert_same( 15012.0, $rest_network['rest_5xx_per_day'], 'JSON must expose the REST 5xx rate.' );
+		health_command_assert_contains( 'ability_invalid_output ×15012', $rest_network['rest_5xx_top'], 'JSON must name the top REST 5xx route and code.' );
+		health_command_assert_same( array(
+			'hours' => 24,
+			'limit' => 1,
+		), $health_command_rest_ability->inputs[0], 'The scorecard reads the trailing 24 hours.' );
+		health_command_assert_same( false, array_key_exists( 'rest_5xx_per_day', WP_CLI::$printed[ $printed_before ]['value']['sites'][0] ), 'Site rows must not imply per-site REST 5xx attribution.' );
+		WP_CLI::$messages = array();
+		$command->health( array(), array( 'format' => 'table' ) );
+		health_command_assert_contains( 'REST 5xx/day: 15,012.0 (last 24h)   top: ', implode( "\n", WP_CLI::$messages ), 'Table output must print the REST 5xx rate and top signature.' );
+		$health_command_rest_ability->result = new WP_Error();
+		$command->health( array(), array( 'format' => 'json' ) );
+		health_command_assert_same( HealthCommand::GAP, WP_CLI::$printed[ count( WP_CLI::$printed ) - 1 ]['value']['network']['rest_5xx_per_day'], 'An owner error must not become a healthy zero.' );
+		$health_command_rest_ability = null;
 
 		// Without GA, every traffic field is an explicit coverage gap.
 		foreach ( HealthCommand::TRAFFIC_FIELDS as $field ) {
@@ -283,8 +325,11 @@ namespace {
 			'action'  => 'aggregate_report',
 			'reports' => array( array( 'rows' => $events_rows ) ),
 		);
-		WP_CLI::$printed = array();
-		$command->health( array(), array( 'format' => 'json', 'days' => 28 ) );
+		WP_CLI::$printed                   = array();
+		$command->health( array(), array(
+			'format' => 'json',
+			'days'   => 28,
+		) );
 		$ga_input = $health_command_ga_ability->inputs[1];
 		health_command_assert_same( 'aggregate_report', $ga_input['action'], 'Traffic must come from aggregate_report.' );
 		health_command_assert_same( array( 'sessions', 'engagedSessions', 'averageSessionDuration' ), $ga_input['metrics'], 'Engagement metrics must be requested explicitly.' );
@@ -322,7 +367,7 @@ namespace {
 			'success' => true,
 			'reports' => array( array( 'rows' => $events_rows ) ),
 		);
-		WP_CLI::$messages = array();
+		WP_CLI::$messages                  = array();
 		$command->health( array(), array( 'format' => 'table' ) );
 		$table = implode( "\n", WP_CLI::$messages );
 		health_command_assert_contains( 'Traffic:     30,323 engaged sessions   organic 61.1%   direct 37.6%', $table, 'Table must lead with engaged traffic.' );
