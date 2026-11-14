@@ -56,7 +56,7 @@ function extrachill_shop_stripe_init() {
  * `artist_reference` metadata). Venues and promoters choose their business
  * type during Stripe onboarding.
  *
- * @param array $seller Seller reference { type: artist|venue|promoter, id }.
+ * @param mixed $seller Seller reference { type: artist|venue|promoter, id }.
  * @return array{success: bool, account_id?: string, error?: string}
  */
 function extrachill_shop_create_seller_stripe_account( $seller ) {

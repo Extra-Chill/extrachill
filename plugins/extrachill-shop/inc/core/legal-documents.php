@@ -18,11 +18,9 @@ defined( 'ABSPATH' ) || exit;
  * record the new version on their next order, and sellers must accept the new
  * Seller Agreement before their next Stripe onboarding link.
  *
- * @return array{
- *     terms: array{url: string, version: string},
- *     seller_agreement: array{url: string, version: string},
- *     privacy: array{url: string}
- * }
+ * Keys: terms {url, version}, seller_agreement {url, version}, privacy {url}.
+ *
+ * @return array<string, array<string, string>>
  */
 function extrachill_shop_legal_documents(): array {
 	$defaults = array(
@@ -44,14 +42,16 @@ function extrachill_shop_legal_documents(): array {
 	 *
 	 * @param array $documents Documents keyed by terms, seller_agreement, privacy.
 	 */
-	$documents = apply_filters( 'extrachill_shop_legal_documents', $defaults );
-	if ( ! is_array( $documents ) ) {
+	/** @var mixed $filtered Filters may return anything. */
+	$filtered = apply_filters( 'extrachill_shop_legal_documents', $defaults );
+	if ( ! is_array( $filtered ) ) {
 		return $defaults;
 	}
 
+	$documents = $filtered;
 	foreach ( $defaults as $key => $document ) {
-		$documents[ $key ] = is_array( $documents[ $key ] ?? null )
-			? array_merge( $document, $documents[ $key ] )
+		$documents[ $key ] = is_array( $filtered[ $key ] ?? null )
+			? array_merge( $document, $filtered[ $key ] )
 			: $document;
 	}
 	return $documents;

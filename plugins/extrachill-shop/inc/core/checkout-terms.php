@@ -54,8 +54,8 @@ function extrachill_shop_checkout_terms_block_attrs(): array {
 /**
  * Force the required checkbox and consent text onto the checkout terms block.
  *
- * @param array $parsed_block Parsed block.
- * @return array
+ * @param mixed $parsed_block Parsed block (an array from `render_block_data`).
+ * @return mixed
  */
 function extrachill_shop_require_checkout_terms_block( $parsed_block ) {
 	if ( ! is_array( $parsed_block ) || EXTRACHILL_SHOP_CHECKOUT_TERMS_BLOCK !== ( $parsed_block['blockName'] ?? '' ) ) {
@@ -173,11 +173,11 @@ function extrachill_shop_maybe_provision_checkout_terms() {
  * The Checkout block refuses to submit until the required terms checkbox is
  * ticked, so a processed Store API checkout carries the buyer's consent.
  *
- * @param WC_Order $order Order being processed.
+ * @param mixed $order Order being processed (a WC_Order from the Store API).
  * @return void
  */
 function extrachill_shop_record_checkout_terms_acceptance( $order ) {
-	if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) ) {
+	if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) || ! method_exists( $order, 'save' ) ) {
 		return;
 	}
 	$order->update_meta_data( '_extrachill_terms_accepted_at', gmdate( 'Y-m-d\TH:i:s\Z' ) );
