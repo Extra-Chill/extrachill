@@ -27,6 +27,7 @@ function wp_register_ability( $name, $args ) {
 	$GLOBALS['abilities'][ $name ] = $args;
 }
 
+require_once __DIR__ . '/../inc/core/signed-token.php';
 require_once __DIR__ . '/../inc/core/experiments.php';
 
 foreach ( glob( __DIR__ . '/../inc/Abilities/*.php' ) as $file ) {

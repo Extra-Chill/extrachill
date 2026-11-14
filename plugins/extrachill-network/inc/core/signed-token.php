@@ -12,6 +12,35 @@ if ( ! defined( 'EXTRACHILL_SIGN_LEGACY_UNTIL' ) ) {
 	define( 'EXTRACHILL_SIGN_LEGACY_UNTIL', 1797724800 ); // 2026-12-20 00:00:00 UTC.
 }
 
+// Token envelope owned by this primitive. Consumers that describe a token in a
+// schema must derive from these (see extrachill_signed_token_schema()) rather
+// than re-describe the format, or the next envelope change breaks them (#1352).
+if ( ! defined( 'EXTRACHILL_SIGNED_TOKEN_MAX_LENGTH' ) ) {
+	define( 'EXTRACHILL_SIGNED_TOKEN_MAX_LENGTH', 8192 );
+}
+if ( ! defined( 'EXTRACHILL_SIGNED_TOKEN_PATTERN_BODY' ) ) {
+	define( 'EXTRACHILL_SIGNED_TOKEN_PATTERN_BODY', '[A-Za-z0-9_-]+\\.[a-f0-9]{64}' );
+}
+
+/**
+ * JSON Schema for a value carrying an extrachill_sign() token.
+ *
+ * Use this in ability input/output schemas instead of hand-writing a length
+ * or pattern, so schemas track the primitive's envelope.
+ *
+ * @param bool $allow_empty Whether an empty string (no token issued) is valid.
+ * @return array<string, mixed> JSON Schema fragment.
+ */
+function extrachill_signed_token_schema( bool $allow_empty = false ): array {
+	return array(
+		'type'      => 'string',
+		'pattern'   => $allow_empty
+			? '^(?:' . EXTRACHILL_SIGNED_TOKEN_PATTERN_BODY . ')?$'
+			: '^' . EXTRACHILL_SIGNED_TOKEN_PATTERN_BODY . '$',
+		'maxLength' => EXTRACHILL_SIGNED_TOKEN_MAX_LENGTH,
+	);
+}
+
 /**
  * Sign claims. Invalid purposes, TTLs or unencodable claims return an empty token.
  *
@@ -40,7 +69,7 @@ function extrachill_sign( string $purpose, array $claims, int $ttl ): string {
 		$payload = rtrim( strtr( base64_encode( $json ), '+/', '-_' ), '=' );
 		$key     = hash_hmac( 'sha256', 'extrachill-sign:' . $purpose, wp_salt( 'auth' ) );
 		$token   = $payload . '.' . hash_hmac( 'sha256', $payload, $key );
-		return 8192 >= strlen( $token ) ? $token : '';
+		return EXTRACHILL_SIGNED_TOKEN_MAX_LENGTH >= strlen( $token ) ? $token : '';
 	} catch ( Throwable $error ) {
 		return '';
 	}
@@ -55,12 +84,12 @@ function extrachill_sign( string $purpose, array $claims, int $ttl ): string {
  * @return array|null Verified claims, or null.
  */
 function extrachill_verify( string $purpose, string $token, ?int $now = null ): ?array {
-	if ( 8192 < strlen( $token ) || 1 !== preg_match( '/^[a-z0-9_.-]{1,64}$/D', $purpose ) ) {
+	if ( EXTRACHILL_SIGNED_TOKEN_MAX_LENGTH < strlen( $token ) || 1 !== preg_match( '/^[a-z0-9_.-]{1,64}$/D', $purpose ) ) {
 		return null;
 	}
 
 	try {
-		if ( 1 !== preg_match( '/^([A-Za-z0-9_-]+)\.([a-f0-9]{64})$/D', $token, $parts ) ) {
+		if ( 1 !== preg_match( '/^([A-Za-z0-9_-]+)\.([a-f0-9]{64})$/D', $token, $parts ) ) { // Mirrors EXTRACHILL_SIGNED_TOKEN_PATTERN_BODY with capture groups.
 			return null;
 		}
 		$key = hash_hmac( 'sha256', 'extrachill-sign:' . $purpose, wp_salt( 'auth' ) );

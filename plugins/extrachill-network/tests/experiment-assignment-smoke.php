@@ -414,6 +414,22 @@ $assigned                      = extrachill_resolve_experiment_assignment( 'geo-
 experiment_check( 'provider-approved subject receives an assignment', true === $assigned['measurement_eligible'] );
 experiment_check( 'assignment stays within registered variants', in_array( $assigned['variant'], array( 'control', 'treatment' ), true ) );
 $exposure_claims = extrachill_verify( 'network.experiment_exposure', $assigned['exposure_token'] );
+/**
+ * Apply the string keywords core's abilities runner enforces (rest_validate_value_from_schema).
+ *
+ * @param array<string, mixed> $schema String schema fragment.
+ * @param string               $value  Candidate value.
+ */
+function experiment_schema_accepts( array $schema, string $value ): bool {
+	if ( isset( $schema['maxLength'] ) && strlen( $value ) > $schema['maxLength'] ) {
+		return false;
+	}
+	if ( isset( $schema['pattern'] ) && 1 !== preg_match( '#' . str_replace( '#', '\\#', $schema['pattern'] ) . '#u', $value ) ) {
+		return false;
+	}
+	return true;
+}
+$issued_exposure_token = $assigned['exposure_token'];
 experiment_check( 'assignment returns a nonce-bearing opaque exposure proof', is_array( $exposure_claims ) && 1 === preg_match( '/^[a-f0-9]{32}$/D', $exposure_claims['n'] ) );
 experiment_check( 'exposure claims carry keyed subject and context digests', wp_hash( 'experiment-subject|visitor-123', 'auth' ) === $exposure_claims['subject_hash'] && wp_hash( 'experiment-context|' . extrachill_experiment_context_json( array() ), 'auth' ) === $exposure_claims['context_hash'] && false === strpos( wp_json_encode( $exposure_claims ), 'visitor-123' ) && hash( 'sha256', 'visitor-123' ) !== $exposure_claims['subject_hash'] );
 experiment_check( 'exposure claims do not disclose the subject', false === strpos( wp_json_encode( $exposure_claims ), 'visitor-123' ) );
@@ -666,6 +682,12 @@ experiment_check( 'ability context is bounded to ten scalar properties', 10 === 
 $exposure_args = $GLOBALS['experiment_abilities']['extrachill/record-experiment-exposure'];
 experiment_check( 'exposure uses the existing core Abilities route', true === $exposure_args['meta']['show_in_rest'] );
 experiment_check( 'exposure ability requires a signed token', in_array( 'exposure_token', $exposure_args['input_schema']['required'], true ) );
+$resolve_token_schema  = $ability_args['output_schema']['properties']['exposure_token'] ?? array();
+$exposure_token_schema = $exposure_args['input_schema']['properties']['exposure_token'] ?? array();
+experiment_check( '#1352: registered resolve output schema accepts a real signed exposure token', array() !== $resolve_token_schema && experiment_schema_accepts( $resolve_token_schema, $issued_exposure_token ) );
+experiment_check( '#1352: registered resolve output schema accepts the ineligible empty token', experiment_schema_accepts( $resolve_token_schema, '' ) );
+experiment_check( '#1352: registered exposure input schema accepts the token resolve issued', array() !== $exposure_token_schema && experiment_schema_accepts( $exposure_token_schema, $issued_exposure_token ) );
+experiment_check( '#1352: registered exposure input schema rejects empty and malformed tokens', ! experiment_schema_accepts( $exposure_token_schema, '' ) && ! experiment_schema_accepts( $exposure_token_schema, 'not-a-token' ) );
 $GLOBALS['experiment_filters']['extrachill_experiment_definitions'] = array(
 	static function (): array {
 		return array( 'geo-bridge-holdout' => experiment_definition() );
