@@ -238,7 +238,7 @@ function extrachill_analytics_link_page_schema_reconcile_table( $table, $columns
 	if ( true === $ready ) {
 		return true;
 	}
-	if ( is_wp_error( $ready ) && 'analytics_link_page_schema_read_failed' === $ready->get_error_code() ) {
+	if ( 'analytics_link_page_schema_read_failed' === $ready->get_error_code() ) {
 		return $ready;
 	}
 
