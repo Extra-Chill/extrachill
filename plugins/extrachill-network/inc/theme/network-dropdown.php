@@ -26,7 +26,9 @@ function extrachill_network_breadcrumb_dropdown( $trail ) {
 function extrachill_network_register_dropdown_experiment( $definitions ) {
 	$definitions['network-dropdown-everywhere'] = array(
 		'key'                  => 'network-dropdown-everywhere',
-		'definition_version'   => 1,
+		// v2: restart after #1352. v1 exposures stopped at 2026-11-13 00:38 UTC
+		// while treatment never rendered; v1 data must not mix with v2.
+		'definition_version'   => 2,
 		'assignment_policy'    => 'weighted_random',
 		'default_state'        => 'inactive',
 		'default_variant'      => 'control',
