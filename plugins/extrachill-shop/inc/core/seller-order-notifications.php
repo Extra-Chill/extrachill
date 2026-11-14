@@ -62,9 +62,10 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
 	}
 
 	foreach ( $groups as $group ) {
-		$total                  = $group['total'];
-		$fee                    = min( max( round( $total * extrachill_shop_get_default_commission_rate(), 2 ), 0.0 ), $total );
-		$group['seller_payout'] = round( $total - $fee, 2 );
+		$total_minor            = (int) round( $group['total'] * 100 );
+		$fee                    = extrachill_commerce_fee( 'extrachill_merch', $total_minor, $group['seller'] );
+		$group['seller_payout'] = ( $total_minor - $fee['application_fee'] ) / 100;
+		$group['shipping_held'] = extrachill_shop_order_shipping_hold( $order ) / 100;
 		extrachill_shop_send_seller_order_notification( $order, $group['seller'], $group );
 	}
 }
@@ -295,6 +296,14 @@ function extrachill_shop_build_order_notification_body( $order, $seller_name, $p
 		'<p style="margin-top: 15px; font-size: 16px;"><strong>Your Payout:</strong> $%s</p>',
 		$seller_payout
 	);
+
+	$shipping_held = (float) ( $payout_data['shipping_held'] ?? 0 );
+	if ( $shipping_held > 0 ) {
+		$html .= sprintf(
+			'<p style="margin-top: 5px;">The buyer paid $%s shipping. Extra Chill keeps it to pay for the label when you buy one from Shop Manager. If you ship the order yourself, it is paid out to you when you mark the order shipped.</p>',
+			number_format( $shipping_held, 2 )
+		);
+	}
 
 	$html .= '<h3 style="margin-top: 30px; margin-bottom: 10px;">Ship To</h3>';
 	$html .= sprintf(

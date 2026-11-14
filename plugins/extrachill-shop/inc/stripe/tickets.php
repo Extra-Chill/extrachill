@@ -2,15 +2,6 @@
 /** Seller-settled ticket payments. No WooCommerce orders or tax calculation. */
 defined( 'ABSPATH' ) || exit;
 
-function extrachill_shop_ticket_fees( $subtotal, array $settings ) {
-	$buyer  = max( 0, (int) ( $settings['buyer_fee_flat_minor'] ?? 0 ) ) + (int) round( $subtotal * max( 0, (float) ( $settings['buyer_fee_percent'] ?? 0 ) ) / 100 );
-	$seller = (int) round( $subtotal * max( 0, min( 100, (float) ( $settings['seller_fee_percent'] ?? 0 ) ) ) / 100 );
-	return array(
-		'buyer'       => $buyer,
-		'application' => $buyer + $seller,
-	);
-}
-
 function extrachill_shop_start_ticket_checkout( array $input ) {
 	if ( ! is_int( $input['quantity'] ?? null ) || $input['quantity'] < 1 || $input['quantity'] > 10 || empty( trim( $input['name'] ?? '' ) ) || ! is_email( $input['email'] ?? '' ) ) {
 		return new WP_Error( 'invalid_ticket_input', 'A name, email and quantity from 1 to 10 are required.', array( 'status' => 400 ) );
@@ -33,7 +24,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments.', array( 'status' => 409 ) ); }
 	if ( ! is_int( $offer['price_minor'] ) || $offer['price_minor'] < 1 ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
-	$fees     = extrachill_shop_ticket_fees( $offer['price_minor'] * $input['quantity'], get_site_option( 'extrachill_ticket_fees', array() ) );
+	$fees     = extrachill_commerce_fee( 'extrachill_ticket', $offer['price_minor'] * $input['quantity'], $seller );
 	$metadata = array(
 		'event_id'    => (string) $offer['event_id'],
 		'quantity'    => (string) $input['quantity'],
@@ -52,12 +43,12 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			),
 		),
 	);
-	if ( $fees['buyer'] > 0 ) {
+	if ( $fees['buyer_fee'] > 0 ) {
 		$items[] = array(
 			'quantity'   => 1,
 			'price_data' => array(
 				'currency'     => $offer['currency'],
-				'unit_amount'  => $fees['buyer'],
+				'unit_amount'  => $fees['buyer_fee'],
 				'product_data' => array( 'name' => 'Service fee' ),
 			),
 		); }
@@ -68,7 +59,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'customer_email'      => $input['email'],
 			'metadata'            => $metadata,
 			'payment_intent_data' => array(
-				'application_fee_amount' => $fees['application'],
+				'application_fee_amount' => $fees['application_fee'],
 				'metadata'               => $metadata,
 			),
 			'success_url'         => add_query_arg( 'tickets', 'success', $offer['url'] ) . '&session_id={CHECKOUT_SESSION_ID}',
@@ -85,8 +76,8 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'sales'          => array(
 				'event_id'     => (int) $offer['event_id'],
 				'tickets_sold' => $input['quantity'],
-				'gross_minor'  => $offer['price_minor'] * $input['quantity'] + $fees['buyer'],
-				'fees_minor'   => $fees['application'],
+				'gross_minor'  => $offer['price_minor'] * $input['quantity'] + $fees['buyer_fee'],
+				'fees_minor'   => $fees['application_fee'],
 				'currency'     => $offer['currency'],
 				'period_start' => gmdate( 'Y-m-d H:i:s' ),
 			),

@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for commission rate storage and seller refunds.
+ * Tests for seller refunds. Fee rates are covered by CommerceFeeTest.
  *
  * @package ExtraChillShop
  */
@@ -10,7 +10,6 @@
 
 use PHPUnit\Framework\TestCase;
 
-require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
 require_once __DIR__ . '/fixtures/woo-refunds.php';
 
 final class RefundTestOrder {
@@ -79,29 +78,6 @@ final class RefundAndCommissionTest extends TestCase {
 		);
 		$GLOBALS['test_orders'][43]                = $order;
 		return $order;
-	}
-
-	public function test_settings_save_stores_decimal_rate(): void {
-		$option = array( 'id' => 'extrachill_shop_commission_rate' );
-		$value  = apply_filters( 'woocommerce_admin_settings_sanitize_option', '10', $option, '10' );
-		$value  = apply_filters( 'woocommerce_admin_settings_sanitize_option_extrachill_shop_commission_rate', $value, $option, '10' );
-
-		$this->assertSame( 0.1, $value );
-	}
-
-	public function test_legacy_percentage_option_reads_as_decimal(): void {
-		$GLOBALS['test_options']['extrachill_shop_commission_rate'] = '10';
-		$this->assertSame( 0.1, extrachill_shop_get_default_commission_rate() );
-
-		$GLOBALS['test_options']['extrachill_shop_commission_rate'] = '0.15';
-		$this->assertSame( 0.15, extrachill_shop_get_default_commission_rate() );
-	}
-
-	public function test_invalid_rate_falls_back_to_default(): void {
-		foreach ( array( '-1', '250', 'abc' ) as $bad ) {
-			$GLOBALS['test_options']['extrachill_shop_commission_rate'] = $bad;
-			$this->assertSame( EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE, extrachill_shop_get_default_commission_rate(), $bad );
-		}
 	}
 
 	public function test_seller_full_refund_is_one_direct_charge_refund(): void {
