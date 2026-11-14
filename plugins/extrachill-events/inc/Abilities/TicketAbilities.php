@@ -181,6 +181,10 @@ class TicketAbilities {
 	/**
 	 * Ask Shop, which owns Stripe Connect, whether a seller can take payments.
 	 *
+	 * Runs the Shop-owned `extrachill/shop-stripe-status` ability through its
+	 * run path, so it executes in the Shop runtime: the ability is registered
+	 * only where extrachill-shop is active, never in an Events request.
+	 *
 	 * Runs as the current user, who already holds finance authority for the
 	 * seller. An unknown status refuses: tickets never open on a guess.
 	 *
@@ -193,14 +197,21 @@ class TicketAbilities {
 			return $unknown;
 		}
 
+		// The ability is annotated readonly, so core's run route takes GET with
+		// the input in the query string.
 		$status = ec_cross_site_rest_request(
 			'shop',
 			'GET',
-			'/shop/stripe-connect/status',
+			'/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run',
 			array(
-				'query' => array(
-					'seller_type' => (string) ( $seller['type'] ?? '' ),
-					'seller_id'   => (int) ( $seller['id'] ?? 0 ),
+				'user_id' => get_current_user_id(),
+				'query'   => array(
+					'input' => array(
+						'seller' => array(
+							'type' => (string) ( $seller['type'] ?? '' ),
+							'id'   => (int) ( $seller['id'] ?? 0 ),
+						),
+					),
 				),
 			)
 		);

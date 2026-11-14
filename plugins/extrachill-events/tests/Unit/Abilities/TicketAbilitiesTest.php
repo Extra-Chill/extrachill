@@ -33,6 +33,7 @@ function ec_send_email_queued( array $args ) { $GLOBALS['dispute_mail'][] = $arg
 eval( 'namespace ExtraChillEvents\Abilities; class CommerceSellerNotifications { public static function get_data( string $type, int $id ): array { $GLOBALS["dispute_seller"] = array( $type, $id ); return array( "name" => "Lo-Fi", "recipients" => array( "owner@example.com" ) ); } }' );
 function ec_cross_site_rest_request( $site, $method, $path, $args = array() ) {
 	$GLOBALS['shop_calls'][] = array( $site, $method, $path, $args['query'] ?? array() );
+	$GLOBALS['shop_call_args'][] = $args;
 	return $GLOBALS['shop_status'];
 }
 
@@ -83,6 +84,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['wpdb'] = new TicketWpdb();
 		$GLOBALS['ticket_timing'] = array( 10 => 'upcoming' );
 		$GLOBALS['shop_calls'] = array();
+		$GLOBALS['shop_call_args'] = array();
 		$GLOBALS['shop_status'] = array( 'can_receive_payments' => true );
 		$GLOBALS['ticket_meta'] = array( 10 => array( '_extrachill_ticket_offer' => array( 'tickets_enabled' => true, 'ticket_price_minor' => 1500, 'ticket_quantity' => 0, 'ticket_seller' => array( 'type' => 'venue', 'id' => 2 ) ) ) );
 	}
@@ -125,7 +127,18 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	public function test_enabling_with_ready_seller_asks_shop_and_succeeds(): void {
 		$settings = TicketAbilities::validate_settings( 10, $this->off_sale() );
 		$this->assertTrue( $settings['tickets_enabled'] );
-		$this->assertSame( array( array( 'shop', 'GET', '/shop/stripe-connect/status', array( 'seller_type' => 'venue', 'seller_id' => 2 ) ) ), $GLOBALS['shop_calls'] );
+		$this->assertSame( array( array( 'shop', 'GET', '/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run', array( 'input' => array( 'seller' => array( 'type' => 'venue', 'id' => 2 ) ) ) ) ), $GLOBALS['shop_calls'] );
+	}
+	public function test_seller_status_runs_the_shop_owned_ability_as_the_current_user(): void {
+		$this->assertTrue( TicketAbilities::seller_can_receive_payments( array( 'type' => 'promoter', 'id' => 9 ) ) );
+		// The Shop ability's run path, never the extrachill-api adapter route,
+		// whose wrapped ability is not registered in an Events request.
+		$this->assertSame( 'shop', $GLOBALS['shop_calls'][0][0] );
+		$this->assertSame( 'GET', $GLOBALS['shop_calls'][0][1], 'The ability is readonly, so core requires GET.' );
+		$this->assertSame( '/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run', $GLOBALS['shop_calls'][0][2] );
+		$this->assertSame( array( 'input' => array( 'seller' => array( 'type' => 'promoter', 'id' => 9 ) ) ), $GLOBALS['shop_call_args'][0]['query'] );
+		$this->assertSame( 1, $GLOBALS['shop_call_args'][0]['user_id'] );
+		$this->assertArrayNotHasKey( 'body', $GLOBALS['shop_call_args'][0] );
 	}
 	public function test_enabling_with_unready_seller_is_refused(): void {
 		$GLOBALS['shop_status'] = array( 'can_receive_payments' => false );
