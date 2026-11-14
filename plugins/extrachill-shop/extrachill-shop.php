@@ -62,6 +62,8 @@ class ExtraChillShop {
 
 		// Core functionality
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commerce-state.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/legal-documents.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/checkout-terms.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/owned-state-migration.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/order-seller-index.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/shop-manager.php';

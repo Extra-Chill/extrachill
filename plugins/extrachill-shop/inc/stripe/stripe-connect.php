@@ -200,9 +200,20 @@ function extrachill_shop_create_seller_stripe_account( $seller ) {
  * @param string     $account_id Stripe connected account ID.
  * @param string     $type       Link type: 'account_onboarding' or 'account_update'.
  * @param array|null $seller     Optional seller reference to return to in the shop manager.
- * @return array{success: bool, url?: string, error?: string}
+ *                               Onboarding links require it, and require the
+ *                               acting user's current Seller Agreement acceptance.
+ * @return array{success: bool, url?: string, error?: string, code?: string}
  */
 function extrachill_shop_create_account_link( $account_id, $type = 'account_onboarding', $seller = null ) {
+	if ( 'account_onboarding' === $type
+		&& ( ! is_array( $seller ) || ! extrachill_shop_has_accepted_seller_agreement( $seller, get_current_user_id() ) ) ) {
+		return array(
+			'success' => false,
+			'code'    => 'seller_agreement_required',
+			'error'   => extrachill_shop_seller_agreement_required_error()->get_error_message(),
+		);
+	}
+
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,

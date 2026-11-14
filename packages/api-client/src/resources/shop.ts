@@ -60,8 +60,19 @@ export class ShopResource extends BaseResource {
     return this.get(`extrachill/v1/shop/stripe-connect/status?artist_id=${artistId}`);
   }
 
-  createStripeOnboardingLink(artistId: number): Promise<{ url: string }> {
-    return this.post('extrachill/v1/shop/stripe-connect/onboarding-link', { artist_id: artistId });
+  /**
+   * Create a Stripe onboarding link. The server refuses with
+   * `seller_agreement_required` until the user accepts the current Seller
+   * Agreement; pass `acceptSellerAgreement: true` to record acceptance.
+   */
+  createStripeOnboardingLink(
+    artistId: number,
+    acceptSellerAgreement = false,
+  ): Promise<{ url: string; seller_agreement_version?: string }> {
+    return this.post('extrachill/v1/shop/stripe-connect/onboarding-link', {
+      artist_id: artistId,
+      ...(acceptSellerAgreement ? { accept_seller_agreement: true } : {}),
+    });
   }
 
   createStripeDashboardLink(artistId: number): Promise<{ url: string }> {

@@ -133,9 +133,11 @@ function extrachill_api_get_stripe_status( $request ) {
 }
 
 /**
- * Get Stripe onboarding link for an artist profile.
+ * Get Stripe onboarding link for a seller.
  *
- * Wraps the extrachill/shop-stripe-onboarding-link ability from extrachill-shop.
+ * Wraps the extrachill/shop-stripe-onboarding-link ability from extrachill-shop,
+ * forwarding `accept_seller_agreement` so the seller can accept the Seller
+ * Agreement in the same request.
  *
  * @param WP_REST_Request $request Request object.
  * @return WP_REST_Response|WP_Error Response.
@@ -146,7 +148,12 @@ function extrachill_api_get_onboarding_link( $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( extrachill_api_stripe_connect_input( $request ) );
+	$input = extrachill_api_stripe_connect_input( $request );
+	if ( null !== $request->get_param( 'accept_seller_agreement' ) ) {
+		$input['accept_seller_agreement'] = rest_sanitize_boolean( $request->get_param( 'accept_seller_agreement' ) );
+	}
+
+	$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
