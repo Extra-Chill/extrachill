@@ -348,31 +348,19 @@ function extrachill_shop_ability_operator_list_orders( array $input ): array|WP_
 		if ( is_wp_error( $seller ) ) {
 			return $seller;
 		}
-		// Same seller index shop-list-orders reads (inc/core/order-seller-index.php).
-		$seller_key = extrachill_shop_seller_ref_key( $seller );
-		if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
-			&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
-			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Indexed seller lookup.
-			$args['meta_query'] = array(
-				array(
-					'key'   => '_extrachill_order_seller',
-					'value' => $seller_key,
-				),
-			);
-		} else {
-			$args['extrachill_order_seller'] = $seller_key;
-		}
+		$args = extrachill_shop_operator_scope_orders_to_seller( $args, $seller );
 	}
 
+	/** @var object{orders: array<WC_Order>, total: int, max_num_pages: int} $result */
 	$result = wc_get_orders( $args );
 	$orders = array();
 	foreach ( $result->orders as $order ) {
-		$seller   = extrachill_shop_get_order_seller( $order );
+		$seller   = extrachill_shop_operator_order_seller( $order );
 		$orders[] = array(
 			'id'           => (int) $order->get_id(),
 			'number'       => (string) $order->get_order_number(),
 			'status'       => (string) $order->get_status(),
-			'date_created' => $order->get_date_created() ? $order->get_date_created()->format( 'c' ) : '',
+			'date_created' => extrachill_shop_operator_format_date( $order->get_date_created() ),
 			'seller'       => $seller ? extrachill_shop_seller_ref_key( $seller ) : '',
 			'customer'     => (string) $order->get_billing_email(),
 			'total'        => (float) $order->get_total(),
@@ -389,20 +377,59 @@ function extrachill_shop_ability_operator_list_orders( array $input ): array|WP_
 }
 
 /**
+ * Scope an operator order query to one seller.
+ *
+ * Uses the same order seller index shop-list-orders reads
+ * (inc/core/order-seller-index.php). Once the canonical order seller record
+ * (#1411) lands, this becomes `extrachill_shop_scope_order_query_to_seller()`.
+ *
+ * @param array $args   `wc_get_orders()` args.
+ * @param array $seller Validated seller reference.
+ * @return array
+ */
+function extrachill_shop_operator_scope_orders_to_seller( array $args, array $seller ): array {
+	$seller_key = extrachill_shop_seller_ref_key( $seller );
+	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
+		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$args['meta_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Indexed seller lookup.
+			array(
+				'key'   => '_extrachill_order_seller',
+				'value' => $seller_key,
+			),
+		);
+	} else {
+		$args['extrachill_order_seller'] = $seller_key;
+	}
+	return $args;
+}
+
+/**
  * The seller an order belongs to.
  *
- * Reads the checkout-time `_extrachill_seller` record, falling back to the
- * first `_extrachill_order_seller` index row. Null for platform orders.
+ * Reads the checkout-time `_extrachill_seller` record (a `{type, id}` array
+ * today, a `type:id` key under the canonical order seller record from #1411),
+ * falling back to the first `_extrachill_order_seller` index row. Null for
+ * platform orders. Once #1411 lands, this becomes
+ * `extrachill_shop_get_order_seller()`.
  *
- * @param object $order WooCommerce order.
+ * @param WC_Order $order WooCommerce order.
  * @return array|null
  */
-function extrachill_shop_get_order_seller( $order ): ?array {
-	$seller = extrachill_shop_validate_seller_ref( $order->get_meta( '_extrachill_seller', true ) );
-	if ( ! is_wp_error( $seller ) ) {
-		return $seller;
+function extrachill_shop_operator_order_seller( $order ): ?array {
+	$stored = $order->get_meta( '_extrachill_seller', true );
+	if ( is_string( $stored ) ) {
+		$seller = extrachill_shop_parse_seller_key( $stored );
+		if ( $seller ) {
+			return $seller;
+		}
+	} else {
+		$seller = extrachill_shop_validate_seller_ref( $stored );
+		if ( ! is_wp_error( $seller ) ) {
+			return $seller;
+		}
 	}
-	return extrachill_shop_parse_seller_key( $order->get_meta( '_extrachill_order_seller', true ) );
+	$indexed = $order->get_meta( '_extrachill_order_seller', true );
+	return extrachill_shop_parse_seller_key( is_string( $indexed ) ? $indexed : '' );
 }
 
 /**
@@ -415,12 +442,14 @@ function extrachill_shop_ability_get_order( array $input ): array|WP_Error {
 	if ( ! function_exists( 'wc_get_order' ) ) {
 		return new WP_Error( 'woocommerce_missing', 'WooCommerce is not available.', array( 'status' => 500 ) );
 	}
+	/** @var WC_Order|false|null $order */
 	$order = wc_get_order( (int) ( $input['id'] ?? 0 ) );
 	if ( ! $order || 'shop_order' !== $order->get_type() ) {
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 	}
 
 	$items = array();
+	/** @var WC_Order_Item_Product $item */
 	foreach ( $order->get_items( 'line_item' ) as $item ) {
 		$row = array(
 			'item_id'    => (int) $item->get_id(),
@@ -445,17 +474,17 @@ function extrachill_shop_ability_get_order( array $input ): array|WP_Error {
 			'id'     => (int) $refund->get_id(),
 			'amount' => (float) $refund->get_amount(),
 			'reason' => (string) $refund->get_reason(),
-			'date'   => $refund->get_date_created() ? $refund->get_date_created()->format( 'c' ) : '',
+			'date'   => extrachill_shop_operator_format_date( $refund->get_date_created() ),
 		);
 	}
 
-	$seller = extrachill_shop_get_order_seller( $order );
+	$seller = extrachill_shop_operator_order_seller( $order );
 	return array(
 		'id'               => (int) $order->get_id(),
 		'number'           => (string) $order->get_order_number(),
 		'status'           => (string) $order->get_status(),
-		'date_created'     => $order->get_date_created() ? $order->get_date_created()->format( 'c' ) : '',
-		'date_paid'        => $order->get_date_paid() ? $order->get_date_paid()->format( 'c' ) : '',
+		'date_created'     => extrachill_shop_operator_format_date( $order->get_date_created() ),
+		'date_paid'        => extrachill_shop_operator_format_date( $order->get_date_paid() ),
 		'seller'           => $seller,
 		'customer'         => array(
 			'name'  => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
@@ -528,13 +557,15 @@ function extrachill_shop_ability_replay_webhook( array $input ): array|WP_Error 
  */
 function extrachill_shop_ability_retry_priority_boost( array $input ): array|WP_Error {
 	$order_id = (int) ( $input['order_id'] ?? 0 );
-	$order    = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+	/** @var WC_Order|false|null $order */
+	$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
 	if ( ! $order ) {
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 	}
 
 	$items   = array();
 	$changed = false;
+	/** @var WC_Order_Item_Product $item */
 	foreach ( $order->get_items() as $item ) {
 		if ( ! extrachill_shop_is_priority_boost_product_id( $item->get_product_id() ) ) {
 			continue;
@@ -592,4 +623,14 @@ function extrachill_shop_ability_retry_priority_boost( array $input ): array|WP_
 		'order_id' => $order_id,
 		'items'    => $items,
 	);
+}
+
+/**
+ * Format an optional WooCommerce date as ISO 8601.
+ *
+ * @param WC_DateTime|null $date Date, if set.
+ * @return string ISO 8601 date, or '' when unset.
+ */
+function extrachill_shop_operator_format_date( $date ): string {
+	return $date ? $date->format( 'c' ) : '';
 }
