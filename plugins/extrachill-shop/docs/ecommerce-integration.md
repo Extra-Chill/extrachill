@@ -10,22 +10,23 @@ The Extra Chill Platform implements a complex marketplace architecture integrati
 - **extrachill.link**: Domain-mapped frontend for artist link pages
 - **extrachill-api**: Centralized REST API for all cross-site operations
 
-## Stripe Connect Payout Flow (v0.5.0)
+## Stripe Connect Payment Flow
 
-The platform uses Stripe Connect Express to handle artist payouts for marketplace sales.
+The platform uses Stripe Connect Express. Every seller (artist, venue, or promoter) has its own connected account and is the merchant of record for its sales.
 
-### 1. Artist Onboarding
-- Artists initiate onboarding via the **Shop Manager** on `artist.extrachill.com`
-- The system creates a Stripe Express account linked to the artist profile
-- Account IDs and status are stored on the `artist_profile` post (Blog ID 4)
+### 1. Seller Onboarding
+- Sellers start onboarding from the **Shop Manager** (`ec_get_shop_manager_url()`)
+- The system creates a Stripe Express account for the seller reference (`type:id`)
+- The account ID and status are stored by the shop (blog 3) in the `extrachill_shop_stripe_seller_<type>:<id>` option, with a hashed reverse index (`extrachill_shop_stripe_account_<sha256>`) that `account.updated` webhooks use to find the seller
 - **Status Tiers**: `pending`, `active`, `restricted`
-- **Capability Requirements**: `charges_enabled` and `payouts_enabled` must be true for product publishing
+- **Capability Requirements**: `charges_enabled` and `payouts_enabled` must be true before the seller can take payments
 
 ### 2. Payment Processing
-- Uses Stripe's **Separate Charges and Transfers** pattern
-- Payments are collected by the platform on `shop.extrachill.com`
-- Upon payment completion (`woocommerce_payment_complete`), the system calculates the artist portion
-- Transfers are initiated from the platform account to the connected artist account via Stripe's "Separate Charges and Transfers" payout pattern, ensuring funds are distributed only after successful platform collection.
+- A cart holds products from exactly one seller (enforced on add-to-cart and at checkout)
+- Checkout creates a Stripe Checkout Session as a **direct charge** on the seller's connected account (`stripe_account`), with Extra Chill's commission as the `application_fee_amount`
+- The money settles on the seller's account and Stripe moves the application fee to the platform. No transfers are made after payment.
+- Platform products (no payout seller) are charged on the platform account with no application fee
+- WooCommerce tax calculation is off. The seller, as merchant of record, is responsible for any sales tax.
 
 ### 3. API Endpoints
 - `GET /shop/stripe-connect/status`: Checks account status and capabilities
@@ -37,8 +38,8 @@ The platform uses Stripe Connect Express to handle artist payouts for marketplac
 Automated shipping fulfillment using Shippo API for domestic USPS shipments.
 
 ### 1. Artist Shipping Settings
-- Artists must configure their shipping address in the **Shop Manager**
-- Address is stored as meta on the `artist_profile` post
+- Sellers must configure their ship-from address in the **Shop Manager**
+- The address is stored by the shop in the `extrachill_shop_shipping_seller_<type>:<id>` option
 - Fixed domestic flat rate of **$5.00** applied at checkout, except for orders containing only "Ships Free" items.
 - "Ships Free" flag on products allows small items (stickers, patches) to bypass the $5 flat-rate shipping when they are the only items in the artist portion of the cart.
 

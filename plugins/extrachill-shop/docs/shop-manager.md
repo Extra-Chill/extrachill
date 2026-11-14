@@ -18,7 +18,7 @@ An explicit `?seller=` must be one the user can manage. An invalid one shows an 
 
 All of them build the URL with `ec_get_shop_manager_url( $seller )` (Users), or `extrachill_shop_get_shop_manager_url()` on Shop:
 
-- Avatar menu and artist-site nav: plain `/manage/`.
+- Avatar menu (`extrachill_users_get_avatar_menu_items()`, every seller type): plain `/manage/`.
 - Artist storefront "Manage Shop" button: `?seller=artist:{id}`.
 - Events venue settings and promoter workspace: "Manage shop" with `?seller=venue:{id}` / `?seller=promoter:{id}`, shown only when the shop rollout has reached the user and they hold finance authority for that seller.
 - Seller order emails and the Stripe onboarding return URL: the seller's own shop.

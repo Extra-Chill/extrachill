@@ -2,8 +2,8 @@
 /**
  * Checkout Shipping Integration
  *
- * Custom WooCommerce shipping calculation based on unique artists in cart.
- * Charges $5 per artist with US-only shipping restriction.
+ * Custom WooCommerce shipping method: one flat rate per order (a cart holds a
+ * single seller), free when every item ships free, US-only.
  *
  * @package ExtraChill\Shop
  */
@@ -77,26 +77,13 @@ function extrachill_shop_shipping_method_init() {
 				return;
 			}
 
-			// Standard calculation for orders with shippable products
-			$artist_count    = extrachill_shop_get_cart_artist_count();
-			$rate_per_artist = extrachill_shop_get_flat_rate_per_artist();
-			$total_cost      = $artist_count * $rate_per_artist;
-
-			if ( $artist_count > 1 ) {
-				$label = sprintf(
-					__( 'Shipping ($%1$s × %2$d artists)', 'extrachill-shop' ),
-					number_format( $rate_per_artist, 0 ),
-					$artist_count
-				);
-			} else {
-				$label = __( 'Shipping', 'extrachill-shop' );
-			}
-
+			// A cart holds one seller (extrachill_shop_single_seller()), so it
+			// ships as one parcel at the flat rate.
 			$this->add_rate(
 				array(
 					'id'       => $this->get_rate_id(),
-					'label'    => $label,
-					'cost'     => $total_cost,
+					'label'    => __( 'Shipping', 'extrachill-shop' ),
+					'cost'     => extrachill_shop_get_flat_rate_per_artist(),
 					'calc_tax' => 'per_order',
 				)
 			);
@@ -131,36 +118,6 @@ function extrachill_shop_cart_ships_free() {
 	}
 
 	return true;
-}
-
-/**
- * Get count of unique artists in the current cart.
- *
- * @return int Number of unique artists.
- */
-function extrachill_shop_get_cart_artist_count() {
-	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-		return 0;
-	}
-
-	$artist_ids = array();
-
-	foreach ( WC()->cart->get_cart() as $cart_item ) {
-		$product_id = $cart_item['product_id'] ?? 0;
-		if ( ! $product_id ) {
-			continue;
-		}
-
-		// Each seller (artist, venue, or promoter) ships separately.
-		$seller = extrachill_shop_get_product_seller( $product_id );
-		if ( $seller ) {
-			$artist_ids[ extrachill_shop_seller_key( $seller ) ] = true;
-		}
-	}
-
-	$count = count( $artist_ids );
-
-	return max( 1, $count );
 }
 
 /**
