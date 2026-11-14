@@ -100,6 +100,14 @@ class CommandRegistry {
 			// Newsletter commands.
 			'extrachill newsletter'                    => Commands\Newsletter\NewsletterCommand::class,
 
+			// Shop commands — operator adapters over extrachill-shop abilities (run with --url=<shop site>).
+			'extrachill shop sellers'                  => Commands\Shop\SellersCommand::class,
+			'extrachill shop seller'                   => Commands\Shop\SellerCommand::class,
+			'extrachill shop orders'                   => Commands\Shop\OrdersCommand::class,
+			'extrachill shop order'                    => Commands\Shop\OrderCommand::class,
+			'extrachill shop webhook'                  => Commands\Shop\WebhookCommand::class,
+			'extrachill shop boost'                    => Commands\Shop\BoostCommand::class,
+
 			// Roadie commands — talk to the Extra Chill platform chat agent.
 		);
 	}
