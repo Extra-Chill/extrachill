@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.12] - 2026-11-14
+
+### Changed
+- the owner reference is the only artist↔page binding
+
 ## [0.63.11] - 2026-11-13
 
 ### Fixed
