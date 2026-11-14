@@ -33,10 +33,6 @@ function extrachill_shop_register_update_order_status_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Order ID.',
 					),
-					'artist_id'       => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID (legacy; prefer seller).',
-					),
 					'seller'          => extrachill_shop_seller_input_schema(),
 					'status'          => array(
 						'type'        => 'string',
@@ -48,7 +44,7 @@ function extrachill_shop_register_update_order_status_ability(): void {
 						'description' => 'Optional tracking number.',
 					),
 				),
-				'required'   => array( 'id', 'status' ),
+				'required'   => array( 'id', 'seller', 'status' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
@@ -104,9 +100,8 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 		return new WP_Error( 'rest_forbidden', 'This order does not contain products from this seller.', array( 'status' => 403 ) );
 	}
 
-	$seller_key = extrachill_shop_seller_key( $seller );
 	if ( $tracking_number ) {
-		$order->update_meta_data( '_artist_tracking_' . $seller_key, $tracking_number );
+		extrachill_shop_update_order_shipment( $order, array( 'tracking_number' => $tracking_number ) );
 	}
 
 	if ( 'completed' === $new_status ) {
@@ -115,30 +110,5 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 
 	$order->save();
 
-	return extrachill_shop_ability_build_order_response( $order, $seller_key );
-}
-
-/**
- * Whether an order contains products from a seller.
- *
- * Reads the order seller index, falling back to the payout projections for
- * orders written before the index existed.
- *
- * @param WC_Order $order  WooCommerce order.
- * @param array    $seller Seller reference.
- * @return bool
- */
-function extrachill_shop_order_has_seller( $order, array $seller ): bool {
-	$indexed = array_map(
-		static function ( $meta ) {
-			return (string) $meta->value;
-		},
-		$order->get_meta( '_extrachill_order_seller', false )
-	);
-	if ( in_array( $seller['type'] . ':' . (int) $seller['id'], $indexed, true ) ) {
-		return true;
-	}
-
-	$payouts = $order->get_meta( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts' );
-	return is_array( $payouts ) && isset( $payouts[ extrachill_shop_seller_key( $seller ) ] );
+	return extrachill_shop_ability_build_order_response( $order );
 }

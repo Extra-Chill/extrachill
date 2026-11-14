@@ -25,32 +25,29 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 		'extrachill/shop-create-shipping-label',
 		array(
 			'label'               => __( 'Purchase Shipping Label', 'extrachill-shop' ),
-			'description'         => __( 'Purchase a USPS shipping label via Shippo for an artist\'s portion of an order. Automatically selects the cheapest rate, updates order status, and emails the label.', 'extrachill-shop' ),
+			'description'         => __( 'Purchase a USPS shipping label via Shippo for a seller\'s portion of an order. Automatically selects the cheapest rate, updates order status, and emails the label.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'order_id'  => array(
+					'order_id' => array(
 						'type'        => 'integer',
 						'description' => 'WooCommerce order ID.',
 					),
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
+					'seller'   => extrachill_shop_seller_input_schema(),
 				),
-				'required'   => array( 'order_id' ),
+				'required'   => array( 'order_id', 'seller' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success'         => array( 'type' => 'boolean' ),
+					'reprint'         => array( 'type' => 'boolean' ),
 					'order_id'        => array( 'type' => 'integer' ),
 					'seller'          => extrachill_shop_seller_input_schema(),
-					'artist_id'       => array( 'type' => 'integer' ),
 					'label_url'       => array( 'type' => 'string' ),
 					'tracking_number' => array( 'type' => 'string' ),
+					'tracking_url'    => array( 'type' => 'string' ),
 					'carrier'         => array( 'type' => 'string' ),
 					'service'         => array( 'type' => 'string' ),
 					'cost'            => array( 'type' => 'number' ),
@@ -73,7 +70,7 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Purchase a shipping label for an artist's order items.
+ * Purchase a shipping label for a seller's order.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
@@ -84,9 +81,6 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 	if ( is_wp_error( $seller ) ) {
 		return $seller;
 	}
-	$seller_key   = extrachill_shop_seller_key( $seller );
-	$artist_id    = 'artist' === $seller['type'] ? $seller['id'] : 0;
-	$label_prefix = 'artist' === $seller['type'] ? '_artist_' : '_seller_';
 	$user_id      = get_current_user_id();
 	$from_address = extrachill_shop_get_seller_shipping_address( $seller );
 
@@ -111,42 +105,34 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 	}
 
-	$payouts = $order->get_meta( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts' );
-	$payouts = is_array( $payouts ) ? $payouts : array();
-	if ( ! isset( $payouts[ $seller_key ] ) ) {
+	if ( ! extrachill_shop_order_has_seller( $order, $seller ) ) {
 		return new WP_Error( 'invalid_seller', 'This order does not contain products from your seller.', array( 'status' => 400 ) );
 	}
+	$record = extrachill_shop_get_order_seller_record( $order );
 
-	// Check if order contains only ships-free products.
-	if ( function_exists( 'extrachill_api_shop_order_ships_free_only' ) ) {
-		$artist_payout = $payouts[ $seller_key ] ?? array();
-		if ( extrachill_api_shop_order_ships_free_only( $artist_payout ) ) {
-			return new WP_Error(
-				'ships_free_order',
-				'This order contains only "Ships Free" items. No shipping label is needed—ship these items yourself.',
-				array( 'status' => 400 )
-			);
-		}
+	// Ships-free orders need no label.
+	if ( extrachill_shop_items_ship_free_only( $record['items'] ) ) {
+		return new WP_Error(
+			'ships_free_order',
+			'This order contains only "Ships Free" items. No shipping label is needed—ship these items yourself.',
+			array( 'status' => 400 )
+		);
 	}
 
 	// Return existing label if already purchased.
-	$existing_label = $order->get_meta( $label_prefix . 'label_' . $seller_key );
-	if ( ! empty( $existing_label ) ) {
-		$tracking   = (string) $order->get_meta( $label_prefix . 'tracking_' . $seller_key );
-		$label_data = $order->get_meta( $label_prefix . 'label_data_' . $seller_key );
-		$label_data = $label_data ? $label_data : array();
-
+	$shipment = extrachill_shop_get_order_shipment( $order );
+	if ( '' !== $shipment['label_url'] ) {
 		return array(
 			'success'         => true,
 			'reprint'         => true,
 			'seller'          => $seller,
 			'order_id'        => $order_id,
-			'artist_id'       => $artist_id,
-			'label_url'       => $existing_label,
-			'tracking_number' => $tracking,
-			'carrier'         => $label_data['carrier'] ?? 'USPS',
-			'service'         => $label_data['service'] ?? '',
-			'cost'            => $label_data['cost'] ?? 0,
+			'label_url'       => $shipment['label_url'],
+			'tracking_number' => $shipment['tracking_number'],
+			'tracking_url'    => $shipment['tracking_url'],
+			'carrier'         => $shipment['carrier'],
+			'service'         => $shipment['service'],
+			'cost'            => $shipment['cost'],
 		);
 	}
 
@@ -178,18 +164,21 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return $label_result;
 	}
 
-	$order->update_meta_data( $label_prefix . 'label_' . $seller_key, $label_result['label_url'] );
-	$order->update_meta_data( $label_prefix . 'tracking_' . $seller_key, $label_result['tracking_number'] );
-	$order->update_meta_data( $label_prefix . 'label_data_' . $seller_key, array(
-		'carrier'        => $label_result['carrier'],
-		'service'        => $label_result['service'],
-		'cost'           => $label_result['cost'],
-		'tracking_url'   => $label_result['tracking_url'],
-		'rate_id'        => $label_result['rate_id'],
-		'transaction_id' => $label_result['transaction_id'],
-		'purchased_at'   => current_time( 'mysql' ),
-		'purchased_by'   => $user_id,
-	) );
+	extrachill_shop_update_order_shipment(
+		$order,
+		array(
+			'label_url'       => (string) $label_result['label_url'],
+			'tracking_number' => (string) $label_result['tracking_number'],
+			'tracking_url'    => (string) ( $label_result['tracking_url'] ?? '' ),
+			'carrier'         => (string) $label_result['carrier'],
+			'service'         => (string) $label_result['service'],
+			'cost'            => (float) $label_result['cost'],
+			'rate_id'         => $label_result['rate_id'],
+			'transaction_id'  => $label_result['transaction_id'],
+			'purchased_at'    => current_time( 'mysql' ),
+			'purchased_by'    => $user_id,
+		)
+	);
 
 	$order->set_status( 'completed', sprintf(
 		'Shipping label purchased by %s. Tracking: %s',
@@ -210,16 +199,14 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		extrachill_shop_send_shipping_label_email(
 			$user_email,
 			$order,
-			$artist_id,
 			$label_result,
-			$payouts[ $seller_key ]
+			$record
 		);
 	}
 
 	return array(
 		'success'         => true,
 		'order_id'        => $order_id,
-		'artist_id'       => $artist_id,
 		'label_url'       => $label_result['label_url'],
 		'tracking_number' => $label_result['tracking_number'],
 		'seller'          => $seller,
@@ -231,7 +218,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 }
 
 /**
- * Send a branded shipping-label-ready email to the artist who purchased the label.
+ * Send a branded shipping-label-ready email to the seller member who purchased the label.
  *
  * Routes through `ec_send_email()` so the dispatch picks up the EC
  * `extrachill/branded` template + `mail_site_id` SMTP routing. Builds
@@ -244,12 +231,11 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
  *
  * @param string   $to_email    Recipient email.
  * @param WC_Order $order       WooCommerce order.
- * @param int      $artist_id   Artist profile ID.
  * @param array    $label_data  Label data from Shippo.
- * @param array    $payout_data Artist payout data from order.
+ * @param array    $payout_data Order seller record (`extrachill_shop_get_order_seller_record()`).
  * @return void
  */
-function extrachill_shop_send_shipping_label_email( $to_email, $order, $artist_id, $label_data, $payout_data ) {
+function extrachill_shop_send_shipping_label_email( $to_email, $order, $label_data, $payout_data ) {
 	$order_number  = $order->get_order_number();
 	$subject       = sprintf( 'Shipping Label Ready - Order #%s', $order_number );
 	$customer_name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
@@ -293,7 +279,7 @@ function extrachill_shop_send_shipping_label_email( $to_email, $order, $artist_i
 
 	$address_html = '<p style="margin:0 0 16px 0;line-height:1.5;">' . implode( '<br>', array_map( 'esc_html', $address_lines ) ) . '</p>';
 
-	$shop_manager_url = home_url( '/shop-manager/' );
+	$shop_manager_url = extrachill_shop_get_shop_manager_url( $payout_data['seller'] ?? null );
 	$tracking_number  = isset( $label_data['tracking_number'] ) ? (string) $label_data['tracking_number'] : '';
 	$label_url        = isset( $label_data['label_url'] ) ? (string) $label_data['label_url'] : '';
 	$carrier          = isset( $label_data['carrier'] ) ? (string) $label_data['carrier'] : '';

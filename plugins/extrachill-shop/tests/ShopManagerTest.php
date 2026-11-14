@@ -4,6 +4,8 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
+require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-update-order-status.php';
 
 if ( ! defined( 'OBJECT' ) ) {
@@ -40,13 +42,8 @@ if ( ! function_exists( 'get_user_meta' ) ) {
 
 final class ShopManagerTestOrder {
 	public $meta     = array();
-	public $sellers  = array();
 	public $saved    = 0;
 	public function get_meta( $key, $single = true ) {
-		if ( '_extrachill_order_seller' === $key && ! $single ) {
-			return array_map( static function ( $value ) { return (object) array( 'value' => $value );
-			}, $this->sellers );
-		}
 		return $this->meta[ $key ] ?? '';
 	}
 	public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
@@ -61,6 +58,7 @@ final class ShopManagerTest extends TestCase {
 	);
 
 	protected function setUp(): void {
+		extrachill_shop_reset_seller_permission_cache();
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_pages']          = array();
 		$GLOBALS['test_inserted_posts'] = array();
@@ -140,29 +138,26 @@ final class ShopManagerTest extends TestCase {
 
 		$this->assertSame( 'extrachill_shop_authorize_seller_input', $ability['permission_callback'] );
 		$this->assertArrayHasKey( 'seller', $ability['input_schema']['properties'] );
-		$this->assertSame( array( 'id', 'status' ), $ability['input_schema']['required'] );
+		$this->assertSame( array( 'id', 'seller', 'status' ), $ability['input_schema']['required'] );
 	}
 
-	public function test_order_membership_uses_index_then_payout_projection(): void {
-		$order          = new ShopManagerTestOrder();
-		$order->sellers = array( 'venue:1524' );
+	public function test_order_membership_reads_the_canonical_seller_key(): void {
+		$order                             = new ShopManagerTestOrder();
+		$order->meta['_extrachill_seller'] = 'venue:1524';
 		$this->assertTrue( extrachill_shop_order_has_seller( $order, array( 'type' => 'venue', 'id' => 1524 ) ) );
 		$this->assertFalse( extrachill_shop_order_has_seller( $order, array( 'type' => 'promoter', 'id' => 1524 ) ) );
+		$this->assertFalse( extrachill_shop_order_has_seller( $order, array( 'type' => 'venue', 'id' => 15 ) ) );
 
-		$legacy                         = new ShopManagerTestOrder();
-		$legacy->meta['_artist_payouts'] = array( 12 => array( 'total' => 10 ) );
-		$this->assertTrue( extrachill_shop_order_has_seller( $legacy, array( 'type' => 'artist', 'id' => 12 ) ) );
-		$this->assertFalse( extrachill_shop_order_has_seller( $legacy, array( 'type' => 'artist', 'id' => 13 ) ) );
-
-		$venue                         = new ShopManagerTestOrder();
-		$venue->meta['_seller_payouts'] = array( 'venue:1524' => array( 'total' => 10 ) );
-		$this->assertTrue( extrachill_shop_order_has_seller( $venue, array( 'type' => 'venue', 'id' => 1524 ) ) );
+		$platform                             = new ShopManagerTestOrder();
+		$platform->meta['_extrachill_seller'] = '';
+		$this->assertNull( extrachill_shop_get_order_seller( $platform ) );
+		$this->assertFalse( extrachill_shop_order_has_seller( $platform, array( 'type' => 'artist', 'id' => 12 ) ) );
 	}
 
 	public function test_order_status_refuses_a_seller_not_on_the_order(): void {
-		$order                      = new ShopManagerTestOrder();
-		$order->sellers             = array( 'artist:12' );
-		$GLOBALS['test_orders'][90] = $order;
+		$order                             = new ShopManagerTestOrder();
+		$order->meta['_extrachill_seller'] = 'artist:12';
+		$GLOBALS['test_orders'][90]        = $order;
 
 		$result = extrachill_shop_ability_update_order_status( array(
 			'id'              => 90,
@@ -173,6 +168,6 @@ final class ShopManagerTest extends TestCase {
 
 		$this->assertTrue( is_wp_error( $result ) );
 		$this->assertSame( 0, $order->saved );
-		$this->assertArrayNotHasKey( '_artist_tracking_venue:1524', $order->meta );
+		$this->assertArrayNotHasKey( '_extrachill_shipment', $order->meta );
 	}
 }

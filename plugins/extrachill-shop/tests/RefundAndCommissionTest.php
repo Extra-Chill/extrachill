@@ -12,15 +12,25 @@ use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/refunds.php';
+require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 
 final class RefundTestOrder {
 	public $meta  = array();
 	public $notes = array();
 
-	public function __construct( private int $id ) {}
+	public function __construct( private int $id, private float $total = 0.0 ) {}
 
 	public function get_id() {
 		return $this->id;
+	}
+
+	public function get_total() {
+		return $this->total;
+	}
+
+	public function get_items( $type = 'line_item' ) {
+		return array();
 	}
 
 	public function get_meta( $key ) {
@@ -78,27 +88,18 @@ final class RefundAndCommissionTest extends TestCase {
 		};
 	}
 
-	private function order(): RefundTestOrder {
-		$order                              = new RefundTestOrder( 42 );
-		$order->meta['_artist_payouts']     = array(
-			7 => array(
-				'total'           => 20.0,
-				'application_fee' => 2.0,
-				'artist_payout'   => 18.0,
-			),
+	/** One order per seller, read through the canonical order seller record. */
+	private function order( string $seller_key = 'artist:7' ): RefundTestOrder {
+		$orders = array(
+			'artist:7'   => array( 20.0, 200, 7, 'tr_artist' ),
+			'venue:1524' => array( 8.29, 83, 'venue:1524', 'tr_venue' ),
 		);
-		$order->meta['_seller_payouts']     = array(
-			'venue:1524' => array(
-				'total'           => 8.29,
-				'application_fee' => 0.83,
-				'artist_payout'   => 7.46,
-				'seller'          => array( 'type' => 'venue', 'id' => 1524 ),
-			),
-		);
-		$order->meta['_stripe_transfers']   = array(
-			7            => array( 'transfer_id' => 'tr_artist' ),
-			'venue:1524' => array( 'transfer_id' => 'tr_venue' ),
-		);
+		list( $total, $fee, $transfer_key, $transfer_id ) = $orders[ $seller_key ];
+
+		$order                                      = new RefundTestOrder( 42, $total );
+		$order->meta['_extrachill_seller']          = $seller_key;
+		$order->meta['_extrachill_application_fee'] = $fee;
+		$order->meta['_stripe_transfers']           = array( $transfer_key => array( 'transfer_id' => $transfer_id ) );
 		return $order;
 	}
 
@@ -139,8 +140,8 @@ final class RefundAndCommissionTest extends TestCase {
 		$this->assertSame( 'trr_1', $order->meta['_seller_refunds'][7]['reversal_id'] );
 	}
 
-	public function test_venue_refund_uses_seller_payouts_and_rounds_cents(): void {
-		$order  = $this->order();
+	public function test_venue_refund_uses_order_seller_record_and_rounds_cents(): void {
+		$order  = $this->order( 'venue:1524' );
 		$result = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'venue', 'id' => 1524 ), 'Sold out', $this->reverser() );
 
 		$this->assertTrue( $result['success'] );

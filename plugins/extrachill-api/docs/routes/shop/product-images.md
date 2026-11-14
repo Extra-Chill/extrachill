@@ -10,7 +10,7 @@ Manage product images with support for featured image and gallery uploads. Suppo
 
 **Purpose**: Upload one or more images to a product. First image becomes featured image; remaining become gallery.
 
-**Permission**: Requires logged-in user who can manage the artist product owner
+**Permission**: The ability's permission callback: the user must manage the product's seller (artist, venue or promoter) via `extrachill_shop_can_manage_seller()`. Products without a seller are refused.
 
 **Parameters**:
 - `id` (integer, required, in URL) - Product ID
@@ -67,7 +67,7 @@ fetch(`/wp-json/extrachill/v1/shop/products/456/images`, {
 **Error Responses**:
 - `400` - No files uploaded, invalid file type, file too large, or image limit reached
 - `401` - User not logged in
-- `403` - User cannot manage the product's artist
+- `403` - `cannot_manage_seller`, `shop_unavailable` or `product_has_no_seller`
 - `404` - Product not found
 - `500` - Shop site not configured or file upload service unavailable
 
@@ -77,7 +77,7 @@ fetch(`/wp-json/extrachill/v1/shop/products/456/images`, {
 
 **Purpose**: Remove an image from a product's featured or gallery.
 
-**Permission**: Requires logged-in user who can manage the artist product owner
+**Permission**: The ability's permission callback: the user must manage the product's seller (artist, venue or promoter) via `extrachill_shop_can_manage_seller()`. Products without a seller are refused.
 
 **Parameters**:
 - `id` (integer, required, in URL) - Product ID
@@ -105,7 +105,7 @@ fetch(`/wp-json/extrachill/v1/shop/products/456/images`, {
 **Error Responses**:
 - `400` - Cannot delete last image (products must have at least one image)
 - `401` - User not logged in
-- `403` - User cannot manage the product's artist
+- `403` - `cannot_manage_seller`, `shop_unavailable` or `product_has_no_seller`
 - `404` - Product or image not found
 - `500` - File deletion service unavailable
 

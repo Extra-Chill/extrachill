@@ -24,20 +24,16 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-stripe-onboarding-link',
 		array(
-			'label'       => __( 'Stripe Onboarding Link', 'extrachill-shop' ),
-			'description' => __( 'Generate a Stripe Connect onboarding link for a seller (artist, venue, or promoter). Creates the account if needed.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Stripe Onboarding Link', 'extrachill-shop' ),
+			'description'         => __( 'Generate a Stripe Connect onboarding link for a seller (artist, venue, or promoter). Creates the account if needed.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'seller'    => extrachill_shop_seller_input_schema(),
+					'seller' => extrachill_shop_seller_input_schema(),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success' => array( 'type' => 'boolean' ),
@@ -46,7 +42,7 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_onboarding_link',
 			'permission_callback' => 'extrachill_shop_authorize_seller_input',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,

@@ -14,17 +14,27 @@ function add_option( $key, $value, $deprecated = '', $autoload = false ) {
 		return false; }
 	return update_option( $key, $value );
 }
-function extrachill_shop_is_shippo_configured() { return true; }
-function extrachill_shop_shippo_create_label( $from, $to ) {
-	$GLOBALS['shipping_from'] = $from;
-	return new WP_Error( 'shippo_test', 'Captured shipment.' );
+if ( ! function_exists( 'extrachill_shop_is_shippo_configured' ) ) {
+	function extrachill_shop_is_shippo_configured() { return true; }
 }
+if ( ! function_exists( 'extrachill_shop_shippo_create_label' ) ) {
+	/** Captures the shipment; returns `$GLOBALS['shippo_label']` when a test sets one. */
+	function extrachill_shop_shippo_create_label( $from, $to ) {
+		$GLOBALS['shipping_from'] = $from;
+		return $GLOBALS['shippo_label'] ?? new WP_Error( 'shippo_test', 'Captured shipment.' );
+	}
+}
+require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
+require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/shop-list-orders.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-get-shipping-address.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-update-shipping-address.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-create-shipping-label.php';
 
 final class ShippingAddressTest extends TestCase {
 	protected function setUp(): void {
+		extrachill_shop_reset_seller_permission_cache();
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_post_meta']      = array();
 		$GLOBALS['test_blog_stack'] = array();
@@ -64,7 +74,7 @@ final class ShippingAddressTest extends TestCase {
 			$this->assertSame( $this->address(), $result['address'] );
 			$this->assertTrue( $result['is_set'] );
 		}
-		$this->assertSame( $this->address(), extrachill_shop_ability_get_shipping_address( array( 'artist_id' => 24 ) )['address'] );
+		$this->assertSame( 'missing_seller', extrachill_shop_ability_get_shipping_address( array( 'artist_id' => 24 ) )->get_error_code() );
 		$this->assertSame( array(), $GLOBALS['test_post_meta'] );
 	}
 
@@ -122,9 +132,10 @@ final class ShippingAddressTest extends TestCase {
 				private $seller;
 				public function __construct( $seller ) { $this->seller = $seller; }
 				public function get_meta( $key ) {
-					$expected = 'artist' === $this->seller['type'] ? '_artist_payouts' : '_seller_payouts';
-					return $key === $expected ? array( extrachill_shop_seller_key( $this->seller ) => array( 'items' => array() ) ) : '';
+					return '_extrachill_seller' === $key ? extrachill_shop_seller_ref_key( $this->seller ) : '';
 				}
+				public function get_items( $type = 'line_item' ) { return array(); }
+				public function get_total() { return 0; }
 				public function get_address( $type ) { return array(
 					'address_1' => '456 Destination',
 					'country'   => 'US',

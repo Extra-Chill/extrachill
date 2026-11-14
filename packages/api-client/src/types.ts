@@ -568,57 +568,171 @@ export interface NetworkMediaListResponse {
 
 // ─── Shop ────────────────────────────────────────────────────────────────────
 
+/** A shop seller: an artist, venue or promoter. */
+export type ShopSellerType = 'artist' | 'venue' | 'promoter';
+
+export interface ShopSellerRef {
+  type: ShopSellerType;
+  id: number;
+}
+
+export interface ShopProductImage {
+  id: number;
+  url: string;
+}
+
+export interface ShopProductSize {
+  name: string;
+  stock: number;
+}
+
 export interface ShopProduct {
   id: number;
   name: string;
-  slug: string;
+  description: string;
   price: string;
+  sale_price: string;
+  manage_stock: boolean;
+  stock_quantity: number | null;
+  status: string;
+  permalink: string;
+  seller: ShopSellerRef | null;
+  image: ShopProductImage;
+  gallery: ShopProductImage[];
+  images: ShopProductImage[];
+  sizes: ShopProductSize[];
+  ships_free: boolean;
+}
+
+/** Writable product fields for create and update. */
+export interface ShopProductInput {
+  name?: string;
+  price?: number;
+  sale_price?: number | null;
   description?: string;
-  images: Array<{
-    id: number;
-    url: string;
-  }>;
+  manage_stock?: boolean;
   stock_quantity?: number;
-  status: string;
+  image_id?: number;
+  gallery_ids?: number[];
+  image_ids?: number[];
+  sizes?: ShopProductSize[];
+  ships_free?: boolean;
+  status?: 'draft' | 'publish';
 }
 
-export interface ShopOrder {
-  id: number;
-  status: string;
-  total: string;
-  created_at: string;
-  items: Array<{
-    product_id: number;
-    name: string;
-    quantity: number;
-    price: string;
-  }>;
-  shipping?: {
-    tracking_number?: string;
-  };
+export interface ShopListProductsParams {
+  page?: number;
+  per_page?: number;
 }
 
-export interface StripeConnectStatus {
-  connected: boolean;
-  account_id?: string;
-  charges_enabled?: boolean;
-  payouts_enabled?: boolean;
-}
-
-export interface ShippingAddress {
-  name: string;
+export interface ShopOrderAddress {
   address_1: string;
-  address_2?: string;
+  address_2: string;
   city: string;
   state: string;
   postcode: string;
   country: string;
 }
 
+/** One seller's view of an order. */
+export interface ShopOrder {
+  id: number;
+  number: string;
+  status: string;
+  date_created: string;
+  customer: {
+    name: string;
+    email: string;
+    address: ShopOrderAddress;
+  };
+  items: Array<{
+    product_id: number;
+    name: string;
+    quantity: number;
+    total: number;
+  }>;
+  seller_payout: number;
+  order_total: number;
+  tracking_number: string;
+  /** Purchased shipping label, or '' when none was bought. */
+  label_url: string;
+  ships_free_only: boolean;
+}
+
+export type ShopOrderStatusFilter = 'all' | 'needs_fulfillment' | 'completed';
+
+export interface ShopListOrdersParams {
+  status?: ShopOrderStatusFilter;
+  page?: number;
+  per_page?: number;
+}
+
+export interface ShopOrdersResponse {
+  orders: ShopOrder[];
+  total: number;
+  total_pages: number;
+  page: number;
+  per_page: number;
+  needs_fulfillment_count: number;
+}
+
+export interface ShopRefundResponse {
+  success: boolean;
+  order_id: number;
+  refund_amount: number;
+  reversed: boolean;
+}
+
+export interface StripeConnectStatus {
+  connected: boolean;
+  status: string | null;
+  can_receive_payments: boolean;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  details_submitted: boolean;
+}
+
+export interface ShippingAddress {
+  name: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country?: string;
+}
+
+export interface ShippingAddressResponse {
+  seller: ShopSellerRef;
+  address: Required<ShippingAddress>;
+  is_set: boolean;
+}
+
+export interface ShippingAddressUpdateResponse {
+  success: boolean;
+  seller: ShopSellerRef;
+  address: Required<ShippingAddress>;
+}
+
 export interface ShippingLabel {
+  order_id: number;
+  seller: ShopSellerRef;
   label_url: string;
   tracking_number: string;
+  tracking_url: string;
   carrier: string;
+  service: string;
+  cost: number;
+}
+
+export interface ShippingLabelPurchase extends ShippingLabel {
+  success: boolean;
+  reprint?: boolean;
+}
+
+export interface ShippingLabelLookup extends ShippingLabel {
+  has_label: boolean;
+  purchased_at: string;
 }
 
 // ─── Admin ───────────────────────────────────────────────────────────────────

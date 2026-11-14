@@ -24,18 +24,17 @@ function extrachill_shop_register_list_products_ability(): void {
 		'extrachill/shop-list-products',
 		array(
 			'label'               => __( 'List Shop Products', 'extrachill-shop' ),
-			'description'         => __( 'List products belonging to the current user\'s artist profiles.', 'extrachill-shop' ),
+			'description'         => __( 'List products belonging to a seller (artist, venue or promoter).', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array( 'type' => 'integer' ),
-					'page'      => array(
+					'seller'   => extrachill_shop_seller_input_schema(),
+					'page'     => array(
 						'type'    => 'integer',
 						'default' => 1,
 					),
-					'per_page'  => array(
+					'per_page' => array(
 						'type'    => 'integer',
 						'default' => 20,
 					),
@@ -62,17 +61,16 @@ function extrachill_shop_register_list_products_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * List products for current user's artists.
+ * List products for a seller.
  *
- * @param array $input Ability input (unused).
+ * @param array $input Ability input.
  * @return array|WP_Error
  */
 function extrachill_shop_ability_list_products( array $input ): array|WP_Error {
-	$authorized = extrachill_shop_authorize_seller_input( $input );
-	if ( is_wp_error( $authorized ) ) {
-		return $authorized;
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
 	}
-	$seller     = extrachill_shop_seller_from_input( $input );
 	$query_args = array(
 		'post_type'      => 'product',
 		'post_status'    => array( 'publish', 'pending', 'draft' ),
@@ -81,28 +79,7 @@ function extrachill_shop_ability_list_products( array $input ): array|WP_Error {
 		'orderby'        => 'ID',
 		'order'          => 'DESC',
 	);
-	if ( 'artist' === $seller['type'] ) {
-		$query_args['meta_query'] = array(
-			array(
-				'key'   => '_artist_profile_id',
-				'value' => $seller['id'],
-				'type'  => 'NUMERIC',
-			),
-		);
-	} else {
-		$query_args['meta_query'] = array(
-			'relation' => 'AND',
-			array(
-				'key'   => '_extrachill_shop_seller_type',
-				'value' => $seller['type'],
-			),
-			array(
-				'key'   => '_extrachill_shop_seller_id',
-				'value' => $seller['id'],
-				'type'  => 'NUMERIC',
-			),
-		);
-	}
+	$query_args['meta_query'] = extrachill_shop_seller_products_meta_query( $seller ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Seller identity is product meta.
 
 	$query    = new WP_Query( $query_args );
 	$products = $query->posts;
@@ -133,7 +110,7 @@ function extrachill_shop_ability_build_product_response( int $product_id ): arra
 		return new WP_Error( 'product_not_found', 'Product not found.', array( 'status' => 404 ) );
 	}
 
-	$artist_id = get_post_meta( $product_id, '_artist_profile_id', true );
+	$seller = extrachill_shop_get_product_seller( $product_id );
 
 	$image_id  = (int) get_post_thumbnail_id( $product_id );
 	$image_url = $image_id ? (string) wp_get_attachment_image_url( $image_id, 'medium' ) : '';
@@ -197,7 +174,7 @@ function extrachill_shop_ability_build_product_response( int $product_id ): arra
 		'stock_quantity' => $stock_quantity,
 		'status'         => get_post_status( $product_id ),
 		'permalink'      => (string) get_permalink( $product_id ),
-		'artist_id'      => $artist_id ? (int) $artist_id : null,
+		'seller'         => $seller ? $seller : null,
 		'image'          => array(
 			'id'  => $image_id,
 			'url' => $image_url,

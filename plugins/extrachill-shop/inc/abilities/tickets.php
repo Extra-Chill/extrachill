@@ -89,7 +89,7 @@ function extrachill_shop_register_ticket_abilities() {
 				'failed'     => array( 'type' => 'integer' ),
 			),
 		),
-		'permission_callback' => 'is_user_logged_in',
+		'permission_callback' => 'extrachill_shop_event_ticket_refund_permission',
 		'execute_callback'    => 'extrachill_shop_refund_event_ticket_orders',
 		'meta'                => array( 'show_in_rest' => true ),
 	) );

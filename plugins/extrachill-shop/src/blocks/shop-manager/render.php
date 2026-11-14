@@ -22,14 +22,20 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-if ( ! function_exists( 'ec_can_manage_shop' ) || ! ec_can_manage_shop() ) {
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only seller preselection; authority is checked server-side.
+$ec_shop_requested = isset( $_GET['seller'] ) && is_string( $_GET['seller'] ) ? sanitize_text_field( wp_unslash( $_GET['seller'] ) ) : null;
+$ec_shop_ref       = null === $ec_shop_requested ? null : extrachill_shop_parse_seller_key( $ec_shop_requested );
+
+// Page gate: the user manages some seller (Users discovery), or the seller
+// they asked for passes the seller permission primitive (e.g. an admin).
+$ec_shop_allowed = ( function_exists( 'ec_can_manage_shop' ) && ec_can_manage_shop() )
+	|| ( $ec_shop_ref && true === extrachill_shop_can_manage_seller( get_current_user_id(), $ec_shop_ref ) );
+if ( ! $ec_shop_allowed ) {
 	echo '<div class="notice notice-info"><p>' . esc_html__( 'Shop management is not available for your account.', 'extrachill-shop' ) . '</p></div>';
 	return;
 }
 
-// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only seller preselection; authority is checked server-side.
-$ec_shop_requested = isset( $_GET['seller'] ) && is_string( $_GET['seller'] ) ? sanitize_text_field( wp_unslash( $_GET['seller'] ) ) : null;
-$ec_shop_state     = extrachill_shop_get_manager_state( $ec_shop_requested );
+$ec_shop_state = extrachill_shop_get_manager_state( $ec_shop_requested );
 
 if ( null === $ec_shop_state['selected'] ) {
 	$ec_shop_message = null === $ec_shop_requested
