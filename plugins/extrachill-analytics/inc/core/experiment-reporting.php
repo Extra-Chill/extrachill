@@ -72,44 +72,48 @@ function extrachill_analytics_experiment_derived_outcomes() {
 }
 
 /**
- * Read relevant rows with stable ascending time/ID keyset pagination.
+ * Stream relevant rows page by page with stable ascending time/ID keyset pagination.
+ *
+ * Memory stays at one page: each page is handed to $on_page and released.
+ * Reads at most $max_events rows; one extra sentinel row reports truncation
+ * and is never handed to $on_page.
  *
  * @param string[] $event_types Canonical event names.
  * @param string   $since       Inclusive UTC lower bound.
  * @param string   $as_of       Inclusive UTC upper bound.
  * @param int      $max_events  Hard row ceiling.
- * @return array{rows:array,truncated:bool}
+ * @param callable $on_page     Receives each page as an array of row objects.
+ * @param int      $page_size   Rows per query.
+ * @return array{rows_read:int,truncated:bool}
  */
-function extrachill_analytics_experiment_read_events( $event_types, $since, $as_of, $max_events ) {
+function extrachill_analytics_experiment_each_event_page( $event_types, $since, $as_of, $max_events, $on_page, $page_size = 2000 ) {
 	global $wpdb;
 
 	$event_types = array_values( array_unique( array_map( 'sanitize_key', $event_types ) ) );
+	$read        = 0;
+	$truncated   = false;
 	if ( empty( $event_types ) ) {
 		return array(
-			'rows'      => array(),
+			'rows_read' => 0,
 			'truncated' => false,
 		);
 	}
 
 	$table        = extrachill_analytics_events_table();
-	$page_size    = 500;
-	$rows         = array();
+	$page_size    = max( 1, (int) $page_size );
 	$cursor_time  = null;
 	$cursor_id    = 0;
 	$placeholders = implode( ', ', array_fill( 0, count( $event_types ), '%s' ) );
 
-	do {
-		$remaining = $max_events + 1 - count( $rows );
-		if ( $remaining <= 0 ) {
-			break;
-		}
-		$limit  = min( $page_size, $remaining );
-		$where  = array(
+	while ( true ) {
+		$remaining = $max_events + 1 - $read;
+		$limit     = min( $page_size, $remaining );
+		$where     = array(
 			"event_type IN ({$placeholders})",
 			'created_at >= %s',
 			'created_at <= %s',
 		);
-		$values = array_merge( $event_types, array( $since, $as_of ) );
+		$values    = array_merge( $event_types, array( $since, $as_of ) );
 		if ( null !== $cursor_time ) {
 			$where[]  = '(created_at > %s OR (created_at = %s AND id > %d))';
 			$values[] = $cursor_time;
@@ -131,22 +135,60 @@ function extrachill_analytics_experiment_read_events( $event_types, $since, $as_
 		if ( empty( $page ) ) {
 			break;
 		}
-		$rows         = array_merge( $rows, $page );
-		$page_count   = count( $page );
-		$last         = end( $page );
-		$cursor_time  = (string) $last->created_at;
-		$cursor_id    = (int) $last->id;
-		$current_rows = count( $rows );
-	} while ( $page_count === $limit && $current_rows <= $max_events );
-
-	$truncated = count( $rows ) > $max_events;
-	if ( $truncated ) {
-		array_pop( $rows );
+		$page_count = count( $page );
+		if ( $read + $page_count > $max_events ) {
+			$truncated = true;
+			$page      = array_slice( $page, 0, $max_events - $read );
+		}
+		if ( ! empty( $page ) ) {
+			$read       += count( $page );
+			$last        = end( $page );
+			$cursor_time = (string) $last->created_at;
+			$cursor_id   = (int) $last->id;
+			call_user_func( $on_page, $page );
+		}
+		if ( $truncated || $page_count < $limit ) {
+			break;
+		}
 	}
 
 	return array(
-		'rows'      => $rows,
+		'rows_read' => $read,
 		'truncated' => $truncated,
+	);
+}
+
+/**
+ * Read relevant rows into memory with stable ascending time/ID keyset pagination.
+ *
+ * Retains every row, so memory grows with $max_events. Reports that must
+ * cover long windows stream through
+ * extrachill_analytics_experiment_each_event_page() instead.
+ *
+ * @param string[] $event_types Canonical event names.
+ * @param string   $since       Inclusive UTC lower bound.
+ * @param string   $as_of       Inclusive UTC upper bound.
+ * @param int      $max_events  Hard row ceiling.
+ * @return array{rows:array,truncated:bool}
+ */
+function extrachill_analytics_experiment_read_events( $event_types, $since, $as_of, $max_events ) {
+	$rows   = array();
+	$result = extrachill_analytics_experiment_each_event_page(
+		$event_types,
+		$since,
+		$as_of,
+		$max_events,
+		static function ( $page ) use ( &$rows ) {
+			foreach ( $page as $row ) {
+				$rows[] = $row;
+			}
+		},
+		500
+	);
+
+	return array(
+		'rows'      => $rows,
+		'truncated' => $result['truncated'],
 	);
 }
 
@@ -306,13 +348,23 @@ function extrachill_analytics_experiment_identity_map( $events ) {
 		}
 	}
 
+	return extrachill_analytics_experiment_identity_resolve( $visitor_users );
+}
+
+/**
+ * Resolve observed visitor-to-user pairs into an unambiguous bridge map.
+ *
+ * @param array<string, array<int, true>> $visitor_users Users observed per visitor.
+ * @return array{map:array<string,int>,ambiguous:array<string,bool>}
+ */
+function extrachill_analytics_experiment_identity_resolve( $visitor_users ) {
 	$map       = array();
 	$ambiguous = array();
 	foreach ( $visitor_users as $visitor_id => $users ) {
 		if ( 1 === count( $users ) ) {
-			$map[ $visitor_id ] = (int) array_key_first( $users );
+			$map[ (string) $visitor_id ] = (int) array_key_first( $users );
 		} else {
-			$ambiguous[ $visitor_id ] = true;
+			$ambiguous[ (string) $visitor_id ] = true;
 		}
 	}
 
