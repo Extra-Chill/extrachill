@@ -192,7 +192,7 @@ function extrachill_shop_seller_input_schema() {
 }
 
 /**
- * Read a Shop-owned ship-from address, lazily migrating legacy artist meta.
+ * Read a Shop-owned ship-from address.
  *
  * @param array $seller Seller reference.
  * @return array|false
@@ -204,22 +204,6 @@ function extrachill_shop_get_seller_shipping_address( $seller ) {
 	}
 	$key     = 'extrachill_shop_shipping_seller_' . $seller['type'] . ':' . $seller['id'];
 	$address = get_option( $key, false );
-	if ( false === $address && 'artist' === $seller['type'] ) {
-		$artist_blog_id = ec_get_blog_id( 'artist' );
-		if ( $artist_blog_id ) {
-			switch_to_blog( $artist_blog_id );
-			try {
-				$legacy = get_post_meta( $seller['id'], '_shipping_address', true );
-			} finally {
-				restore_current_blog();
-			}
-			if ( is_array( $legacy ) && ! empty( $legacy ) ) {
-				// An atomic add prevents migration from replacing a concurrent save.
-				add_option( $key, $legacy, '', false );
-				$address = get_option( $key, false );
-			}
-		}
-	}
 	return is_array( $address ) ? $address : false;
 }
 
@@ -251,10 +235,7 @@ function extrachill_shop_get_seller_stripe_account( $seller ) {
 }
 
 /**
- * Read seller state, lazily migrating the previous artist option in place.
- *
- * The legacy option is retained for safe replay; the typed record wins once
- * present. Reads never overwrite an existing typed binding.
+ * Read a seller's Shop-owned Stripe account record.
  *
  * @param array $seller Seller reference.
  * @return array|false
@@ -266,12 +247,6 @@ function extrachill_shop_get_seller_stripe_account_record( $seller ) {
 	}
 	$key    = 'extrachill_shop_stripe_seller_' . $seller['type'] . ':' . $seller['id'];
 	$record = get_option( $key, false );
-	if ( false === $record && 'artist' === $seller['type'] ) {
-		$legacy = get_option( extrachill_shop_stripe_artist_option_name( $seller['id'] ), false );
-		if ( is_array( $legacy ) && extrachill_shop_set_seller_stripe_account_record( $seller, $legacy, true ) ) {
-			$record = get_option( $key, false );
-		}
-	}
 	return is_array( $record ) ? $record : false;
 }
 
@@ -279,11 +254,10 @@ function extrachill_shop_get_seller_stripe_account_record( $seller ) {
  * Persist seller state and the webhook reverse index.
  *
  * @param array $seller Seller reference.
- * @param array $record             Account projection.
- * @param bool  $preserve_timestamp Keep the record's updated_at (lazy migration only).
+ * @param array $record Account projection.
  * @return bool
  */
-function extrachill_shop_set_seller_stripe_account_record( $seller, array $record, $preserve_timestamp = false ) {
+function extrachill_shop_set_seller_stripe_account_record( $seller, array $record ) {
 	$seller     = extrachill_shop_validate_seller_ref( $seller );
 	$account_id = sanitize_text_field( (string) ( $record['account_id'] ?? '' ) );
 	if ( is_wp_error( $seller ) || '' === $account_id ) {
@@ -292,14 +266,8 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 	$key   = 'extrachill_shop_stripe_seller_' . $seller['type'] . ':' . $seller['id'];
 	$index = 'extrachill_shop_stripe_account_' . hash( 'sha256', $account_id );
 	$bound = get_option( $index, false );
-	if ( false !== $bound ) {
-		$bound = is_array( $bound ) ? $bound : array(
-			'type' => 'artist',
-			'id'   => absint( $bound ),
-		);
-		if ( $bound !== $seller ) {
-			return false;
-		}
+	if ( false !== $bound && $bound !== $seller ) {
+		return false;
 	}
 	$existing = get_option( $key, false );
 	if ( is_array( $existing ) && ( $existing['account_id'] ?? '' ) !== $account_id ) {
@@ -313,7 +281,7 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
 		// Set only when `status` came from Stripe (account.updated or a live read).
 		'status_synced_at'    => (string) ( $record['status_synced_at'] ?? '' ),
-		'updated_at'          => $preserve_timestamp && ! empty( $record['updated_at'] ) ? (string) $record['updated_at'] : gmdate( 'c' ),
+		'updated_at'          => gmdate( 'c' ),
 	);
 	if ( 'artist' === $seller['type'] ) {
 		$stored['artist_id'] = $seller['id'];
@@ -322,16 +290,6 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 	$indexed = update_option( $index, $seller, false );
 	return ( $saved || get_option( $key, false ) === $stored )
 		&& ( $indexed || get_option( $index, false ) === $seller );
-}
-
-/**
- * Build the private option key for an artist's Shop-owned Stripe projection.
- *
- * @param int $artist_id Canonical artist profile ID.
- * @return string
- */
-function extrachill_shop_stripe_artist_option_name( $artist_id ) {
-	return 'extrachill_shop_stripe_artist_' . absint( $artist_id );
 }
 
 /**
@@ -375,13 +333,8 @@ function extrachill_shop_set_stripe_account_record( $artist_id, array $record ) 
  * @return bool
  */
 function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onboarding_complete ) {
-	$reference = get_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', (string) $account_id ), 0 );
-	// Old reverse indexes contain an artist ID, not a typed reference.
 	$seller = extrachill_shop_validate_seller_ref(
-		is_array( $reference ) ? $reference : array(
-			'type' => 'artist',
-			'id'   => absint( $reference ),
-		)
+		get_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', (string) $account_id ), false )
 	);
 	$record = is_wp_error( $seller ) ? false : extrachill_shop_get_seller_stripe_account_record( $seller );
 	if ( ! $record || ! hash_equals( (string) $record['account_id'], (string) $account_id ) ) {
