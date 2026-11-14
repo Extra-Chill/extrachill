@@ -39,7 +39,7 @@ function extrachill_shop_enqueue_assets() {
 			'extrachill-shop-woocommerce',
 			EXTRACHILL_SHOP_PLUGIN_URL . 'assets/css/woocommerce.css',
 			array(),
-			filemtime( $css_file )
+			(string) filemtime( $css_file )
 		);
 	}
 }
@@ -57,7 +57,7 @@ function extrachill_shop_enqueue_product_gallery() {
 			'extrachill-shop-product-gallery',
 			EXTRACHILL_SHOP_PLUGIN_URL . 'assets/js/product-gallery.js',
 			array(),
-			filemtime( $js_file ),
+			(string) filemtime( $js_file ),
 			true
 		);
 	}
