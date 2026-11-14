@@ -24,7 +24,10 @@ final class CommerceStateMigrationTest extends TestCase {
 
 	public function test_typed_seller_records_do_not_collide(): void {
 		foreach ( array( 'artist', 'venue', 'promoter' ) as $type ) {
-			$seller = array( 'type' => $type, 'id' => 9 );
+			$seller = array(
+				'type' => $type,
+				'id'   => 9,
+			);
 			$this->assertTrue( extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_' . $type ) ) );
 			$this->assertSame( $seller, extrachill_shop_get_seller_stripe_account_record( $seller )['seller'] );
 			$this->assertTrue( extrachill_shop_update_stripe_account_by_id( 'acct_' . $type, 'active', true ) );
@@ -34,7 +37,11 @@ final class CommerceStateMigrationTest extends TestCase {
 	}
 
 	public function test_artist_option_migrates_once_and_old_webhook_index_remains_readable(): void {
-		$legacy = array( 'account_id' => 'acct_old', 'status' => 'pending', 'updated_at' => '2026-01-01T00:00:00Z' );
+		$legacy = array(
+			'account_id' => 'acct_old',
+			'status'     => 'pending',
+			'updated_at' => '2026-01-01T00:00:00Z',
+		);
 		update_option( extrachill_shop_stripe_artist_option_name( 9 ), $legacy );
 		update_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', 'acct_old' ), 9 );
 		$record = extrachill_shop_get_stripe_account_record( 9 );
@@ -46,18 +53,40 @@ final class CommerceStateMigrationTest extends TestCase {
 	}
 
 	public function test_invalid_sellers_and_conflicting_bindings_are_rejected(): void {
-		foreach ( array( null, array(), array( 'type' => 'venue', 'id' => -1 ), array( 'type' => 'venue', 'id' => '9' ), array( 'type' => 'other', 'id' => 9 ) ) as $seller ) {
+		foreach ( array(
+			null,
+			array(),
+			array(
+				'type' => 'venue',
+				'id'   => -1,
+			),
+			array(
+				'type' => 'venue',
+				'id'   => '9',
+			),
+			array(
+				'type' => 'other',
+				'id'   => 9,
+			),
+		) as $seller ) {
 			$this->assertInstanceOf( WP_Error::class, extrachill_shop_validate_seller_ref( $seller ) );
 			$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_invalid' ) ) );
 		}
 		$this->assertTrue( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_one' ) ) );
-		$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9 ), array( 'account_id' => 'acct_one' ) ) );
+		$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( array(
+			'type' => 'venue',
+			'id'   => 9,
+		), array( 'account_id' => 'acct_one' ) ) );
 		$this->assertFalse( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_two' ) ) );
 		$this->assertSame( 'acct_one', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
 	}
 
 	public function test_stripe_migration_is_dry_run_then_idempotent(): void {
-		$legacy = array( 'account_id' => 'acct_legacy', 'status' => 'active', 'onboarding_complete' => true );
+		$legacy = array(
+			'account_id'          => 'acct_legacy',
+			'status'              => 'active',
+			'onboarding_complete' => true,
+		);
 
 		$this->assertSame( 'pending', extrachill_shop_migrate_stripe_record( 9, $legacy, false ) );
 		$this->assertFalse( extrachill_shop_get_stripe_account_record( 9 ) );
@@ -117,12 +146,22 @@ final class CommerceStateMigrationTest extends TestCase {
 				)
 			)
 		);
-		$this->assertSame( array(), extrachill_shop_register_priority_boost_source_grant( array() ) );
+		// Keys removed (e.g. an override clearing them) means no grant at all.
+		add_filter( 'extrachill_shop_priority_boost_service_assertion_keys', static function () {
+			return array();
+		} );
+		$grants = extrachill_shop_register_priority_boost_source_grant( array() );
+		unset( $GLOBALS['test_filters']['extrachill_shop_priority_boost_service_assertion_keys'] );
+		$this->assertSame( array(), $grants );
 	}
 
 	public function test_canonical_artist_identity_uses_artist_read_contract(): void {
 		$GLOBALS['test_owner_callback'] = static function () {
-			return array( 'id' => 9, 'name' => 'Canonical Artist', 'slug' => 'canonical-artist' );
+			return array(
+				'id'   => 9,
+				'name' => 'Canonical Artist',
+				'slug' => 'canonical-artist',
+			);
 		};
 
 		$artist = extrachill_shop_get_canonical_artist( 9 );
@@ -143,15 +182,20 @@ final class CommerceStateMigrationTest extends TestCase {
 			'details_submitted'    => true,
 		);
 
-		$result = extrachill_shop_ability_stripe_status( array( 'seller' => array( 'type' => 'artist', 'id' => 12 ) ) );
+		$result = extrachill_shop_ability_stripe_status( array(
+			'seller' => array(
+				'type' => 'artist',
+				'id'   => 12,
+			),
+		) );
 
 		$this->assertArrayNotHasKey( 'account_id', $result );
 		$this->assertTrue( $result['can_receive_payments'] );
 	}
 
 	public function test_live_paths_contain_no_direct_artist_or_events_writes(): void {
-		$root  = dirname( __DIR__ );
-		$files = array(
+		$root   = dirname( __DIR__ );
+		$files  = array(
 			$root . '/inc/stripe/stripe-connect.php',
 			$root . '/inc/abilities/shop-stripe-status.php',
 			$root . '/inc/abilities/shop-stripe-dashboard-link.php',
@@ -159,7 +203,7 @@ final class CommerceStateMigrationTest extends TestCase {
 		);
 		$source = '';
 		foreach ( $files as $file ) {
-			$source .= file_get_contents( $file );
+			$source .= file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads local plugin source.
 		}
 
 		$this->assertStringNotContainsString( 'switch_to_blog(', $source );
@@ -167,7 +211,7 @@ final class CommerceStateMigrationTest extends TestCase {
 		$this->assertStringNotContainsString( "'_stripe_connect_account_id'", $source );
 		$this->assertStringNotContainsString( "wp_cache_delete( 'extrachill_priority_event_ids'", $source );
 
-		$artist_products = file_get_contents( $root . '/inc/core/artist-product-meta.php' );
+		$artist_products = file_get_contents( $root . '/inc/core/artist-product-meta.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads local plugin source.
 		$this->assertStringNotContainsString( 'wp_set_object_terms(', $artist_products );
 	}
 }

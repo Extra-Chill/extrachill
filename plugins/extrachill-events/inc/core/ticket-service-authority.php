@@ -8,7 +8,9 @@ function extrachill_events_ticket_service_routes(): array {
 }
 
 function extrachill_events_ticket_target_grants(): array {
-	$keys   = apply_filters( 'extrachill_events_ticket_service_assertion_keys', defined( 'EXTRACHILL_EVENTS_TICKET_SERVICE_ASSERTION_KEYS' ) ? EXTRACHILL_EVENTS_TICKET_SERVICE_ASSERTION_KEYS : array() );
+	// Network-provisioned keys by default; the deployment constant remains an optional override.
+	$auto   = function_exists( 'ec_cross_site_service_assertion_service_keys' ) ? ec_cross_site_service_assertion_service_keys( 'extrachill.events.tickets' )['keys'] : array();
+	$keys   = apply_filters( 'extrachill_events_ticket_service_assertion_keys', defined( 'EXTRACHILL_EVENTS_TICKET_SERVICE_ASSERTION_KEYS' ) ? EXTRACHILL_EVENTS_TICKET_SERVICE_ASSERTION_KEYS : $auto );
 	$config = array(
 		'source_site_id' => (int) ec_get_blog_id( 'shop' ),
 		'target_site_id' => (int) ec_get_blog_id( 'events' ),

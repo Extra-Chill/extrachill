@@ -51,7 +51,7 @@ function extrachill_shop_priority_boost_build_source_grant( array $config ) {
 }
 
 /**
- * Resolve the source grant from deployment-provided key configuration.
+ * Resolve the source grant from Network-provisioned (or overridden) keys.
  *
  * @return array|null Source grant, or null when unavailable.
  */
@@ -60,12 +60,19 @@ function extrachill_shop_priority_boost_source_grant() {
 	$target_site_id = (int) ec_get_blog_id( 'events' );
 	$target_url     = (string) ec_get_site_url( 'events' );
 	$target_host    = $target_url ? wp_parse_url( $target_url, PHP_URL_HOST ) : '';
-	$keys           = defined( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_KEYS' )
+	$auto           = function_exists( 'ec_cross_site_service_assertion_service_keys' )
+		? ec_cross_site_service_assertion_service_keys( EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ID )
+		: array(
+			'active_key_id' => '',
+			'keys'          => array(),
+		);
+	// Deployment constants are an optional override; Network-provisioned keys are the default.
+	$keys          = defined( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_KEYS' )
 		? constant( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_KEYS' )
-		: array();
-	$active_key_id  = defined( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_ACTIVE_KEY_ID' )
+		: $auto['keys'];
+	$active_key_id = defined( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_ACTIVE_KEY_ID' )
 		? constant( 'EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_ASSERTION_ACTIVE_KEY_ID' )
-		: '';
+		: $auto['active_key_id'];
 
 	/** Filters deployment-provided priority boost assertion keys. */
 	$keys = apply_filters( 'extrachill_shop_priority_boost_service_assertion_keys', $keys );

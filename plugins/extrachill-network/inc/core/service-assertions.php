@@ -13,6 +13,116 @@ const EC_CROSS_SITE_SERVICE_ASSERTION_VERSION     = '1';
 const EC_CROSS_SITE_SERVICE_ASSERTION_MAX_TTL     = 60;
 const EC_CROSS_SITE_SERVICE_ASSERTION_FUTURE_SKEW = 5;
 const EC_CROSS_SITE_SERVICE_ASSERTION_REPLAY_HOOK = 'ec_cross_site_service_assertion_delete_replay';
+const EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING     = 'ec_cross_site_service_assertion_keyring';
+
+/**
+ * Validate a stored network keyring.
+ *
+ * @param mixed $keyring Stored value.
+ * @return array{active_key_id: string, keys: array<string, string>}|null Valid keyring, or null.
+ */
+function ec_cross_site_service_assertion_validate_keyring( $keyring ): ?array {
+	if ( ! is_array( $keyring ) || ! isset( $keyring['active_key_id'], $keyring['keys'] ) || ! is_array( $keyring['keys'] ) ) {
+		return null;
+	}
+
+	$keys = array();
+	foreach ( $keyring['keys'] as $key_id => $secret ) {
+		if ( is_string( $key_id ) && 1 === preg_match( '/^[A-Za-z0-9._:-]{1,128}$/', $key_id ) && is_string( $secret ) && strlen( $secret ) >= 32 ) {
+			$keys[ $key_id ] = $secret;
+		}
+	}
+
+	$active_key_id = (string) $keyring['active_key_id'];
+	if ( ! isset( $keys[ $active_key_id ] ) ) {
+		return null;
+	}
+
+	return array(
+		'active_key_id' => $active_key_id,
+		'keys'          => $keys,
+	);
+}
+
+/**
+ * Return the network-wide root keyring, provisioning it on first use.
+ *
+ * All blogs in the network share one sitemeta row, so a source and a target
+ * blog always resolve the same material without deployment configuration.
+ * The root secret is 32 cryptographically random bytes. Rotation is supported
+ * by adding a key to the stored `keys` map and switching `active_key_id`; old
+ * keys remain accepted by targets until removed.
+ *
+ * @return array{active_key_id: string, keys: array<string, string>}|null Keyring, or null when unavailable.
+ */
+function ec_cross_site_service_assertion_keyring(): ?array {
+	if ( ! function_exists( 'get_site_option' ) ) {
+		return null;
+	}
+
+	$keyring = ec_cross_site_service_assertion_validate_keyring( get_site_option( EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ) );
+	if ( null !== $keyring ) {
+		return $keyring;
+	}
+
+	try {
+		$key_id = 'auto-' . bin2hex( random_bytes( 4 ) );
+		$secret = bin2hex( random_bytes( 32 ) );
+	} catch ( Throwable $error ) {
+		return null;
+	}
+
+	$generated = array(
+		'active_key_id' => $key_id,
+		'keys'          => array( $key_id => $secret ),
+	);
+
+	if ( null === get_site_option( EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING, null ) ) {
+		add_site_option( EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING, $generated );
+	} else {
+		// A stored value exists but is unusable: replace it with fresh material.
+		update_site_option( EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING, $generated );
+	}
+
+	// Re-read persistent storage so concurrent first-use workers converge on
+	// the stored row instead of the value each one generated locally.
+	if ( function_exists( 'wp_cache_delete' ) && function_exists( 'get_current_network_id' ) ) {
+		wp_cache_delete( get_current_network_id() . ':' . EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING, 'site-options' );
+		wp_cache_delete( get_current_network_id() . ':notoptions', 'site-options' );
+	}
+
+	return ec_cross_site_service_assertion_validate_keyring( get_site_option( EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ) );
+}
+
+/**
+ * Derive the signing keys for one service from the network keyring.
+ *
+ * Each service receives an independent HMAC-derived secret per root key, so a
+ * key for one service ID never verifies another. Key IDs are preserved, which
+ * keeps root-key rotation transparent to grants.
+ *
+ * @param string $service_id Opaque service ID.
+ * @return array{active_key_id: string, keys: array<string, string>} Derived keys; empty keys when unavailable.
+ */
+function ec_cross_site_service_assertion_service_keys( string $service_id ): array {
+	$keyring = ec_cross_site_service_assertion_keyring();
+	if ( null === $keyring || 1 !== preg_match( '/^[A-Za-z0-9._:-]{1,128}$/', $service_id ) ) {
+		return array(
+			'active_key_id' => '',
+			'keys'          => array(),
+		);
+	}
+
+	$keys = array();
+	foreach ( $keyring['keys'] as $key_id => $root ) {
+		$keys[ $key_id ] = hash_hmac( 'sha256', 'ec-service-assertion:v1:' . $service_id, $root );
+	}
+
+	return array(
+		'active_key_id' => $keyring['active_key_id'],
+		'keys'          => $keys,
+	);
+}
 
 /**
  * Return the complete assertion header map.

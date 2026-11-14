@@ -15,6 +15,7 @@ $GLOBALS['sa_user_sets']       = array();
 $GLOBALS['sa_http_request']    = null;
 $GLOBALS['sa_scheduled']       = array();
 $GLOBALS['sa_deleted']         = array();
+$GLOBALS['sa_site_options']    = array();
 
 class WP_Error {
 	private string $code;
@@ -95,11 +96,11 @@ class WP_REST_Request {
 }
 
 class ServiceAssertionWpdb {
-	public string $options = 'wp_options';
+	public string $options    = 'wp_options';
 	public string $last_error = '';
-	public array $rows = array();
-	public array $prepared = array();
-	public bool $fail = false;
+	public array $rows        = array();
+	public array $prepared    = array();
+	public bool $fail         = false;
 
 	public function prepare( $query, ...$args ) {
 		$this->prepared = $args;
@@ -183,7 +184,7 @@ function get_current_user_id() {
 }
 
 function wp_set_current_user( $user_id ) {
-	$GLOBALS['sa_user_sets'][]       = (int) $user_id;
+	$GLOBALS['sa_user_sets'][]     = (int) $user_id;
 	$GLOBALS['sa_current_user_id'] = (int) $user_id;
 }
 
@@ -202,6 +203,23 @@ function wp_schedule_single_event( $timestamp, $hook, $args ) {
 
 function delete_option( $option_name ) {
 	$GLOBALS['sa_deleted'][] = $option_name;
+	return true;
+}
+
+function get_site_option( $option, $default = false ) {
+	return array_key_exists( $option, $GLOBALS['sa_site_options'] ) ? $GLOBALS['sa_site_options'][ $option ] : $default;
+}
+
+function add_site_option( $option, $value ) {
+	if ( array_key_exists( $option, $GLOBALS['sa_site_options'] ) ) {
+		return false;
+	}
+	$GLOBALS['sa_site_options'][ $option ] = $value;
+	return true;
+}
+
+function update_site_option( $option, $value ) {
+	$GLOBALS['sa_site_options'][ $option ] = $value;
 	return true;
 }
 
@@ -268,8 +286,8 @@ function sa_reset( $grant = null ) {
 
 function sa_mint( $body = null, $query = null ) {
 	$args = array(
-		'user_id'            => 0,
-		'service_assertion'  => array(
+		'user_id'           => 0,
+		'service_assertion' => array(
 			'service_id' => 'worker.alpha',
 			'scope'      => 'records:write',
 		),
@@ -310,7 +328,7 @@ function sa_resign( &$headers, WP_REST_Request $request, $secret ) {
 			$claims[ $claim ] = $headers[ $header ];
 		}
 	}
-	$payload = ec_cross_site_service_assertion_payload(
+	$payload                           = ec_cross_site_service_assertion_payload(
 		$claims,
 		$request->get_method(),
 		$request->get_route(),
@@ -325,11 +343,23 @@ function sa_verify( WP_REST_Request $request ) {
 }
 
 sa_reset();
-$body    = array( 'z' => 2, 'a' => array( 'b' => 1, 'a' => 0 ) );
-$query   = array( 'page' => 1, 'flags' => array( 'b' => false, 'a' => true ) );
+$body    = array(
+	'z' => 2,
+	'a' => array(
+		'b' => 1,
+		'a' => 0,
+	),
+);
+$query   = array(
+	'page'  => 1,
+	'flags' => array(
+		'b' => false,
+		'a' => true,
+	),
+);
 $headers = sa_mint( $body, $query );
 sa_assert( is_array( $headers ) && 11 === count( $headers ), 'configured source mints a complete assertion' );
-$request = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$request               = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 $GLOBALS['sa_blog_id'] = 5;
 sa_assert( null === sa_verify( $request ), 'target verifies a bound request' );
 $context = ec_cross_site_verified_service_context( $request );
@@ -366,10 +396,10 @@ foreach ( $binding_cases as $label => $parts ) {
 }
 
 sa_reset();
-$headers                        = sa_mint( $body, $query );
-$_SERVER['HTTP_HOST']           = 'other.example.test';
-$request                        = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
-$GLOBALS['sa_blog_id']          = 5;
+$headers               = sa_mint( $body, $query );
+$_SERVER['HTTP_HOST']  = 'other.example.test';
+$request               = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$GLOBALS['sa_blog_id'] = 5;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'wrong target host is rejected' );
 
 sa_reset();
@@ -379,26 +409,26 @@ $GLOBALS['sa_blog_id'] = 6;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'wrong target site is rejected' );
 
 sa_reset();
-$headers                                  = sa_mint( $body, $query );
-$headers['X-EC-Service-Signature']        = str_repeat( '0', 64 );
-$request                                  = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
-$GLOBALS['sa_blog_id']                    = 5;
+$headers                           = sa_mint( $body, $query );
+$headers['X-EC-Service-Signature'] = str_repeat( '0', 64 );
+$request                           = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$GLOBALS['sa_blog_id']             = 5;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'forged signature is rejected' );
 
 sa_reset();
-$headers                           = sa_mint( $body, $query );
-$headers['X-EC-Service-Issued-At'] = (string) ( time() - 120 );
+$headers                            = sa_mint( $body, $query );
+$headers['X-EC-Service-Issued-At']  = (string) ( time() - 120 );
 $headers['X-EC-Service-Expires-At'] = (string) ( time() - 60 );
-$request                           = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$request                            = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 sa_resign( $headers, $request, str_repeat( 'c', 64 ) );
 $request->set_headers( $headers );
 $GLOBALS['sa_blog_id'] = 5;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'expired assertion is rejected' );
 
 sa_reset();
-$headers                                    = sa_mint( $body, $query );
-$headers['X-EC-Service-Scope']              = 'records:read';
-$request                                    = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$headers                       = sa_mint( $body, $query );
+$headers['X-EC-Service-Scope'] = 'records:read';
+$request                       = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 sa_resign( $headers, $request, str_repeat( 'c', 64 ) );
 $request->set_headers( $headers );
 $GLOBALS['sa_blog_id'] = 5;
@@ -406,21 +436,21 @@ sa_assert( is_wp_error( sa_verify( $request ) ), 'ungranted scope is rejected af
 $denied = ec_cross_site_build_service_assertion_headers( 'destination', 'POST', '/example/v1/records/commit', array(), 'unknown.worker', 'records:write' );
 sa_assert( is_wp_error( $denied ), 'unregistered service cannot mint' );
 $GLOBALS['sa_blog_id'] = 3;
-$denied                 = sa_mint( $body, $query );
+$denied                = sa_mint( $body, $query );
 sa_assert( is_wp_error( $denied ), 'registered service cannot mint from the wrong source site' );
 
 sa_reset();
-$headers               = sa_mint( $body, $query );
-$request               = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$headers                = sa_mint( $body, $query );
+$request                = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 $_SERVER['REMOTE_ADDR'] = '192.0.2.10';
-$GLOBALS['sa_blog_id'] = 5;
+$GLOBALS['sa_blog_id']  = 5;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'non-loopback callers cannot present assertions' );
 
 sa_reset();
-$headers                           = sa_mint( $body, $query );
-$headers['X-EC-Service-Issued-At'] = (string) ( time() + 30 );
+$headers                            = sa_mint( $body, $query );
+$headers['X-EC-Service-Issued-At']  = (string) ( time() + 30 );
 $headers['X-EC-Service-Expires-At'] = (string) ( time() + 60 );
-$request                           = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$request                            = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 sa_resign( $headers, $request, str_repeat( 'c', 64 ) );
 $request->set_headers( $headers );
 $GLOBALS['sa_blog_id'] = 5;
@@ -446,24 +476,24 @@ sa_assert( is_wp_error( $replay ) && 'ec_service_assertion_replay' === $replay->
 
 $rotated = sa_grant( 'key-current' );
 sa_reset( $rotated );
-$headers                       = sa_mint( $body, $query );
+$headers                        = sa_mint( $body, $query );
 $headers['X-EC-Service-Key-ID'] = 'key-old';
-$request                       = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$request                        = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 sa_resign( $headers, $request, str_repeat( 'o', 64 ) );
 $request->set_headers( $headers );
 $GLOBALS['sa_blog_id'] = 5;
 sa_assert( null === sa_verify( $request ), 'target accepts a configured overlap key during rotation' );
 
 sa_reset( $rotated );
-$headers                       = sa_mint( $body, $query );
+$headers                        = sa_mint( $body, $query );
 $headers['X-EC-Service-Key-ID'] = 'key-old';
-$request                       = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+$request                        = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
 sa_resign( $headers, $request, str_repeat( 'o', 64 ) );
 $request->set_headers( $headers );
-$revoked                       = $rotated;
-$revoked['keys']               = array( 'key-current' => str_repeat( 'c', 64 ) );
-$GLOBALS['sa_target_grants']   = array( $revoked );
-$GLOBALS['sa_blog_id']         = 5;
+$revoked                     = $rotated;
+$revoked['keys']             = array( 'key-current' => str_repeat( 'c', 64 ) );
+$GLOBALS['sa_target_grants'] = array( $revoked );
+$GLOBALS['sa_blog_id']       = 5;
 sa_assert( is_wp_error( sa_verify( $request ) ), 'removing a key revokes it at the target' );
 
 sa_reset();
@@ -495,7 +525,68 @@ sa_assert( array() === $response && null !== $GLOBALS['sa_http_request'], 'servi
 sa_assert( ! isset( $GLOBALS['sa_http_request']['args']['headers']['X-EC-Internal-User'] ), 'user zero emits no positive-user assertion' );
 sa_assert( isset( $GLOBALS['sa_http_request']['args']['headers']['X-EC-Service-Signature'] ), 'HTTP transport carries the minted assertion' );
 
-$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/service-assertions.php' )
+// Zero-configuration keys: no deployment constants, the network keyring is
+// provisioned on first use and both sides derive identical per-service keys.
+$GLOBALS['sa_site_options'] = array();
+$auto_keys                  = ec_cross_site_service_assertion_service_keys( 'worker.alpha' );
+$stored                     = $GLOBALS['sa_site_options'][ EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ] ?? null;
+sa_assert( is_array( $stored ) && 64 === strlen( $stored['keys'][ $stored['active_key_id'] ] ), 'first use provisions a random network keyring' );
+sa_assert( '' !== $auto_keys['active_key_id'] && 64 === strlen( $auto_keys['keys'][ $auto_keys['active_key_id'] ] ), 'service keys derive from the provisioned keyring' );
+sa_assert( ec_cross_site_service_assertion_service_keys( 'worker.alpha' ) === $auto_keys && $stored === $GLOBALS['sa_site_options'][ EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ], 'keyring is reused, not regenerated' );
+$other_keys = ec_cross_site_service_assertion_service_keys( 'worker.beta' );
+sa_assert( $other_keys['keys'] !== $auto_keys['keys'] && ! in_array( $stored['keys'][ $stored['active_key_id'] ], $auto_keys['keys'], true ), 'each service derives a distinct key and never exposes the root' );
+$invalid_keys = ec_cross_site_service_assertion_service_keys( 'bad service id' );
+sa_assert( array() === $invalid_keys['keys'], 'malformed service IDs derive no keys' );
+
+$auto_grant                 = sa_grant( $auto_keys['active_key_id'], $auto_keys['keys'] );
+$auto_sign                  = static function () use ( $auto_grant, $body, $query ) {
+	sa_reset( $auto_grant );
+	$GLOBALS['sa_site_options'] = $GLOBALS['sa_auto_options'];
+	$headers                    = sa_mint( $body, $query );
+	$GLOBALS['sa_blog_id']      = 5;
+	return $headers;
+};
+$GLOBALS['sa_auto_options'] = $GLOBALS['sa_site_options'];
+
+$headers = $auto_sign();
+sa_assert( is_array( $headers ) && $auto_keys['active_key_id'] === $headers['X-EC-Service-Key-ID'], 'source mints with the provisioned active key' );
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_assert( null === sa_verify( $request ), 'target verifies an assertion signed with provisioned keys' );
+$replay = sa_verify( sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query ) );
+sa_assert( is_wp_error( $replay ) && 'ec_service_assertion_replay' === $replay->get_error_code(), 'provisioned-key assertion replay is rejected' );
+
+$headers = $auto_sign();
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', array( 'z' => 3 ), $query );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'tampered body under provisioned keys is rejected' );
+
+$headers                           = $auto_sign();
+$headers['X-EC-Service-Signature'] = str_repeat( 'a', 64 );
+sa_assert( is_wp_error( sa_verify( sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query ) ) ), 'tampered signature under provisioned keys is rejected' );
+
+$headers                            = $auto_sign();
+$headers['X-EC-Service-Issued-At']  = (string) ( time() - 120 );
+$headers['X-EC-Service-Expires-At'] = (string) ( time() - 60 );
+$request                            = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_resign( $headers, $request, $auto_keys['keys'][ $auto_keys['active_key_id'] ] );
+$request->set_headers( $headers );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'expired assertion under provisioned keys is rejected' );
+
+$headers = $auto_sign();
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_resign( $headers, $request, $other_keys['keys'][ $other_keys['active_key_id'] ] );
+$request->set_headers( $headers );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'a key derived for another service does not verify' );
+
+$GLOBALS['sa_site_options'] = array(
+	EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING => array(
+		'active_key_id' => 'weak',
+		'keys'          => array( 'weak' => 'short' ),
+	),
+);
+$replaced                   = ec_cross_site_service_assertion_service_keys( 'worker.alpha' );
+sa_assert( 'weak' !== $replaced['active_key_id'] && 64 === strlen( $replaced['keys'][ $replaced['active_key_id'] ] ), 'unusable stored keyring is replaced with fresh material' );
+
+$source     = file_get_contents( dirname( __DIR__ ) . '/inc/core/service-assertions.php' )
 	. file_get_contents( __FILE__ )
 	. file_get_contents( dirname( __DIR__ ) . '/docs/service-assertions.md' );
 $prohibited = array(

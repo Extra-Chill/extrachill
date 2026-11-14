@@ -12,6 +12,7 @@ final class PriorityBoostTestOrder {
 	public $meta       = array();
 	public $notes      = array();
 	public $save_count = 0;
+	public $status     = 'completed';
 
 	public function __construct( $id, array $items, $paid = true ) {
 		$this->id    = $id;
@@ -29,6 +30,10 @@ final class PriorityBoostTestOrder {
 
 	public function is_paid() {
 		return $this->paid;
+	}
+
+	public function get_status() {
+		return $this->status;
 	}
 
 	public function get_meta( $key ) {
