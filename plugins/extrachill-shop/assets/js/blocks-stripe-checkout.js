@@ -2,13 +2,16 @@
  * Registers the Extra Chill Stripe Checkout payment method with the
  * WooCommerce block checkout. Payment runs server side: the gateway's
  * process_payment() returns a Stripe Checkout redirect that the block follows.
+ *
+ * @param {Object} wc WooCommerce globals (wcSettings, wcBlocksRegistry).
+ * @param {Object} wp WordPress globals (element, htmlEntities).
  */
 ( function ( wc, wp ) {
-	var settings = wc.wcSettings.getSetting( 'extrachill_stripe_checkout_data', {} );
-	var decode = wp.htmlEntities.decodeEntities;
-	var el = wp.element.createElement;
-	var label = decode( settings.title || 'Pay securely with Stripe' );
-	var description = decode(
+	const settings = wc.wcSettings.getSetting( 'extrachill_stripe_checkout_data', {} );
+	const decode = wp.htmlEntities.decodeEntities;
+	const el = wp.element.createElement;
+	const label = decode( settings.title || 'Pay securely with Stripe' );
+	const description = decode(
 		settings.description || "You'll be redirected to Stripe to pay securely."
 	);
 
@@ -22,7 +25,7 @@
 		ariaLabel: label,
 		content: el( Content ),
 		edit: el( Content ),
-		canMakePayment: function () {
+		canMakePayment() {
 			return true;
 		},
 		supports: {

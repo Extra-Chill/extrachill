@@ -8,8 +8,8 @@ abstract class AbstractPaymentMethodType {
 
 	abstract public function initialize();
 
-	protected function get_setting( $name, $default = '' ) {
-		return isset( $this->settings[ $name ] ) ? $this->settings[ $name ] : $default;
+	protected function get_setting( $name, $default_value = '' ) {
+		return isset( $this->settings[ $name ] ) ? $this->settings[ $name ] : $default_value;
 	}
 
 	public function get_name() {

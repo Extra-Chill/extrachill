@@ -11,31 +11,21 @@ define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['test_filters'] = array();
 
-class WP_Error {
-	private $code;
-	private $message;
-	private $data;
-
-	public function __construct( $code, $message = '', $data = array() ) {
-		$this->code    = $code;
-		$this->message = $message;
-		$this->data    = $data;
-	}
-
-	public function get_error_code() {
-		return $this->code;
-	}
-
-	public function get_error_message() {
-		return $this->message;
-	}
-}
+require_once __DIR__ . '/fixtures/class-wp-error.php';
 
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
-	$GLOBALS['test_actions'][ $hook ][] = compact( 'callback', 'priority', 'accepted_args' );
+	$GLOBALS['test_actions'][ $hook ][] = array(
+		'callback'      => $callback,
+		'priority'      => $priority,
+		'accepted_args' => $accepted_args,
+	);
 }
 function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
-	$GLOBALS['test_filters'][ $hook ][] = compact( 'callback', 'priority', 'accepted_args' );
+	$GLOBALS['test_filters'][ $hook ][] = array(
+		'callback'      => $callback,
+		'priority'      => $priority,
+		'accepted_args' => $accepted_args,
+	);
 }
 function apply_filters( $hook, $value, ...$args ) {
 	foreach ( $GLOBALS['test_filters'][ $hook ] ?? array() as $registered ) {
@@ -77,7 +67,11 @@ function get_current_blog_id() {
 	return 3;
 }
 function ec_get_blog_id( $site_key ) {
-	return array( 'shop' => 3, 'events' => 7, 'artist' => 4 )[ $site_key ] ?? null;
+	return array(
+		'shop'   => 3,
+		'events' => 7,
+		'artist' => 4,
+	)[ $site_key ] ?? null;
 }
 function ec_get_site_url( $site_key ) {
 	return array(
@@ -99,7 +93,7 @@ function trailingslashit( $value ) {
 // The network-wide manager URL builder lives in Users.
 require_once dirname( __DIR__, 2 ) . '/extrachill-users/inc/shop-sellers.php';
 function wp_parse_url( $url, $component = -1 ) {
-	return parse_url( $url, $component );
+	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Stub of wp_parse_url().
 }
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
@@ -112,8 +106,8 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
-function get_query_var( $key, $default = '' ) {
-	return $GLOBALS['test_query_vars'][ $key ] ?? $default;
+function get_query_var( $key, $default_value = '' ) {
+	return $GLOBALS['test_query_vars'][ $key ] ?? $default_value;
 }
 function home_url( $path = '' ) {
 	return 'https://shop.extrachill.com' . $path;
@@ -125,11 +119,12 @@ function get_site_transient( $key ) {
 	return $GLOBALS['test_site_transients'][ $key ] ?? false;
 }
 function set_site_transient( $key, $value, $expiration = 0 ) {
-	$GLOBALS['test_site_transients'][ $key ] = $value;
+	$GLOBALS['test_site_transients'][ $key ]            = $value;
+	$GLOBALS['test_site_transient_expirations'][ $key ] = $expiration;
 	return true;
 }
-function get_option( $key, $default = false ) {
-	return $GLOBALS['test_options'][ $key ] ?? $default;
+function get_option( $key, $default_value = false ) {
+	return $GLOBALS['test_options'][ $key ] ?? $default_value;
 }
 function update_option( $key, $value ) {
 	$GLOBALS['test_options'][ $key ] = $value;
@@ -206,79 +201,8 @@ require_once dirname( __DIR__ ) . '/inc/products/priority-boost.php';
 require_once dirname( __DIR__ ) . '/inc/core/owned-state-migration.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-stripe-status.php';
 
-final class PriorityBoostTestItem {
-	private $id;
-	private $event_id;
-	private $event_reference;
-	private $event_title;
-
-	public function __construct( $id, $event_id, $event_reference, $event_title ) {
-		$this->id              = $id;
-		$this->event_id        = $event_id;
-		$this->event_reference = $event_reference;
-		$this->event_title     = $event_title;
-	}
-
-	public function get_product_id() {
-		return 99;
-	}
-
-	public function get_id() {
-		return $this->id;
-	}
-
-	public function get_meta( $key ) {
-		$values = array(
-			'priority_boost_event_id'        => $this->event_id,
-			'priority_boost_event_reference' => $this->event_reference,
-			'priority_boost_event_title'     => $this->event_title,
-		);
-		return $values[ $key ] ?? '';
-	}
-}
-
-final class PriorityBoostTestOrder {
-	private $id;
-	private $items;
-	private $paid;
-	public $meta       = array();
-	public $notes      = array();
-	public $save_count = 0;
-
-	public function __construct( $id, array $items, $paid = true ) {
-		$this->id    = $id;
-		$this->items = $items;
-		$this->paid  = (bool) $paid;
-	}
-
-	public function get_id() {
-		return $this->id;
-	}
-
-	public function get_items() {
-		return $this->items;
-	}
-
-	public function is_paid() {
-		return $this->paid;
-	}
-
-	public function get_meta( $key ) {
-		return $this->meta[ $key ] ?? '';
-	}
-
-	public function update_meta_data( $key, $value ) {
-		$this->meta[ $key ] = $value;
-	}
-
-	public function add_order_note( $note ) {
-		$this->notes[] = $note;
-	}
-
-	public function save() {
-		++$this->save_count;
-	}
-}
+require_once __DIR__ . '/fixtures/class-priority-boost-test-item.php';
+require_once __DIR__ . '/fixtures/class-priority-boost-test-order.php';
 
 function switch_to_blog( $id ) {
 	$GLOBALS['test_blog_stack'][] = $id;
