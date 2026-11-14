@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.13] - 2026-11-14
+
+### Changed
+- the extrachill.link cutover is permanent; storage migration deleted
+
 ## [0.63.12] - 2026-11-14
 
 ### Changed
