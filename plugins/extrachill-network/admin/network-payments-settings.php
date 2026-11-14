@@ -17,8 +17,8 @@
  *
  * These providers live in this (network-active) plugin, so the class_exists()
  * guards below are TRUE in network-admin and the save actually persists. The
- * shop consumes the read-filter contract (`extrachill_stripe_<key>` /
- * `extrachill_shippo_api_key`) registered by inc/commerce/auth/bootstrap.php.
+ * shop reads them through ec_commerce_credential() in
+ * inc/commerce/auth/bootstrap.php.
  * Network-admin (super admin) only — these are platform-level secrets.
  *
  * @package ExtraChill\Network

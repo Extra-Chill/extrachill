@@ -114,6 +114,9 @@
     },
     "tests/internal-loopback-auth-smoke.php": {
       "environment": "standalone-php"
+    },
+    "tests/commerce-credential-smoke.php": {
+      "environment": "standalone-php"
     }
   }
 }
