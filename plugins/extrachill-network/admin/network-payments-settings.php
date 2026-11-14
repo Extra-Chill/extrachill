@@ -9,7 +9,7 @@
  * Data Machine's BaseAuthProvider AES-256-GCM envelope):
  *
  *   Stripe (artist marketplace + Connect payouts) — \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider:
- *     - secret_key, connect_client_id, webhook_secret  (encrypted at rest)
+ *     - secret_key, webhook_secret, connect_webhook_secret (encrypted at rest)
  *     - publishable_key                                (plaintext by Stripe design)
  *
  *   Shipping (Shippo label generation) — \ExtraChillNetwork\Commerce\Auth\ShippoAuthProvider:
@@ -17,8 +17,8 @@
  *
  * These providers live in this (network-active) plugin, so the class_exists()
  * guards below are TRUE in network-admin and the save actually persists. The
- * shop consumes the read-filter contract (`extrachill_stripe_<key>` /
- * `extrachill_shippo_api_key`) registered by inc/commerce/auth/bootstrap.php.
+ * shop reads them through ec_commerce_credential() in
+ * inc/commerce/auth/bootstrap.php.
  * Network-admin (super admin) only — these are platform-level secrets.
  *
  * @package ExtraChill\Network
@@ -71,13 +71,6 @@ function ec_network_commerce_fields() {
 			'label'       => __( 'Publishable Key', 'extrachill-network' ),
 			'placeholder' => 'pk_live_...',
 			'description' => __( 'Stripe publishable API key, used for frontend integration.', 'extrachill-network' ),
-		),
-		array(
-			'section'     => 'stripe',
-			'key'         => 'connect_client_id',
-			'label'       => __( 'Connect Client ID', 'extrachill-network' ),
-			'placeholder' => 'ca_...',
-			'description' => __( 'Stripe Connect platform client ID. Enables artist Connect Express onboarding and payouts.', 'extrachill-network' ),
 		),
 		array(
 			'section'     => 'stripe',
@@ -213,7 +206,6 @@ function ec_network_commerce_field_is_set( array $field ): bool {
 	$getters = array(
 		'secret_key'             => 'get_secret_key',
 		'publishable_key'        => 'get_publishable_key',
-		'connect_client_id'      => 'get_connect_client_id',
 		'webhook_secret'         => 'get_webhook_secret',
 		'connect_webhook_secret' => 'get_connect_webhook_secret',
 	);
@@ -241,9 +233,8 @@ function ec_render_network_payments_page() {
 		$statuses[ $field['key'] ] = ec_network_commerce_field_is_set( $field );
 	}
 
-	$is_configured   = ! empty( $statuses['secret_key'] ) && ! empty( $statuses['publishable_key'] );
-	$connect_enabled = ! empty( $statuses['connect_client_id'] );
-	$shipping_ready  = ! empty( $statuses['shippo_api_key'] );
+	$is_configured  = ! empty( $statuses['secret_key'] ) && ! empty( $statuses['publishable_key'] );
+	$shipping_ready = ! empty( $statuses['shippo_api_key'] );
 
 	$stripe_fields   = array_filter( $fields, static fn( $f ) => 'stripe' === $f['section'] );
 	$shipping_fields = array_filter( $fields, static fn( $f ) => 'shipping' === $f['section'] );
@@ -271,11 +262,6 @@ function ec_render_network_payments_page() {
 									<span style="color: #46b450; font-weight: bold;">&#10003; <?php esc_html_e( 'Processing configured', 'extrachill-network' ); ?></span>
 								<?php else : ?>
 									<span style="color: #dc3232; font-weight: bold;">&#9888; <?php esc_html_e( 'Not configured', 'extrachill-network' ); ?></span>
-								<?php endif; ?>
-								<?php if ( $connect_enabled ) : ?>
-									&nbsp;<span style="color: #46b450; font-weight: bold;">&#10003; <?php esc_html_e( 'Connect payouts enabled', 'extrachill-network' ); ?></span>
-								<?php else : ?>
-									&nbsp;<span style="color: #dc3232; font-weight: bold;">&#9888; <?php esc_html_e( 'Connect client ID not set (artist payouts unavailable)', 'extrachill-network' ); ?></span>
 								<?php endif; ?>
 							</p>
 						</th>
@@ -321,7 +307,6 @@ function ec_render_network_payments_page() {
 			<ol>
 				<li><?php esc_html_e( 'Create a Stripe account at stripe.com and enable Stripe Connect in your dashboard.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > API keys: copy your Secret Key and Publishable Key.', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Developers > Connect: copy your platform Connect Client ID (the "ca_..." identifier).', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events (payment_intent.succeeded, payment_intent.payment_failed, charge.refunded, checkout.session.completed). Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events (checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded, charge.dispute.created, account.updated). Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
 			</ol>

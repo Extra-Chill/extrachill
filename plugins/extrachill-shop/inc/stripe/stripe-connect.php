@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Initialize Stripe API client.
  *
- * Sets the API key from wp-config.php constant.
+ * Sets the API key from the network commerce credential store.
  *
  * @return bool True if initialized successfully.
  */
@@ -28,10 +28,7 @@ function extrachill_shop_stripe_init() {
 		return true;
 	}
 
-	$secret_key = apply_filters(
-		'extrachill_stripe_secret_key',
-		extrachill_shop_resolve_stripe_secret_key()
-	);
+	$secret_key = ec_commerce_credential( 'stripe', 'secret_key' );
 
 	if ( empty( $secret_key ) ) {
 		return false;
@@ -50,56 +47,6 @@ function extrachill_shop_stripe_init() {
 
 	$initialized = true;
 	return true;
-}
-
-/**
- * Check if Stripe is properly configured.
- *
- * @return bool True if Stripe keys are configured.
- */
-function extrachill_shop_stripe_is_configured() {
-	$secret_key      = apply_filters(
-		'extrachill_stripe_secret_key',
-		extrachill_shop_resolve_stripe_secret_key()
-	);
-	$publishable_key = apply_filters(
-		'extrachill_stripe_publishable_key',
-		extrachill_shop_resolve_stripe_publishable_key()
-	);
-
-	return ! empty( $secret_key ) && ! empty( $publishable_key );
-}
-
-/**
- * Get the Stripe publishable key for frontend use.
- *
- * @return string|false Publishable key or false if not configured.
- */
-function extrachill_shop_get_stripe_publishable_key() {
-	$publishable_key = apply_filters(
-		'extrachill_stripe_publishable_key',
-		extrachill_shop_resolve_stripe_publishable_key()
-	);
-
-	return ! empty( $publishable_key ) ? $publishable_key : false;
-}
-
-/**
- * Create a Stripe Express connected account for an artist profile.
- *
- * Account metadata and status are stored in Shop-owned options keyed by the
- * canonical Artist profile reference.
- *
- * @param int $artist_profile_id Artist profile post ID.
- * @return array{success: bool, account_id?: string, error?: string}
- */
-function extrachill_shop_create_stripe_account( $artist_profile_id ) {
-	return extrachill_shop_create_seller_stripe_account(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist_profile_id ),
-		)
-	);
 }
 
 /**

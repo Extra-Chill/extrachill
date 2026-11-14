@@ -33,16 +33,13 @@ function extrachill_shop_handle_webhook( $request ) {
 		return new WP_Error( 'missing_signature', 'Missing Stripe signature.', array( 'status' => 400 ) );
 	}
 
-	$webhook_secret = apply_filters(
-		'extrachill_stripe_webhook_secret',
-		extrachill_shop_resolve_stripe_webhook_secret()
-	);
+	$webhook_secret = ec_commerce_credential( 'stripe', 'webhook_secret' );
 
 	// This untrusted hint only selects a signing key; constructEvent authenticates
 	// the entire payload (including account) before any routing or state change.
 	$hint = json_decode( $payload, true );
 	if ( ! empty( $hint['account'] ) ) {
-		$webhook_secret = apply_filters( 'extrachill_stripe_connect_webhook_secret', '' );
+		$webhook_secret = ec_commerce_credential( 'stripe', 'connect_webhook_secret' );
 	}
 
 	if ( empty( $webhook_secret ) ) {
@@ -282,10 +279,11 @@ function extrachill_shop_handle_charge_refunded( $charge ) {
  * Log webhook event for debugging.
  *
  * @param string $event_type Event type.
- * @param object $data       Event data.
+ * @param object $data       Event data (unused; accepted for the action signature).
  */
-function extrachill_shop_log_webhook_event( $event_type, $data ) {
+function extrachill_shop_log_webhook_event( $event_type, $data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- action passes ( $event_type, $data ).
 	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- debug-only webhook trace, gated on WP_DEBUG.
 		error_log( 'ExtraChill Shop Webhook: ' . $event_type );
 	}
 }

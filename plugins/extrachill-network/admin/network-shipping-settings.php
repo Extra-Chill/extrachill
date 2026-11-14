@@ -8,7 +8,7 @@
  * network Payments surface (admin/network-payments-settings.php), which is the
  * single write path for all platform commerce credentials — see
  * `ec_network_commerce_fields()`. There is intentionally NO credential form here
- * to avoid a duplicate write path for `extrachill_shippo_api_key`.
+ * to avoid a duplicate write path for the Shippo key.
  *
  * @package ExtraChill\Network
  */
@@ -35,8 +35,7 @@ function ec_add_network_shipping_menu() {
  * Render network shipping settings page (read-only policy reference).
  */
 function ec_render_network_shipping_page() {
-	$shipping_ready = class_exists( '\ExtraChill\Shop\Auth\ShippoAuthProvider' )
-		&& '' !== ( new \ExtraChill\Shop\Auth\ShippoAuthProvider() )->get_api_key();
+	$shipping_ready = '' !== ec_commerce_credential( 'shippo', 'api_key' );
 	$payments_url   = add_query_arg(
 		array( 'page' => 'extrachill-payments' ),
 		network_admin_url( 'admin.php' )
