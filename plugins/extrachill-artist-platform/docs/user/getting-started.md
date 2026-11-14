@@ -1,23 +1,28 @@
-# Getting Started as an Artist
+# Getting started
 
-Give fans one place to find your music, shows, and latest news. Your artist profile introduces your work, and your link page gives you a web address to share anywhere.
+Give people one place to learn about your music, find your important links, and hear from you. Start with an artist profile, then make its link page ready to share.
 
-## Create your first profile
+## Create your first artist profile
 
 1. Open [Join Extra Chill](https://extrachill.link/join).
-2. Sign in or create an account.
+2. Sign in, or create an account if you do not have one.
 3. Follow the prompts to name your artist and finish joining.
-4. Open your link page editor and add your music links.
-5. Choose your colors and pictures, then save your changes.
+4. Open the link page editor and add the destinations people need most, such as your music or tickets.
+5. Choose a picture and colors, then save your changes.
+6. Open your public profile and link page to check what people will see.
 
-Already have an account? Sign in with that account rather than creating another. If you cannot create an artist profile, see [Artist Access](artist-access-requirements.md).
+Use your existing account if you already have one. A second account can make it harder to find the artist you manage.
 
-## Make it yours
+## Choose what to do next
 
-Visit [your artist dashboard](https://artist.extrachill.com) to manage your profile, link page, team, and subscribers. Choose the correct artist before editing if you manage more than one.
+- Update your name, bio, and pictures in [your artist profile](managing-your-artist-profile.md).
+- Add and arrange destinations on [your link page](managing-link-pages.md).
+- Set up your [merch store](creating-your-artist-merch-store.md).
+- Invite people you trust to help with [your artist team](managing-roster.md).
+- If you cannot create an artist profile, see [Artist access](artist-access-requirements.md).
 
-Start with a short bio and a clear picture. Put your most important listening or ticket link first. Open your public page after saving to check what fans will see.
+Sign in at [your artist dashboard](https://artist.extrachill.com) to manage your profile and link page. If you manage more than one artist, check which one is selected before making changes.
 
-You can invite collaborators to help with edits and collect email signups from fans. Direct artist signups are separate from Extra Chill newsletters and account notifications.
+## What people can expect
 
-For help, visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.
+Your artist profile and link page are public. Anyone with the address can view them. The email signup on your artist page is for your artist's mailing list; it is separate from Extra Chill newsletters and account notices.
