@@ -50,29 +50,6 @@ function extrachill_shop_stripe_init() {
 }
 
 /**
- * Check if Stripe is properly configured.
- *
- * @return bool True if Stripe keys are configured.
- */
-function extrachill_shop_stripe_is_configured() {
-	$secret_key      = ec_commerce_credential( 'stripe', 'secret_key' );
-	$publishable_key = ec_commerce_credential( 'stripe', 'publishable_key' );
-
-	return ! empty( $secret_key ) && ! empty( $publishable_key );
-}
-
-/**
- * Get the Stripe publishable key for frontend use.
- *
- * @return string|false Publishable key or false if not configured.
- */
-function extrachill_shop_get_stripe_publishable_key() {
-	$publishable_key = ec_commerce_credential( 'stripe', 'publishable_key' );
-
-	return ! empty( $publishable_key ) ? $publishable_key : false;
-}
-
-/**
  * Create a Stripe Express connected account for an artist profile.
  *
  * Account metadata and status are stored in Shop-owned options keyed by the
