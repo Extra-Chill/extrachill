@@ -9,7 +9,19 @@ function wp_json_encode( $value ) { return json_encode( $value ); }
 function wc_get_cart_url() { return 'https://shop.example/cart'; }
 
 class WC_Payment_Gateway {
-	public $id, $method_title, $title, $description, $has_fields, $enabled, $supports;
+	public $id, $method_title, $method_description, $title, $description, $has_fields, $enabled, $supports;
+	public $form_fields = array();
+	public $settings    = array();
+	public function init_settings() {
+		$this->settings = get_option( 'woocommerce_' . $this->id . '_settings', null );
+		if ( ! is_array( $this->settings ) ) {
+			$this->settings = array_map( static fn( $field ) => $field['default'] ?? '', $this->form_fields );
+		}
+	}
+	public function get_option( $key, $empty_value = null ) {
+		$value = $this->settings[ $key ] ?? ( $this->form_fields[ $key ]['default'] ?? '' );
+		return ( '' === $value && null !== $empty_value ) ? $empty_value : $value;
+	}
 }
 require_once dirname( __DIR__ ) . '/inc/stripe/payment-integration.php';
 
