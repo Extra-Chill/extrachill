@@ -116,32 +116,54 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
 	return in_array( (int) $artist_id, $user_artist_ids, true );
 }
 
-function ec_get_link_page_for_artist( $artist_id ) {
-	if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
+/**
+ * Resolve the Link Page bound to an artist profile.
+ *
+ * The runtime owner reference (`post:<artist_blog>:artist_profile:<id>`) is
+ * the only artist/page binding; the runtime resolves it on the storage blog.
+ * Only a published page is returned unless `$any_status` is set, matching the
+ * historical published-only lookup.
+ *
+ * @param int  $artist_id  Artist profile ID on the Artist site.
+ * @param bool $any_status Whether to return an unpublished (e.g. draft) page too.
+ * @return int|false Link Page ID on the storage blog, or false when none resolves.
+ */
+function ec_get_link_page_for_artist( $artist_id, $any_status = false ) {
+	$artist_id = absint( $artist_id );
+	if ( ! $artist_id || ! function_exists( 'ec_artist_link_page_owner_reference' ) ) {
 		return false;
 	}
-
-	$query = static function () use ( $artist_id ) {
-		$link_pages = get_posts( array(
-			'post_type'      => extrachill_artist_platform_link_page_post_type(),
-			'meta_key'       => '_associated_artist_profile_id',
-			'meta_value'     => (string) $artist_id,
-			'posts_per_page' => 1,
-			'fields'         => 'ids',
-		) );
-
-		return ! empty( $link_pages ) ? (int) $link_pages[0] : false;
-	};
-
-	// Link Pages live on the storage blog, not necessarily the current blog:
-	// this fallback resolver runs from ambient contexts (abilities, editor
-	// bootstrap) that don't always switch there themselves.
-	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
-		$result = ec_with_link_page_storage_blog( $query );
-		return is_wp_error( $result ) ? false : $result;
+	$reference = ec_artist_link_page_owner_reference( $artist_id );
+	if ( is_wp_error( $reference ) ) {
+		return false;
 	}
+	$link_page_id = ec_get_link_page_id_for_owner( $reference );
+	if ( is_wp_error( $link_page_id ) || ! $link_page_id ) {
+		return false;
+	}
+	$link_page_id = (int) $link_page_id;
+	return $any_status || ec_artist_link_page_is_published( $link_page_id ) ? $link_page_id : false;
+}
 
-	return $query();
+/**
+ * Resolve the artist profile that owns a Link Page.
+ *
+ * Reads the runtime owner reference and accepts only an `artist_profile`
+ * post owner on the Artist site.
+ *
+ * @param int $link_page_id Link Page ID on the storage blog.
+ * @return int Artist profile ID, or 0 when the page has no artist owner.
+ */
+function ec_get_artist_for_link_page( $link_page_id ) {
+	$link_page_id = absint( $link_page_id );
+	if ( ! $link_page_id || ! function_exists( 'ec_get_link_page_owner' ) ) {
+		return 0;
+	}
+	$owner = ec_get_link_page_owner( $link_page_id );
+	if ( is_wp_error( $owner ) || 'post' !== $owner['kind'] || 'artist_profile' !== $owner['subtype'] || (int) ec_get_blog_id( 'artist' ) !== (int) $owner['blog_id'] ) {
+		return 0;
+	}
+	return (int) $owner['object_id'];
 }
 
 function ec_get_user_artist_profiles( $user_id = null ) {

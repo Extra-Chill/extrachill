@@ -38,7 +38,33 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		$providers  = $reflection->getProperty( 'providers' );
 		$providers->setAccessible( true );
 		$providers->setValue( $registry, array() );
-		ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
+	}
+
+	/**
+	 * Register a compatibility provider claiming fixed page_owner references.
+	 *
+	 * Artist Platform registers no compatibility provider (the owner reference
+	 * is its only binding), so registry tests that need page_owner claims
+	 * install this explicit double instead.
+	 *
+	 * @param string $name   Provider name.
+	 * @param array  $claims Map of Link Page ID to owner reference.
+	 */
+	private function registerPageOwnerClaims( string $name, array $claims ): void {
+		ec_register_link_page_owner_compatibility_provider(
+			$name,
+			static function ( $operation, $context ) use ( $claims ) {
+				$link_page_id = (int) ( $context['link_page_id'] ?? 0 );
+				return 'page_owner' === $operation && isset( $claims[ $link_page_id ] )
+					? array(
+						array(
+							'link_page_id'    => $link_page_id,
+							'owner_reference' => $claims[ $link_page_id ],
+						),
+					)
+					: array();
+			}
+		);
 	}
 
 	private function artistBlog(): int {
@@ -116,7 +142,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		);
 	}
 
-	public function test_legacy_artist_fallback_does_not_write_during_read(): void {
+	public function test_legacy_association_meta_alone_is_not_an_owner_and_is_not_backfilled(): void {
 		$link_page_id = $this->createLinkPage( 'legacy-only' );
 		switch_to_blog( $this->artistBlog() );
 		update_post_meta( $link_page_id, '_associated_artist_profile_id', $this->profile_id );
@@ -124,16 +150,20 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 		switch_to_blog( $this->artistBlog() );
 		try {
-			$owner = ec_get_link_page_owner( $link_page_id );
+			$owner    = ec_get_link_page_owner( $link_page_id );
+			$resolved = ec_get_link_page_id_for_owner( $this->postOwner() );
 		} finally {
 			restore_current_blog();
 		}
 
-		$this->assertSame( $this->ownerReference(), $owner['reference'] );
+		$this->assertSame( 'link_page_owner_not_found', $owner->get_error_code() );
+		$this->assertSame( 0, $resolved );
+		$this->assertSame( 0, ec_get_artist_for_link_page( $link_page_id ) );
+		$this->assertFalse( ec_get_link_page_for_artist( $this->profile_id ) );
 		$this->assertSame( '', get_post_meta( $link_page_id, EC_LINK_PAGE_OWNER_META_KEY, true ) );
 	}
 
-	public function test_artist_creation_dual_writes_without_changing_id_or_slug(): void {
+	public function test_artist_creation_writes_only_the_owner_reference(): void {
 		// Owner assignment serializes through the canonical binding lock.
 		$this->ec_require_mysql_advisory_locks();
 		switch_to_blog( $this->artistBlog() );
@@ -145,9 +175,11 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 		$this->assertGreaterThan( 0, $link_page_id );
 		$this->assertNotInstanceOf( WP_Error::class, get_post( $link_page_id ) );
-		$this->assertSame( $this->profile_id, (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) );
-		$this->assertSame( $link_page_id, (int) get_post_meta( $this->profile_id, '_extrch_link_page_id', true ) );
 		$this->assertSame( $this->ownerReference(), get_post_meta( $link_page_id, EC_LINK_PAGE_OWNER_META_KEY, true ) );
+		$this->assertSame( '', get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) );
+		$this->assertSame( '', get_post_meta( $this->profile_id, '_extrch_link_page_id', true ) );
+		$this->assertSame( $link_page_id, ec_get_link_page_for_artist( $this->profile_id ) );
+		$this->assertSame( $this->profile_id, ec_get_artist_for_link_page( $link_page_id ) );
 	}
 
 	public function test_owner_conflict_and_duplicate_references_fail_deterministically(): void {
@@ -194,7 +226,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		}
 	}
 
-	public function test_canonical_and_separate_legacy_candidates_conflict(): void {
+	public function test_separate_legacy_association_meta_is_not_a_candidate(): void {
 		$canonical = $this->createLinkPage( 'canonical' );
 		$legacy    = $this->createLinkPage( 'legacy' );
 		switch_to_blog( $this->artistBlog() );
@@ -204,14 +236,13 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 		switch_to_blog( $this->artistBlog() );
 		try {
-			$result = ec_get_link_page_id_for_owner( $this->postOwner() );
-			$this->assertSame( 'duplicate_link_pages_for_owner', $result->get_error_code() );
+			$this->assertSame( $canonical, ec_get_link_page_id_for_owner( $this->postOwner() ) );
 		} finally {
 			restore_current_blog();
 		}
 	}
 
-	public function test_same_page_canonical_and_legacy_divergence_fails_for_both_owners(): void {
+	public function test_same_page_legacy_association_meta_cannot_diverge_from_canonical_owner(): void {
 		$divergent = $this->createLinkPage( 'divergent' );
 		switch_to_blog( $this->artistBlog() );
 		update_post_meta( $divergent, '_associated_artist_profile_id', $this->profile_id );
@@ -223,8 +254,8 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 			$legacy_owner    = ec_get_link_page_id_for_owner( $this->postOwner( $this->profile_id ) );
 			$canonical_owner = ec_get_link_page_id_for_owner( $this->postOwner( $this->second_profile_id ) );
 
-			$this->assertSame( 'link_page_owner_divergence', $legacy_owner->get_error_code() );
-			$this->assertSame( 'link_page_owner_divergence', $canonical_owner->get_error_code() );
+			$this->assertSame( 0, $legacy_owner );
+			$this->assertSame( $divergent, $canonical_owner );
 		} finally {
 			restore_current_blog();
 		}
@@ -280,9 +311,9 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_provider_cannot_mutate_private_registry_storage(): void {
-		$legacy = $this->createLinkPage( 'legacy' );
+		$canonical = $this->createLinkPage( 'canonical' );
 		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $legacy, '_associated_artist_profile_id', $this->profile_id );
+		update_post_meta( $canonical, EC_LINK_PAGE_OWNER_META_KEY, $this->ownerReference() );
 		restore_current_blog();
 
 		ec_register_link_page_owner_compatibility_provider(
@@ -301,12 +332,12 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 			$first  = ec_get_link_page_id_for_owner( $this->postOwner() );
 			$second = ec_get_link_page_id_for_owner( $this->postOwner() );
 
-			$this->assertSame( $legacy, $first );
-			$this->assertSame( $legacy, $second );
+			$this->assertSame( $canonical, $first );
+			$this->assertSame( $canonical, $second );
 		} finally {
 			restore_current_blog();
 		}
-		$this->assertCount( 2, ec_link_page_owner_compatibility_registry()->snapshot() );
+		$this->assertCount( 1, ec_link_page_owner_compatibility_registry()->snapshot() );
 	}
 
 	public function test_registry_exposes_no_reset_or_unregister_api(): void {
@@ -322,8 +353,8 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		$first  = $this->createLinkPage( 'first' );
 		$second = $this->createLinkPage( 'second' );
 		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $first, '_associated_artist_profile_id', $this->profile_id );
-		update_post_meta( $second, '_associated_artist_profile_id', $this->profile_id );
+		update_post_meta( $first, EC_LINK_PAGE_OWNER_META_KEY, $this->ownerReference() );
+		update_post_meta( $second, EC_LINK_PAGE_OWNER_META_KEY, $this->ownerReference() );
 		restore_current_blog();
 		ec_register_link_page_owner_compatibility_provider(
 			'empty-provider',
@@ -373,9 +404,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 	public function test_owner_pages_claim_must_agree_with_all_page_owner_claims(): void {
 		$uncanonicalized = $this->createLinkPage( 'uncanonicalized' );
-		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $uncanonicalized, '_associated_artist_profile_id', $this->second_profile_id );
-		restore_current_blog();
+		$this->registerPageOwnerClaims( 'page-owner-claims', array( $uncanonicalized => $this->ownerReference( $this->second_profile_id ) ) );
 
 		ec_register_link_page_owner_compatibility_provider(
 			'one-way-owner',
@@ -480,9 +509,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 	public function test_distinct_page_owner_claims_fail_closed(): void {
 		$multipage = $this->createLinkPage( 'multiple-owners' );
-		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $multipage, '_associated_artist_profile_id', $this->profile_id );
-		restore_current_blog();
+		$this->registerPageOwnerClaims( 'page-owner-claims', array( $multipage => $this->ownerReference() ) );
 
 		ec_register_link_page_owner_compatibility_provider(
 			'term-provider',
@@ -599,10 +626,11 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_malformed_provider_registration_and_duplicate_name_fail(): void {
+		$this->assertTrue( ec_register_link_page_owner_compatibility_provider( 'registered-provider', '__return_true' ) );
 		$invalid_name     = ec_register_link_page_owner_compatibility_provider( 'Bad Name', '__return_true' );
 		$invalid_callback = ec_register_link_page_owner_compatibility_provider( 'bad-callback', 'missing_callback' );
 		$invalid_priority = ec_register_link_page_owner_compatibility_provider( 'bad-priority', '__return_true', '10' );
-		$duplicate        = ec_register_link_page_owner_compatibility_provider( 'artist-platform', '__return_true' );
+		$duplicate        = ec_register_link_page_owner_compatibility_provider( 'registered-provider', '__return_true' );
 
 		$this->assertSame( 'invalid_link_page_owner_provider', $invalid_name->get_error_code() );
 		$this->assertSame( 'invalid_link_page_owner_provider', $invalid_callback->get_error_code() );
@@ -692,8 +720,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		$this->ec_require_mysql_advisory_locks();
 		$page = $this->createLinkPage( 'test-artist' );
 		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $page, '_associated_artist_profile_id', $this->profile_id );
-		update_post_meta( $this->profile_id, '_extrch_link_page_id', $page );
+		update_post_meta( $page, EC_LINK_PAGE_OWNER_META_KEY, $this->ownerReference() );
 		restore_current_blog();
 
 		$first  = ec_backfill_link_page_owner_references( 100, 0 );
@@ -704,14 +731,12 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( array(), $second['errors'] );
 	}
 
-	public function test_fallback_cross_blog_mutation_uses_artist_site_guard_and_restores_context(): void {
+	public function test_cross_blog_mutation_uses_storage_site_lock_and_restores_context(): void {
 		// The cross-blog save allocates its ID under a MySQL GET_LOCK advisory lock.
 		$this->ec_require_mysql_advisory_locks();
 		$page = $this->createLinkPage( 'test-artist' );
 		switch_to_blog( $this->artistBlog() );
-		update_post_meta( $page, '_associated_artist_profile_id', $this->profile_id );
 		update_post_meta( $page, EC_LINK_PAGE_OWNER_META_KEY, $this->ownerReference() );
-		update_post_meta( $this->profile_id, '_extrch_link_page_id', $page );
 		restore_current_blog();
 
 		$this->assertSame( 1, get_current_blog_id() );

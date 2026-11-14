@@ -56,7 +56,7 @@ $is_member = ec_is_user_artist_member($user_id, $artist_id);
 
 ### Database Fields
 Core meta fields for link pages:
-- `_associated_artist_profile_id`: Connected artist profile
+- `_ec_link_page_owner_reference`: Owner reference (`post:<artist_blog>:artist_profile:<artist_id>`), the only artist binding
 - `_link_page_links`: Link data structure
 - `_link_page_custom_css_vars`: Styling variables
 - `_link_expiration_enabled`: Time-based link control

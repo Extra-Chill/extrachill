@@ -214,14 +214,19 @@ $current_count = count(ec_get_user_artist_ids($user_id));
 
 ### Link Page Association
 
-Each artist profile can have an associated link page:
+Each artist profile can have one Link Page. The Link Pages runtime owner
+reference (`_ec_link_page_owner_reference` = `post:<artist_blog>:artist_profile:<artist_id>`)
+is the only binding; there is no reciprocal artist-side pointer.
 
 ```php
-// Get link page for artist
+// Artist -> Link Page (any status), or false.
 $link_page_id = ec_get_link_page_for_artist($artist_id);
 
-// Create link page association
-update_post_meta($link_page_id, '_associated_artist_profile_id', $artist_id);
+// Link Page -> Artist, or 0.
+$artist_id = ec_get_artist_for_link_page($link_page_id);
+
+// Create (or return the existing) Link Page; the runtime assigns the owner reference.
+$link_page_id = ec_create_link_page($artist_id);
 ```
 
 ## Activity Tracking

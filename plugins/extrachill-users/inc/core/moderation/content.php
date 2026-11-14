@@ -133,22 +133,12 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 		$found = array();
 
 		foreach ( $owned_artist_ids as $artist_id ) {
-			$link_pages = get_posts(
-				array(
-					'post_type'      => $link_page_type,
-					'post_status'    => 'any',
-					'posts_per_page' => -1,
-					'fields'         => 'ids',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $artist_id,
-				)
-			);
-
-			foreach ( $link_pages as $link_page_id ) {
+			$link_page_id = ec_users_get_artist_link_page_id( $artist_id );
+			if ( $link_page_id ) {
 				$found[] = array(
 					'type'      => 'post',
 					'blog_id'   => $storage_blog_id,
-					'object_id' => (int) $link_page_id,
+					'object_id' => $link_page_id,
 					'post_type' => $link_page_type,
 				);
 			}

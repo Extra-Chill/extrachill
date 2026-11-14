@@ -15,7 +15,7 @@ Returns aggregated performance metrics for a single artist link page so roster m
 ## Permission Model
 - Endpoint requires an authenticated request (cookie-auth or application password).
 - `ec_can_manage_artist( current_user, artist_id )` must return `true`; otherwise the response is `403 permission_denied`.
-- The route is a thin adapter over the `extrachill/get-link-page-analytics` ability (extrachill-analytics). The ability resolves the owning artist from the Link Page's owner reference (`_ec_link_page_owner_reference`, legacy `_associated_artist_profile_id`) on the Link Page storage blog, then authorizes against that artist on the Artist site.
+- The route is a thin adapter over the `extrachill/get-link-page-analytics` ability (extrachill-analytics). The ability resolves the owning artist from the Link Page's owner reference (`_ec_link_page_owner_reference`) on the Link Page storage blog, then authorizes against that artist on the Artist site.
 
 ## Response Contract
 When analytics data is available, the endpoint returns whatever payload the `extrachill_get_link_page_analytics` filter supplies.

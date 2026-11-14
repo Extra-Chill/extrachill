@@ -5,9 +5,8 @@
  * Since the Link Pages cutover the Link Page lives on the Link Pages storage
  * blog and the artist profile lives on the Artist blog. Their post ID
  * sequences are unrelated, so the ability must resolve the owning artist from
- * the Link Page's `_ec_link_page_owner_reference` (or legacy
- * `_associated_artist_profile_id`) on the storage blog, never by treating the
- * Link Page ID as an artist ID (Extra-Chill/extrachill#1311).
+ * the Link Page's `_ec_link_page_owner_reference` on the storage blog, never
+ * by treating the Link Page ID as an artist ID (Extra-Chill/extrachill#1311).
  *
  * @package ExtraChill\Analytics
  */
@@ -235,8 +234,8 @@ final class LinkPageAnalyticsOwnershipTest extends WP_UnitTestCase {
 		}
 	}
 
-	/** Legacy pages without a canonical reference fall back to _associated_artist_profile_id on the storage blog. */
-	public function test_resolver_falls_back_to_legacy_association(): void {
+	/** The owner reference is the only binding: legacy association meta alone never resolves. */
+	public function test_resolver_ignores_legacy_association_without_reference(): void {
 		$this->set_owner_reference( '' );
 		switch_to_blog( $this->storage_blog_id );
 		update_post_meta( $this->link_page_id, '_associated_artist_profile_id', $this->artist_id );
@@ -244,8 +243,9 @@ final class LinkPageAnalyticsOwnershipTest extends WP_UnitTestCase {
 
 		wp_set_current_user( $this->owner_id );
 		$this->flush_post_cache();
-		$this->assertSame( $this->artist_id, extrachill_analytics_resolve_link_page_artist_id( $this->link_page_id ) );
-		$this->assertIsArray( $this->run_on_blog( $this->artist_blog_id ) );
+		$result = extrachill_analytics_resolve_link_page_artist_id( $this->link_page_id );
+		$this->assertWPError( $result );
+		$this->assertSame( 'artist_not_found', $result->get_error_code() );
 	}
 
 	/** Non-artist or foreign-blog owners never resolve to an artist. */

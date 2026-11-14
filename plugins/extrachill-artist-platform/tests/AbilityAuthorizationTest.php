@@ -360,7 +360,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 				'post_status' => 'publish',
 			)
 		);
-		update_post_meta( $link_page_id, '_associated_artist_profile_id', $other_profile_id );
+		update_post_meta( $link_page_id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . $this->artist_blog_id() . ':artist_profile:' . $other_profile_id );
 		restore_current_blog();
 
 		$result = extrachill_artist_platform_ability_get_link_page_data( array(
@@ -371,7 +371,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'invalid_link_page', $result->get_error_code() );
 	}
 
-	public function test_legacy_match_cannot_override_conflicting_canonical_owner(): void {
+	public function test_inert_legacy_association_meta_cannot_override_canonical_owner(): void {
 		wp_set_current_user( $this->owner_user_id );
 		$this->create_artist_membership( $this->owner_user_id, $this->artist_id );
 

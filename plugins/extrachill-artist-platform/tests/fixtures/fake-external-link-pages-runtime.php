@@ -100,9 +100,10 @@ function ec_collect_link_page_owner_compatibility_claims( $operation, $context )
 }
 
 function ec_get_link_page_owner( $link_page_id ) {
-	$provider = $GLOBALS['smoke']['owner_providers']['artist-platform'];
-	$claims   = $provider( 'page_owner', array( 'link_page_id' => $link_page_id ) );
-	return ec_parse_link_page_owner_reference( $claims[0]['owner_reference'] );
+	$reference = get_post_meta( $link_page_id, EC_LINK_PAGE_OWNER_META_KEY, true );
+	return '' === $reference
+		? new WP_Error( 'link_page_owner_missing', 'The Link Page has no owner reference.' )
+		: ec_parse_link_page_owner_reference( $reference );
 }
 
 function ec_get_link_page_id_for_owner( $owner, $allowed_link_pages = array() ) {

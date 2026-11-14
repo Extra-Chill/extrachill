@@ -78,7 +78,6 @@ function extrachill_artist_platform_register_link_page_adapters() {
 		return $valid;
 	}
 
-	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-compatibility.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-operations.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/storage-migration.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
@@ -87,10 +86,6 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	add_filter( 'ec_link_page_public_exclusions', 'ec_artist_link_page_public_exclusions' );
 	add_filter( 'ec_link_page_public_special_route', 'ec_artist_link_page_public_special_route', 10, 2 );
 
-	$owner_result = ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
-	if ( is_wp_error( $owner_result ) ) {
-		return $owner_result;
-	}
 	$operation_result = ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
 	if ( is_wp_error( $operation_result ) ) {
 		return $operation_result;
