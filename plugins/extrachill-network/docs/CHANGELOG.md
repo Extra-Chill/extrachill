@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.5] - 2026-11-14
+
+### Fixed
+- derive exposure-token schemas from the signed-token primitive
+
 ## [2.39.4] - 2026-11-13
 
 ### Changed
