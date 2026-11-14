@@ -1,29 +1,24 @@
 <?php
 /**
- * Commerce auth providers bootstrap (network layer).
+ * Commerce credentials (network layer).
  *
- * Registers the Stripe + Shippo auth providers with Data Machine, exposes their
- * decrypted values through the read-filter contract, and migrates any legacy
- * plaintext site_options into the encrypted store.
+ * `ec_commerce_credential( $provider, $field )` is the one way to read a
+ * platform commerce credential (Stripe, Shippo). It reads the provider's
+ * config from Data Machine's encrypted auth envelope
+ * (`datamachine_auth_data` site option, `ec_stripe` / `ec_shippo` slots) and
+ * returns the decrypted, trimmed value.
  *
- * This bootstrap lives in extrachill-network (network-active) so the provider
- * classes load in BOTH contexts that touch commerce credentials:
- *   - network-admin, where the Network Admin > Payments save handler writes
- *     them (the class_exists() guard in the save handler is now TRUE), and
- *   - blog 3 (the shop), where checkout / webhook / shipping reads them.
- *
- * The read-filter contract (`extrachill_stripe_<key>` / `extrachill_shippo_api_key`)
- * is the single integration point the shop consumes. The shop's resolver
- * functions now return an empty default and rely on these callbacks to supply
- * the decrypted value. See #92.
+ * This lives in extrachill-network (network-active) so the provider classes
+ * load in both contexts that touch commerce credentials:
+ *   - network-admin, where Network Admin > Payments writes them, and
+ *   - blog 3 (the shop), where checkout / webhooks / shipping read them.
  *
  * The provider classes extend Data Machine's
- * `DataMachine\Core\OAuth\BaseAuthProvider`, which is supplied by Data
- * Machine's PSR-4 autoloader. That autoloader is not guaranteed to be
- * registered at the moment this file loads, so the provider class files are
- * deferred behind a `class_exists` guard on `plugins_loaded` priority 30. When
- * Data Machine is absent the commerce auth providers are simply not registered
- * and the read path degrades to "not configured".
+ * `DataMachine\Core\OAuth\BaseAuthProvider`. Data Machine's autoloader is not
+ * guaranteed to be registered when this file loads, so the classes load on
+ * `plugins_loaded` priority 30, or lazily on the first credential read. When
+ * Data Machine is missing, every read returns '' AND logs a critical error:
+ * a missing provider layer means checkout is down, never "not configured".
  *
  * @package ExtraChillNetwork\Commerce\Auth
  * @since 1.23.0
@@ -31,136 +26,102 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action(
-	'plugins_loaded',
-	static function () {
-		if ( ! class_exists( '\\DataMachine\\Core\\OAuth\\BaseAuthProvider' ) ) {
-			return;
-		}
-
-		require_once __DIR__ . '/CommerceAuthProvider.php';
-		require_once __DIR__ . '/StripeAuthProvider.php';
-		require_once __DIR__ . '/ShippoAuthProvider.php';
-
-		\ExtraChillNetwork\Commerce\Auth\CommerceAuthProvider::register_with_datamachine();
-		extrachill_network_register_commerce_read_filters();
-		extrachill_network_migrate_plaintext_commerce_credentials();
-	},
-	30
-);
+add_action( 'plugins_loaded', 'extrachill_network_load_commerce_auth_providers', 30 );
 
 /**
- * Register the read-filter contract for commerce credentials.
+ * Commerce provider key => provider class.
  *
- * The shop (and any other consumer) reads credentials via
- * `apply_filters( 'extrachill_stripe_<key>' )` / `apply_filters( 'extrachill_shippo_api_key' )`.
- * Each callback returns the decrypted value from the network-layer provider,
- * while respecting a value already supplied by a higher-priority callback (so
- * extrachill-dev and other overrides still win). Provider slugs are stable so
- * previously-stored encrypted values keep decrypting.
+ * Provider slugs (`ec_stripe`, `ec_shippo`) are stable so stored encrypted
+ * values keep decrypting.
+ *
+ * @return array<string,string>
  */
-function extrachill_network_register_commerce_read_filters(): void {
-	add_filter( 'extrachill_stripe_connect_webhook_secret', static function ( $value ) {
-		return '' !== $value ? $value : ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_connect_webhook_secret();
-	} );
-	add_filter(
-		'extrachill_stripe_secret_key',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_secret_key();
-		}
-	);
-
-	add_filter(
-		'extrachill_stripe_publishable_key',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_publishable_key();
-		}
-	);
-
-	add_filter(
-		'extrachill_stripe_connect_client_id',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_connect_client_id();
-		}
-	);
-
-	add_filter(
-		'extrachill_stripe_webhook_secret',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_webhook_secret();
-		}
-	);
-
-	add_filter(
-		'extrachill_shippo_api_key',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\ShippoAuthProvider() )->get_api_key();
-		}
+function extrachill_network_commerce_auth_providers(): array {
+	return array(
+		'stripe' => '\\ExtraChillNetwork\\Commerce\\Auth\\StripeAuthProvider',
+		'shippo' => '\\ExtraChillNetwork\\Commerce\\Auth\\ShippoAuthProvider',
 	);
 }
 
 /**
- * Migrate legacy plaintext commerce credentials into the encrypted store.
+ * Load the commerce auth provider classes and register them with Data Machine.
  *
- * Copies each non-empty plaintext site_option into the matching provider config
- * (which encrypts sensitive fields on save) and then deletes the plaintext
- * option. Naturally idempotent: once the plaintext options are gone there is
- * nothing to migrate, so this runs effectively once per install.
+ * Idempotent. Returns false when Data Machine's `BaseAuthProvider` is missing.
  *
- * Safe no-op when no plaintext values exist (the current production state).
+ * @return bool Whether the provider layer is available.
  */
-function extrachill_network_migrate_plaintext_commerce_credentials(): void {
-	if ( ! function_exists( 'get_site_option' ) || ! function_exists( 'delete_site_option' ) ) {
+function extrachill_network_load_commerce_auth_providers(): bool {
+	static $loaded = null;
+
+	if ( null !== $loaded ) {
+		return $loaded;
+	}
+
+	if ( ! class_exists( '\\DataMachine\\Core\\OAuth\\BaseAuthProvider' ) ) {
+		// Not cached: a later call (after Data Machine's autoloader registers)
+		// may still succeed.
+		return false;
+	}
+
+	require_once __DIR__ . '/CommerceAuthProvider.php';
+	require_once __DIR__ . '/StripeAuthProvider.php';
+	require_once __DIR__ . '/ShippoAuthProvider.php';
+
+	\ExtraChillNetwork\Commerce\Auth\CommerceAuthProvider::register_with_datamachine();
+
+	$loaded = true;
+	return true;
+}
+
+/**
+ * Read a platform commerce credential.
+ *
+ * @param string $provider Provider key: 'stripe' or 'shippo'.
+ * @param string $field    Config field, e.g. 'secret_key', 'publishable_key',
+ *                         'webhook_secret', 'connect_webhook_secret' (Stripe)
+ *                         or 'api_key' (Shippo).
+ * @return string Decrypted, trimmed value; '' when unset or unreadable.
+ */
+function ec_commerce_credential( string $provider, string $field ): string {
+	$providers = extrachill_network_commerce_auth_providers();
+
+	if ( ! isset( $providers[ $provider ] ) ) {
+		extrachill_network_log_commerce_credential_error(
+			sprintf( 'unknown commerce credential provider "%s" (field "%s").', $provider, $field )
+		);
+		return '';
+	}
+
+	if ( ! extrachill_network_load_commerce_auth_providers() ) {
+		extrachill_network_log_commerce_credential_error(
+			sprintf(
+				'cannot read commerce credential %s.%s: Data Machine BaseAuthProvider is not loaded. Stripe and Shippo are unavailable until Data Machine is active.',
+				$provider,
+				$field
+			)
+		);
+		return '';
+	}
+
+	$class  = $providers[ $provider ];
+	$config = ( new $class() )->get_config();
+
+	return isset( $config[ $field ] ) && is_scalar( $config[ $field ] ) ? trim( (string) $config[ $field ] ) : '';
+}
+
+/**
+ * Log a commerce credential failure, once per distinct message per request.
+ *
+ * @param string $message Failure description.
+ */
+function extrachill_network_log_commerce_credential_error( string $message ): void {
+	static $logged = array();
+
+	if ( isset( $logged[ $message ] ) ) {
 		return;
 	}
+	$logged[ $message ] = true;
 
-	// Map legacy site_option name => provider config field.
-	$stripe_legacy = array(
-		'extrachill_stripe_secret_key'        => 'secret_key',
-		'extrachill_stripe_publishable_key'   => 'publishable_key',
-		'extrachill_stripe_connect_client_id' => 'connect_client_id',
-		'extrachill_stripe_webhook_secret'    => 'webhook_secret',
-	);
-
-	$stripe_data = array();
-	foreach ( $stripe_legacy as $option_name => $field ) {
-		$value = get_site_option( $option_name, '' );
-		if ( '' !== $value && null !== $value ) {
-			$stripe_data[ $field ] = (string) $value;
-		}
-	}
-
-	if ( ! empty( $stripe_data ) ) {
-		\ExtraChillNetwork\Commerce\Auth\StripeAuthProvider::save( $stripe_data );
-
-		foreach ( array_keys( $stripe_data ) as $field ) {
-			$option_name = array_search( $field, $stripe_legacy, true );
-			if ( false !== $option_name ) {
-				delete_site_option( $option_name );
-			}
-		}
-	}
-
-	$shippo_value = get_site_option( 'extrachill_shippo_api_key', '' );
-	if ( '' !== $shippo_value && null !== $shippo_value ) {
-		\ExtraChillNetwork\Commerce\Auth\ShippoAuthProvider::save(
-			array( 'api_key' => (string) $shippo_value )
-		);
-		delete_site_option( 'extrachill_shippo_api_key' );
-	}
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- a missing commerce provider layer takes checkout down; it must reach the server log.
+	error_log( '[extrachill-network] CRITICAL commerce credentials: ' . $message );
 }

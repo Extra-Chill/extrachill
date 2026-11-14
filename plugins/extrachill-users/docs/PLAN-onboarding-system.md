@@ -880,7 +880,7 @@ All API keys are now stored via Network Admin UI using `get_site_option()`:
 | Service | Admin Page | Site Options |
 |---------|-----------|--------------|
 | Turnstile | Security | `extrachill_turnstile_site_key`, `extrachill_turnstile_secret_key` |
-| Stripe | Payments | `extrachill_stripe_secret_key`, `extrachill_stripe_publishable_key`, `extrachill_stripe_webhook_secret` |
+| Stripe | Payments | `ec_commerce_credential( 'stripe', 'secret_key' \| 'publishable_key' \| 'webhook_secret' )` |
 | Google OAuth | OAuth | `extrachill_google_client_id`, `extrachill_google_client_secret` |
 | Apple OAuth | OAuth | `extrachill_apple_client_id`, `extrachill_apple_team_id`, `extrachill_apple_key_id`, `extrachill_apple_private_key` |
 | AI Providers | AI Client | Managed via `chubes_ai_provider_api_keys` filter |

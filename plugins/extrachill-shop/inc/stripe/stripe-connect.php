@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Initialize Stripe API client.
  *
- * Sets the API key from wp-config.php constant.
+ * Sets the API key from the network commerce credential store.
  *
  * @return bool True if initialized successfully.
  */
@@ -28,10 +28,7 @@ function extrachill_shop_stripe_init() {
 		return true;
 	}
 
-	$secret_key = apply_filters(
-		'extrachill_stripe_secret_key',
-		extrachill_shop_resolve_stripe_secret_key()
-	);
+	$secret_key = ec_commerce_credential( 'stripe', 'secret_key' );
 
 	if ( empty( $secret_key ) ) {
 		return false;
@@ -58,14 +55,8 @@ function extrachill_shop_stripe_init() {
  * @return bool True if Stripe keys are configured.
  */
 function extrachill_shop_stripe_is_configured() {
-	$secret_key      = apply_filters(
-		'extrachill_stripe_secret_key',
-		extrachill_shop_resolve_stripe_secret_key()
-	);
-	$publishable_key = apply_filters(
-		'extrachill_stripe_publishable_key',
-		extrachill_shop_resolve_stripe_publishable_key()
-	);
+	$secret_key      = ec_commerce_credential( 'stripe', 'secret_key' );
+	$publishable_key = ec_commerce_credential( 'stripe', 'publishable_key' );
 
 	return ! empty( $secret_key ) && ! empty( $publishable_key );
 }
@@ -76,10 +67,7 @@ function extrachill_shop_stripe_is_configured() {
  * @return string|false Publishable key or false if not configured.
  */
 function extrachill_shop_get_stripe_publishable_key() {
-	$publishable_key = apply_filters(
-		'extrachill_stripe_publishable_key',
-		extrachill_shop_resolve_stripe_publishable_key()
-	);
+	$publishable_key = ec_commerce_credential( 'stripe', 'publishable_key' );
 
 	return ! empty( $publishable_key ) ? $publishable_key : false;
 }
