@@ -32,7 +32,7 @@
  *
  * Fixture state:
  *   - $GLOBALS['ec_test_network_site_options'] backs the fallback
- *     get_site_option() (e.g. set 'ec_link_pages_site_cutover' => 1).
+ *     get_site_option().
  *   - Any suite-defined apply_filters() keeps working, so the production
  *     'ec_site_url_override' filter remains the way to point URLs elsewhere.
  *
