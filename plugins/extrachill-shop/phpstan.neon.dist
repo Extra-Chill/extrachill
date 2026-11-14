@@ -1,0 +1,4 @@
+# Commerce credentials (ec_commerce_credential) are supplied by the network foundation.
+parameters:
+	scanFiles:
+		- ../extrachill-network/inc/commerce/auth/bootstrap.php
