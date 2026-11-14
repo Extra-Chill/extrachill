@@ -82,8 +82,19 @@ plugins:
   plugins/extrachill-shop:
     platform_name: "Shop"
     parent_slug: "shop"
-    audience: "customers buying merch, memberships, and event boosts from the Extra Chill shop and tracking their orders; artists running their own merch store are covered by the Artist Platform docs"
+    audience: "customers buying merch, tickets, memberships, and event boosts from the Extra Chill shop, and the artists, venues, and promoters who sell through it"
     docs_subpath: "docs/user"
+    runner:
+      audience: "user"
+      run_kind: "bootstrap"
+      base_ref: "main"
+      docs_branch: "docs-agent/extrachill-shop-user-docs"
+      writable_paths: "plugins/extrachill-shop/docs/user/**"
+      context_repositories: []
+      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-shop/docs/user/*.md", "min": 8}], "forbidden_phrases": ["following users"]}
+      drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-shop/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-shop/ and write only under plugins/extrachill-shop/docs/user/. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. The Extra Chill shop is now open to everyone. Write for two readers. Buyers: browsing the shop, checking out (one seller per cart, US shipping only, agreeing to the Terms of Service at https://extrachill.com/terms-of-service/), paying securely on the payment page, buying event tickets, tracking orders, and getting help with returns and refunds (each seller handles its own orders, shipping, returns, and support; see the Shipping & Returns page). Sellers, meaning artists, venues, and promoters: opening a shop from the shop manager, accepting the Seller Agreement at https://extrachill.com/seller-agreement/, connecting a payout account, adding products (new products are reviewed before they appear), shipping options and buying shipping labels, managing and fulfilling orders, refunds, selling event tickets, what Extra Chill charges and how payouts work, and that sellers are responsible for their own products and taxes. Extra Chill has no follow feature or follower graph; never describe following users. Keep and improve the existing docs/user/shopping-the-extra-chill-shop.md and docs/user/your-orders.md, keeping their filenames. Ground every article in current product behavior from the source under plugins/extrachill-shop/, reading fee and payout rules from the code rather than assuming them."
+      model: "gpt-6-luna"
 
   plugins/extrachill-news-wire:
     platform_name: "News Wire"

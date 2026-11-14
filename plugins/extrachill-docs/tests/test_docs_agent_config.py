@@ -39,7 +39,7 @@ class DocsAgentConfigTest(unittest.TestCase):
                 self.assertTrue(settings["bootstrap_contract"]["required_globs"])
 
     def test_rejects_unknown_or_unconfigured_component(self):
-        for component in ("unknown", "extrachill-shop", "../extrachill-community"):
+        for component in ("unknown", "extrachill-news-wire", "../extrachill-community"):
             with self.assertRaises(ValueError):
                 config.resolve(component, MAP)
 
