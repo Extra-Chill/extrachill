@@ -9,7 +9,7 @@ Returns aggregated performance metrics for a single artist link page so roster m
 ## Request Params
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `link_page_id` | integer | Yes | Must reference an `artist_link_page` post. Fails with `400` if the post type is wrong or missing. |
+| `link_page_id` | integer | Yes | Must reference an `ec_link_page` post. Fails with `400` if the post type is wrong or missing. |
 | `date_range` | integer | No | Number of trailing days to report (default `30`). Accepts positive integers only. |
 
 ## Permission Model
@@ -51,7 +51,7 @@ If no data provider responds or a handler returns `WP_Error`, the request fails 
 ## Error Conditions
 | Code | HTTP | Explanation |
 | --- | --- | --- |
-| `invalid_link_page` | 400 | `link_page_id` missing or not an `artist_link_page` post. |
+| `invalid_link_page` | 400 | `link_page_id` missing or not an `ec_link_page` post. |
 | `artist_not_found` | 400 | No artist ID mapped from the link page. |
 | `permission_denied` | 403 | Current user cannot manage the associated artist. |
 | `analytics_unavailable` | 500 | Provider failed to return analytics data. |

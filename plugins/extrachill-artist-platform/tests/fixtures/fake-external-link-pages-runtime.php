@@ -3,11 +3,10 @@
 // phpcs:ignoreFile Generic.CodeAnalysis.UnusedFunctionParameter.Found,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub fixture mirroring upstream link-pages function signatures; unused params are part of the mirrored contracts.
 
 define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
-define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
 
 function ec_link_page_post_type( $blog_id = null ) {
-	return 'artist_link_page';
+	return 'ec_link_page';
 }
 
 // The runtime owns its own contract validation; the fake reports the outcome
@@ -26,9 +25,6 @@ function ec_link_pages_runtime_ready() {
 function ec_get_link_page_storage_blog_id() {
 	return $GLOBALS['smoke']['storage_blog_id'] ?? 4;
 }
-
-function ec_link_page_migration_participant_registry() { return (object) array(); }
-function ec_register_link_page_migration_participant( $name, $version, $callbacks, $priority = 10 ) { $GLOBALS['smoke']['migration_participants'][ $name ] = compact( 'version', 'callbacks', 'priority' ); return true; }
 
 function ec_link_page_owner_compatibility_registry() {
 	return (object) array();

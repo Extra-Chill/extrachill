@@ -111,7 +111,7 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 		$this->assertStringContainsString( 'if ( $post_id > 0 ) {', $ability );
 		$this->assertStringContainsString( "if ( \$post_id > 0 && get_post_type( \$post_id ) === \$link_page_post_type )", $ability );
 		$this->assertStringContainsString(
-			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';",
+			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'ec_link_page';",
 			$ability
 		);
 		$this->assertStringContainsString( "'view_kind'    => \$post_id > 0 ? 'post' : 'route'", $ability );
@@ -274,17 +274,15 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 
 	/**
 	 * Singular posts retain legacy counters and link-page actions whether
-	 * the storage-aware post type resolves the legacy value (gate off, no
-	 * `ec_link_page_post_type()`) or the renamed value (gate on, storage
-	 * blog 13 — Extra-Chill/extrachill-link-pages#34).
+	 * the post type comes from the fixture default or an explicit
+	 * `ec_link_page_post_type()` resolution.
 	 *
 	 * @dataProvider link_page_post_type_provider
 	 *
 	 * @param string      $post_type       Post type the fixture registers and creates.
 	 * @param string|null $resolved_type   Value `ec_link_page_post_type()` should
-	 *                                     resolve to, or null to leave the function
-	 *                                     undefined so the ability falls back to
-	 *                                     the legacy literal.
+	 *                                     resolve to, or null to keep the fixture
+	 *                                     default.
 	 */
 	public function test_post_backed_view_preserves_legacy_side_effects( string $post_type, ?string $resolved_type ): void {
 		if ( null !== $resolved_type ) {
@@ -341,34 +339,31 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
-	 * Link Page post types under both cutover phases.
+	 * Link Page post type resolution cases.
 	 *
 	 * @return array<string,array{string,string|null}>
 	 */
 	public function link_page_post_type_provider() {
 		return array(
-			'gate off (legacy artist_link_page, no runtime function)' => array( 'artist_link_page', null ),
-			'gate on (ec_link_page, storage blog resolves renamed type)' => array( 'ec_link_page', 'ec_link_page' ),
+			'fixture default resolves ec_link_page' => array( 'ec_link_page', null ),
+			'explicit ec_link_page resolution'      => array( 'ec_link_page', 'ec_link_page' ),
 		);
 	}
 
 	/**
 	 * The view-recording branch does NOT fire when the post's actual type
 	 * disagrees with what `ec_link_page_post_type()` currently resolves —
-	 * e.g. an `artist_link_page` post read while the storage gate is on and
-	 * the runtime resolves `ec_link_page`. Guards against a comparison that
+	 * e.g. a plain `post` read while the runtime resolves `ec_link_page`.
+	 * Guards against a comparison that
 	 * silently accepts any post type once the guarded call is present.
 	 */
 	public function test_post_backed_view_skips_action_when_type_mismatches_resolved_type(): void {
 		$GLOBALS['extrachill_analytics_test_link_page_post_type'] = 'ec_link_page';
-		if ( ! post_type_exists( 'artist_link_page' ) ) {
-			register_post_type( 'artist_link_page', array( 'public' => true ) );
-		}
 		$post_id = self::factory()->post->create(
 			array(
 				'post_name'   => 'example-mismatch',
 				'post_status' => 'publish',
-				'post_type'   => 'artist_link_page',
+				'post_type'   => 'post',
 			)
 		);
 

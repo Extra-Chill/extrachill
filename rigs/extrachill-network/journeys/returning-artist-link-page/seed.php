@@ -3,7 +3,7 @@
  * Seed the returning-artist Link Page journey.
  *
  * Production page shapes on the artist site (as the musician journey seeds
- * them), the Link Pages cutover on, and one single-scenario fixture musician
+ * them) and one single-scenario fixture musician
  * (not a persona): registered, onboarded as an artist, with no artist yet.
  * The journey's setup step creates the artist and its first link; every
  * later step is a fresh browser (no stored editor token) coming back from a
@@ -68,7 +68,6 @@ $member_sites   = array(
 );
 
 wp_set_current_user( 1 );
-update_site_option( 'ec_link_pages_site_cutover', true );
 
 switch_to_blog( $artist_blog_id );
 update_option( 'permalink_structure', '/%postname%/' );

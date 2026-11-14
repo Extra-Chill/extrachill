@@ -316,7 +316,7 @@ function flush_rewrite_rules() {
 		throw new RuntimeException( 'flush failed' );
 	}
 	$GLOBALS['ec_test']['site_flushes'][ $blog_id ]          = ( $GLOBALS['ec_test']['site_flushes'][ $blog_id ] ?? 0 ) + 1;
-	$GLOBALS['ec_test']['site_rule_snapshots'][ $blog_id ][] = post_type_exists( EC_LINK_PAGE_POST_TYPE );
+	$GLOBALS['ec_test']['site_rule_snapshots'][ $blog_id ][] = post_type_exists( 'ec_link_page' );
 	++$GLOBALS['ec_test']['flushes'];
 }
 
@@ -387,11 +387,6 @@ function ec_test_reset() {
 	$section_source_property = ( new ReflectionObject( $section_source_registry ) )->getProperty( 'sources' );
 	$section_source_property->setAccessible( true );
 	$section_source_property->setValue( $section_source_registry, array() );
-	$migration_registry = ec_link_page_migration_participant_registry();
-	$reflection         = new ReflectionObject( $migration_registry );
-	$property           = $reflection->getProperty( 'participants' );
-	$property->setAccessible( true );
-	$property->setValue( $migration_registry, array() );
 	add_filter(
 		'ec_link_page_terminate_request',
 		static function ( $terminate, $url, $status ) {
@@ -659,8 +654,7 @@ function wp_insert_post( $data, $wp_error = false ) {
 	$inserted                    = $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ];
 	$inserted->post_modified     = $data['post_date'] ?? '2030-01-01 00:00:00';
 	$inserted->post_modified_gmt = $data['post_date_gmt'] ?? '2030-01-01 00:00:00';
-	// Core fills an empty guid after insert; mirror it so migrations must
-	// restore the exact source value.
+	// Core fills an empty guid after insert; mirror it.
 	if ( '' === (string) ( $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ]->guid ?? '' ) ) {
 		$GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ]->guid = 'https://generated.test/?p=' . $id;
 	}
@@ -812,23 +806,8 @@ function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $
 function wp_script_is( $handle, $status = 'registered' ) {
 	return in_array( $handle, $GLOBALS['ec_test']['registered_script_handles'] ?? array(), true ); }
 
-if ( ! function_exists( 'ec_get_blog_id' ) ) {
-	/**
-	 * Minimal stand-in for extrachill-network's network blog-ID lookup.
-	 *
-	 * Mirrors the real contract (`ec_get_blog_id( 'link_pages' )` resolves the
-	 * dedicated Link Pages site) so ec_link_page_post_type() can be exercised
-	 * as it behaves with the network plugin active, without coupling this
-	 * standalone suite to that plugin's source.
-	 */
-	function ec_get_blog_id( $key ) {
-		return 'link_pages' === $key ? 13 : null;
-	}
-}
-
-// Cold-boot validation now resolves the storage-affine post type, which
-// reads the current blog. Seed a default before the plugin file's top-level
-// self-validation runs so that read isn't against an unset array key.
+// Seed a default blog before the plugin file's top-level self-validation runs
+// so blog reads aren't against an unset array key.
 $GLOBALS['ec_test']['current_blog_id'] = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
 if ( ! function_exists( 'home_url' ) ) {
 	function home_url( $path = '' ) {

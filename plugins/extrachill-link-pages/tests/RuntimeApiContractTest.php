@@ -24,19 +24,16 @@ final class RuntimeApiContractTest extends TestCase {
 	 * accepts; any other value fails the consumer's boot validation.
 	 */
 	public function test_storage_constants_and_api_version_match_consumer_support(): void {
-		$this->assertSame( 'artist_link_page', EC_LINK_PAGE_POST_TYPE );
 		$this->assertSame( '_ec_link_page_owner_reference', EC_LINK_PAGE_OWNER_META_KEY );
 		$this->assertSame( '4', (string) EC_LINK_PAGES_RUNTIME_API_VERSION );
 	}
 
 	/**
-	 * The post type follows the storage site, resolved at call time — never
-	 * pinned to a literal, and never read at file-load time.
+	 * The post type resolver is always the dedicated-site type.
 	 */
-	public function test_post_type_resolves_from_storage_site_not_a_pinned_literal(): void {
+	public function test_post_type_resolves_to_the_dedicated_type(): void {
 		$this->assertTrue( function_exists( 'ec_link_page_post_type' ) );
-		$this->assertSame( 'artist_link_page', ec_link_page_post_type() );
-		$this->assertContains( ec_link_page_post_type(), array( 'artist_link_page', 'ec_link_page' ) );
+		$this->assertSame( 'ec_link_page', ec_link_page_post_type() );
 	}
 
 	/**

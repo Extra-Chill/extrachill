@@ -21,13 +21,7 @@ defined( 'EXTRACHILL_LINK_PAGES_VERSION' ) || define( 'EXTRACHILL_LINK_PAGES_VER
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE', __FILE__ );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-// Deprecated: the legacy storage-site post type. No new code reads this constant;
-// call ec_link_page_post_type() instead, which resolves the storage-site-affine
-// value at call time. Kept defined only for back-compat with external readers.
-defined( 'EC_LINK_PAGE_POST_TYPE' ) || define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) || define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
-
-require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/migration.php';
 
 /**
  * Return the exact public function signatures in runtime API version 1.
@@ -36,14 +30,6 @@ require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/migration.php';
  */
 function ec_link_pages_runtime_function_contract() {
 	$contract = array(
-		'ec_link_page_migration_participant_registry'      => array(
-			'required' => 0,
-			'total'    => 0,
-		),
-		'ec_register_link_page_migration_participant'      => array(
-			'required' => 3,
-			'total'    => 4,
-		),
 		'ec_link_page_owner_compatibility_registry'        => array(
 			'required' => 0,
 			'total'    => 0,
@@ -858,7 +844,7 @@ function ec_validate_link_pages_runtime( $check_readiness = true ) {
 	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
 	}
-	if ( ! function_exists( 'ec_link_page_post_type' ) || ! in_array( ec_link_page_post_type(), array( 'artist_link_page', 'ec_link_page' ), true ) ) {
+	if ( ! function_exists( 'ec_link_page_post_type' ) || 'ec_link_page' !== ec_link_page_post_type() ) {
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
 	}
 	if ( '4' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) {

@@ -135,14 +135,14 @@ final class LinkPageAnalyticsDateRangeTest extends Extrachill_Analytics_TestCase
 	/**
 	 * The post-type guard resolves through the storage-aware Link Pages
 	 * runtime function rather than a hardcoded literal
-	 * (Extra-Chill/extrachill-link-pages#34), falling back to the legacy
-	 * literal only when that function does not exist yet.
+	 * (Extra-Chill/extrachill-link-pages#34), falling back to the
+	 * `ec_link_page` literal only when that function does not exist.
 	 */
 	public function test_ability_validates_post_type_via_storage_aware_resolver(): void {
 		$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/abilities/get-link-page-analytics.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source fixture.
 
 		$this->assertStringContainsString(
-			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';",
+			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'ec_link_page';",
 			$source
 		);
 		// The stored type is resolved on the storage blog, not the request blog.

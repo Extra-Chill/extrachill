@@ -35,7 +35,7 @@ function ec_gradient_smoke_run() {
 	ec_gradient_smoke_check( '#0b5394, #800080, #53940b' === ec_link_page_gradient_colors( $defaults ), 'Three-stop gradient missing middle.' );
 	$css = ec_link_page_css_variables_style_block( $defaults );
 	ec_gradient_smoke_check( false !== strpos( $css, '--link-page-background-gradient-colors:#0b5394, #800080, #53940b;' ), 'Public CSS missing color stops.' );
-	$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish' );
+	$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish' );
 	$styles = array_merge( $defaults, array( $direction => '27.5deg' ) );
 	$saved = ec_save_link_page_persistence( 40, array( 'css_vars' => $styles ) );
 	ec_gradient_smoke_check( ! is_wp_error( $saved ), 'Gradient save failed.' );

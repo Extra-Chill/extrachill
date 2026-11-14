@@ -10,10 +10,9 @@ use PHPUnit\Framework\TestCase;
  * The Link Page ProfilePage schema must follow the post type of the site
  * serving the request, not a hardcoded literal.
  *
- * After the Link Pages site cutover, extrachill.link is served by the
- * dedicated Link Pages site whose post type is `ec_link_page`
- * (extrachill-link-pages#34). An `is_singular( 'artist_link_page' )` guard
- * would silently stop emitting ProfilePage schema on every Link Page.
+ * extrachill.link is served by the dedicated Link Pages site whose post type
+ * is `ec_link_page` (extrachill-link-pages#34). The legacy
+ * `artist_link_page` type is no longer registered anywhere.
  */
 final class SchemaLinkPageTypeResolutionTest extends TestCase {
 
@@ -28,18 +27,14 @@ final class SchemaLinkPageTypeResolutionTest extends TestCase {
 		self::assertStringContainsString( 'is_singular( $link_page_type )', $source );
 	}
 
-	public function test_legacy_literal_only_survives_as_the_runtime_fallback(): void {
+	public function test_legacy_post_type_literal_is_gone(): void {
 		$source = $this->source();
 
-		self::assertStringNotContainsString(
-			"is_singular( 'artist_link_page' )",
-			$source,
-			'The hardcoded singular check must be gone.'
-		);
+		self::assertStringNotContainsString( 'artist_link_page', $source, 'The legacy post type must not be referenced.' );
 		self::assertSame(
 			1,
-			substr_count( $source, "'artist_link_page'" ),
-			'The legacy literal may appear only as the fallback when the runtime is absent.'
+			substr_count( $source, "'ec_link_page'" ),
+			'The literal may appear only as the fallback when the runtime is absent.'
 		);
 	}
 

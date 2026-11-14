@@ -58,7 +58,7 @@ function extrachill_analytics_link_page_clicks_table() {
  * blog served the request: the artist dashboard runs on the artist site
  * while pages (and their view/click beacons) are served by the storage
  * site. Falls back to the current blog when the Link Pages runtime is not
- * loaded. Migration and schema code keep the per-blog functions above.
+ * loaded. Schema code keeps the per-blog functions above.
  *
  * @return string
  */
@@ -97,8 +97,7 @@ function extrachill_analytics_link_page_storage_clicks_table() {
  * `dbDelta()` only creates a missing table or appends a missing column — it
  * cannot reorder an existing column or rebuild a changed index — so every
  * call also runs the versioned schema-reconciliation pass from
- * link-page-storage-migration.php against the same owned contract it already
- * uses for migration readiness. That pass short-circuits to a no-op once a
+ * link-page-schema.php against the owned column and index contract. That pass short-circuits to a no-op once a
  * site's tables already match, so this whole function stays cheap once the
  * version option catches up (#287).
  */
@@ -140,10 +139,8 @@ function extrachill_analytics_link_page_create_table() {
 	dbDelta( $sql_views );
 	dbDelta( $sql_clicks );
 
-	if ( function_exists( 'extrachill_analytics_link_page_migration_reconcile_table' ) ) {
-		extrachill_analytics_link_page_migration_reconcile_table( $table_views, extrachill_analytics_link_page_migration_view_columns(), extrachill_analytics_link_page_migration_view_indexes() );
-		extrachill_analytics_link_page_migration_reconcile_table( $table_clicks, extrachill_analytics_link_page_migration_click_columns(), extrachill_analytics_link_page_migration_click_indexes() );
-	}
+	extrachill_analytics_link_page_schema_reconcile_table( $table_views, extrachill_analytics_link_page_schema_view_columns(), extrachill_analytics_link_page_schema_view_indexes() );
+	extrachill_analytics_link_page_schema_reconcile_table( $table_clicks, extrachill_analytics_link_page_schema_click_columns(), extrachill_analytics_link_page_schema_click_indexes() );
 
 	update_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION );
 }

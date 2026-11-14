@@ -74,7 +74,7 @@ $css_variables = [
 
 The management interface is **exclusively a Gutenberg block editor component** (React-based) located at `src/blocks/link-page-editor/`. There is no legacy PHP management interface.
 
-Link pages are edited directly in the WordPress block editor when editing an `artist_link_page` post.
+Link pages are edited directly in the WordPress block editor when editing an `ec_link_page` post (stored on the Link Pages site, extrachill.link).
 
 ### Tab Structure
 

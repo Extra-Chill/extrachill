@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class BackgroundTreatmentTest extends TestCase {
 	public function test_treatment_round_trips_through_persistence(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Photo', 'post_name' => 'photo' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Photo', 'post_name' => 'photo' );
 		$styles = array(
 			'--link-page-image-blur'       => '20px',
 			'--link-page-image-brightness' => '150%',

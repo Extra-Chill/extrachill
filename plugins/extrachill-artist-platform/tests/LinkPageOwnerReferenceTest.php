@@ -76,7 +76,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		try {
 			return (int) self::factory()->post->create(
 				array(
-					'post_type'   => 'artist_link_page',
+					'post_type'   => 'ec_link_page',
 					'post_status' => 'publish',
 					'post_name'   => $slug,
 				)

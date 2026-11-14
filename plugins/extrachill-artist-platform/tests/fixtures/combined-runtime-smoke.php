@@ -5,7 +5,6 @@
 $artist_root = dirname( __DIR__, 2 );
 require_once __DIR__ . '/link-pages-runtime-fixture.php';
 $standalone = ec_test_link_pages_runtime_path( $artist_root );
-ec_test_load_link_pages_migration_override( $standalone );
 
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', $artist_root . '/' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', 'https://artist.example/plugins/artist/' );
@@ -113,7 +112,7 @@ require $standalone . '/tests/bootstrap.php';
 $GLOBALS['ec_test']['options']['active_plugins'] = array( 'extrachill-link-pages/extrachill-link-pages.php' );
 add_filter( 'ec_get_artist_id', static function ( $value, $input = null ) {
 	$id = is_numeric( $input ) ? (int) $input : ( is_numeric( $value ) ? (int) $value : 0 );
-	return EC_LINK_PAGE_POST_TYPE === get_post_type( $id ) ? ec_get_artist_for_link_page( $id ) : $value;
+	return ec_link_page_post_type() === get_post_type( $id ) ? ec_get_artist_for_link_page( $id ) : $value;
 }, 10, 2 );
 
 require_once $artist_root . '/inc/link-pages/runtime-handoff.php';
@@ -154,7 +153,7 @@ $GLOBALS['ec_test']['blogs'][4]['posts'][21]     = (object) array(
 );
 $GLOBALS['ec_test']['blogs'][4]['posts'][40]     = (object) array(
 	'ID'          => 40,
-	'post_type'   => EC_LINK_PAGE_POST_TYPE,
+	'post_type'   => ec_link_page_post_type(),
 	'post_status' => 'publish',
 	'post_title'  => 'Existing Artist',
 	'post_name'   => 'existing-artist',
@@ -527,7 +526,7 @@ echo wp_json_encode(
 		'force_restored_id'           => (int) ec_get_link_page_id_for_owner( ec_artist_link_page_owner_reference( 20 ) ),
 		'force_restored_slug'         => get_post_field( 'post_name', $created ),
 		'force_new_count'             => count( get_posts( array(
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => ec_link_page_post_type(),
 			'post_status'    => 'any',
 			'fields'         => 'ids',
 			'posts_per_page' => -1,
