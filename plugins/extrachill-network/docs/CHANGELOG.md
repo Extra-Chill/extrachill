@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.39.6] - 2026-11-14
+
+### Changed
+- the extrachill.link cutover is permanent; storage migration deleted
+
+### Fixed
+- resolve ticket seller payment status in the shop runtime
+- show the shop-site Stripe webhook URL on the Payments page
+
 ## [2.39.5] - 2026-11-14
 
 ### Fixed
