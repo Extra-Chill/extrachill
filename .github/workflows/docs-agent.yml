@@ -12,6 +12,7 @@ on:
           - extrachill-community
           - extrachill-events
           - extrachill-newsletter
+          - extrachill-shop
       dry_run:
         description: Validate the run without starting a live agent run
         type: boolean
