@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.0] - 2026-11-14
+
+### Added
+- record buyer ToS consent and Seller Agreement acceptance
+
 ## [0.10.6] - 2026-11-14
 
 ### Changed
