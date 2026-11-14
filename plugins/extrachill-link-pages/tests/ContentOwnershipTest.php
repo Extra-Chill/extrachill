@@ -5,6 +5,7 @@
  * @package ExtraChillLinkPages
  */
 
+use ExtraChill\LinkPages\Owned_Link_Pages;
 use PHPUnit\Framework\TestCase;
 
 final class ContentOwnershipTest extends TestCase {
@@ -324,5 +325,202 @@ final class ContentOwnershipTest extends TestCase {
 		$attributes = ec_get_link_page_public_projection( 40 )['body_attributes'];
 		$this->assertSame( 'https://api.example/perm', $attributes['data-extrch-permissions-api-url'] );
 		$this->assertSame( 'https://auth.example/handoff', $attributes['data-extrch-token-handoff-url'] );
+	}
+
+	/**
+	 * Owned-page definition over the fixture `profile` owner, with optional
+	 * projection extras.
+	 *
+	 * @param array $extras Projection extras the definition returns.
+	 */
+	private function ownedDefinition( array $extras = array() ): Owned_Link_Pages {
+		static $definition = null;
+		if ( null === $definition ) {
+			$definition = new class() extends Owned_Link_Pages {
+				public const OWNER_KIND        = 'post';
+				public const KIND              = 'profile';
+				public const SNAPSHOT_META_KEY = '_ec_test_profile_snapshot';
+				public const ORPHAN_META_KEY   = '_ec_test_profile_orphan';
+				protected const SCHEMA_TYPE    = 'Person';
+
+				/**
+				 * Projection extras for the current test.
+				 *
+				 * @var array
+				 */
+				public static $extras = array();
+
+				protected static function owner_blog_id(): int {
+					return 4;
+				}
+
+				protected static function authorize_owner( int $owner_id ) {
+					unset( $owner_id );
+					return true;
+				}
+
+				protected static function read_source( $owner ) {
+					unset( $owner );
+					return array();
+				}
+
+				public static function management_url( int $owner_id ): string {
+					return 'https://manage.example/profile/' . $owner_id;
+				}
+
+				protected static function projection_extras( array $snapshot, int $link_page_id ): array {
+					unset( $snapshot, $link_page_id );
+					return self::$extras;
+				}
+			};
+		}
+		$definition::$extras = $extras;
+		$snapshot            = $this->ownedEngine(
+			$definition,
+			'snapshot_from_source',
+			array(
+				array(
+					'id'           => 20,
+					'name'         => 'Owner Name',
+					'slug'         => 'owner-name',
+					'description'  => 'Owner description.',
+					'website'      => 'https://owner.example',
+					'image_url'    => 'https://owner.example/logo.jpg',
+					'image_alt'    => 'Owner logo',
+					'social_links' => array(
+						array(
+							'type' => 'instagram',
+							'url'  => 'https://instagram.com/owner',
+						),
+					),
+					'source_url'   => 'https://owner.example/profile',
+				),
+				'post:4:profile:20',
+			)
+		);
+		update_post_meta( 40, $definition::SNAPSHOT_META_KEY, $snapshot );
+		return $definition;
+	}
+
+	/**
+	 * Call one private engine method with the definition bound as `static`.
+	 *
+	 * @param Owned_Link_Pages $definition Owned-page definition.
+	 * @param string           $method     Private engine method.
+	 * @param array            $arguments  Arguments.
+	 */
+	private function ownedEngine( Owned_Link_Pages $definition, string $method, array $arguments ) {
+		$call = Closure::bind(
+			static function () use ( $definition, $method, $arguments ) {
+				return $definition::$method( ...$arguments );
+			},
+			null,
+			Owned_Link_Pages::class
+		);
+		return $call();
+	}
+
+	/**
+	 * Resolve the definition's live public projection for the fixture page.
+	 *
+	 * @param Owned_Link_Pages $definition Owned-page definition.
+	 */
+	private function ownedProjection( Owned_Link_Pages $definition ) {
+		return $definition::public_projection_provider(
+			array(
+				'link_page_id'    => 40,
+				'owner'           => ec_parse_link_page_owner_reference( 'post:4:profile:20' ),
+				'owner_reference' => 'post:4:profile:20',
+			)
+		);
+	}
+
+	public function test_owned_page_bio_and_image_override_owner_snapshot(): void {
+		$definition = $this->ownedDefinition();
+		$saved      = ec_save_link_page_persistence(
+			40,
+			array(
+				'bio'              => 'Page bio.',
+				'profile_image_id' => 55,
+			)
+		);
+		$this->assertIsArray( $saved );
+		$projection = $this->ownedProjection( $definition );
+
+		$this->assertSame( 'Page bio.', $projection['bio'] );
+		$this->assertSame( 'https://media.example/55.jpg', $projection['profile_img_url'] );
+		$this->assertSame( 'Page bio.', $projection['seo']['description'] );
+		$this->assertSame( 'https://media.example/55.jpg', $projection['seo']['image'] );
+		// The owner supplies identity: title and schema entity stay the owner's.
+		$entity = $projection['seo']['schema'][0];
+		$this->assertSame( 'Owner Name', $projection['display_title'] );
+		$this->assertSame( 'Owner Name', $entity['name'] );
+		$this->assertSame( 'Owner description.', $entity['description'] );
+		$this->assertSame( 'https://owner.example/logo.jpg', $entity['image'] );
+		$this->assertSame( array( 'https://owner.example', 'https://instagram.com/owner' ), $entity['sameAs'] );
+	}
+
+	public function test_owned_page_without_bio_or_image_falls_back_to_owner_snapshot(): void {
+		$projection = $this->ownedProjection( $this->ownedDefinition() );
+
+		$this->assertSame( 'Owner description.', $projection['bio'] );
+		$this->assertSame( 'https://owner.example/logo.jpg', $projection['profile_img_url'] );
+		$this->assertSame( 'Owner description.', $projection['seo']['description'] );
+		$this->assertSame( 'https://owner.example/logo.jpg', $projection['seo']['image'] );
+	}
+
+	public function test_owned_page_persistence_error_falls_back_to_owner_snapshot(): void {
+		$definition = $this->ownedDefinition();
+		$snapshot   = get_post_meta( 40, $definition::SNAPSHOT_META_KEY, true );
+		$this->assertInstanceOf( WP_Error::class, ec_read_link_page_persistence( 999 ) );
+
+		$projection = $this->ownedEngine( $definition, 'projection_from_snapshot', array( $snapshot, 999 ) );
+
+		$this->assertSame( 'Owner description.', $projection['bio'] );
+		$this->assertSame( 'https://owner.example/logo.jpg', $projection['profile_img_url'] );
+		$this->assertSame( 'Owner description.', $projection['seo']['description'] );
+	}
+
+	public function test_owned_projection_extras_merge_body_attributes(): void {
+		$this->assertArrayNotHasKey( 'legacy_head_arguments', $this->ownedProjection( $this->ownedDefinition() ) );
+		$definition = $this->ownedDefinition(
+			array(
+				'body_attributes'       => array(
+					'data-extrch-owner-type' => 'spoofed',
+					'data-extrch-extra'      => 'extra',
+				),
+				'legacy_head_arguments' => array( 'extra-head' ),
+			)
+		);
+		$projection = $this->ownedProjection( $definition );
+
+		$this->assertSame(
+			array(
+				'data-extrch-owner-type' => 'profile',
+				'data-extrch-extra'      => 'extra',
+				'data-extrch-profile-id' => '20',
+			),
+			$projection['body_attributes']
+		);
+		$this->assertSame( array( 'extra-head' ), $projection['legacy_head_arguments'] );
+		$this->assertFalse( is_wp_error( ec_validate_link_page_public_projection( $projection ) ) );
+	}
+
+	public function test_owned_socials_render_through_runtime_icon_renderer_at_page_position(): void {
+		$definition = $this->ownedDefinition();
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'social_icons_position' => 'below' ) ) );
+		$this->assertTrue( ec_register_link_page_public_projection_provider( 'ec-test-owned-profile', array( $definition, 'public_projection_provider' ) ) );
+
+		$projection = ec_get_link_page_public_projection( 40 );
+		$this->assertFalse( is_wp_error( $projection ) );
+		$this->assertSame( 'ec_render_link_page_social_links', $projection['social_renderer'] );
+
+		$prepared = ec_prepare_link_page_public_render( $projection, ec_read_link_page_persistence( 40 ) );
+		$this->assertFalse( is_wp_error( $prepared ) );
+		$this->assertSame( '', $prepared['_rendered_social_above'] );
+		$this->assertSame( ec_render_link_page_social_links( $projection['social_links'], 'below' ), $prepared['_rendered_social_below'] );
+		$this->assertStringContainsString( 'extrch-socials-below', $prepared['_rendered_social_below'] );
+		$this->assertStringContainsString( 'extrch-social-icon', $prepared['_rendered_social_below'] );
+		$this->assertFalse( method_exists( Owned_Link_Pages::class, 'render_social_links' ) );
 	}
 }
