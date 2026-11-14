@@ -68,8 +68,8 @@ final class PriorityBoostTest extends TestCase {
 
 	/** @dataProvider untrustedCallerProvider */
 	public function test_unpaid_anonymous_and_customer_contexts_cannot_request_authority( $user_id ): void {
-		$GLOBALS['test_user_id'] = $user_id;
-		$order                    = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ), false );
+		$GLOBALS['test_user_id']    = $user_id;
+		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ), false );
 		$GLOBALS['test_orders'][44] = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
@@ -80,7 +80,10 @@ final class PriorityBoostTest extends TestCase {
 	}
 
 	public function untrustedCallerProvider(): array {
-		return array( 'anonymous' => array( 0 ), 'customer' => array( 42 ) );
+		return array(
+			'anonymous' => array( 0 ),
+			'customer'  => array( 42 ),
+		);
 	}
 
 	public function test_exact_replay_does_not_call_owner_again(): void {
@@ -98,8 +101,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'priority_boost_idempotency_conflict', 'Conflict.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 102, 'other-event', 'Other event' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 102, 'other-event', 'Other event' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -111,8 +114,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'rest_ability_not_found', 'Ability not found.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -124,8 +127,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'events_internal_error', 'Sensitive owner detail.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -134,15 +137,15 @@ final class PriorityBoostTest extends TestCase {
 	}
 
 	public function test_transport_assertion_failure_retries_with_fresh_assertion(): void {
-		$attempt = 0;
+		$attempt                        = 0;
 		$GLOBALS['test_owner_callback'] = static function () use ( &$attempt ) {
 			++$attempt;
 			return 1 === $attempt
 				? new WP_Error( 'ec_service_assertion_unavailable', 'Assertion provider detail.' )
 				: priority_boost_owner_response();
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 		extrachill_shop_handle_priority_boost_purchase( 44 );
@@ -154,12 +157,12 @@ final class PriorityBoostTest extends TestCase {
 	}
 
 	public function test_fresh_transport_attempts_preserve_events_business_idempotency(): void {
-		$attempt = 0;
+		$attempt                        = 0;
 		$GLOBALS['test_owner_callback'] = static function () use ( &$attempt ) {
 			return priority_boost_owner_response( 0 < $attempt++ );
 		};
-		$order = new PriorityBoostTestOrder( 44, array() );
-		$item  = new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' );
+		$order                          = new PriorityBoostTestOrder( 44, array() );
+		$item                           = new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' );
 
 		$first  = extrachill_shop_grant_event_priority_boost( $order, $item );
 		$second = extrachill_shop_grant_event_priority_boost( $order, $item );
@@ -176,14 +179,14 @@ final class PriorityBoostTest extends TestCase {
 			$response['payment_secret'] = 'must-not-leak';
 			return $response;
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
 		$this->assertArrayNotHasKey( '_extrachill_priority_boost_receipt_10', $order->meta );
 		$this->assertSame( array( 'Priority boost pending: Events owner returned priority_boost_owner_response_invalid.' ), $order->notes );
-		$this->assertStringNotContainsString( 'must-not-leak', serialize( $order ) );
+		$this->assertStringNotContainsString( 'must-not-leak', serialize( $order ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Inspects the full object state.
 	}
 
 	public function test_mismatched_owner_event_response_remains_pending(): void {
@@ -192,8 +195,8 @@ final class PriorityBoostTest extends TestCase {
 			$response['event']['slug'] = 'different-event';
 			return $response;
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -205,8 +208,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'owner_runtime_unavailable', 'Provider unavailable.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -218,8 +221,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'ec_service_assertion_denied', 'Denied.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 
@@ -229,7 +232,7 @@ final class PriorityBoostTest extends TestCase {
 		$this->assertSame( array( 44 ), $action['args'] );
 		$this->assertSame( 'extrachill-shop', $action['group'] );
 		$this->assertGreaterThan( time(), $action['timestamp'] );
-		$this->assertSame( 1, $order->meta['_extrachill_priority_boost_retry_attempts'] );
+		$this->assertSame( '1', $order->meta['_extrachill_priority_boost_retry_attempts'] );
 
 		// A second failure while a retry is queued does not double-schedule.
 		extrachill_shop_handle_priority_boost_purchase( 44 );
@@ -241,8 +244,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () use ( &$fail ) {
 			return $fail ? new WP_Error( 'ec_service_assertion_denied', 'Denied.' ) : priority_boost_owner_response();
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 		$this->assertArrayNotHasKey( '_extrachill_priority_boost_receipt_10', $order->meta );
@@ -261,8 +264,8 @@ final class PriorityBoostTest extends TestCase {
 		$GLOBALS['test_owner_callback'] = static function () {
 			return new WP_Error( 'events_internal_error', 'Down.' );
 		};
-		$order                      = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
-		$GLOBALS['test_orders'][44] = $order;
+		$order                          = new PriorityBoostTestOrder( 44, array( new PriorityBoostTestItem( 10, 101, 'event-slug', 'Event title' ) ) );
+		$GLOBALS['test_orders'][44]     = $order;
 
 		extrachill_shop_handle_priority_boost_purchase( 44 );
 		$first                             = $GLOBALS['test_scheduled_actions'][0]['timestamp'];
@@ -271,7 +274,7 @@ final class PriorityBoostTest extends TestCase {
 
 		$this->assertCount( 1, $GLOBALS['test_scheduled_actions'] );
 		$this->assertGreaterThan( $first, $GLOBALS['test_scheduled_actions'][0]['timestamp'] );
-		$this->assertSame( 2, $order->meta['_extrachill_priority_boost_retry_attempts'] );
+		$this->assertSame( '2', $order->meta['_extrachill_priority_boost_retry_attempts'] );
 	}
 
 	public function test_retry_skips_orders_no_longer_completed(): void {

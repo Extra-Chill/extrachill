@@ -312,6 +312,7 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		return;
 	}
 
+	/** @var WC_Order|false $order Priority boost orders are never refunds. */
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
 		return;
@@ -413,7 +414,7 @@ function extrachill_shop_schedule_priority_boost_retry( $order ) {
 	$delays   = extrachill_shop_priority_boost_retry_delays();
 	if ( $attempts >= count( $delays ) ) {
 		if ( ! $order->get_meta( EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META, true ) ) {
-			$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META, 1 );
+			$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_EXHAUSTED_META, '1' );
 			$order->add_order_note( __( 'Priority boost retries exhausted: manual fulfilment required.', 'extrachill-shop' ) );
 		}
 		return false;
@@ -429,7 +430,7 @@ function extrachill_shop_schedule_priority_boost_retry( $order ) {
 	}
 
 	if ( $scheduled ) {
-		$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_ATTEMPTS_META, $attempts + 1 );
+		$order->update_meta_data( EXTRACHILL_SHOP_PRIORITY_BOOST_ATTEMPTS_META, (string) ( $attempts + 1 ) );
 	}
 
 	return $scheduled;
@@ -441,6 +442,7 @@ function extrachill_shop_schedule_priority_boost_retry( $order ) {
  * @param int $order_id Order ID.
  */
 function extrachill_shop_retry_priority_boost( $order_id ) {
+	/** @var WC_Order|false|null $order Priority boost orders are never refunds. */
 	$order = $order_id ? wc_get_order( $order_id ) : null;
 	if ( ! $order || 'completed' !== $order->get_status() ) {
 		return;
