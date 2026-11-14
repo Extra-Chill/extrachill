@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.53.0] - 2026-11-14
+
+### Added
+- record buyer ToS consent and Seller Agreement acceptance
+
 ## [0.52.11] - 2026-11-14
 
 ### Changed
