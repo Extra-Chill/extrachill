@@ -103,8 +103,14 @@ function ec_commerce_credential( string $provider, string $field ): string {
 		return '';
 	}
 
-	$class  = $providers[ $provider ];
-	$config = ( new $class() )->get_config();
+	$class    = $providers[ $provider ];
+	$instance = new $class();
+
+	if ( ! $instance instanceof \ExtraChillNetwork\Commerce\Auth\CommerceAuthProvider ) {
+		return '';
+	}
+
+	$config = $instance->get_config();
 
 	return isset( $config[ $field ] ) && is_scalar( $config[ $field ] ) ? trim( (string) $config[ $field ] ) : '';
 }
