@@ -33,7 +33,8 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			),
 		);
 		$GLOBALS['test_user_id']        = 551;
-		$GLOBALS['ticket_network']      = array();
+		$GLOBALS['test_site_options']   = array();
+		$GLOBALS['test_blog_options']   = array();
 		$GLOBALS['ticket_refunds']      = array();
 		$GLOBALS['ticket_refund_fail']  = false;
 		$GLOBALS['test_owner_calls']    = array();
@@ -147,31 +148,37 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function test_fee_math_and_defaults(): void {
+		$seller = array(
+			'type' => 'venue',
+			'id'   => 9911,
+		);
 		$this->assertSame( array(
-			'buyer'       => 0,
-			'application' => 0,
-		), extrachill_shop_ticket_fees( 2000, array() ) );
+			'buyer_fee'       => 0,
+			'application_fee' => 0,
+		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller ) );
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
+			'ticket_buyer_fee_flat_minor' => 100,
+			'ticket_buyer_fee_percent'    => 3,
+			'ticket_percent'              => 5,
+		);
 		$this->assertSame( array(
-			'buyer'       => 160,
-			'application' => 260,
-		), extrachill_shop_ticket_fees( 2000, array(
-			'buyer_fee_flat_minor' => 100,
-			'buyer_fee_percent'    => 3,
-			'seller_fee_percent'   => 5,
-		) ) );
+			'buyer_fee'       => 160,
+			'application_fee' => 260,
+		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller ) );
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
+			'ticket_buyer_fee_percent' => 3.3,
+			'ticket_percent'           => 3.3,
+		);
 		$this->assertSame( array(
-			'buyer'       => 33,
-			'application' => 66,
-		), extrachill_shop_ticket_fees( 999, array(
-			'buyer_fee_percent'  => 3.3,
-			'seller_fee_percent' => 3.3,
-		) ) );
+			'buyer_fee'       => 33,
+			'application_fee' => 66,
+		), extrachill_commerce_fee( 'extrachill_ticket', 999, $seller ) );
 	}
 	public function test_direct_charge_session(): void {
-		$GLOBALS['ticket_network']['extrachill_ticket_fees'] = array(
-			'buyer_fee_flat_minor' => 100,
-			'buyer_fee_percent'    => 3,
-			'seller_fee_percent'   => 5,
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
+			'ticket_buyer_fee_flat_minor' => 100,
+			'ticket_buyer_fee_percent'    => 3,
+			'ticket_percent'              => 5,
 		);
 		$this->assertSame( 'cs_ticket', $this->checkout()['session_id'] );
 		list( $params, $opts ) = $GLOBALS['ticket_session_request'];

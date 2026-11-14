@@ -74,15 +74,15 @@ function extrachill_shop_start_merch_checkout( $order ) {
 			return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments. Please try again later.' );
 		}
 	}
-	$items       = array();
-	$fee         = 0;
-	$total_minor = (int) round( $order->get_total() * 100 );
-	$items_minor = 0;
+	$items          = array();
+	$subtotal_minor = 0;
+	$total_minor    = (int) round( $order->get_total() * 100 );
+	$items_minor    = 0;
 	foreach ( $order->get_items() as $item ) {
 		// One Stripe line per discounted order line avoids unit rounding drift.
-		$amount       = (int) round( ( $item->get_total() + $item->get_total_tax() ) * 100 );
-		$items_minor += $amount;
-		$items[]      = array(
+		$amount          = (int) round( ( $item->get_total() + $item->get_total_tax() ) * 100 );
+		$items_minor    += $amount;
+		$items[]         = array(
 			'quantity'   => 1,
 			'price_data' => array(
 				'currency'     => strtolower( $order->get_currency() ),
@@ -90,7 +90,7 @@ function extrachill_shop_start_merch_checkout( $order ) {
 				'product_data' => array( 'name' => $item->get_name() . ' × ' . $item->get_quantity() ),
 			),
 		);
-		$fee         += (int) round( extrachill_shop_calculate_commission( $item->get_total(), $item->get_product_id() ) * 100 );
+		$subtotal_minor += (int) round( $item->get_total() * 100 );
 	}
 	// Preserve Woo shipping/fee/tax totals without calculating tax here.
 	if ( $total_minor < $items_minor || $total_minor <= 0 ) {
@@ -106,8 +106,12 @@ function extrachill_shop_start_merch_checkout( $order ) {
 			),
 		);
 	}
-	$sessions = extrachill_shop_order_checkout_sessions( $order );
-	$closed   = extrachill_shop_expire_previous_checkout_session( $sessions );
+	// Extra Chill buys the postage, so the buyer's shipping joins the fee. It
+	// goes back to the seller if they ship it themselves; see shipping-recovery.php.
+	$shipping_minor = $seller ? min( $total_minor - $items_minor, extrachill_shop_order_shipping_minor( $order ) ) : 0;
+	$fee            = $account ? min( $total_minor, extrachill_commerce_fee( 'extrachill_merch', $subtotal_minor, $seller )['application_fee'] + $shipping_minor ) : 0;
+	$sessions       = extrachill_shop_order_checkout_sessions( $order );
+	$closed         = extrachill_shop_expire_previous_checkout_session( $sessions );
 	if ( is_wp_error( $closed ) ) {
 		return $closed;
 	}
@@ -132,21 +136,22 @@ function extrachill_shop_start_merch_checkout( $order ) {
 	$options = array( 'idempotency_key' => 'ec-merch-' . $order->get_id() . '-' . count( $sessions ) . '-' . hash( 'sha256', wp_json_encode( array( $account, $data ) ) ) );
 	if ( $account ) {
 		$options['stripe_account']                             = $account;
-		$data['payment_intent_data']['application_fee_amount'] = min( $total_minor, max( 0, $fee ) );
+		$data['payment_intent_data']['application_fee_amount'] = $fee;
 	}
 	try {
 		$session                  = \Stripe\Checkout\Session::create( $data, $options );
-		$fee                      = $account ? min( $total_minor, max( 0, $fee ) ) : 0;
 		$sessions[ $session->id ] = $account;
 		$order->update_meta_data( '_extrachill_stripe_account', $account );
 		$order->update_meta_data( '_extrachill_checkout_sessions', $sessions );
 		$order->update_meta_data( '_extrachill_seller', $seller );
+		$order->update_meta_data( EXTRACHILL_SHOP_SHIPPING_HOLD_META, $shipping_minor );
 		// Keep reporting and seller refund readers compatible with existing orders.
 		if ( $seller ) {
 			$payout = array(
 				'total'           => (float) $order->get_total(),
 				'artist_payout'   => ( $total_minor - $fee ) / 100,
 				'application_fee' => $fee / 100,
+				'shipping_held'   => $shipping_minor / 100,
 				'stripe_account'  => $account,
 			);
 			$order->update_meta_data( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts', array( extrachill_shop_seller_key( $seller ) => $payout ) );

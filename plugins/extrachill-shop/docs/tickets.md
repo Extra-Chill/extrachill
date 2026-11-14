@@ -5,11 +5,14 @@ seller is merchant of record; Extra Chill receives only the application fee.
 There is no Woo order, Stripe Tax, or Woo tax calculation. Prices include tax;
 the seller is responsible for tax. Merch checkout is unchanged.
 
-Network Admin → Payments exposes zero-default ticket fees in the network option
-`extrachill_ticket_fees`: `buyer_fee_flat_minor` (per checkout),
-`buyer_fee_percent`, `seller_fee_percent`. Percent fees are rounded to the nearest
-minor unit on the ticket subtotal, independently. A nonzero buyer fee is a
-separate Service fee line. Zero fees omit that line and use a zero application fee.
+Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', … )`, which
+reads the network `extrachill_commerce_fees` setting (Network Admin → Payments → Fees):
+`ticket_buyer_fee_flat_minor` (per checkout), `ticket_buyer_fee_percent` and
+`ticket_percent` (paid by the seller). Until that page is saved, the values come
+from the older `extrachill_ticket_fees` option (all zero). Percent fees are
+rounded to the nearest minor unit on the ticket subtotal, independently. A
+nonzero buyer fee is a separate Service fee line. Zero fees omit that line and
+use a zero application fee.
 
 ## Deployment
 

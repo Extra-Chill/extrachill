@@ -100,6 +100,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return new WP_Error( 'woocommerce_missing', 'WooCommerce is not available.', array( 'status' => 500 ) );
 	}
 
+	/** @var WC_Order|false $order Label purchases are only made for orders. */
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
@@ -138,6 +139,11 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 			'service'         => $label_data['service'] ?? '',
 			'cost'            => $label_data['cost'] ?? 0,
 		);
+	}
+
+	$can_buy = extrachill_shop_can_buy_label( $order );
+	if ( is_wp_error( $can_buy ) ) {
+		return $can_buy;
 	}
 
 	$shipping = $order->get_address( 'shipping' );
@@ -179,12 +185,16 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		'transaction_id' => $label_result['transaction_id'],
 		'purchased_at'   => current_time( 'mysql' ),
 		'purchased_by'   => $user_id,
+		// The buyer's shipping, already taken in the application fee, pays for this label.
+		'shipping_held'  => extrachill_shop_order_shipping_hold( $order ) / 100,
 	) );
 
 	$order->set_status( 'completed', sprintf(
-		'Shipping label purchased by %s. Tracking: %s',
+		'Shipping label purchased by %s. Tracking: %s. Label $%s, covered by $%s shipping charged.',
 		wp_get_current_user()->display_name,
-		$label_result['tracking_number']
+		$label_result['tracking_number'],
+		number_format( (float) $label_result['cost'], 2 ),
+		number_format( extrachill_shop_order_shipping_hold( $order ) / 100, 2 )
 	) );
 	$order->save();
 

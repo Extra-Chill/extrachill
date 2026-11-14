@@ -91,6 +91,7 @@ function extrachill_network_boot_integrations_provider() {
 /** Boot optional commerce authentication adapters. */
 function extrachill_network_boot_commerce_provider() {
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/commerce/auth/bootstrap.php';
+	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/commerce/fee-settings.php';
 }
 
 /** Boot theme, linking, asset, and generated-media presentation features. */
