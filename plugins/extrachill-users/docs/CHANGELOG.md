@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.64.0] - 2026-11-14
+
+### Added
+- open the shop — raise shop feature ceiling to public and remove under-construction banner
+
 ## [0.63.15] - 2026-11-14
 
 ### Changed
