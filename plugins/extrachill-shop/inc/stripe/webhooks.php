@@ -69,212 +69,101 @@ function extrachill_shop_handle_webhook( $request ) {
 /**
  * Route webhook event to appropriate handler.
  *
+ * Platform destination: `checkout.session.*` for platform-owned products.
+ * Connect destination: `checkout.session.*` for seller merch and tickets,
+ * `charge.refunded` and `charge.dispute.created` for tickets and merch
+ * disputes, and `account.updated` for seller payability.
+ *
  * @param \Stripe\Event $event Stripe event object.
  * @return bool|WP_Error True on success, WP_Error on failure.
  */
 function extrachill_shop_route_webhook_event( $event ) {
 	$event_type = $event->type;
 	$data       = $event->data->object;
+	$account    = (string) ( $event->account ?? '' );
+	$kind       = (string) ( $data->metadata->kind ?? '' );
 
-	if ( in_array( $event_type, array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ), true ) && 'extrachill_merch' === ( $data->metadata->kind ?? '' ) ) {
-		return extrachill_shop_fulfil_merch_session( $data, $event->account ?? '' );
+	if ( str_starts_with( $event_type, 'checkout.session.' ) ) {
+		return extrachill_shop_route_checkout_session_event( $event_type, $data, $account, $kind );
 	}
-	// Merch is fulfilled only by its account-bound Checkout Session.
-	if ( 'extrachill_merch' === ( $data->metadata->kind ?? '' ) ) {
+	if ( 'account.updated' === $event_type && '' !== $account ) {
+		return extrachill_shop_handle_account_updated( $data );
+	}
+	if ( '' !== $account && in_array( $event_type, array( 'charge.refunded', 'charge.dispute.created' ), true ) ) {
+		// Charges and disputes do not inherit PaymentIntent metadata, so ticket
+		// payments are recognised by the index written at fulfilment.
+		$is_ticket = ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $account . '_' . $data->payment_intent );
+		if ( 'charge.refunded' === $event_type ) {
+			// Merch refunds start in WooCommerce, so only tickets need this.
+			return $is_ticket ? extrachill_shop_ticket_charge_refunded( $data, $account ) : true;
+		}
+		return $is_ticket ? extrachill_shop_ticket_charge_disputed( $data, $account ) : extrachill_shop_merch_charge_disputed( $data, $account );
+	}
+
+	do_action( 'extrachill_shop_unhandled_webhook', $event_type, $data );
+	return true;
+}
+
+/**
+ * Route a Checkout Session event by the kind recorded in its metadata.
+ *
+ * @param string $event_type Event type.
+ * @param object $session    Checkout Session.
+ * @param string $account    Connected account ('' for the platform account).
+ * @param string $kind       `extrachill_merch` or `extrachill_ticket`.
+ * @return bool|WP_Error
+ */
+function extrachill_shop_route_checkout_session_event( $event_type, $session, $account, $kind ) {
+	$paid = in_array( $event_type, array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ), true );
+	if ( 'extrachill_merch' === $kind ) {
+		if ( $paid ) {
+			return extrachill_shop_fulfil_merch_session( $session, $account );
+		}
+		if ( 'checkout.session.expired' === $event_type ) {
+			return extrachill_shop_close_merch_session( $session, $account, 'expired' );
+		}
+		if ( 'checkout.session.async_payment_failed' === $event_type ) {
+			return extrachill_shop_close_merch_session( $session, $account, 'failed' );
+		}
 		return true;
 	}
-
-	if ( ! empty( $event->account ) ) {
-		if ( 'checkout.session.completed' === $event_type && 'extrachill_ticket' === ( $data->metadata->kind ?? '' ) ) {
-			return extrachill_shop_fulfil_ticket_session( $data, $event->account );
+	// Tickets are always charged on the seller's account.
+	if ( 'extrachill_ticket' === $kind && '' !== $account ) {
+		if ( $paid ) {
+			return extrachill_shop_fulfil_ticket_session( $session, $account );
 		}
-		// Charges do not inherit PaymentIntent metadata, so ticket refunds are
-		// recognised by the payment index written at fulfilment, not by metadata.
-		if ( 'charge.refunded' === $event_type && ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $event->account . '_' . $data->payment_intent ) ) {
-			return extrachill_shop_ticket_charge_refunded( $data, $event->account );
+		if ( 'checkout.session.expired' === $event_type ) {
+			return extrachill_shop_close_ticket_session( $session, $account, 'expired' );
 		}
-		if ( 'charge.dispute.created' === $event_type && ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $event->account . '_' . $data->payment_intent ) ) {
-			return extrachill_shop_ticket_charge_disputed( $data, $event->account );
+		if ( 'checkout.session.async_payment_failed' === $event_type ) {
+			return extrachill_shop_close_ticket_session( $session, $account, 'failed' );
 		}
 	}
-	// Connected-account payments must never mutate platform Woo orders.
-	if ( ! empty( $event->account ) && 'account.updated' !== $event_type ) {
-		return true;
-	}
-
-	switch ( $event_type ) {
-		case 'account.updated':
-			return extrachill_shop_handle_account_updated( $data );
-
-		case 'payment_intent.succeeded':
-			return extrachill_shop_handle_payment_succeeded( $data );
-
-		case 'payment_intent.payment_failed':
-			return extrachill_shop_handle_payment_failed( $data );
-
-		case 'charge.refunded':
-			return extrachill_shop_handle_charge_refunded( $data );
-
-		default:
-			// Log unhandled event types for debugging.
-			do_action( 'extrachill_shop_unhandled_webhook', $event_type, $data );
-			return true;
-	}
+	return true;
 }
 
 /**
  * Handle account.updated webhook event.
  *
- * Updates local cache when connected account status changes.
+ * Stores the seller's payability, which checkout reads instead of asking
+ * Stripe on every cart render.
  *
  * @param object $account Stripe account object.
  * @return bool True on success.
  */
 function extrachill_shop_handle_account_updated( $account ) {
-	$account_id   = $account->id;
-	$account_data = array(
-		'charges_enabled'   => $account->charges_enabled,
-		'payouts_enabled'   => $account->payouts_enabled,
-		'details_submitted' => $account->details_submitted,
-	);
-
-	extrachill_shop_update_account_status_cache( $account_id, $account_data );
-
-	do_action( 'extrachill_shop_stripe_account_updated', $account_id, $account_data );
-
-	return true;
-}
-
-/**
- * Handle payment_intent.succeeded webhook event.
- *
- * Updates order status when payment completes successfully.
- *
- * @param object $payment_intent Stripe PaymentIntent object.
- * @return bool True on success.
- */
-function extrachill_shop_handle_payment_succeeded( $payment_intent ) {
-	$order_id = isset( $payment_intent->metadata->order_id ) ? absint( $payment_intent->metadata->order_id ) : 0;
-
-	if ( ! $order_id ) {
-		return true;
-	}
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return true;
-	}
-
-	// Only process if order is still pending.
-	if ( ! $order->has_status( array( 'pending', 'on-hold' ) ) ) {
-		return true;
-	}
-
-	$order->payment_complete( $payment_intent->id );
-
-	$artist_id = isset( $payment_intent->metadata->artist_id ) ? absint( $payment_intent->metadata->artist_id ) : 0;
-	$order->add_order_note(
-		sprintf(
-			/* translators: 1: Payment intent ID, 2: Artist ID */
-			__( 'Stripe payment successful. PaymentIntent: %1$s. Artist ID: %2$d', 'extrachill-shop' ),
-			$payment_intent->id,
-			$artist_id
-		)
-	);
-
-	do_action( 'extrachill_shop_payment_succeeded', $order, $payment_intent );
-
-	return true;
-}
-
-/**
- * Handle payment_intent.payment_failed webhook event.
- *
- * Updates order status when payment fails.
- *
- * @param object $payment_intent Stripe PaymentIntent object.
- * @return bool True on success.
- */
-function extrachill_shop_handle_payment_failed( $payment_intent ) {
-	$order_id = isset( $payment_intent->metadata->order_id ) ? absint( $payment_intent->metadata->order_id ) : 0;
-
-	if ( ! $order_id ) {
-		return true;
-	}
-
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return true;
-	}
-
-	$error_message = '';
-	if ( isset( $payment_intent->last_payment_error->message ) ) {
-		$error_message = $payment_intent->last_payment_error->message;
-	}
-
-	$order->update_status( 'failed' );
-	$order->add_order_note(
-		sprintf(
-			/* translators: 1: Payment intent ID, 2: Error message */
-			__( 'Stripe payment failed. PaymentIntent: %1$s. Error: %2$s', 'extrachill-shop' ),
-			$payment_intent->id,
-			$error_message
-		)
-	);
-
-	do_action( 'extrachill_shop_payment_failed', $order, $payment_intent, $error_message );
-
-	return true;
-}
-
-/**
- * Handle charge.refunded webhook event.
- *
- * Logs refund information on the order.
- *
- * @param object $charge Stripe Charge object.
- * @return bool True on success.
- */
-function extrachill_shop_handle_charge_refunded( $charge ) {
-	$payment_intent_id = $charge->payment_intent;
-
-	if ( ! $payment_intent_id ) {
-		return true;
-	}
-
-	// Find order by payment intent stored in charges meta.
-	$orders = wc_get_orders(
+	$updated = extrachill_shop_update_account_status_cache(
+		$account->id,
 		array(
-			'limit'      => 1,
-			'meta_query' => array(
-				array(
-					'key'     => '_stripe_charges',
-					'value'   => $payment_intent_id,
-					'compare' => 'LIKE',
-				),
-			),
+			'charges_enabled'   => $account->charges_enabled,
+			'payouts_enabled'   => $account->payouts_enabled,
+			'details_submitted' => $account->details_submitted,
 		)
 	);
-
-	if ( empty( $orders ) ) {
-		return true;
+	if ( ! $updated ) {
+		// A retry cannot bind an account no seller owns, so acknowledge it.
+		error_log( 'Extra Chill account.updated for an account no seller is bound to: ' . $account->id ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility for an unknown connected account.
 	}
-
-	$order         = $orders[0];
-	$refund_amount = $charge->amount_refunded / 100;
-
-	$order->add_order_note(
-		sprintf(
-			/* translators: 1: Refund amount, 2: Currency, 3: Charge ID */
-			__( 'Stripe refund processed: %1$s %2$s. Charge: %3$s', 'extrachill-shop' ),
-			number_format( $refund_amount, 2 ),
-			strtoupper( $charge->currency ),
-			$charge->id
-		)
-	);
-
-	do_action( 'extrachill_shop_charge_refunded', $order, $charge, $refund_amount );
-
 	return true;
 }
 

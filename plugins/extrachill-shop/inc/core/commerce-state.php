@@ -7,6 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Seconds a live Stripe account check is reused while the status is unknown. */
+if ( ! defined( 'EXTRACHILL_SHOP_STRIPE_LIVE_STATUS_TTL' ) ) {
+	define( 'EXTRACHILL_SHOP_STRIPE_LIVE_STATUS_TTL', 120 );
+}
+
 /**
  * Execute an ability in its owning site runtime.
  *
@@ -382,6 +387,8 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 		'account_id'          => $account_id,
 		'status'              => sanitize_key( (string) ( $record['status'] ?? 'pending' ) ),
 		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
+		// Set only when `status` came from Stripe (account.updated or a live read).
+		'status_synced_at'    => (string) ( $record['status_synced_at'] ?? '' ),
 		'updated_at'          => $preserve_timestamp && ! empty( $record['updated_at'] ) ? (string) $record['updated_at'] : gmdate( 'c' ),
 	);
 	if ( 'artist' === $seller['type'] ) {
@@ -459,5 +466,58 @@ function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onb
 
 	$record['status']              = sanitize_key( $status );
 	$record['onboarding_complete'] = (bool) $onboarding_complete;
+	$record['status_synced_at']    = gmdate( 'c' );
 	return extrachill_shop_set_seller_stripe_account_record( $seller, $record );
+}
+
+/**
+ * Update local account status cache from Stripe webhook data.
+ *
+ * Stripe account status is cached in Shop-owned storage.
+ *
+ * @param string $account_id Stripe account ID.
+ * @param array  $account_data Account data from webhook.
+ * @return bool False when no seller is bound to the account.
+ */
+function extrachill_shop_update_account_status_cache( $account_id, $account_data ) {
+	$status = 'pending';
+	if ( ! empty( $account_data['charges_enabled'] ) && ! empty( $account_data['payouts_enabled'] ) ) {
+		$status = 'active';
+	} elseif ( ! empty( $account_data['details_submitted'] ) ) {
+		$status = 'restricted';
+	}
+
+	return extrachill_shop_update_stripe_account_by_id( $account_id, $status, ! empty( $account_data['details_submitted'] ) );
+}
+
+/**
+ * Whether a seller's connected account can take payments right now.
+ *
+ * Reads the stored status, which `account.updated` keeps current, so cart
+ * renders and checkout starts make no Stripe call. Only an account whose
+ * status Stripe has never reported (no `status_synced_at`) is checked live,
+ * and that answer is cached briefly so a busy cart does not hit Stripe on
+ * every render.
+ *
+ * @param array $seller Seller reference.
+ * @return bool
+ */
+function extrachill_shop_seller_can_receive_payments( $seller ) {
+	$record = extrachill_shop_get_seller_stripe_account_record( $seller );
+	if ( ! $record || empty( $record['account_id'] ) ) {
+		return false;
+	}
+	if ( ! empty( $record['status_synced_at'] ) ) {
+		return 'active' === ( $record['status'] ?? '' );
+	}
+
+	$key    = 'extrachill_shop_stripe_live_' . hash( 'sha256', (string) $record['account_id'] );
+	$cached = get_transient( $key );
+	if ( is_array( $cached ) ) {
+		return ! empty( $cached['can_receive_payments'] );
+	}
+	$status = function_exists( 'extrachill_shop_get_account_status' ) ? extrachill_shop_get_account_status( $record['account_id'] ) : array( 'success' => false );
+	$ready  = ! empty( $status['success'] ) && ! empty( $status['can_receive_payments'] );
+	set_transient( $key, array( 'can_receive_payments' => $ready ), EXTRACHILL_SHOP_STRIPE_LIVE_STATUS_TTL );
+	return $ready;
 }

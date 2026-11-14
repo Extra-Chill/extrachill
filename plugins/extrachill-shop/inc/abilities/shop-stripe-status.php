@@ -110,6 +110,7 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 			'account_id'          => $account_id,
 			'status'              => $safe_status,
 			'onboarding_complete' => ! empty( $status['details_submitted'] ),
+			'status_synced_at'    => gmdate( 'c' ),
 		)
 	);
 

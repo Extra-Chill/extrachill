@@ -15,8 +15,11 @@ separate Service fee line. Zero fees omit that line and use a zero application f
 
 - Configure the encrypted **Connect Webhook Secret** beside the existing platform
   webhook secret. Subscribe a connected-account endpoint at
-  `/wp-json/extrachill/v1/shop/stripe-webhook` to `checkout.session.completed` and
-  `charge.refunded`. Retain the existing platform webhook configuration.
+  `/wp-json/extrachill/v1/shop/stripe-webhook` to the events listed on Network
+  Admin → Payments. Ticket Sessions use `checkout.session.completed` and
+  `checkout.session.async_payment_succeeded` (issue), `checkout.session.expired`
+  and `checkout.session.async_payment_failed` (close the pending Shop order row;
+  Events has recorded nothing yet), `charge.refunded` and `charge.dispute.created`.
 - Configure `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS` (key-ID map) and
   `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID`. Matching Events target
   grants must allow service `extrachill.events.tickets`, scope
