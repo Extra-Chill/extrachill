@@ -91,6 +91,8 @@ class ExtraChill_Merch_Gateway extends WC_Payment_Gateway {
 	 * @return bool|WP_Error
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
-		return extrachill_shop_refund_merch_payment( wc_get_order( $order_id ), $amount, $reason );
+		/** @var WC_Order|false $order Gateway refunds are only issued against orders. */
+		$order = wc_get_order( $order_id );
+		return extrachill_shop_refund_merch_payment( $order, $amount, $reason );
 	}
 }

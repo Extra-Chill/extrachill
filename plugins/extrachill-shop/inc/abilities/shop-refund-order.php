@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Ability: extrachill/shop-refund-order
  *
@@ -10,6 +9,8 @@ declare(strict_types=1);
  * @package ExtraChillShop
  * @since   0.7.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -93,6 +94,7 @@ function extrachill_shop_ability_refund_order( array $input ): array|WP_Error {
 	}
 
 	try {
+		/** @var WC_Order|false $order Refund IDs are never order IDs here. */
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
