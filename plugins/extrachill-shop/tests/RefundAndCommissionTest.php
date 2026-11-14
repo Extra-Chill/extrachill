@@ -11,94 +11,73 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
-require_once dirname( __DIR__ ) . '/inc/stripe/refunds.php';
+require_once __DIR__ . '/fixtures/woo-refunds.php';
 
 final class RefundTestOrder {
-	public $meta  = array();
-	public $notes = array();
+	use WooRefundTracking;
 
-	public function __construct( private int $id ) {}
+	/**
+	 * Order meta.
+	 *
+	 * @var array
+	 */
+	public $meta = array();
+
+	public function __construct( private int $id, private float $total ) {}
 
 	public function get_id() {
 		return $this->id;
+	}
+
+	public function get_total() {
+		return $this->total;
 	}
 
 	public function get_meta( $key ) {
 		return $this->meta[ $key ] ?? '';
 	}
-
-	public function update_meta_data( $key, $value ) {
-		$this->meta[ $key ] = $value;
-	}
-
-	public function save() {}
-
-	public function add_order_note( $note ) {
-		$this->notes[] = $note;
-	}
-}
-
-final class RefundTestWcRefund {
-	public function __construct( private int $id ) {}
-
-	public function get_id() {
-		return $this->id;
-	}
-}
-
-if ( ! function_exists( 'wc_create_refund' ) ) {
-	function wc_create_refund( $args ) {
-		$GLOBALS['test_wc_refunds'][] = $args;
-		if ( isset( $GLOBALS['test_wc_refund_error'] ) ) {
-			return $GLOBALS['test_wc_refund_error'];
-		}
-		return new RefundTestWcRefund( 900 + count( $GLOBALS['test_wc_refunds'] ) );
-	}
-}
-if ( ! function_exists( 'gmdate' ) ) {
-	function gmdate( $format ) {
-		return date( $format ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
-	}
 }
 
 final class RefundAndCommissionTest extends TestCase {
-	private array $reversals = array();
-
 	protected function setUp(): void {
-		$GLOBALS['test_options']    = array();
-		$GLOBALS['test_wc_refunds'] = array();
-		unset( $GLOBALS['test_wc_refund_error'] );
-		$this->reversals = array();
+		$GLOBALS['test_options']       = array();
+		$GLOBALS['test_wc_refunds']    = array();
+		$GLOBALS['test_orders']        = array();
+		$GLOBALS['ticket_refunds']     = array();
+		$GLOBALS['ticket_refund_fail'] = false;
 	}
 
-	private function reverser() {
-		return function ( $transfer_id, $cents, $idempotency_key, $metadata ) {
-			$this->reversals[] = compact( 'transfer_id', 'cents', 'idempotency_key', 'metadata' );
-			return 'trr_' . count( $this->reversals );
-		};
-	}
-
-	private function order(): RefundTestOrder {
-		$order                              = new RefundTestOrder( 42 );
-		$order->meta['_artist_payouts']     = array(
+	/** A paid direct-charge artist order, registered where wc_get_order() finds it. */
+	private function artist_order(): RefundTestOrder {
+		$order                                     = new RefundTestOrder( 42, 25.0 );
+		$order->meta['_extrachill_payment_intent'] = 'pi_artist';
+		$order->meta['_extrachill_stripe_account'] = 'acct_artist';
+		$order->meta['_artist_payouts']            = array(
 			7 => array(
-				'total'           => 20.0,
+				'total'           => 25.0,
 				'application_fee' => 2.0,
-				'artist_payout'   => 18.0,
+				'artist_payout'   => 23.0,
+				'stripe_account'  => 'acct_artist',
 			),
 		);
-		$order->meta['_seller_payouts']     = array(
+		$GLOBALS['test_orders'][42]                = $order;
+		return $order;
+	}
+
+	/** A paid direct-charge venue order. */
+	private function venue_order(): RefundTestOrder {
+		$order                                     = new RefundTestOrder( 43, 8.29 );
+		$order->meta['_extrachill_payment_intent'] = 'pi_venue';
+		$order->meta['_extrachill_stripe_account'] = 'acct_venue';
+		$order->meta['_seller_payouts']            = array(
 			'venue:1524' => array(
 				'total'           => 8.29,
 				'application_fee' => 0.83,
 				'artist_payout'   => 7.46,
-				'seller'          => array( 'type' => 'venue', 'id' => 1524 ),
+				'stripe_account'  => 'acct_venue',
 			),
 		);
-		$order->meta['_stripe_transfers']   = array(
-			7            => array( 'transfer_id' => 'tr_artist' ),
-			'venue:1524' => array( 'transfer_id' => 'tr_venue' ),
-		);
+		$GLOBALS['test_orders'][43]                = $order;
 		return $order;
 	}
 
@@ -125,86 +104,147 @@ final class RefundAndCommissionTest extends TestCase {
 		}
 	}
 
-	public function test_artist_refund_reverses_payout_then_refunds_through_woocommerce(): void {
-		$order  = $this->order();
-		$result = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
+	public function test_seller_full_refund_is_one_direct_charge_refund(): void {
+		$order  = $this->artist_order();
+		$result = extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
+		);
 
-		$this->assertTrue( $result['success'] );
-		$this->assertSame( 20.0, $result['refund_amount'] );
-		$this->assertTrue( $result['reversed'] );
-		$this->assertSame( 'tr_artist', $this->reversals[0]['transfer_id'] );
-		$this->assertSame( 1800, $this->reversals[0]['cents'] );
-		$this->assertSame( 20.0, $GLOBALS['test_wc_refunds'][0]['amount'] );
+		$this->assertSame(
+			array(
+				'success'       => true,
+				'order_id'      => 42,
+				'refund_amount' => 25.0,
+			),
+			$result
+		);
+		$this->assertSame( 0.0, $order->get_remaining_refund_amount() );
 		$this->assertTrue( $GLOBALS['test_wc_refunds'][0]['refund_payment'] );
-		$this->assertSame( 'trr_1', $order->meta['_seller_refunds'][7]['reversal_id'] );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
+		list( $params, $options ) = $GLOBALS['ticket_refunds'][0];
+		$this->assertSame( 'pi_artist', $params['payment_intent'] );
+		$this->assertSame( 2500, $params['amount'] );
+		$this->assertTrue( $params['refund_application_fee'] );
+		$this->assertSame( 'acct_artist', $options['stripe_account'] );
 	}
 
 	public function test_venue_refund_uses_seller_payouts_and_rounds_cents(): void {
-		$order  = $this->order();
-		$result = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'venue', 'id' => 1524 ), 'Sold out', $this->reverser() );
+		$order  = $this->venue_order();
+		$result = extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'venue',
+				'id'   => 1524,
+			),
+			'Sold out'
+		);
 
 		$this->assertTrue( $result['success'] );
-		$this->assertSame( 'tr_venue', $this->reversals[0]['transfer_id'] );
-		$this->assertSame( 746, $this->reversals[0]['cents'] );
-		$this->assertSame( 'venue:1524', $this->reversals[0]['metadata']['seller_reference'] );
 		$this->assertSame( 8.29, $GLOBALS['test_wc_refunds'][0]['amount'] );
 		$this->assertSame( 'Sold out', $GLOBALS['test_wc_refunds'][0]['reason'] );
-		$this->assertArrayHasKey( 'venue:1524', $order->meta['_seller_refunds'] );
+		$this->assertSame( 829, $GLOBALS['ticket_refunds'][0][0]['amount'] );
+		$this->assertSame( 'acct_venue', $GLOBALS['ticket_refunds'][0][1]['stripe_account'] );
+	}
+
+	public function test_seller_refund_after_partial_refund_refunds_the_remainder(): void {
+		$order = $this->artist_order();
+		$this->assertFalse(
+			is_wp_error(
+				wc_create_refund(
+					array(
+						'order_id'       => 42,
+						'amount'         => 10,
+						'refund_payment' => true,
+					)
+				)
+			)
+		);
+
+		$result = extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
+		);
+
+		$this->assertSame( 15.0, $result['refund_amount'] );
+		$this->assertSame( array( 1000, 1500 ), array_map( static fn( $r ) => $r[0]['amount'], $GLOBALS['ticket_refunds'] ) );
+		$this->assertSame( 0.0, $order->get_remaining_refund_amount() );
 	}
 
 	public function test_second_refund_is_refused(): void {
-		$order = $this->order();
-		extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
-		$again = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
+		$order = $this->artist_order();
+		extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
+		);
+		$again = extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
+		);
 
 		$this->assertInstanceOf( WP_Error::class, $again );
 		$this->assertSame( 'already_refunded', $again->get_error_code() );
-		$this->assertCount( 1, $this->reversals );
 		$this->assertCount( 1, $GLOBALS['test_wc_refunds'] );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
 	}
 
-	public function test_retry_after_failed_customer_refund_does_not_reverse_twice(): void {
-		$order                           = $this->order();
-		$GLOBALS['test_wc_refund_error'] = new WP_Error( 'gateway', 'card_declined' );
-		$failed                          = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
-
-		$this->assertSame( 'refund_failed', $failed->get_error_code() );
-		$this->assertNotEmpty( $order->notes );
-
-		unset( $GLOBALS['test_wc_refund_error'] );
-		$result = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
-
-		$this->assertTrue( $result['success'] );
-		$this->assertCount( 1, $this->reversals );
-		$this->assertCount( 2, $GLOBALS['test_wc_refunds'] );
-	}
-
-	public function test_failed_reversal_does_not_refund_customer(): void {
-		$order  = $this->order();
-		$result = extrachill_shop_refund_seller_portion(
+	public function test_failed_stripe_refund_leaves_order_refundable_and_retry_succeeds(): void {
+		$order                         = $this->artist_order();
+		$GLOBALS['ticket_refund_fail'] = true;
+		$failed                        = extrachill_shop_refund_seller_portion(
 			$order,
-			array( 'type' => 'artist', 'id' => 7 ),
-			'',
-			static fn() => new WP_Error( 'transfer_reversal_failed', 'insufficient funds' )
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
 		);
 
-		$this->assertSame( 'transfer_reversal_failed', $result->get_error_code() );
-		$this->assertSame( array(), $GLOBALS['test_wc_refunds'] );
-	}
+		$this->assertSame( 'refund_failed', $failed->get_error_code() );
+		$this->assertSame( 25.0, $order->get_remaining_refund_amount() );
 
-	public function test_untransferred_payout_refunds_without_reversal(): void {
-		$order = $this->order();
-		unset( $order->meta['_stripe_transfers'][7] );
-		$result = extrachill_shop_refund_seller_portion( $order, array( 'type' => 'artist', 'id' => 7 ), '', $this->reverser() );
+		$GLOBALS['ticket_refund_fail'] = false;
+		$result                        = extrachill_shop_refund_seller_portion(
+			$order,
+			array(
+				'type' => 'artist',
+				'id'   => 7,
+			)
+		);
 
 		$this->assertTrue( $result['success'] );
-		$this->assertFalse( $result['reversed'] );
-		$this->assertSame( array(), $this->reversals );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
 	}
 
 	public function test_seller_not_on_order_is_refused(): void {
-		$result = extrachill_shop_refund_seller_portion( $this->order(), array( 'type' => 'promoter', 'id' => 88 ), '', $this->reverser() );
+		$result = extrachill_shop_refund_seller_portion(
+			$this->artist_order(),
+			array(
+				'type' => 'promoter',
+				'id'   => 88,
+			)
+		);
 
 		$this->assertSame( 'invalid_seller', $result->get_error_code() );
+		$this->assertSame( array(), $GLOBALS['test_wc_refunds'] );
+	}
+
+	public function test_transfer_era_refund_code_is_gone(): void {
+		$source = file_get_contents( dirname( __DIR__ ) . '/inc/stripe/refunds.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
+		foreach ( array( 'createReversal', '_stripe_transfers', '_seller_refunds', 'reverse_transfer' ) as $needle ) {
+			$this->assertStringNotContainsString( $needle, $source );
+		}
 	}
 }

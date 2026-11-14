@@ -1,15 +1,16 @@
 <?php
-declare(strict_types=1);
 /**
  * Ability: extrachill/shop-refund-order
  *
- * Issue a full refund for an artist's portion of an order.
+ * Issue a full refund for a seller's order (Stripe direct charge).
  * Canonical implementation — the REST route in extrachill-api refactors
  * to a thin shim that delegates here.
  *
  * @package ExtraChillShop
  * @since   0.7.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,7 +25,7 @@ function extrachill_shop_register_refund_order_ability(): void {
 		'extrachill/shop-refund-order',
 		array(
 			'label'               => __( 'Refund Shop Order', 'extrachill-shop' ),
-			'description'         => __( 'Refund a seller\'s portion of an order and reverse that seller\'s payout.', 'extrachill-shop' ),
+			'description'         => __( 'Refund a seller\'s order in full, including the platform application fee.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -47,7 +48,6 @@ function extrachill_shop_register_refund_order_ability(): void {
 					'success'       => array( 'type' => 'boolean' ),
 					'order_id'      => array( 'type' => 'integer' ),
 					'refund_amount' => array( 'type' => 'number' ),
-					'reversed'      => array( 'type' => 'boolean' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_refund_order',
@@ -67,10 +67,10 @@ function extrachill_shop_register_refund_order_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Refund a seller's portion of an order.
+ * Refund a seller's order.
  *
- * Serialized per order so a double submit cannot race the resumable state in
- * `extrachill_shop_refund_seller_portion()`.
+ * Serialized per order so a double submit cannot issue two refunds before
+ * WooCommerce records the first.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
@@ -94,6 +94,7 @@ function extrachill_shop_ability_refund_order( array $input ): array|WP_Error {
 	}
 
 	try {
+		/** @var WC_Order|false $order Refund IDs are never order IDs here. */
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
