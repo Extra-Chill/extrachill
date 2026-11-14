@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.39.7] - 2026-11-14
+
+### Changed
+- read commerce credentials through ec_commerce_credential()
+
+### Fixed
+- auto-provision service assertion keys + retry Priority Boost grants
+
 ## [2.39.6] - 2026-11-14
 
 ### Changed
