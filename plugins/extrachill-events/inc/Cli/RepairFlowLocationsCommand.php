@@ -339,9 +339,9 @@ class RepairFlowLocationsCommand {
 	 *
 	 * @param int    $pipeline_id Pipeline ID.
 	 * @param array  $flow_config Current flow config.
-	 * @param object $db_flows    Data Machine Flows repository.
+	 * @param Flows  $db_flows    Data Machine Flows repository.
 	 */
-	private function pipelineCoordinates( int $pipeline_id, array $flow_config, $db_flows ): ?array {
+	private function pipelineCoordinates( int $pipeline_id, array $flow_config, Flows $db_flows ): ?array {
 		$own = FlowLocationGuard::extractPipelineCoordinates( $flow_config );
 		if ( null !== $own ) {
 			return $own;

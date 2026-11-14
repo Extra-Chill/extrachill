@@ -207,7 +207,7 @@ class FlowLocationGuard {
 			}
 		);
 
-		return $picked ? (string) $picked->term_id : '';
+		return $picked instanceof \WP_Term ? (string) $picked->term_id : '';
 	}
 
 	/**
@@ -309,7 +309,7 @@ class FlowLocationGuard {
 			return null;
 		}
 
-		return $terms[0] instanceof \WP_Term ? $terms[0] : null;
+		return $terms[0];
 	}
 
 	/**
