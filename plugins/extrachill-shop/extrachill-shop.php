@@ -104,9 +104,6 @@ class ExtraChillShop {
 		// Artist notifications
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-order-notifications.php';
 
-		// Notices
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/under-construction-notice.php';
-
 		// Templates
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';
 
