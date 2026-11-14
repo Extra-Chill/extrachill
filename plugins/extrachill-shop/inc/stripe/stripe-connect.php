@@ -50,24 +50,6 @@ function extrachill_shop_stripe_init() {
 }
 
 /**
- * Create a Stripe Express connected account for an artist profile.
- *
- * Account metadata and status are stored in Shop-owned options keyed by the
- * canonical Artist profile reference.
- *
- * @param int $artist_profile_id Artist profile post ID.
- * @return array{success: bool, account_id?: string, error?: string}
- */
-function extrachill_shop_create_stripe_account( $artist_profile_id ) {
-	return extrachill_shop_create_seller_stripe_account(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist_profile_id ),
-		)
-	);
-}
-
-/**
  * Create (or return) the Stripe Express connected account for a seller.
  *
  * Artists keep their existing account shape (individual business type and
