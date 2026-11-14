@@ -279,10 +279,11 @@ function extrachill_shop_handle_charge_refunded( $charge ) {
  * Log webhook event for debugging.
  *
  * @param string $event_type Event type.
- * @param object $data       Event data.
+ * @param object $data       Event data (unused; accepted for the action signature).
  */
-function extrachill_shop_log_webhook_event( $event_type, $data ) {
+function extrachill_shop_log_webhook_event( $event_type, $data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- action passes ( $event_type, $data ).
 	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- debug-only webhook trace, gated on WP_DEBUG.
 		error_log( 'ExtraChill Shop Webhook: ' . $event_type );
 	}
 }

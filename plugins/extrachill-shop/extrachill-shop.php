@@ -132,20 +132,7 @@ class ExtraChillShop {
 	}
 }
 
-// Initialize the plugin
-function extrachill_shop() {
-	return ExtraChillShop::instance();
-}
+require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/plugin-functions.php';
 
-// Start the plugin
+// Start the plugin.
 extrachill_shop();
-
-/**
- * Render homepage content for shop.extrachill.com
- *
- * Hooked via extrachill_homepage_content action.
- */
-function extrachill_shop_render_homepage() {
-	include EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/shop-homepage.php';
-}
-add_action( 'extrachill_homepage_content', 'extrachill_shop_render_homepage', 10 );

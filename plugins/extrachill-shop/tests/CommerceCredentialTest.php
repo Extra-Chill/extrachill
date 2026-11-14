@@ -2,7 +2,11 @@
 /**
  * Shop reads commerce credentials only through the network's
  * ec_commerce_credential() (#1402). No filter indirection, no local resolvers.
+ *
+ * @package ExtraChillShop
  */
+
+// phpcs:disable WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads local plugin source files.
 
 use PHPUnit\Framework\TestCase;
 

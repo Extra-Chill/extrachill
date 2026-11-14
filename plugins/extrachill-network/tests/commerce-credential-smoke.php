@@ -7,6 +7,8 @@
  * @package ExtraChillNetwork
  */
 
+// phpcs:disable WordPress.PHP.IniSet, WordPress.WP.AlternativeFunctions, WordPress.Security.EscapeOutput.OutputNotEscaped, Squiz.PHP.Eval.Discouraged -- standalone CLI smoke harness: captures error_log output and stubs Data Machine.
+
 define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['ec_test_actions'] = array();
@@ -93,7 +95,7 @@ $assert( isset( $GLOBALS['ec_test_filters']['datamachine_auth_providers'], $GLOB
 $assert( 1 === count( $GLOBALS['ec_test_filters']['datamachine_auth_providers'] ), 'provider registration is idempotent across reads' );
 
 // Stored format: the encrypted-field list is unchanged.
-$encrypted = $GLOBALS['ec_test_filters']['datamachine_auth_encrypted_fields'][0];
+$encrypted        = $GLOBALS['ec_test_filters']['datamachine_auth_encrypted_fields'][0];
 $stripe_encrypted = $encrypted( array(), 'ec_stripe' );
 $assert(
 	! array_diff( array( 'secret_key', 'webhook_secret', 'connect_webhook_secret' ), $stripe_encrypted ) && ! in_array( 'publishable_key', $stripe_encrypted, true ),
