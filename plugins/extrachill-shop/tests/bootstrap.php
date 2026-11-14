@@ -214,10 +214,6 @@ function priority_boost_owner_response( $replayed = false ) {
 		),
 	);
 }
-function extrachill_shop_get_artist_stripe_account( $artist_id ) {
-	$record = extrachill_shop_get_stripe_account_record( $artist_id );
-	return $record ? $record['account_id'] : false;
-}
 function extrachill_shop_get_account_status( $account_id = '' ) {
 	$GLOBALS['test_stripe_status_calls'][] = $account_id;
 	return $GLOBALS['test_stripe_status'] ?? array( 'success' => false );
