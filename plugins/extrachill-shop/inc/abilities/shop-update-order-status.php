@@ -33,10 +33,6 @@ function extrachill_shop_register_update_order_status_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Order ID.',
 					),
-					'artist_id'       => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID (legacy; prefer seller).',
-					),
 					'seller'          => extrachill_shop_seller_input_schema(),
 					'status'          => array(
 						'type'        => 'string',
@@ -48,7 +44,7 @@ function extrachill_shop_register_update_order_status_ability(): void {
 						'description' => 'Optional tracking number.',
 					),
 				),
-				'required'   => array( 'id', 'status' ),
+				'required'   => array( 'id', 'seller', 'status' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

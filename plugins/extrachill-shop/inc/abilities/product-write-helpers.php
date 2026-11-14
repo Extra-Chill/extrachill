@@ -7,8 +7,8 @@ declare(strict_types=1);
  * (create / update / delete). These functions own the WooCommerce
  * product write surface: variation setup, simple↔variable conversion,
  * the pa_size attribute-taxonomy bootstrap, publish/status validation
- * (including the Stripe Connect readiness gate), image ordering, and
- * the artist-ownership permission helpers.
+ * (including the Stripe Connect readiness gate) and image ordering.
+ * Seller access is decided by `extrachill_shop_can_manage_seller()`.
  *
  * This is the canonical home for product write logic. The REST routes in
  * extrachill-api are thin shims that delegate to the abilities, which in
@@ -23,72 +23,6 @@ declare(strict_types=1);
  */
 
 defined( 'ABSPATH' ) || exit;
-
-// ─── Permission / ownership helpers ──────────────────────────────────────────
-
-/**
- * Check if a user has any artist profiles they can manage.
- *
- * @param int|null $user_id User ID (defaults to current user).
- * @return bool True if the user has manageable artists.
- */
-function extrachill_shop_user_has_artists( $user_id = null ): bool {
-	if ( ! $user_id ) {
-		$user_id = get_current_user_id();
-	}
-
-	if ( ! $user_id ) {
-		return false;
-	}
-
-	if ( user_can( $user_id, 'manage_options' ) ) {
-		return true;
-	}
-
-	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
-		return false;
-	}
-
-	$artists = ec_get_artists_for_user( $user_id );
-	return ! empty( $artists );
-}
-
-/**
- * Get a user's artist profile IDs.
- *
- * @param int|null $user_id User ID (defaults to current user).
- * @return array Array of artist profile IDs.
- */
-function extrachill_shop_get_user_artist_ids( $user_id = null ): array {
-	if ( ! $user_id ) {
-		$user_id = get_current_user_id();
-	}
-
-	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
-		return array();
-	}
-
-	return ec_get_artists_for_user( $user_id );
-}
-
-/**
- * Check if a user can manage a specific artist.
- *
- * @param int      $artist_id Artist profile ID.
- * @param int|null $user_id   User ID (defaults to current user).
- * @return bool True if the user can manage the artist.
- */
-function extrachill_shop_user_can_manage_artist( $artist_id, $user_id = null ): bool {
-	if ( ! $user_id ) {
-		$user_id = get_current_user_id();
-	}
-
-	if ( (int) $user_id !== (int) get_current_user_id() ) {
-		return false;
-	}
-
-	return true === extrachill_shop_current_user_can_manage_artist( $artist_id );
-}
 
 // ─── Status / publish validation ─────────────────────────────────────────────
 
@@ -144,7 +78,7 @@ function extrachill_shop_product_can_publish( $product_id ) {
 
 	$seller = extrachill_shop_get_product_seller( $product_id );
 	if ( ! $seller ) {
-		return new WP_Error( 'missing_artist', 'Product is missing an artist association.', array( 'status' => 400 ) );
+		return new WP_Error( 'missing_seller', 'Product does not belong to a seller.', array( 'status' => 400 ) );
 	}
 
 	$record               = extrachill_shop_get_seller_stripe_account_record( $seller );

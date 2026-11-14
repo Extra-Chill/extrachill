@@ -3,7 +3,7 @@ declare(strict_types=1);
 /**
  * Ability: extrachill/shop-create-product
  *
- * Create a new WooCommerce product for an artist.
+ * Create a new WooCommerce product for a seller.
  * Canonical implementation — the REST route in extrachill-api refactors
  * to a thin shim that delegates here.
  *
@@ -23,16 +23,12 @@ function extrachill_shop_register_create_product_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-create-product',
 		array(
-			'label'       => __( 'Create Shop Product', 'extrachill-shop' ),
-			'description' => __( 'Create a new WooCommerce product for an artist profile with pricing, stock, sizes, and image associations.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Create Shop Product', 'extrachill-shop' ),
+			'description'         => __( 'Create a new WooCommerce product for a seller (artist, venue or promoter) with pricing, stock, sizes, and image associations.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'artist_id'      => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
 					'seller'         => extrachill_shop_seller_input_schema(),
 					'name'           => array(
 						'type'        => 'string',
@@ -83,9 +79,9 @@ function extrachill_shop_register_create_product_ability(): void {
 						'description' => 'Whether the product ships free.',
 					),
 				),
-				'required' => array( 'name', 'price' ),
+				'required'   => array( 'seller', 'name', 'price' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id'     => array( 'type' => 'integer' ),
@@ -95,33 +91,8 @@ function extrachill_shop_register_create_product_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_create_product',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				if ( isset( $input['seller'] ) ) {
-					$seller = extrachill_shop_validate_seller_ref( $input['seller'] );
-					if ( is_wp_error( $seller ) ) {
-						return $seller;
-					}
-					if ( true !== extrachill_shop_current_user_can_manage_seller( $seller ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to create products for this seller.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( ! extrachill_shop_user_has_artists() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be an artist to manage products.', array( 'status' => 403 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
-					return new WP_Error( 'rest_forbidden', 'You do not have permission to create products for this artist.', array( 'status' => 403 ) );
-				}
-				return true;
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
@@ -136,13 +107,12 @@ function extrachill_shop_register_create_product_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Create a new product for an artist.
+ * Create a new product for a seller.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
  */
 function extrachill_shop_ability_create_product( array $input ): array|WP_Error {
-	$artist_id      = (int) ( $input['artist_id'] ?? 0 );
 	$name           = (string) ( $input['name'] ?? '' );
 	$price          = (float) ( $input['price'] ?? 0 );
 	$sale_price     = isset( $input['sale_price'] ) ? (float) $input['sale_price'] : null;
@@ -168,10 +138,7 @@ function extrachill_shop_ability_create_product( array $input ): array|WP_Error 
 		return new WP_Error( 'create_failed', 'Failed to create product.', array( 'status' => 500 ) );
 	}
 
-	$seller = isset( $input['seller'] ) ? extrachill_shop_validate_seller_ref( $input['seller'] ) : array(
-		'type' => 'artist',
-		'id'   => $artist_id,
-	);
+	$seller = extrachill_shop_seller_from_input( $input );
 	if ( is_wp_error( $seller ) || ! extrachill_shop_set_product_seller( $product_id, $seller ) ) {
 		wp_delete_post( $product_id, true );
 		return new WP_Error( 'create_failed', 'Failed to assign the product seller.', array( 'status' => 500 ) );

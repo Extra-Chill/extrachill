@@ -3,7 +3,6 @@
 /** Seller order emails: artists directly, venues and promoters through Events. */
 namespace {
 	function get_userdata( $id ) { return (object) array( 'user_email' => "user$id@example.com" ); }
-	function get_post( $id ) { return (object) array( 'post_title' => 'Artist' ); }
 	function ec_get_linked_members( $id ) { return array( get_userdata( 4 ), get_userdata( 4 ), get_userdata( 5 ) ); }
 	function esc_html( $text ) { return htmlspecialchars( (string) $text ); }
 	function ec_send_email( $data ) { $GLOBALS['notification_mail'][] = $data; }

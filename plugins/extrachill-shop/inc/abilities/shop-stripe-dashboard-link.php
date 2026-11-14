@@ -23,20 +23,16 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-stripe-dashboard-link',
 		array(
-			'label'       => __( 'Stripe Dashboard Link', 'extrachill-shop' ),
-			'description' => __( 'Generate a Stripe Express dashboard login link for a seller\'s connected account (artist, venue, or promoter).', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Stripe Dashboard Link', 'extrachill-shop' ),
+			'description'         => __( 'Generate a Stripe Express dashboard login link for a seller\'s connected account (artist, venue, or promoter).', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'seller'    => extrachill_shop_seller_input_schema(),
+					'seller' => extrachill_shop_seller_input_schema(),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success' => array( 'type' => 'boolean' ),
@@ -45,7 +41,7 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_dashboard_link',
 			'permission_callback' => 'extrachill_shop_authorize_seller_input',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,

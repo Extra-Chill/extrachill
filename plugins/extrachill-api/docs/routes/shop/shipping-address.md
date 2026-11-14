@@ -1,107 +1,37 @@
-# Shipping Address Endpoints
+# Shipping Address
 
-Manage artist shipping from-address for order fulfillment.
+A seller's ship-from address, used to buy shipping labels.
 
-## GET /wp-json/extrachill/v1/shop/shipping-address
+| Route | Ability |
+|---|---|
+| `GET /wp-json/extrachill/v1/shop/shipping-address` | `extrachill/shop-get-shipping-address` |
+| `PUT /wp-json/extrachill/v1/shop/shipping-address` | `extrachill/shop-update-shipping-address` |
 
-Get artist's configured shipping address.
+## Sellers and permission
 
-### Parameters
+Every route is a thin adapter over an `extrachill-shop` ability. The route maps the request to ability input, calls the ability's own permission callback, and returns the ability result. All seller access is decided in one place: `extrachill_shop_can_manage_seller( $user_id, $seller )`.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `artist_id` | integer | Yes | Artist profile ID |
+- Name the seller with `seller_type` (`artist` | `venue` | `promoter`) and `seller_id`. `artist_id` is not accepted.
+- Network admins (`manage_options`) may manage any seller.
+- Everyone else needs the `shop` feature for their tier (`ec_feature_available( 'shop' )`) and membership of the seller: artist membership through the Artist owner (`ec_can_manage_artist()`), venue/promoter finance authority through Events (`extrachill/get-commerce-seller` → `can_manage_finances`).
+- Errors: `401 rest_not_logged_in`, `403 shop_unavailable` (feature gate), `403 cannot_manage_seller`, `400 missing_seller` / `invalid_seller`.
 
-### Response
+## GET
 
-```json
-{
-    "artist_id": 123,
-    "address": {
-        "name": "Artist Name",
-        "street1": "123 Main St",
-        "street2": "",
-        "city": "Austin",
-        "state": "TX",
-        "zip": "78701",
-        "country": "US"
-    },
-    "is_set": true
-}
-```
-
-## PUT /wp-json/extrachill/v1/shop/shipping-address
-
-Update artist's shipping address.
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `artist_id` | integer | Yes | Artist profile ID |
-| `name` | string | Yes | Sender name |
-| `street1` | string | Yes | Street address line 1 |
-| `street2` | string | No | Street address line 2 |
-| `city` | string | Yes | City |
-| `state` | string | Yes | State (2-letter code) |
-| `zip` | string | Yes | ZIP code |
-| `country` | string | No | Country code (default: US) |
-
-### Response
+Parameters: `seller_type`, `seller_id`.
 
 ```json
 {
-    "success": true,
-    "artist_id": 123,
-    "address": {
-        "name": "Artist Name",
-        "street1": "123 Main St",
-        "street2": "",
-        "city": "Austin",
-        "state": "TX",
-        "zip": "78701",
-        "country": "US"
-    }
+  "seller": { "type": "artist", "id": 123 },
+  "address": { "name": "Band Name", "street1": "123 Main St", "street2": "", "city": "Austin", "state": "TX", "zip": "78701", "country": "US" },
+  "is_set": true
 }
 ```
 
-## Authentication
+## PUT
 
-Requires authenticated user with artist management permissions.
-
-## Error Responses
-
-### 401 Unauthorized
+Body: `seller_type`, `seller_id`, `name`, `street1`, `city`, `state`, `zip` (required), optional `street2`. US addresses only.
 
 ```json
-{
-    "code": "rest_forbidden",
-    "message": "You must be logged in.",
-    "data": { "status": 401 }
-}
+{ "success": true, "seller": { "type": "artist", "id": 123 }, "address": { "...": "..." } }
 ```
-
-### 403 Forbidden
-
-```json
-{
-    "code": "rest_forbidden",
-    "message": "You do not have permission to manage this artist.",
-    "data": { "status": 403 }
-}
-```
-
-### 500 Save Failed
-
-```json
-{
-    "code": "save_failed",
-    "message": "Failed to save shipping address.",
-    "data": { "status": 500 }
-}
-```
-
-## Related Endpoints
-
-- [POST /shop/shipping-labels](shipping-labels.md) - Purchase shipping labels
-- [GET /shop/orders](orders.md) - Artist order management

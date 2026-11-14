@@ -159,7 +159,7 @@ function extrachill_shop_get_manager_state( ?string $requested ): array {
 
 	$ref = null === $requested ? null : extrachill_shop_parse_seller_key( $requested );
 	if ( $ref && null === extrachill_shop_resolve_manager_seller( $sellers, $requested, null )
-		&& true === extrachill_shop_current_user_can_manage_seller( $ref ) ) {
+		&& true === extrachill_shop_can_manage_seller( $user_id, $ref ) ) {
 		$canonical = extrachill_shop_get_canonical_seller( $ref );
 		$sellers[] = array(
 			'type'       => $ref['type'],
