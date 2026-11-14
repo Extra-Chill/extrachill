@@ -441,31 +441,9 @@ class VenueAddAbilities {
 	 * @param mixed $value Location term ID or exact canonical name.
 	 */
 	private function resolveCanonicalLocationTerm( $value ): ?\WP_Term {
-		$value = is_int( $value ) || is_string( $value ) ? trim( (string) $value ) : '';
-		if ( '' === $value ) {
-			return null;
-		}
-
-		if ( ctype_digit( $value ) && (int) $value > 0 ) {
-			$term = get_term( (int) $value, 'location' );
-			return $term instanceof \WP_Term ? $term : null;
-		}
-
-		$terms = get_terms(
-			array(
-				'taxonomy'   => 'location',
-				'name'       => $value,
-				'hide_empty' => false,
-				'number'     => 2,
-			)
-		);
-
-		if ( is_wp_error( $terms ) || 1 !== count( $terms ) ) {
-			return null;
-		}
-
-		return $terms[0];
+		return FlowLocationGuard::resolveLocationValue( $value );
 	}
+
 
 	/**
 	 * Find an existing flow for this venue in a pipeline.

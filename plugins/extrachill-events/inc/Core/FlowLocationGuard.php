@@ -54,9 +54,17 @@ class FlowLocationGuard {
 	 *                                        or term name, sourced from
 	 *                                        the pipeline this flow
 	 *                                        belongs to.
+	 * @param callable|null $should_replace         Optional predicate
+	 *                                             `fn( string $current ): bool`
+	 *                                             deciding which values get
+	 *                                             replaced. Defaults to
+	 *                                             `isRejectedValue()`; repair
+	 *                                             passes a wider predicate so
+	 *                                             stale/ambiguous names are
+	 *                                             rewritten too.
 	 * @return array{config:array,coerced:array<int,array{step_id:string,old:string,new:string}>}
 	 */
-	public static function coerceUpsertEventLocation( array $config, string $pipeline_location_term ): array {
+	public static function coerceUpsertEventLocation( array $config, string $pipeline_location_term, ?callable $should_replace = null ): array {
 		$coerced = array();
 
 		if ( '' === $pipeline_location_term ) {
@@ -86,7 +94,8 @@ class FlowLocationGuard {
 				continue;
 			}
 
-			if ( ! self::isRejectedValue( $current ) ) {
+			$replace = null === $should_replace ? self::isRejectedValue( $current ) : (bool) $should_replace( $current );
+			if ( ! $replace || $current === $pipeline_location_term ) {
 				continue;
 			}
 
@@ -129,10 +138,19 @@ class FlowLocationGuard {
 	 *    creates those.
 	 * 3. Plain name lookup fallback.
 	 *
+	 * 3. When several terms share the name and the pipeline name carries
+	 *    no state, fall back to the pipeline's own coordinates (e.g. the
+	 *    Ticketmaster flow's `location`) and pick the single candidate
+	 *    whose `_location_coordinates` sit within range.
+	 *
 	 * Returns '' if no term can be resolved — caller treats that as
 	 * "skip this flow, the operator must fix it manually".
+	 *
+	 * @param string     $pipeline_name Pipeline name ("Northampton MA Events").
+	 * @param array|null $coordinates   Optional pipeline coordinates
+	 *                                  `array{lat:float,lon:float}`.
 	 */
-	public static function resolvePipelineLocationTermId( string $pipeline_name ): string {
+	public static function resolvePipelineLocationTermId( string $pipeline_name, ?array $coordinates = null ): string {
 		if ( ! taxonomy_exists( 'location' ) ) {
 			return '';
 		}
@@ -173,34 +191,213 @@ class FlowLocationGuard {
 			return '';
 		}
 
-		// If only one match, use it.
+		$picked = self::pickLocationCandidate(
+			$candidates,
+			$state_abbr,
+			$coordinates,
+			static function ( $candidate ): string {
+				if ( (int) $candidate->parent <= 0 ) {
+					return '';
+				}
+				$parent = get_term( (int) $candidate->parent, 'location' );
+				return ( $parent && ! is_wp_error( $parent ) ) ? (string) $parent->name : '';
+			},
+			static function ( $candidate ): ?array {
+				return self::parseCoordinates( (string) get_term_meta( (int) $candidate->term_id, '_location_coordinates', true ) );
+			}
+		);
+
+		return $picked instanceof \WP_Term ? (string) $picked->term_id : '';
+	}
+
+	/**
+	 * Maximum distance (km) between pipeline coordinates and a location
+	 * term's coordinates for the coordinate fallback to accept it.
+	 */
+	private const COORDINATE_MATCH_KM = 50.0;
+
+	/**
+	 * Pick one location term from same-named candidates.
+	 *
+	 * Pure decision logic so it can be unit tested without WordPress:
+	 * a single candidate wins outright; otherwise a state abbreviation
+	 * matching the candidate's parent (abbreviation or full name) wins;
+	 * otherwise the unique candidate within COORDINATE_MATCH_KM of the
+	 * supplied coordinates wins. Anything else is ambiguous → null.
+	 *
+	 * @param array<int,object> $candidates   Term-like objects (term_id, parent).
+	 * @param string            $state_abbr   Two-letter state or ''.
+	 * @param array|null        $coordinates  array{lat:float,lon:float} or null.
+	 * @param callable          $parent_name  fn( object $candidate ): string.
+	 * @param callable          $coords_of    fn( object $candidate ): ?array.
+	 * @return object|null
+	 */
+	public static function pickLocationCandidate( array $candidates, string $state_abbr, ?array $coordinates, callable $parent_name, callable $coords_of ) {
+		$candidates = array_values( $candidates );
 		if ( 1 === count( $candidates ) ) {
-			return (string) $candidates[0]->term_id;
+			return $candidates[0];
+		}
+		if ( empty( $candidates ) ) {
+			return null;
 		}
 
-		// Multiple candidates — try to disambiguate by state.
 		if ( '' !== $state_abbr ) {
 			$state_full = self::stateAbbreviationToName( $state_abbr );
 			foreach ( $candidates as $candidate ) {
-				if ( (int) $candidate->parent <= 0 ) {
+				$parent = trim( (string) $parent_name( $candidate ) );
+				if ( '' === $parent ) {
 					continue;
 				}
-				$parent = get_term( (int) $candidate->parent, 'location' );
-				if ( ! $parent || is_wp_error( $parent ) ) {
-					continue;
-				}
-				if ( '' !== $state_full && strcasecmp( $parent->name, $state_full ) === 0 ) {
-					return (string) $candidate->term_id;
-				}
-				if ( strcasecmp( $parent->name, $state_abbr ) === 0 ) {
-					return (string) $candidate->term_id;
+				if ( ( '' !== $state_full && 0 === strcasecmp( $parent, $state_full ) ) || 0 === strcasecmp( $parent, $state_abbr ) ) {
+					return $candidate;
 				}
 			}
 		}
 
-		// Multiple matches and no state to disambiguate — refuse rather
-		// than guess wrong.
-		return '';
+		if ( null !== $coordinates && isset( $coordinates['lat'], $coordinates['lon'] ) ) {
+			$within = array();
+			foreach ( $candidates as $candidate ) {
+				$point = $coords_of( $candidate );
+				if ( ! is_array( $point ) || ! isset( $point['lat'], $point['lon'] ) ) {
+					continue;
+				}
+				if ( self::distanceKm( (float) $coordinates['lat'], (float) $coordinates['lon'], (float) $point['lat'], (float) $point['lon'] ) <= self::COORDINATE_MATCH_KM ) {
+					$within[] = $candidate;
+				}
+			}
+			if ( 1 === count( $within ) ) {
+				return $within[0];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Strictly resolve a `taxonomy_location_selection` value to one term.
+	 *
+	 * A positive numeric string resolves by ID. A name resolves only when
+	 * exactly one location term carries it — a name shared by several
+	 * terms (Portland OR / Portland ME) is ambiguous and returns null.
+	 * This is the single resolver shared by venue onboarding and flow
+	 * repair so the two can never disagree about what "resolved" means.
+	 *
+	 * @param mixed $value Stored selection value.
+	 * @return \WP_Term|null
+	 */
+	public static function resolveLocationValue( $value ): ?\WP_Term {
+		$value = is_int( $value ) || is_string( $value ) ? trim( (string) $value ) : '';
+		if ( '' === $value ) {
+			return null;
+		}
+
+		if ( ctype_digit( $value ) && (int) $value > 0 ) {
+			$term = get_term( (int) $value, 'location' );
+			return $term instanceof \WP_Term ? $term : null;
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'name'       => $value,
+				'hide_empty' => false,
+				'number'     => 2,
+			)
+		);
+
+		if ( is_wp_error( $terms ) || 1 !== count( $terms ) ) {
+			return null;
+		}
+
+		return $terms[0];
+	}
+
+	/**
+	 * Classify a stored selection value for repair.
+	 *
+	 * Pure: lookups are injected. Returns '' when the value is clean
+	 * (a real term ID, or a name matching exactly one term) or a reason
+	 * code when it must be rewritten.
+	 *
+	 * @param string   $current           Stored value.
+	 * @param callable $term_id_exists    fn( int $term_id ): bool.
+	 * @param callable $name_match_count  fn( string $name ): int.
+	 * @return string '' | 'rejected_value' | 'missing_term' | 'stale_name' | 'ambiguous_name'
+	 */
+	public static function classifySelectionValue( string $current, callable $term_id_exists, callable $name_match_count ): string {
+		if ( self::isRejectedValue( $current ) ) {
+			return 'rejected_value';
+		}
+
+		$current = trim( $current );
+		if ( ctype_digit( $current ) ) {
+			return $term_id_exists( (int) $current ) ? '' : 'missing_term';
+		}
+
+		$count = (int) $name_match_count( $current );
+		if ( 0 === $count ) {
+			return 'stale_name';
+		}
+
+		return $count > 1 ? 'ambiguous_name' : '';
+	}
+
+	/**
+	 * Read Ticketmaster `location` coordinates ("lat,lon") from a flow
+	 * config. City pipelines stamp their market center there, so it is
+	 * the pipeline's own record of where it is.
+	 *
+	 * @param array $flow_config Decoded flow config.
+	 * @return array|null array{lat:float,lon:float}
+	 */
+	public static function extractPipelineCoordinates( array $flow_config ): ?array {
+		foreach ( $flow_config as $step ) {
+			if ( ! is_array( $step ) ) {
+				continue;
+			}
+			$location = $step['handler_configs']['ticketmaster']['location'] ?? '';
+			$parsed   = is_string( $location ) ? self::parseCoordinates( $location ) : null;
+			if ( null !== $parsed ) {
+				return $parsed;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Parse a "lat,lon" string.
+	 *
+	 * @param string $value Coordinate string.
+	 * @return array|null array{lat:float,lon:float}
+	 */
+	public static function parseCoordinates( string $value ): ?array {
+		if ( ! preg_match( '/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/', $value, $m ) ) {
+			return null;
+		}
+		$lat = (float) $m[1];
+		$lon = (float) $m[2];
+		if ( 0.0 === $lat && 0.0 === $lon ) {
+			return null;
+		}
+		return array(
+			'lat' => $lat,
+			'lon' => $lon,
+		);
+	}
+
+	/**
+	 * Great-circle distance in kilometres.
+	 *
+	 * @param float $lat1 First latitude.
+	 * @param float $lon1 First longitude.
+	 * @param float $lat2 Second latitude.
+	 * @param float $lon2 Second longitude.
+	 */
+	private static function distanceKm( float $lat1, float $lon1, float $lat2, float $lon2 ): float {
+		$d_lat = deg2rad( $lat2 - $lat1 );
+		$d_lon = deg2rad( $lon2 - $lon1 );
+		$a     = sin( $d_lat / 2 ) ** 2 + cos( deg2rad( $lat1 ) ) * cos( deg2rad( $lat2 ) ) * sin( $d_lon / 2 ) ** 2;
+		return 6371.0 * 2 * asin( min( 1.0, sqrt( $a ) ) );
 	}
 
 	/**
