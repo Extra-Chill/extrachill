@@ -234,6 +234,116 @@ final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 		$this->assertSame( 'truncated', $any['state'] );
 	}
 
+	/** The page streamer hands rows over in order, one page at a time, with an exact ceiling. */
+	public function test_each_event_page_streams_in_order_and_truncates(): void {
+		$start = time() - HOUR_IN_SECONDS;
+		for ( $i = 0; $i < 7; $i++ ) {
+			$this->insert_event( 'pageview', $start + $i, 'visitor-stream-' . $i );
+		}
+		$since = gmdate( 'Y-m-d H:i:s', $start );
+		$as_of = gmdate( 'Y-m-d H:i:s' );
+		$read  = function ( int $max ) use ( $since, $as_of ): array {
+			$sizes    = array();
+			$visitors = array();
+			$result   = extrachill_analytics_experiment_each_event_page(
+				array( 'pageview' ),
+				$since,
+				$as_of,
+				$max,
+				static function ( $page ) use ( &$sizes, &$visitors ) {
+					$sizes[] = count( $page );
+					foreach ( $page as $row ) {
+						$visitors[] = $row->visitor_id;
+					}
+				},
+				3
+			);
+			return array( $result, $sizes, $visitors );
+		};
+
+		list( $all, $sizes, $visitors ) = $read( 7 );
+		$this->assertSame( array( 3, 3, 1 ), $sizes );
+		$this->assertSame( 'visitor-stream-0', $visitors[0] );
+		$this->assertSame( 'visitor-stream-6', $visitors[6] );
+		$this->assertSame( 7, $all['rows_read'] );
+		$this->assertFalse( $all['truncated'] );
+
+		list( $capped, $sizes ) = $read( 5 );
+		$this->assertSame( array( 3, 2 ), $sizes );
+		$this->assertSame( 5, $capped['rows_read'] );
+		$this->assertTrue( $capped['truncated'] );
+
+		list( $boundary, $sizes ) = $read( 6 );
+		$this->assertSame( array( 3, 3 ), $sizes );
+		$this->assertTrue( $boundary['truncated'], 'The sentinel row past an exact page boundary still reports truncation.' );
+	}
+
+	/**
+	 * The streamed ability report matches the in-memory build of the same rows.
+	 *
+	 * The identity bridge is observed AFTER the assignment, so this also proves
+	 * pass one sees the whole window before pass two attributes anything.
+	 */
+	public function test_streamed_report_matches_in_memory_build(): void {
+		$start = time() - HOUR_IN_SECONDS;
+		$this->insert_event( 'experiment_assignment', $start, 'visitor-a', $this->experiment( 'copy-test', 1, 'treatment', 'hero' ) );
+		$this->insert_event( 'experiment_exposure', $start + 1, 'visitor-a', $this->experiment( 'copy-test', 1, 'treatment', 'hero' ) );
+		$this->insert_event( 'experiment_assignment', $start + 2, 'visitor-b', $this->experiment( 'copy-test', 1, 'control', 'hero' ) );
+		$this->insert_event( 'experiment_assignment', $start + 3, 'visitor-b', $this->experiment( 'copy-test', 1, 'control', 'hero' ) );
+		$this->insert_event( 'pageview', $start + 4, 'visitor-a' );
+		// visitor-c logs in as user 77 later; their earlier assignment must stitch to user:77.
+		$this->insert_event( 'experiment_assignment', $start + 5, 'visitor-c', $this->experiment( 'copy-test', 1, 'treatment', 'hero' ) );
+		$this->insert_event( 'newsletter_signup', $start + 6, 'visitor-a' );
+		$this->insert_event( 'newsletter_signup', $start + 7, 'visitor-c', array( 'user_id' => 77 ) );
+		$this->insert_event( 'newsletter_signup', $start + 8, 'visitor-b', array( 'is_bot' => true ) );
+
+		$input  = array(
+			'experiment_key'      => 'copy-test',
+			'definition_version'  => 1,
+			'control_variant'     => 'control',
+			'variants'            => array( 'control', 'treatment' ),
+			'outcome_event_types' => array( 'newsletter_signup' ),
+			'days'                => 1,
+		);
+		$report = extrachill_analytics_ability_get_experiment_summary( $input );
+
+		$options = extrachill_analytics_experiment_summary_options( $input );
+		$options = array_merge(
+			$options,
+			array(
+				'since'              => $report['window']['since'],
+				'as_of'              => $report['window']['as_of'],
+				'truncated'          => false,
+				'instrumented_types' => array( 'experiment_assignment', 'experiment_exposure', 'pageview', 'newsletter_signup' ),
+			)
+		);
+		$rows     = extrachill_analytics_experiment_read_events( array( 'experiment_assignment', 'experiment_exposure', 'pageview', 'newsletter_signup' ), $options['since'], $options['as_of'], 1000 );
+		$expected = extrachill_analytics_build_experiment_summary( $rows['rows'], $options );
+
+		$this->assertSame( $expected['variants'], $report['variants'] );
+		$this->assertSame( $expected['coverage'], $report['coverage'] );
+		$this->assertSame( 9, $report['coverage']['loaded_rows'] );
+		$this->assertSame( 1, $report['coverage']['duplicate_assignment_events'] );
+		$this->assertSame( 1, $report['coverage']['unambiguous_identity_bridges'] );
+		$this->assertSame( 2, $report['variants'][1]['assignment']['people'] );
+		$this->assertSame( 2, $report['variants'][1]['outcomes']['newsletter_signup']['after_assignment']['people'], 'visitor-c stitched to user:77 attributes their signup.' );
+		$this->assertSame( 0, $report['variants'][0]['outcomes']['newsletter_signup']['after_assignment']['people'] );
+	}
+
+	/** The default row budget covers long windows instead of the old 100k cap. */
+	public function test_default_row_budget_covers_long_windows(): void {
+		$options = extrachill_analytics_experiment_summary_options(
+			array(
+				'experiment_key'      => 'copy-test',
+				'control_variant'     => 'control',
+				'variants'            => array( 'control', 'treatment' ),
+				'outcome_event_types' => array( 'newsletter_signup' ),
+			)
+		);
+		$this->assertSame( 1000000, $options['max_events'] );
+		$this->assertSame( 2000000, extrachill_analytics_experiment_summary_options( array_merge( array( 'max_events' => 9000000 ), array( 'experiment_key' => 'copy-test', 'control_variant' => 'control', 'variants' => array( 'control', 'treatment' ), 'outcome_event_types' => array( 'newsletter_signup' ) ) ) )['max_events'] );
+	}
+
 	/**
 	 * Insert one stored analytics event.
 	 *

@@ -68,8 +68,8 @@ function extrachill_analytics_register_experiment_summary_ability() {
 					'max_events'              => array(
 						'type'    => 'integer',
 						'minimum' => 100,
-						'maximum' => 100000,
-						'default' => 50000,
+						'maximum' => 2000000,
+						'default' => 1000000,
 					),
 				),
 			),
@@ -146,7 +146,7 @@ function extrachill_analytics_experiment_summary_options( $input ) {
 		'days'                    => min( 90, max( 1, (int) ( $input['days'] ?? 28 ) ) ),
 		'attribution_window_days' => min( 90, max( 1, (int) ( $input['attribution_window_days'] ?? 28 ) ) ),
 		'session_gap_mins'        => min( 120, max( 1, (int) ( $input['session_gap_mins'] ?? 30 ) ) ),
-		'max_events'              => min( 100000, max( 100, (int) ( $input['max_events'] ?? 50000 ) ) ),
+		'max_events'              => min( 2000000, max( 100, (int) ( $input['max_events'] ?? 1000000 ) ) ),
 	);
 }
 
@@ -178,11 +178,31 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 			)
 		)
 	);
-	$query                          = extrachill_analytics_experiment_read_events( $event_types, $options['since'], $options['as_of'], $options['max_events'] );
-	$options['truncated']           = $query['truncated'];
 	$options['instrumented_types']  = extrachill_analytics_experiment_instrumented_types( $event_types );
 
-	return extrachill_analytics_build_experiment_summary( $query['rows'], $options );
+	// Stream the window twice instead of retaining rows (issue #1369). The
+	// replay reads exactly the rows the first pass read, so rows inserted
+	// during the report can never make the passes disagree.
+	$row_budget = (int) $options['max_events'];
+	$replays    = 0;
+	$source     = static function ( $on_page ) use ( $event_types, $options, &$row_budget, &$replays ) {
+		$first  = 0 === $replays++;
+		$result = extrachill_analytics_experiment_each_event_page(
+			$event_types,
+			$options['since'],
+			$options['as_of'],
+			$row_budget,
+			static function ( $page ) use ( $on_page ) {
+				call_user_func( $on_page, array_map( 'extrachill_analytics_experiment_normalize_event', $page ) );
+			}
+		);
+		if ( $first ) {
+			$row_budget = $result['rows_read'];
+		}
+		return array( 'truncated' => $first && $result['truncated'] );
+	};
+
+	return extrachill_analytics_build_experiment_summary_from_source( $source, $options );
 }
 
 /**
@@ -366,7 +386,7 @@ function extrachill_analytics_experiment_summary_contract_status( $event, $optio
 }
 
 /**
- * Aggregate stored rows into a bounded generic experiment summary.
+ * Aggregate in-memory rows into a bounded generic experiment summary.
  *
  * @param array $rows    Stored rows.
  * @param array $options Normalized report options.
@@ -380,19 +400,78 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			return $a['ts'] === $b['ts'] ? $a['id'] <=> $b['id'] : $a['ts'] <=> $b['ts'];
 		}
 	);
-	$identity_events = array();
-	foreach ( $events as $event ) {
-		if ( ! empty( $event['event_data']['is_bot'] ) ) {
-			continue;
+
+	return extrachill_analytics_build_experiment_summary_from_source(
+		static function ( $on_page ) use ( $events ) {
+			call_user_func( $on_page, $events );
+		},
+		$options
+	);
+}
+
+/**
+ * Aggregate a replayable, chronologically ordered event stream into a summary.
+ *
+ * The source is replayed twice. Pass one observes identity bridges and the
+ * assigned cohort; pass two attributes assignments, exposures, and outcomes.
+ * Only per-person state is retained, so memory grows with people, not rows,
+ * and long windows read in full (issue #1369).
+ *
+ * @param callable $source  Called with an `$on_page` callback; must invoke it
+ *                          with pages of normalized events in created_at/ID
+ *                          order, identically on every replay. May return
+ *                          `array( 'truncated' => bool )` from the first
+ *                          replay; that overrides `$options['truncated']`.
+ * @param array    $options Normalized report options.
+ * @return array Machine-readable summary.
+ */
+function extrachill_analytics_build_experiment_summary_from_source( $source, $options ) {
+	$visitor_users   = array();
+	$cohort_users    = array();
+	$cohort_visitors = array();
+	$loaded_rows     = 0;
+	$first_pass      = call_user_func(
+		$source,
+		static function ( $events ) use ( $options, &$visitor_users, &$cohort_users, &$cohort_visitors, &$loaded_rows ) {
+			foreach ( $events as $event ) {
+				++$loaded_rows;
+				if ( ! empty( $event['event_data']['is_bot'] ) ) {
+					continue;
+				}
+				$status = extrachill_analytics_experiment_summary_contract_status( $event, $options );
+				if ( ! in_array( $status, array( 'not_experiment', 'matched' ), true ) ) {
+					continue;
+				}
+				$user_id = extrachill_analytics_experiment_event_user_id( $event );
+				if ( $user_id > 0 && '' !== $event['visitor_id'] ) {
+					$visitor_users[ $event['visitor_id'] ][ $user_id ] = true;
+				}
+				if ( 'matched' === $status && EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT === $event['event_type'] ) {
+					if ( $user_id > 0 ) {
+						$cohort_users[ $user_id ] = true;
+					} elseif ( '' !== $event['visitor_id'] ) {
+						$cohort_visitors[ $event['visitor_id'] ] = true;
+					}
+				}
+			}
 		}
-		$status = extrachill_analytics_experiment_summary_contract_status( $event, $options );
-		if ( in_array( $status, array( 'not_experiment', 'matched' ), true ) ) {
-			$identity_events[] = $event;
-		}
+	);
+	if ( is_array( $first_pass ) && array_key_exists( 'truncated', $first_pass ) ) {
+		$options['truncated'] = (bool) $first_pass['truncated'];
 	}
-	$identity        = extrachill_analytics_experiment_identity_map( $identity_events );
+	$identity        = extrachill_analytics_experiment_identity_resolve( $visitor_users );
 	$visitor_to_user = $identity['map'];
-	$buckets         = array();
+	unset( $visitor_users );
+	$cohort = array();
+	foreach ( array_keys( $cohort_users ) as $user_id ) {
+		$cohort[ 'user:' . $user_id ] = true;
+	}
+	foreach ( array_keys( $cohort_visitors ) as $visitor_id ) {
+		$visitor_id = (string) $visitor_id;
+		$cohort[ isset( $visitor_to_user[ $visitor_id ] ) ? 'user:' . (int) $visitor_to_user[ $visitor_id ] : 'visitor:' . $visitor_id ] = true;
+	}
+	unset( $cohort_users, $cohort_visitors );
+	$buckets = array();
 	foreach ( $options['variants'] as $variant ) {
 		$buckets[ $variant ] = extrachill_analytics_experiment_summary_bucket( $options['outcome_event_types'] );
 	}
@@ -402,9 +481,8 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 	$versions             = array();
 	$surfaces             = array();
 	$policies             = array();
-	$cohort               = array();
 	$coverage             = array(
-		'loaded_rows'                   => count( $events ),
+		'loaded_rows'                   => $loaded_rows,
 		'truncated'                     => ! empty( $options['truncated'] ),
 		'bot_rows_excluded'             => 0,
 		'unidentified_rows'             => array(),
@@ -419,38 +497,92 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 		'unattributed_outcome_events'   => 0,
 		'ambiguous_visitor_ids'         => count( $identity['ambiguous'] ),
 	);
-	foreach ( $events as $event ) {
-		if ( ! empty( $event['event_data']['is_bot'] ) || EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT !== $event['event_type'] || ! extrachill_analytics_experiment_summary_contract_matches( $event, $options ) ) {
-			continue;
-		}
-		$person = extrachill_analytics_experiment_person_key( $event, $visitor_to_user );
-		if ( '' !== $person ) {
-			$cohort[ $person ] = true;
-		}
-	}
-
-	foreach ( $events as $event ) {
-		$type = $event['event_type'];
-		if ( ! empty( $event['event_data']['is_bot'] ) ) {
-			++$coverage['bot_rows_excluded'];
-			continue;
-		}
-
-		if ( in_array( $type, array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE ), true ) ) {
-			$status = extrachill_analytics_experiment_summary_contract_status( $event, $options );
-			if ( 'other_experiment' === $status ) {
-				++$coverage['other_experiment_rows'];
+	$attribute            = static function ( $events ) use ( $options, $visitor_to_user, $cohort, $cross_site_requested, &$buckets, &$assignments, &$exposures, &$versions, &$surfaces, &$policies, &$coverage ) {
+		foreach ( $events as $event ) {
+			$type = $event['event_type'];
+			if ( ! empty( $event['event_data']['is_bot'] ) ) {
+				++$coverage['bot_rows_excluded'];
 				continue;
 			}
-			if ( 'invalid_contract' === $status ) {
-				++$coverage['invalid_contract_rows'];
-				continue;
-			}
-			$data                        = $event['event_data'];
-			$stored_version              = $data['definition_version'] ?? null;
-			$versions[ $stored_version ] = (int) ( $versions[ $stored_version ] ?? 0 ) + 1;
-			if ( 'other_definition_version' === $status ) {
-				++$coverage['other_definition_version_rows'];
+
+			if ( in_array( $type, array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE ), true ) ) {
+				$status = extrachill_analytics_experiment_summary_contract_status( $event, $options );
+				if ( 'other_experiment' === $status ) {
+					++$coverage['other_experiment_rows'];
+					continue;
+				}
+				if ( 'invalid_contract' === $status ) {
+					++$coverage['invalid_contract_rows'];
+					continue;
+				}
+				$data                        = $event['event_data'];
+				$stored_version              = $data['definition_version'] ?? null;
+				$versions[ $stored_version ] = (int) ( $versions[ $stored_version ] ?? 0 ) + 1;
+				if ( 'other_definition_version' === $status ) {
+					++$coverage['other_definition_version_rows'];
+					continue;
+				}
+				$person = extrachill_analytics_experiment_person_key( $event, $visitor_to_user );
+				if ( '' === $person ) {
+					$coverage['unidentified_rows'][ $type ] = (int) ( $coverage['unidentified_rows'][ $type ] ?? 0 ) + 1;
+					continue;
+				}
+				$variant                               = (string) $data['variant'];
+				$surfaces[ (string) $data['surface'] ] = true;
+				$policies[ (string) $data['assignment_policy'] ] = true;
+				if ( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT === $type ) {
+					++$buckets[ $variant ]['assignment_events'];
+					if ( isset( $assignments[ $person ] ) ) {
+						++$coverage['duplicate_assignment_events'];
+						if (
+						$variant !== $assignments[ $person ]['variant']
+						|| $stored_version !== $assignments[ $person ]['definition_version']
+						|| (string) $data['assignment_policy'] !== $assignments[ $person ]['assignment_policy']
+						|| (string) $data['surface'] !== $assignments[ $person ]['surface']
+						) {
+							++$coverage['conflicting_assignment_events'];
+						}
+						continue;
+					}
+					$assignments[ $person ] = array(
+						'variant'            => $variant,
+						'definition_version' => $stored_version,
+						'assignment_policy'  => (string) $data['assignment_policy'],
+						'surface'            => (string) $data['surface'],
+						'blog_id'            => (int) $event['blog_id'],
+						'ts'                 => $event['ts'],
+						'id'                 => $event['id'],
+						'session_last_ts'    => $event['ts'],
+						'session_stage'      => 'same_session',
+					);
+					++$buckets[ $variant ]['assigned_people'];
+					continue;
+				}
+				if (
+				! isset( $assignments[ $person ] )
+				|| $variant !== $assignments[ $person ]['variant']
+				|| $stored_version !== $assignments[ $person ]['definition_version']
+				|| (string) $data['assignment_policy'] !== $assignments[ $person ]['assignment_policy']
+				|| (string) $data['surface'] !== $assignments[ $person ]['surface']
+				|| ! extrachill_analytics_experiment_is_after( $event, $assignments[ $person ] )
+				) {
+					++$coverage['unattributed_exposure_events'];
+					continue;
+				}
+				++$buckets[ $variant ]['exposure_events'];
+				if ( isset( $exposures[ $person ] ) ) {
+					++$coverage['duplicate_exposure_events'];
+					continue;
+				}
+				$exposures[ $person ] = array(
+					'variant'         => $variant,
+					'blog_id'         => (int) $event['blog_id'],
+					'ts'              => $event['ts'],
+					'id'              => $event['id'],
+					'session_last_ts' => $event['ts'],
+					'session_stage'   => 'same_session',
+				);
+				++$buckets[ $variant ]['exposed_people'];
 				continue;
 			}
 			$person = extrachill_analytics_experiment_person_key( $event, $visitor_to_user );
@@ -458,126 +590,65 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 				$coverage['unidentified_rows'][ $type ] = (int) ( $coverage['unidentified_rows'][ $type ] ?? 0 ) + 1;
 				continue;
 			}
-			$variant                               = (string) $data['variant'];
-			$surfaces[ (string) $data['surface'] ] = true;
-			$policies[ (string) $data['assignment_policy'] ] = true;
-			if ( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT === $type ) {
-				++$buckets[ $variant ]['assignment_events'];
-				if ( isset( $assignments[ $person ] ) ) {
-					++$coverage['duplicate_assignment_events'];
-					if (
-						$variant !== $assignments[ $person ]['variant']
-						|| $stored_version !== $assignments[ $person ]['definition_version']
-						|| (string) $data['assignment_policy'] !== $assignments[ $person ]['assignment_policy']
-						|| (string) $data['surface'] !== $assignments[ $person ]['surface']
-					) {
-						++$coverage['conflicting_assignment_events'];
-					}
-					continue;
-				}
-				$assignments[ $person ] = array(
-					'variant'            => $variant,
-					'definition_version' => $stored_version,
-					'assignment_policy'  => (string) $data['assignment_policy'],
-					'surface'            => (string) $data['surface'],
-					'blog_id'            => (int) $event['blog_id'],
-					'ts'                 => $event['ts'],
-					'id'                 => $event['id'],
-					'session_last_ts'    => $event['ts'],
-					'session_stage'      => 'same_session',
-				);
-				++$buckets[ $variant ]['assigned_people'];
-				continue;
-			}
-			if (
-				! isset( $assignments[ $person ] )
-				|| $variant !== $assignments[ $person ]['variant']
-				|| $stored_version !== $assignments[ $person ]['definition_version']
-				|| (string) $data['assignment_policy'] !== $assignments[ $person ]['assignment_policy']
-				|| (string) $data['surface'] !== $assignments[ $person ]['surface']
-				|| ! extrachill_analytics_experiment_is_after( $event, $assignments[ $person ] )
-			) {
-				++$coverage['unattributed_exposure_events'];
-				continue;
-			}
-			++$buckets[ $variant ]['exposure_events'];
-			if ( isset( $exposures[ $person ] ) ) {
-				++$coverage['duplicate_exposure_events'];
-				continue;
-			}
-			$exposures[ $person ] = array(
-				'variant'         => $variant,
-				'blog_id'         => (int) $event['blog_id'],
-				'ts'              => $event['ts'],
-				'id'              => $event['id'],
-				'session_last_ts' => $event['ts'],
-				'session_stage'   => 'same_session',
-			);
-			++$buckets[ $variant ]['exposed_people'];
-			continue;
-		}
-		$person = extrachill_analytics_experiment_person_key( $event, $visitor_to_user );
-		if ( '' === $person ) {
-			$coverage['unidentified_rows'][ $type ] = (int) ( $coverage['unidentified_rows'][ $type ] ?? 0 ) + 1;
-			continue;
-		}
 
-		if ( EC_ANALYTICS_EVENT_PAGEVIEW === $type ) {
-			foreach ( array( 'assignment', 'exposure' ) as $lens ) {
-				$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
-				if ( null === $anchor || ! extrachill_analytics_experiment_is_after( $event, $anchor ) ) {
-					continue;
-				}
-				if ( $event['ts'] - $anchor['session_last_ts'] > $options['session_gap_mins'] * MINUTE_IN_SECONDS ) {
-					$anchor['session_stage'] = 'later_session';
-				}
-				// Derived outcome: first pageview on another network site after the anchor.
-				$cross_site = EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW;
-				if (
+			if ( EC_ANALYTICS_EVENT_PAGEVIEW === $type ) {
+				foreach ( array( 'assignment', 'exposure' ) as $lens ) {
+					$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
+					if ( null === $anchor || ! extrachill_analytics_experiment_is_after( $event, $anchor ) ) {
+						continue;
+					}
+					if ( $event['ts'] - $anchor['session_last_ts'] > $options['session_gap_mins'] * MINUTE_IN_SECONDS ) {
+						$anchor['session_stage'] = 'later_session';
+					}
+					// Derived outcome: first pageview on another network site after the anchor.
+					$cross_site = EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW;
+					if (
 					$cross_site_requested
 					&& (int) $anchor['blog_id'] > 0
 					&& (int) $event['blog_id'] > 0
 					&& (int) $event['blog_id'] !== (int) $anchor['blog_id']
 					&& $event['ts'] - $anchor['ts'] <= $options['attribution_window_days'] * DAY_IN_SECONDS
 					&& ! isset( $buckets[ $anchor['variant'] ]['outcomes'][ $cross_site ][ $lens ][ $person ] )
-				) {
-					$buckets[ $anchor['variant'] ]['outcomes'][ $cross_site ][ $lens ][ $person ] = $anchor['session_stage'];
+					) {
+						$buckets[ $anchor['variant'] ]['outcomes'][ $cross_site ][ $lens ][ $person ] = $anchor['session_stage'];
+					}
+					$anchor['session_last_ts'] = $event['ts'];
+					if ( 'assignment' === $lens ) {
+						$assignments[ $person ] = $anchor;
+					} else {
+						$exposures[ $person ] = $anchor;
+					}
 				}
-				$anchor['session_last_ts'] = $event['ts'];
-				if ( 'assignment' === $lens ) {
-					$assignments[ $person ] = $anchor;
-				} else {
-					$exposures[ $person ] = $anchor;
-				}
+				continue;
 			}
-			continue;
-		}
 
-		if ( ! in_array( $type, $options['outcome_event_types'], true ) ) {
-			continue;
-		}
-		if ( ! isset( $assignments[ $person ] ) || ! extrachill_analytics_experiment_is_after( $event, $assignments[ $person ] ) ) {
-			if ( isset( $cohort[ $person ] ) ) {
-				++$coverage['pre_assignment_outcome_events'];
-			} else {
-				++$coverage['unattributed_outcome_events'];
+			if ( ! in_array( $type, $options['outcome_event_types'], true ) ) {
+				continue;
 			}
-			continue;
-		}
-		foreach ( array( 'assignment', 'exposure' ) as $lens ) {
-			$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
-			if (
+			if ( ! isset( $assignments[ $person ] ) || ! extrachill_analytics_experiment_is_after( $event, $assignments[ $person ] ) ) {
+				if ( isset( $cohort[ $person ] ) ) {
+					++$coverage['pre_assignment_outcome_events'];
+				} else {
+					++$coverage['unattributed_outcome_events'];
+				}
+				continue;
+			}
+			foreach ( array( 'assignment', 'exposure' ) as $lens ) {
+				$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
+				if (
 				null === $anchor
 				|| ! extrachill_analytics_experiment_is_after( $event, $anchor )
 				|| $event['ts'] - $anchor['ts'] > $options['attribution_window_days'] * DAY_IN_SECONDS
 				|| isset( $buckets[ $anchor['variant'] ]['outcomes'][ $type ][ $lens ][ $person ] )
-			) {
-				continue;
+				) {
+					continue;
+				}
+				$stage = $event['ts'] - $anchor['session_last_ts'] > $options['session_gap_mins'] * MINUTE_IN_SECONDS ? 'later_session' : $anchor['session_stage'];
+				$buckets[ $anchor['variant'] ]['outcomes'][ $type ][ $lens ][ $person ] = $stage;
 			}
-			$stage = $event['ts'] - $anchor['session_last_ts'] > $options['session_gap_mins'] * MINUTE_IN_SECONDS ? 'later_session' : $anchor['session_stage'];
-			$buckets[ $anchor['variant'] ]['outcomes'][ $type ][ $lens ][ $person ] = $stage;
 		}
-	}
+	};
+	call_user_func( $source, $attribute );
 
 	ksort( $coverage['unidentified_rows'] );
 	ksort( $versions );
@@ -699,9 +770,9 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			'event_types'   => array_values( array_unique( array_merge( array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ), array_diff( $options['outcome_event_types'], extrachill_analytics_experiment_derived_outcomes() ) ) ) ),
 			'order'         => 'created_at ASC, id ASC',
 			'cursor'        => '(created_at, id) > (cursor_created_at, cursor_id)',
-			'page_size'     => 500,
+			'page_size'     => 2000,
 			'max_events'    => (int) $options['max_events'],
-			'bounded_state' => 'Variants are capped at 8, outcomes at 10, and retained rows at max_events plus one truncation sentinel; all identity and outcome maps derive from that bounded set.',
+			'bounded_state' => 'Rows stream in two passes and are never retained; memory holds one page plus per-person identity, assignment, exposure, and outcome state. Variants are capped at 8, outcomes at 10, and rows read at max_events plus one truncation sentinel.',
 		),
 	);
 }

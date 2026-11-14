@@ -220,7 +220,7 @@ class ExperimentsCommand {
 	 * : Inactivity gap separating sessions. Accepted range: 1-120. Omit to use the Analytics owner default.
 	 *
 	 * [--max-events=<count>]
-	 * : Maximum retained rows. Accepted range: 100-100000. Omit to use the Analytics owner default.
+	 * : Maximum retained rows. Accepted range: 100-2000000. Omit to use the Analytics owner default.
 	 *
 	 * [--format=<format>]
 	 * : Output format. JSON and CSV preserve the complete Analytics owner envelope.
