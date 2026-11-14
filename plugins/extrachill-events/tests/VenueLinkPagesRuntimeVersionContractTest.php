@@ -1,17 +1,13 @@
 <?php
 /**
- * Regression coverage for #899: LinkPagesProvider::validate_runtime()
- * fatally rejected a Link Pages runtime declaring API version '4'
- * (extrachill-link-pages.php:861 in production, extrachill-link-pages 0.9.0)
- * because the provider was still pinned to exactly '3'. This left
- * `\ExtraChillEvents\Core\VenueLinkPages` unloaded, which fatalled
- * /venue-settings/ for every venue team member.
+ * LinkPagesProvider::validate_runtime() trusts the Link Pages runtime's own
+ * validation (#1355) instead of keeping a per-consumer signature table.
  *
- * Unlike the other coordinated-runtime tests in this directory, this suite is
- * self-contained: it stubs the exact v3 function contract (unaffected by the
- * v3->v4 bump) plus the one v4-only addition, so it exercises the fix
- * regardless of which extrachill-link-pages ref LINK_PAGES_WORKTREE resolves
- * to.
+ * Each mode proves one way the runtime can be unusable fails closed with the
+ * public events error code, and that a valid runtime is accepted. The suite is
+ * self-contained: the fixture stubs the runtime's validation surface, so it
+ * runs regardless of which extrachill-link-pages ref LINK_PAGES_WORKTREE
+ * resolves to.
  *
  * @package ExtraChillEvents\Tests
  */
@@ -30,24 +26,35 @@ final class VenueLinkPagesRuntimeVersionContractTest extends TestCase {
 		return $result;
 	}
 
-	/** A legacy runtime declaring API version '3' is still accepted. */
-	public function test_v3_runtime_validates(): void {
-		$result = $this->validate( 'v3' );
+	/** A runtime that validates itself, is ready and resolves storage is accepted. */
+	public function test_valid_runtime_validates(): void {
+		$result = $this->validate( 'valid' );
 		$this->assertTrue( $result['valid'] );
 		$this->assertSame( '', $result['error'] );
 	}
 
-	/** The exact production shape (#899): version '4' plus the post-type resolver. */
-	public function test_v4_runtime_with_post_type_resolver_validates(): void {
-		$result = $this->validate( 'v4-complete' );
-		$this->assertTrue( $result['valid'] );
-		$this->assertSame( '', $result['error'] );
-	}
-
-	/** Version '4' without the post-type resolver is a genuinely incomplete runtime. */
-	public function test_v4_runtime_without_post_type_resolver_stays_rejected(): void {
-		$result = $this->validate( 'v4-missing-resolver' );
+	/**
+	 * @dataProvider unusableRuntimeProvider
+	 */
+	public function test_unusable_runtime_fails_closed( string $mode, string $error ): void {
+		$result = $this->validate( $mode );
 		$this->assertFalse( $result['valid'] );
-		$this->assertSame( 'venue_link_pages_runtime_incomplete', $result['error'] );
+		$this->assertSame( $error, $result['error'] );
+	}
+
+	public function unusableRuntimeProvider(): array {
+		return array(
+			'plugin not active'       => array( 'inactive', 'venue_link_pages_runtime_not_configured' ),
+			'validator missing'       => array( 'missing', 'venue_link_pages_runtime_incomplete' ),
+			'runtime reports invalid' => array( 'invalid', 'venue_link_pages_runtime_incompatible' ),
+			'runtime not ready'       => array( 'not-ready', 'venue_link_pages_runtime_incomplete' ),
+			'storage blog unresolved' => array( 'no-storage', 'venue_link_pages_storage_unavailable' ),
+		);
+	}
+
+	/** The runtime's own error code is preserved as the cause. */
+	public function test_invalid_runtime_keeps_the_runtime_error_as_cause(): void {
+		$result = $this->validate( 'invalid' );
+		$this->assertSame( 'ec_link_pages_runtime_incompatible', $result['cause'] );
 	}
 }

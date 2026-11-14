@@ -148,7 +148,7 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertStringContainsString( 'ec_provision_owned_link_page_composed(', $files );
 		$this->assertStringNotContainsString( 'ec_save_link_page_persistence_locked(', $files );
 		$this->assertStringNotContainsString( 'ec_provision_owned_link_page(', $files );
-		$this->assertStringContainsString( "'ec_save_link_page_persistence_composed'       => array( 3, 3 )", $runtime_provider );
-		$this->assertStringContainsString( "'ec_provision_owned_link_page_composed'        => array( 6, 4 )", $runtime_provider );
+		$this->assertStringContainsString( 'ec_validate_link_pages_runtime()', $runtime_provider );
+		$this->assertStringNotContainsString( 'ReflectionFunction', $runtime_provider );
 	}
 }
