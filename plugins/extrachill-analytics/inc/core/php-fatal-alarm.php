@@ -589,6 +589,15 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_deli
 		}
 	}
 
+	// REST 5xx responses never reach debug.log (#1353). Their sustained rate
+	// alarms through the same delivery, dedupe, and retry path (#1380).
+	foreach ( extrachill_analytics_rest_5xx_alarm_candidates( $state, $now, $window ) as $row ) {
+		$candidates[] = $row;
+		if ( $row['would_alarm'] ) {
+			$alarms[] = $row;
+		}
+	}
+
 	$result['candidates'] = $candidates;
 	$result['alarms']     = $alarms;
 
@@ -631,6 +640,91 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_deli
 	}
 
 	return $result;
+}
+
+/**
+ * Per-route/code hourly REST 5xx count that counts as sustained.
+ *
+ * @return int Threshold per hour.
+ */
+function extrachill_analytics_rest_5xx_alarm_threshold() {
+	/**
+	 * Filter the sustained REST 5xx alarm threshold (responses per hour per route/code).
+	 *
+	 * @param int $threshold Default 50.
+	 */
+	return max( 1, (int) apply_filters( 'extrachill_analytics_rest_5xx_alarm_threshold', 50 ) );
+}
+
+/**
+ * Build alarm candidates from the bounded REST 5xx counter.
+ *
+ * A route/code is sustained when its last complete hour reached the threshold
+ * and it is still firing in the current hour. A single 500 never pages. The
+ * #1352 incident (~900/hour on one route) pages within its first complete hour.
+ * Dedupe follows the PHP rules: new, returned after quiet, or escalated.
+ *
+ * @param array $state  Alarm dedupe state keyed by signature.
+ * @param int   $now    Unix time.
+ * @param int   $window Alarm window seconds (re-arm horizon is 2 windows).
+ * @return array<int, array<string, mixed>> Candidate rows.
+ */
+function extrachill_analytics_rest_5xx_alarm_candidates( array $state, $now, $window ) {
+	if ( ! function_exists( 'extrachill_analytics_rest_5xx_buckets' ) ) {
+		return array();
+	}
+	$buckets   = extrachill_analytics_rest_5xx_buckets();
+	$current   = (int) ( floor( $now / HOUR_IN_SECONDS ) * HOUR_IN_SECONDS );
+	$previous  = $current - HOUR_IN_SECONDS;
+	$prev_slot = isset( $buckets[ $previous ] ) && is_array( $buckets[ $previous ] ) ? $buckets[ $previous ] : array();
+	$curr_slot = isset( $buckets[ $current ] ) && is_array( $buckets[ $current ] ) ? $buckets[ $current ] : array();
+	$threshold = extrachill_analytics_rest_5xx_alarm_threshold();
+	$rows      = array();
+
+	foreach ( $prev_slot as $key => $prev_count ) {
+		$prev_count = (int) $prev_count;
+		if ( $prev_count < $threshold ) {
+			continue;
+		}
+		$curr_count = (int) ( $curr_slot[ $key ] ?? 0 );
+		$parts      = explode( '|', (string) $key );
+		$code       = array_pop( $parts );
+		$route      = implode( '|', $parts );
+		$signature  = 'rest_5xx:' . $key;
+		$is_live    = $curr_count > 0;
+		$prior      = isset( $state[ $signature ] ) && is_array( $state[ $signature ] ) ? $state[ $signature ] : null;
+		$is_new     = null === $prior;
+		$rearmed    = ! $is_new && ( $now - (int) ( $prior['last_alerted_at'] ?? 0 ) ) > ( 2 * $window );
+		$escalated  = ! $is_new && $prev_count > ( (int) ( $prior['last_alerted_rate'] ?? 0 ) * 2 );
+		$reasons    = array( 'sustained_rest_5xx' );
+		if ( $rearmed ) {
+			$reasons[] = 'returned_after_quiet';
+		}
+		if ( $escalated ) {
+			$reasons[] = 'escalated';
+		}
+		if ( ! $is_live ) {
+			$reasons = array( 'resolved_not_firing' );
+		}
+
+		$rows[] = array(
+			'kind'        => 'rest_5xx',
+			'signature'   => $signature,
+			'severity'    => 'rest_5xx',
+			'file'        => $route,
+			'sample'      => sprintf( 'HTTP 5xx `%s` from %s', $code, $route ),
+			'count'       => $prev_count + $curr_count,
+			'rate_per_hr' => $prev_count,
+			'first_seen'  => gmdate( 'Y-m-d H:i:s', $previous ),
+			'last_seen'   => gmdate( 'Y-m-d H:i:s', $now ),
+			'is_new'      => $is_new,
+			'is_live'     => $is_live,
+			'reasons'     => $reasons,
+			'would_alarm' => $is_live && ( $is_new || $rearmed || $escalated ),
+		);
+	}
+
+	return $rows;
 }
 
 /**
@@ -948,6 +1042,7 @@ function extrachill_analytics_fatal_alarm_reason_text( $alarm ) {
 		'returned_after_quiet' => 'returned after going quiet',
 		'over_threshold'       => 'over rate threshold',
 		'escalated'            => 'escalating',
+		'sustained_rest_5xx'   => 'sustained REST 5xx rate',
 	);
 
 	$reasons = array();
@@ -970,6 +1065,21 @@ function extrachill_analytics_fatal_alarm_reason_text( $alarm ) {
  */
 function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention = false ) {
 	$prefix = $with_mention ? extrachill_analytics_fatal_alarm_mention_prefix() : '';
+	if ( 'rest_5xx' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$prefix . '🚨 **REST 5xx alarm** — ' . extrachill_analytics_fatal_alarm_reason_text( $alarm ),
+				'',
+				'**Route:** `' . $alarm['file'] . '`',
+				'**Signature:** `' . $alarm['signature'] . '`',
+				'**Last full hour:** ' . (int) $alarm['rate_per_hr'] . ' responses ≥ 500 (still firing)',
+				'',
+				$alarm['sample'],
+				'Triage: `wp extrachill analytics errors --source=rest --since=2h`',
+			)
+		);
+	}
 	$header = $prefix . '🚨 **PHP fatal alarm** — ' . extrachill_analytics_fatal_alarm_reason_text( $alarm );
 
 	$lines = array(
@@ -1005,6 +1115,32 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
  */
 function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 	$mention = extrachill_analytics_fatal_alarm_mention_prefix();
+	if ( 'rest_5xx' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$mention . '🚨 **REST 5xx alarm — investigate and fix.**',
+				'',
+				'A REST route on the live network is returning HTTP 5xx at a sustained rate. These responses never reach debug.log, so PHP error tools show nothing.',
+				'',
+				'**Goal:** find the root cause and get a fix up as a PR.',
+				'',
+				'- Route pattern: `' . $alarm['file'] . '`',
+				'- Signature: `' . $alarm['signature'] . '`',
+				'- Last full hour: ' . (int) $alarm['rate_per_hr'] . ' responses ≥ 500, still firing now',
+				'- ' . $alarm['sample'],
+				'',
+				'**Workflow:**',
+				'1. Confirm it is still firing: `wp extrachill analytics errors --source=rest --since=2h`, and nginx access.log for the route.',
+				'2. Reproduce the request and read the error code. `ability_invalid_output` / `ability_invalid_input` mean an ability schema disagrees with real data.',
+				'3. Find the owning repo, file a GitHub issue with the evidence pasted in, and cook it with `homeboy agent-task cook`.',
+				'',
+				'Fixes are PR-only unless the route is breaking a user-facing page for real users; then follow the site-breaking emergency rules in RULES.md.',
+				'',
+				'Report back with the issue URL and the PR URL.',
+			)
+		);
+	}
 
 	$lines = array(
 		$mention . '🚨 **PHP fatal alarm — investigate and fix.**',
