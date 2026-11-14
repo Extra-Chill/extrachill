@@ -2,7 +2,7 @@
 // phpcs:disable -- Purpose-built WordPress runtime stubs must share one isolated fixture.
 /**
  * Self-contained runtime-version contract fixture for
- * VenueLinkPagesProvider::validate_runtime().
+ * LinkPagesProvider::validate_runtime().
  *
  * Stubs the complete v3 function contract (unaffected by the v3→v4 bump) plus
  * the one v4-only addition, ec_link_page_post_type(), so the three modes below
@@ -55,7 +55,7 @@ function delete_option() {}
 $mode = $argv[1] ?? 'v3';
 define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', 'v3' === $mode ? '3' : '4' );
 
-// The complete v3 signature contract that VenueLinkPagesProvider::validate_runtime()
+// The complete v3 signature contract that LinkPagesProvider::validate_runtime()
 // reflects against. None of these arities changed across the v3->v4 bump
 // (verified against extrachill-link-pages PR #34/#35, #52, #53).
 function ec_validate_link_pages_runtime( $check_readiness = true ) {
@@ -140,9 +140,9 @@ if ( 'v4-missing-resolver' !== $mode ) {
 		return 'artist_link_page'; }
 }
 
-require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Providers/VenueLinkPagesProvider.php';
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Providers/LinkPagesProvider.php';
 
-$result = ExtraChillEvents\Providers\VenueLinkPagesProvider::validate_runtime();
+$result = ExtraChillEvents\Providers\LinkPagesProvider::validate_runtime();
 
 echo json_encode(
 	array(

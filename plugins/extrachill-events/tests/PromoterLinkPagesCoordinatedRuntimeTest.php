@@ -131,16 +131,18 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 
 	public function test_layering_contract_has_no_generic_runtime_or_artist_venue_conflation(): void {
 		$root  = dirname( __DIR__ );
-		$files = file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' ) . file_get_contents( $root . '/inc/Providers/PromoterLinkPagesProvider.php' );
-		$runtime_provider = file_get_contents( $root . '/inc/Providers/VenueLinkPagesProvider.php' );
+		$runtime_provider = file_get_contents( $root . '/inc/Providers/LinkPagesProvider.php' );
+		$files            = file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) . file_get_contents( $root . '/inc/Abilities/TeamTermLinkPageAbilities.php' ) . $runtime_provider;
 		$this->assertStringNotContainsString( 'register_rest_route', $files );
 		$this->assertStringNotContainsString( 'wp_remote_', $files );
 		$this->assertStringNotContainsString( 'MusicGroup', $files );
 		$this->assertStringNotContainsString( 'MusicVenue', $files );
 		$this->assertStringNotContainsString( 'PostalAddress', $files );
-		$this->assertStringNotContainsString( 'subscribe', strtolower( $files ) );
-		$this->assertSame( 9, substr_count( file_get_contents( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' ), "'extrachill/" ) );
-		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 31 )", $files );
+		$this->assertStringNotContainsString( 'subscribe', strtolower( file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) ) );
+		$this->assertFileDoesNotExist( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' );
+		$this->assertFileDoesNotExist( $root . '/inc/Providers/PromoterLinkPagesProvider.php' );
+		$this->assertStringContainsString( "'events-promoters' => array( '\\\\ExtraChillEvents\\\\Core\\\\PromoterLinkPages', 'promoter' )", $runtime_provider );
+		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 30 )", $files );
 		$this->assertStringContainsString( 'ec_save_link_page_persistence_composed(', $files );
 		$this->assertStringContainsString( 'ec_provision_owned_link_page_composed(', $files );
 		$this->assertStringNotContainsString( 'ec_save_link_page_persistence_locked(', $files );

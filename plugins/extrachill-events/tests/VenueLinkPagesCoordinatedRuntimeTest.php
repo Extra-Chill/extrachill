@@ -123,15 +123,15 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 	public function test_bootstrap_abilities_and_source_layering_contracts_are_explicit(): void {
 		$root      = dirname( __DIR__ );
 		$plugin    = file_get_contents( $root . '/extrachill-events.php' );
-		$provider  = file_get_contents( $root . '/inc/Providers/VenueLinkPagesProvider.php' );
-		$abilities = file_get_contents( $root . '/inc/Abilities/VenueLinkPageAbilities.php' );
-		$core      = file_get_contents( $root . '/inc/Core/VenueLinkPages.php' );
+		$provider  = file_get_contents( $root . '/inc/Providers/LinkPagesProvider.php' );
+		$abilities = file_get_contents( $root . '/inc/Abilities/TeamTermLinkPageAbilities.php' );
+		$core      = file_get_contents( $root . '/inc/Core/VenueLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' );
 		$this->assertStringContainsString( 'Requires Plugins: data-machine, data-machine-events', $plugin );
 		$this->assertStringNotContainsString( 'Requires Plugins: data-machine, data-machine-events, extrachill-link-pages', $plugin );
 		$this->assertStringContainsString( 'Add the native plugin dependency after Link Pages PR #4', $provider );
 		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 30 )", $provider );
-		$this->assertSame( 8, substr_count( $abilities, "'extrachill/" ) );
-		$this->assertSame( 2, substr_count( $abilities, "'show_in_rest' => true" ) );
+		$this->assertFileDoesNotExist( $root . '/inc/Abilities/VenueLinkPageAbilities.php' );
+		$this->assertSame( 1, substr_count( $abilities, "'show_in_rest' => true" ) );
 		$this->assertStringNotContainsString( 'register_rest_route', $core . $abilities . $provider );
 		$this->assertStringNotContainsString( 'WP_CLI', $core . $abilities . $provider );
 		$this->assertStringNotContainsString( 'wp_remote_', $core . $abilities . $provider );

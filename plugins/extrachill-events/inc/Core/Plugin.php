@@ -84,15 +84,9 @@ final class ExtraChillEvents {
 		}
 
 		try {
-			\ExtraChillEvents\Providers\VenueLinkPagesProvider::register();
+			\ExtraChillEvents\Providers\LinkPagesProvider::register();
 		} catch ( \Throwable $error ) {
-			$this->provider_failed( 'venue-link-pages', $error );
-		}
-
-		try {
-			\ExtraChillEvents\Providers\PromoterLinkPagesProvider::register();
-		} catch ( \Throwable $error ) {
-			$this->provider_failed( 'promoter-link-pages', $error );
+			$this->provider_failed( 'link-pages', $error );
 		}
 
 		try {

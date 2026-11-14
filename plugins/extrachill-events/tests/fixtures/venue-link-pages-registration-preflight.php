@@ -13,8 +13,8 @@ function ec_get_blog_id( $site ) {
 
 $GLOBALS['ec_test']['options']['active_plugins'] = array( 'extrachill-link-pages/extrachill-link-pages.php' );
 ec_register_link_page_operation_provider( 'events-venues', '__return_true' );
-require_once dirname( __DIR__, 2 ) . '/inc/Providers/VenueLinkPagesProvider.php';
-$result = ExtraChillEvents\Providers\VenueLinkPagesProvider::initialize();
+require_once dirname( __DIR__, 2 ) . '/inc/Providers/LinkPagesProvider.php';
+$result = ExtraChillEvents\Providers\LinkPagesProvider::initialize();
 
 echo wp_json_encode(
 	array(

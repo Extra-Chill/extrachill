@@ -1,6 +1,6 @@
 <?php
 /**
- * Venue-owned Link Pages integration bootstrap.
+ * Events-owned (venue and promoter) Link Pages integration bootstrap.
  *
  * @package ExtraChillEvents\Providers
  */
@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * TODO: Add the native plugin dependency after Link Pages PR #4 is merged,
  * released, and installed across the deployment stack.
  */
-final class VenueLinkPagesProvider {
+final class LinkPagesProvider {
 
 	private const PLUGIN = 'extrachill-link-pages/extrachill-link-pages.php';
 
@@ -35,8 +35,21 @@ final class VenueLinkPagesProvider {
 		add_action( 'plugins_loaded', array( self::class, 'initialize' ), 30 );
 	}
 
-	/** Register one provider for each standalone extension registry. */
+	/**
+	 * Events owner kinds, keyed by standalone provider name.
+	 *
+	 * Class names stay strings so a failed runtime preflight never loads the
+	 * venue adapter.
+	 */
+	private const OWNERS = array(
+		'events-venues'    => array( '\\ExtraChillEvents\\Core\\VenueLinkPages', 'venue' ),
+		'events-promoters' => array( '\\ExtraChillEvents\\Core\\PromoterLinkPages', 'promoter' ),
+	);
+
+	/** Preflight every owner registry before mutating any, then register both kinds. */
 	public static function initialize() {
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PromoterLinkPages.php';
+		\ExtraChillEvents\Core\PromoterLinkPages::register_authority_hook();
 		$valid = self::validate_runtime();
 		if ( is_wp_error( $valid ) ) {
 			self::record_error( $valid );
@@ -44,29 +57,28 @@ final class VenueLinkPagesProvider {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueLinkPages.php';
-		$registrations = array(
-			array( 'ec_can_register_link_page_owner_compatibility_provider', 'ec_register_link_page_owner_compatibility_provider', array( '\\ExtraChillEvents\\Core\\VenueLinkPages', 'compatibility_provider' ) ),
-			array( 'ec_can_register_link_page_operation_provider', 'ec_register_link_page_operation_provider', array( '\\ExtraChillEvents\\Core\\VenueLinkPages', 'operation_provider' ) ),
-			array( 'ec_can_register_link_page_public_projection_provider', 'ec_register_link_page_public_projection_provider', array( '\\ExtraChillEvents\\Core\\VenueLinkPages', 'public_projection_provider' ) ),
+		$registries = array(
+			'ec_can_register_link_page_owner_compatibility_provider' => array( 'ec_register_link_page_owner_compatibility_provider', 'compatibility_provider' ),
+			'ec_can_register_link_page_operation_provider' => array( 'ec_register_link_page_operation_provider', 'operation_provider' ),
+			'ec_can_register_link_page_public_projection_provider' => array( 'ec_register_link_page_public_projection_provider', 'public_projection_provider' ),
 		);
-		foreach ( $registrations as $registration ) {
-			$result = call_user_func( $registration[0], 'events-venues', $registration[2] );
-			if ( is_wp_error( $result ) ) {
-				self::record_error( $result );
-				return $result;
-			}
-		}
-		foreach ( $registrations as $registration ) {
-			$result = call_user_func( $registration[1], 'events-venues', $registration[2] );
-			if ( is_wp_error( $result ) ) {
-				self::record_error( $result );
-				return $result;
+		foreach ( array( 0, 1 ) as $commit ) {
+			foreach ( self::OWNERS as $name => $owner ) {
+				foreach ( $registries as $preflight => $registry ) {
+					$result = call_user_func( $commit ? $registry[0] : $preflight, $name, array( $owner[0], $registry[1] ) );
+					if ( is_wp_error( $result ) ) {
+						self::record_error( $result );
+						return $result;
+					}
+				}
 			}
 		}
 
-		\ExtraChillEvents\Core\VenueLinkPages::register_hooks();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueLinkPageAbilities.php';
-		new \ExtraChillEvents\Abilities\VenueLinkPageAbilities();
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/TeamTermLinkPageAbilities.php';
+		foreach ( self::OWNERS as $owner ) {
+			call_user_func( array( $owner[0], 'register_hooks' ) );
+			new \ExtraChillEvents\Abilities\TeamTermLinkPageAbilities( $owner[1] );
+		}
 		self::clear_logged_error();
 		return true;
 	}
@@ -179,7 +191,7 @@ final class VenueLinkPagesProvider {
 		$code = $error->get_error_code();
 		if ( get_option( self::LOGGED_ERROR_OPTION, '' ) !== $code ) {
 			update_option( self::LOGGED_ERROR_OPTION, $code, false );
-			error_log( 'Extra Chill Events venue Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- A partial cross-plugin runtime must be operator-visible, logged once per distinct error state.
+			error_log( 'Extra Chill Events Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- A partial cross-plugin runtime must be operator-visible, logged once per distinct error state.
 		}
 		add_action( 'admin_notices', array( self::class, 'error_notice' ) );
 		add_action( 'network_admin_notices', array( self::class, 'error_notice' ) );
