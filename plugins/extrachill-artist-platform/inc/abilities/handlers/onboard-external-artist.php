@@ -548,10 +548,7 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 				$context['artist']['term_id'] = $term_id;
 			}
 
-			$existing_link_id = function_exists( 'ec_get_reciprocal_link_page_id' ) ? ec_get_reciprocal_link_page_id( $profile_id ) : 0;
-			if ( is_wp_error( $existing_link_id ) ) {
-				return $existing_link_id;
-			}
+			$existing_link_id = (int) ec_get_link_page_for_artist( $profile_id, true );
 			if ( $existing_link_id ) {
 				$context['link_page'] = array(
 					'state' => 'existing',

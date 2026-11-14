@@ -23,9 +23,7 @@ final class ArtistAnalyticsContractTest extends EC_Artist_Platform_TestCase {
 				'post_status' => 'publish',
 			)
 		);
-		update_post_meta( $this->link_page_id, '_associated_artist_profile_id', $this->profile_id );
 		update_post_meta( $this->link_page_id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . $this->artist_blog_id() . ':artist_profile:' . $this->profile_id );
-		update_post_meta( $this->profile_id, '_extrch_link_page_id', $this->link_page_id );
 		restore_current_blog();
 
 		$this->create_artist_membership( $this->owner_id, $this->profile_id );

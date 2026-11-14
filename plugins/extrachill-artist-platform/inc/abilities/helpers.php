@@ -174,39 +174,8 @@ function extrachill_artist_platform_ability_create_permission( $input ) {
  * @return bool
  */
 function extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist_id, $link_page_id ) {
-	$check = static function () use ( $artist_id, $link_page_id ) {
-		if ( extrachill_artist_platform_link_page_post_type() !== get_post_type( $link_page_id ) || (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== (int) $artist_id ) {
-			return false;
-		}
-		if ( function_exists( 'ec_get_link_page_owner' ) && function_exists( 'ec_artist_link_page_owner_reference' ) ) {
-			$owner     = ec_get_link_page_owner( $link_page_id );
-			$reference = ec_artist_link_page_owner_reference( $artist_id );
-			return ! is_wp_error( $owner ) && ! is_wp_error( $reference ) && $owner['reference'] === $reference;
-		}
-		return true;
-	};
-
-	// Link Pages live on the storage blog (blog 4 today, the dedicated Link
-	// Pages site after cutover), which is not necessarily the Artist blog.
-	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
-		$result = ec_with_link_page_storage_blog( $check );
-		return ! is_wp_error( $result ) && true === $result;
-	}
-
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	$did_switch     = $artist_blog_id && get_current_blog_id() !== (int) $artist_blog_id;
-
-	if ( $did_switch ) {
-		switch_to_blog( $artist_blog_id );
-	}
-
-	try {
-		return $check();
-	} finally {
-		if ( $did_switch ) {
-			restore_current_blog();
-		}
-	}
+	$artist_id = absint( $artist_id );
+	return $artist_id > 0 && ec_get_artist_for_link_page( $link_page_id ) === $artist_id;
 }
 
 /**

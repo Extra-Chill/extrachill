@@ -82,7 +82,6 @@ final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_Tes
 		switch_to_blog( $storage );
 		try {
 			$page = wp_insert_post( array( 'post_type' => ec_link_page_post_type(), 'post_status' => 'publish', 'post_title' => 'Avatar page' ) );
-			update_post_meta( $page, '_associated_artist_profile_id', $artist );
 			$this->assertNotWPError( ec_assign_link_page_owner( $page, ec_artist_link_page_owner_reference( $artist ) ) );
 		} finally {
 			restore_current_blog();

@@ -10,9 +10,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->resetRegistry( ec_link_page_owner_compatibility_registry(), 'providers' );
 		$this->resetRegistry( ec_link_page_operation_provider_registry(), 'providers' );
-		ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
 		ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
 
 		$this->owner_id   = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
@@ -27,8 +25,6 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 					'post_name'   => 'test-page',
 				)
 			);
-			update_post_meta( $this->link_page_id, '_associated_artist_profile_id', $this->profile_id );
-			update_post_meta( $this->profile_id, '_extrch_link_page_id', $this->link_page_id );
 			update_post_meta( $this->link_page_id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . $this->artist_blog_id() . ':artist_profile:' . $this->profile_id );
 		} finally {
 			restore_current_blog();
@@ -36,7 +32,6 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 	}
 
 	protected function tearDown(): void {
-		$this->resetRegistry( ec_link_page_owner_compatibility_registry(), 'providers' );
 		$this->resetRegistry( ec_link_page_operation_provider_registry(), 'providers' );
 		parent::tearDown();
 	}
@@ -270,7 +265,9 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		try {
 			$result = ec_read_link_page( $this->link_page_id );
 
-			$this->assertSame( 'link_page_owner_divergence', $result->get_error_code() );
+			// The owner reference is the only binding: once it moves, the
+			// original owner no longer resolves any page.
+			$this->assertSame( 'link_page_not_found', $result->get_error_code() );
 		} finally {
 			restore_current_blog();
 		}

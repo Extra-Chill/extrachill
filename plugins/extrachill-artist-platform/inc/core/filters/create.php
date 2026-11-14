@@ -33,51 +33,11 @@ function ec_artist_restore_owned_meta_snapshots( $post_id, $snapshots ) {
 }
 
 /**
- * Resolve and optionally repair the reciprocal artist/link-page association.
- *
- * @param int  $artist_id Artist profile ID.
- * @param bool $repair    Whether a valid inverse-only association may be repaired.
- * @return int|WP_Error Reciprocal link page ID, 0, or a repair failure.
- */
-function ec_get_reciprocal_link_page_id( $artist_id, $repair = true ) {
-	$artist_id = absint( $artist_id );
-	if ( ! $artist_id || 'artist_profile' !== get_post_type( $artist_id ) ) {
-		return 0;
-	}
-
-	$profile_link_id = (int) get_post_meta( $artist_id, '_extrch_link_page_id', true );
-	if ( $profile_link_id ) {
-		$associated_artist_id = (int) get_post_meta( $profile_link_id, '_associated_artist_profile_id', true );
-		if ( extrachill_artist_platform_link_page_post_type() === get_post_type( $profile_link_id ) && $artist_id === $associated_artist_id ) {
-			return $profile_link_id;
-		}
-		delete_post_meta( $artist_id, '_extrch_link_page_id', $profile_link_id );
-	}
-
-	$link_page_id = function_exists( 'ec_get_link_page_id' ) ? (int) ec_get_link_page_id( $artist_id ) : 0;
-	if ( ! $link_page_id || extrachill_artist_platform_link_page_post_type() !== get_post_type( $link_page_id ) || (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== $artist_id ) {
-		return 0;
-	}
-	if ( ! $repair ) {
-		return 0;
-	}
-
-	update_post_meta( $artist_id, '_extrch_link_page_id', $link_page_id );
-	if ( (int) get_post_meta( $artist_id, '_extrch_link_page_id', true ) !== $link_page_id ) {
-		return new WP_Error(
-			'link_page_association_repair_failed',
-			'An existing link page could not be associated with its artist profile.',
-			array(
-				'link_page_id' => $link_page_id,
-				'retryable'    => true,
-			)
-		);
-	}
-	return $link_page_id;
-}
-
-/**
  * Create a link page for an artist profile (centralized creation logic)
+ *
+ * The runtime owner reference is the only artist/page binding: the runtime
+ * provisions the page, assigns the reference, and replaces a previous page
+ * when `$force` is set.
  *
  * @param int  $artist_id The artist profile ID to create a link page for
  * @param bool $force     Force creation even if link page already exists
@@ -88,26 +48,24 @@ function ec_create_link_page( $artist_id, $force = false ) {
 		return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID for link page creation' );
 	}
 
-	$existing_link_page_id = ec_get_reciprocal_link_page_id( $artist_id );
+	$owner_reference = ec_normalize_link_page_owner_reference(
+		array(
+			'kind'      => 'post',
+			'blog_id'   => get_current_blog_id(),
+			'subtype'   => 'artist_profile',
+			'object_id' => $artist_id,
+		)
+	);
+	if ( is_wp_error( $owner_reference ) ) {
+		return $owner_reference;
+	}
+
+	$existing_link_page_id = ec_get_link_page_id_for_owner( $owner_reference );
 	if ( is_wp_error( $existing_link_page_id ) ) {
 		return $existing_link_page_id;
 	}
-	$previous_link_page_id = (int) $existing_link_page_id;
 	if ( $existing_link_page_id && ! $force ) {
-		// Read the existing page where it is stored (the Link Pages storage
-		// blog after cutover), not on the artist blog (#245).
-		$read_existing = static function () use ( $existing_link_page_id ) {
-			return array(
-				'type'   => get_post_type( $existing_link_page_id ),
-				'artist' => (int) get_post_meta( $existing_link_page_id, '_associated_artist_profile_id', true ),
-			);
-		};
-		$existing = function_exists( 'ec_with_link_page_storage_blog' ) ? ec_with_link_page_storage_blog( $read_existing ) : $read_existing();
-		$existing = is_wp_error( $existing ) ? array( 'type' => false, 'artist' => 0 ) : $existing;
-		if ( extrachill_artist_platform_link_page_post_type() === $existing['type'] && (int) $artist_id === $existing['artist'] ) {
-			return $existing_link_page_id;
-		}
-		delete_post_meta( $artist_id, '_extrch_link_page_id', $existing_link_page_id );
+		return (int) $existing_link_page_id;
 	}
 
 	$artist_post = get_post( $artist_id );
@@ -120,45 +78,14 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	if ( empty( $link_page_title ) || empty( $artist_profile_slug ) ) {
 		return new WP_Error( 'incomplete_data', 'Artist profile must have title and slug for link page creation' );
 	}
-	$owner_reference = ec_normalize_link_page_owner_reference(
-		array(
-			'kind'      => 'post',
-			'blog_id'   => get_current_blog_id(),
-			'subtype'   => 'artist_profile',
-			'object_id' => $artist_id,
-		)
-	);
-	if ( is_wp_error( $owner_reference ) ) {
-		return $owner_reference;
-	}
-	if ( $force && $previous_link_page_id ) {
-		$previous_owner_references = ec_get_stored_link_page_owner_references( $previous_link_page_id );
-		if ( count( $previous_owner_references ) > 1 ) {
-			return new WP_Error(
-				'link_page_previous_detach_failed',
-				'The previous Link Page has duplicate owner references.',
-				array( 'retryable' => false )
-			);
-		}
-		if ( ! empty( $previous_owner_references ) && $owner_reference !== $previous_owner_references[0] ) {
-			return new WP_Error(
-				'link_page_previous_owner_conflict',
-				'The previous Link Page canonical owner conflicts with its legacy artist association.',
-				array( 'retryable' => false )
-			);
-		}
-	}
-	return ec_create_artist_link_page_with_external_runtime( $artist_id, $owner_reference, $link_page_title, $artist_profile_slug, $previous_link_page_id, $force );
-}
 
-/** Compose standalone provisioning while retaining reciprocal artist metadata. */
-function ec_create_artist_link_page_with_external_runtime( $artist_id, $owner_reference, $title, $slug, $previous_link_page_id, $force ) {
 	$result = ec_provision_owned_link_page_composed(
 		$owner_reference,
-		$title,
-		$slug,
-		static function ( $new_link_page_id ) use ( $artist_id, $previous_link_page_id, $force ) {
-			return ec_finalize_external_artist_link_page_provision( $new_link_page_id, $artist_id, $previous_link_page_id, $force );
+		$link_page_title,
+		$artist_profile_slug,
+		static function ( $new_link_page_id ) use ( $artist_id, $force ) {
+			do_action( 'ec_link_page_created', $new_link_page_id, $artist_id, (bool) $force );
+			return true;
 		},
 		$force
 	);
@@ -169,43 +96,7 @@ function ec_create_artist_link_page_with_external_runtime( $artist_id, $owner_re
 	if ( function_exists( 'ec_purge_link_page_after_mutation' ) ) {
 		ec_purge_link_page_after_mutation( $new_link_page_id );
 	}
-	return (int) $new_link_page_id;
-}
-
-/** Finalize reciprocal Artist metadata without compensating generic page state. */
-function ec_finalize_external_artist_link_page_provision( $link_page_id, $artist_id, $previous_link_page_id, $force ) {
-	$profile_snapshot  = ec_artist_snapshot_owned_meta( $artist_id, '_extrch_link_page_id' );
-	$page_snapshot     = ec_artist_snapshot_owned_meta( $link_page_id, '_associated_artist_profile_id' );
-	$previous_snapshot = $previous_link_page_id && $previous_link_page_id !== (int) $link_page_id
-		? ec_artist_snapshot_owned_meta( $previous_link_page_id, '_associated_artist_profile_id' )
-		: null;
-
-	update_post_meta( $link_page_id, '_associated_artist_profile_id', $artist_id );
-	update_post_meta( $artist_id, '_extrch_link_page_id', $link_page_id );
-	$error = null;
-	if ( (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== (int) $artist_id || (int) get_post_meta( $artist_id, '_extrch_link_page_id', true ) !== (int) $link_page_id ) {
-		$error = new WP_Error( 'link_page_association_failed', 'Link page association could not be persisted. No link page was created.', array( 'retryable' => true ) );
-	}
-	if ( ! $error && $force && $previous_snapshot ) {
-		delete_post_meta( $previous_link_page_id, '_associated_artist_profile_id', $artist_id );
-		if ( (int) get_post_meta( $previous_link_page_id, '_associated_artist_profile_id', true ) === (int) $artist_id ) {
-			$error = new WP_Error( 'link_page_previous_detach_failed', 'The previous link page could not be detached. The original association was restored.', array( 'retryable' => true ) );
-		}
-	}
-	if ( $error ) {
-		$restored = ec_artist_restore_owned_meta_snapshots( $artist_id, array( '_extrch_link_page_id' => $profile_snapshot ) );
-		$restored = ec_artist_restore_owned_meta_snapshots( $link_page_id, array( '_associated_artist_profile_id' => $page_snapshot ) ) && $restored;
-		if ( $previous_snapshot ) {
-			$restored = ec_artist_restore_owned_meta_snapshots( $previous_link_page_id, array( '_associated_artist_profile_id' => $previous_snapshot ) ) && $restored;
-		}
-		return $restored ? $error : new WP_Error( 'link_page_association_compensation_failed', 'Link page association compensation failed. Manual reconciliation is required.', array(
-			'retryable' => false,
-			'cause'     => $error->get_error_code(),
-		) );
-	}
-
-	do_action( 'ec_link_page_created', $link_page_id, $artist_id, (bool) $force );
-	return true;
+	return $new_link_page_id;
 }
 
 /**

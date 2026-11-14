@@ -70,7 +70,6 @@ final class LinkPageStorageMigrationContractTest extends EC_Artist_Platform_Test
 		$this->resetProviders();
 		$this->resetMigrationParticipants();
 
-		ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
 		ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
 
 		switch_to_blog( $this->artist_blog_id() );

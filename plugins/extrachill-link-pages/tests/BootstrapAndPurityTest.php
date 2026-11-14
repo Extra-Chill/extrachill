@@ -57,7 +57,8 @@ final class BootstrapAndPurityTest extends TestCase {
 		$path = $this->artistWorktree();
 		$result = $this->fixture( 'external-adapter.php', array( 'ARTIST_PLATFORM_WORKTREE' => $path ) );
 		$this->assertTrue( $result['ready'] );
-		$this->assertSame( array( 'artist-platform' ), $result['owner_providers'] );
+		// Artist Platform binds pages only through the stored owner reference.
+		$this->assertSame( array(), $result['owner_providers'] );
 		$this->assertSame( array( 'artist-platform' ), $result['operation_providers'] );
 	}
 

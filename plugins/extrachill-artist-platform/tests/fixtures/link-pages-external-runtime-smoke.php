@@ -39,7 +39,7 @@ $GLOBALS['smoke'] = array(
 		),
 	),
 	'post_meta'             => array(
-		40 => array( '_associated_artist_profile_id' => 20 ),
+		40 => array( '_ec_link_page_owner_reference' => 'post:4:artist_profile:20' ),
 	),
 	'post_meta_write_calls' => 0,
 );
@@ -109,9 +109,6 @@ function update_post_meta() {
 }
 
 function get_posts( $args ) {
-	if ( '_associated_artist_profile_id' === ( $args['meta_key'] ?? '' ) && '20' === (string) ( $args['meta_value'] ?? '' ) ) {
-		return array( 40 );
-	}
 	return array();
 }
 
@@ -153,13 +150,13 @@ echo json_encode(
 		'booted'                 => true === $first && true === $second,
 		'post_type_constant'     => EC_LINK_PAGE_POST_TYPE,
 		'owner_meta_constant'    => EC_LINK_PAGE_OWNER_META_KEY,
-		'owner_providers'        => count( $GLOBALS['smoke']['owner_providers'] ),
+		'owner_providers'        => count( $GLOBALS['smoke']['owner_providers'] ?? array() ),
 		'operation_providers'    => count( $GLOBALS['smoke']['operation_providers'] ),
 		'projection_providers'   => count( $GLOBALS['smoke']['projection_providers'] ),
 		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['artist_link_page']['owner'] ?? '',
 		'artist_platform_registers_link_page_cpt' => function_exists( 'extrachill_register_artist_link_page_cpt' ),
 		'artist_profile_exists'  => isset( $GLOBALS['smoke']['registered_post_types']['artist_profile'] ),
-		'legacy_owner_reference' => is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],
+		'owner_reference'        => is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],
 		'write_calls'            => $GLOBALS['smoke']['post_meta_write_calls'],
 	)
 );

@@ -67,9 +67,10 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( $result['booted'] );
 		$this->assertSame( 'artist_link_page', $result['post_type_constant'] );
 		$this->assertSame( '_ec_link_page_owner_reference', $result['owner_meta_constant'] );
-		$this->assertSame( 1, $result['owner_providers'] );
+		$this->assertSame( 0, $result['owner_providers'] );
 		$this->assertSame( 1, $result['operation_providers'] );
 		$this->assertSame( 1, $result['projection_providers'] );
+		$this->assertSame( 'post:4:artist_profile:20', $result['owner_reference'] );
 		$this->assertSame( 'external-runtime', $result['link_page_cpt_owner'] );
 		$this->assertFalse( $result['artist_platform_registers_link_page_cpt'] );
 		$this->assertTrue( $result['artist_profile_exists'] );
@@ -201,7 +202,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( $external['contract_matches'] );
 		$this->assertTrue( $external['second_boot'] );
 		$this->assertSame( 1, $external['link_registrations'] );
-		$this->assertSame( 1, $external['owner_providers'] );
+		$this->assertSame( 0, $external['owner_providers'] );
 		$this->assertSame( 1, $external['operation_providers'] );
 		$this->assertSame( 1, $external['projection_providers'] );
 	}
@@ -236,7 +237,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( $result['head_hook'] );
 		$this->assertSame( 'https://artist.extrachill.com/login/?from_join=true', $result['join_redirect'] );
 		$this->assertIsInt( $result['forced'] );
-		$this->assertTrue( $result['legacy_detached'] );
+		$this->assertTrue( $result['previous_detached'] );
 		$this->assertSame( 5, $result['final_hook_count'] );
 		$this->assertSame( 1, $result['delete_purge_delta'] );
 		$this->assertContains( 'https://extrachill.link/combined-artist/', $result['cache_deleted_urls'] );
@@ -262,12 +263,12 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'force-failure' );
 
-		$this->assertSame( 'link_page_previous_detach_failed', $result['forced'] );
+		$this->assertSame( 'link_page_previous_owner_detach_failed', $result['forced'] );
 		$this->assertSame( array(), $result['force_hooks'] );
 		$this->assertSame( $result['created'], $result['force_restored_id'] );
 		$this->assertSame( 'combined-artist', $result['force_restored_slug'] );
 		$this->assertSame( 1, $result['force_new_count'] );
-		$this->assertFalse( $result['legacy_detached'] );
+		$this->assertFalse( $result['previous_detached'] );
 		$this->assertSame( 5, $result['final_hook_count'] );
 	}
 

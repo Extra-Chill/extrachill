@@ -52,7 +52,7 @@ echo json_encode(
 	array(
 		'error_code'          => is_wp_error( $result ) ? $result->get_error_code() : '',
 		'notice_hooked'       => in_array( array( 'admin_notices', 'extrachill_artist_platform_link_pages_runtime_notice' ), $GLOBALS['smoke_actions'], true ),
-		'adapters_loaded'     => function_exists( 'ec_artist_link_page_owner_compatibility_provider' ),
+		'adapters_loaded'     => function_exists( 'ec_artist_link_page_operation_provider' ),
 		'generic_api_defined' => function_exists( 'ec_get_link_page_owner' ) || function_exists( 'ec_save_link_page' ),
 	)
 );

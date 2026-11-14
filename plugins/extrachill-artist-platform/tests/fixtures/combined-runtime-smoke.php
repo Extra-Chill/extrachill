@@ -113,7 +113,7 @@ require $standalone . '/tests/bootstrap.php';
 $GLOBALS['ec_test']['options']['active_plugins'] = array( 'extrachill-link-pages/extrachill-link-pages.php' );
 add_filter( 'ec_get_artist_id', static function ( $value, $input = null ) {
 	$id = is_numeric( $input ) ? (int) $input : ( is_numeric( $value ) ? (int) $value : 0 );
-	return EC_LINK_PAGE_POST_TYPE === get_post_type( $id ) ? (int) get_post_meta( $id, '_associated_artist_profile_id', true ) : $value;
+	return EC_LINK_PAGE_POST_TYPE === get_post_type( $id ) ? ec_get_artist_for_link_page( $id ) : $value;
 }, 10, 2 );
 
 require_once $artist_root . '/inc/link-pages/runtime-handoff.php';
@@ -160,8 +160,7 @@ $GLOBALS['ec_test']['blogs'][4]['posts'][40]     = (object) array(
 	'post_name'   => 'existing-artist',
 );
 $GLOBALS['ec_test']['blogs'][4]['post_meta'][40] = array(
-	EC_LINK_PAGE_OWNER_META_KEY     => 'post:4:artist_profile:21',
-	'_associated_artist_profile_id' => 21,
+	EC_LINK_PAGE_OWNER_META_KEY => 'post:4:artist_profile:21',
 );
 
 $created                        = ec_create_link_page( 20 );
@@ -454,7 +453,8 @@ ec_resolve_link_page_public_query();
 $join_redirect = $GLOBALS['ec_test']['redirect'] ?? array();
 $force_failure = 'force-failure' === ( $argv[1] ?? '' );
 if ( $force_failure ) {
-	$GLOBALS['ec_test']['fail_meta_write_calls'] = array( $GLOBALS['ec_test']['meta_write_calls'] + 5 );
+	// Fail the runtime's detach of the previous page's owner reference.
+	$GLOBALS['ec_test']['fail_meta_write_calls'] = array( $GLOBALS['ec_test']['meta_write_calls'] + 1 );
 }
 $force_hook_offset    = count( $GLOBALS['ec_test']['fired_actions'] );
 $forced               = is_wp_error( $created ) ? $created : ec_create_link_page( 20, true );
@@ -524,17 +524,17 @@ echo wp_json_encode(
 		'join_redirect'               => $join_redirect[0] ?? '',
 		'forced'                      => is_wp_error( $forced ) ? $forced->get_error_code() : $forced,
 		'force_hooks'                 => $force_hooks,
-		'force_restored_id'           => (int) get_post_meta( 20, '_extrch_link_page_id', true ),
+		'force_restored_id'           => (int) ec_get_link_page_id_for_owner( ec_artist_link_page_owner_reference( 20 ) ),
 		'force_restored_slug'         => get_post_field( 'post_name', $created ),
 		'force_new_count'             => count( get_posts( array(
 			'post_type'      => EC_LINK_PAGE_POST_TYPE,
 			'post_status'    => 'any',
 			'fields'         => 'ids',
 			'posts_per_page' => -1,
-			'meta_key'       => '_associated_artist_profile_id',
-			'meta_value'     => '20',
+			'meta_key'       => EC_LINK_PAGE_OWNER_META_KEY,
+			'meta_value'     => 'post:4:artist_profile:20',
 		) ) ),
-		'legacy_detached'             => is_wp_error( $created ) ? false : '' === get_post_meta( $created, '_associated_artist_profile_id', true ),
+		'previous_detached'           => is_wp_error( $created ) ? false : '' === get_post_meta( $created, EC_LINK_PAGE_OWNER_META_KEY, true ),
 		'final_hook_count'            => count( $final_hooks ),
 		'delete_purge_delta'          => $purges_after_delete - $purges_before_delete,
 		'cache_deleted_urls'          => array_values( array_unique( $GLOBALS['ec_test']['cache_deleted_urls'] ?? array() ) ),
