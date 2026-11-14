@@ -78,14 +78,6 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commission-settings.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-storefront.php';
 
-		// Commerce credential resolvers. The provider classes + DM registration +
-		// read-filter contract now live at the network layer
-		// (extrachill-multisite, inc/commerce/auth/) so they load in network-admin
-		// (write path) AND blog 3 (read path). These resolvers return an empty
-		// fallback; the decrypted values flow via apply_filters() callbacks
-		// registered by multisite. See extrachill-multisite#92.
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/auth/resolvers.php';
-
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/ticket-service-authority.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/tickets.php';
 
