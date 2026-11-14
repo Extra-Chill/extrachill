@@ -110,11 +110,8 @@ if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	define( 'DAY_IN_SECONDS', 86400 );
 }
 function get_site_option( $key, $default_value = false ) {
-	// Network options are shared by every blog; TicketTest seeds `ticket_network`.
-	if ( isset( $GLOBALS['test_site_options'] ) && array_key_exists( $key, $GLOBALS['test_site_options'] ) ) {
-		return $GLOBALS['test_site_options'][ $key ];
-	}
-	return $GLOBALS['ticket_network'][ $key ] ?? $default_value;
+	// Network options are shared by every blog.
+	return $GLOBALS['test_site_options'][ $key ] ?? $default_value;
 }
 function add_site_option( $key, $value ) {
 	if ( isset( $GLOBALS['test_site_options'] ) && array_key_exists( $key, $GLOBALS['test_site_options'] ) ) {
@@ -176,6 +173,13 @@ function update_option( $key, $value ) {
 	$GLOBALS['test_options'][ $key ] = $value;
 	return true;
 }
+function get_blog_option( $blog_id, $key, $default_value = false ) {
+	return $GLOBALS['test_blog_options'][ $blog_id ][ $key ] ?? $default_value;
+}
+// Fee rates are a network setting owned by extrachill-network.
+require_once dirname( __DIR__, 2 ) . '/extrachill-network/inc/commerce/fee-settings.php';
+require_once dirname( __DIR__ ) . '/inc/core/commerce-fees.php';
+require_once dirname( __DIR__ ) . '/inc/shipping/shipping-recovery.php';
 function extrachill_shop_get_priority_boost_product_id() {
 	return 99;
 }

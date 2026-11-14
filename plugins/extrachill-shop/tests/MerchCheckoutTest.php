@@ -21,6 +21,10 @@ final class MerchCheckoutOrder {
 	public function get_id() { return 123; }
 	public function get_items() { return array( new MerchCheckoutItem() ); }
 	public function get_total() { return 25; }
+	public $shipping = 5.0;
+	public function get_shipping_total() { return $this->shipping; }
+	public function get_shipping_tax() { return 0; }
+	public function add_order_note( $note ) { $this->notes[] = $note; }
 	public function get_currency() { return 'USD'; }
 	public function get_billing_email() { return 'buyer@example.com'; }
 	public function get_checkout_order_received_url() { return 'https://shop.example/received?key=secret'; }
@@ -79,7 +83,9 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		$this->assertFalse( is_wp_error( extrachill_shop_start_merch_checkout( $order ) ) );
 		list( $data, $options ) = $GLOBALS['ticket_session_request'];
 		$this->assertSame( 'acct_merch', $options['stripe_account'] );
-		$this->assertSame( 200, $data['payment_intent_data']['application_fee_amount'] );
+		// 10% of the $20 items plus the $5 shipping, which pays for the label.
+		$this->assertSame( 700, $data['payment_intent_data']['application_fee_amount'] );
+		$this->assertSame( 500, $order->meta['_extrachill_shipping_hold_minor'] );
 		$this->assertSame( array(
 			'kind'     => 'extrachill_merch',
 			'order_id' => '123',
