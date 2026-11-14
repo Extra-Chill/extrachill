@@ -46,9 +46,10 @@ function extrachill_events_priority_boost_build_target_grant( array $config ): ?
 /**
  * Resolve the target grant without embedding assertion secrets in source.
  *
- * Deployment configuration supplies key IDs and secrets through the constant
- * below. The source integration independently registers the matching source
- * grant and selects its active key through the Network contract.
+ * Keys come from the Network-provisioned keyring by default. The constant
+ * below is an optional deployment override. The source integration
+ * independently registers the matching source grant and selects its active key
+ * through the Network contract.
  *
  * @return array<string,mixed>|null Target grant, or null when unavailable.
  */
@@ -59,7 +60,9 @@ function extrachill_events_priority_boost_target_grant(): ?array {
 	$target_host    = $target_url ? wp_parse_url( $target_url, PHP_URL_HOST ) : '';
 	$keys           = defined( 'EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ASSERTION_KEYS' )
 		? constant( 'EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ASSERTION_KEYS' )
-		: array();
+		: ( function_exists( 'ec_cross_site_service_assertion_service_keys' )
+			? ec_cross_site_service_assertion_service_keys( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID )['keys']
+			: array() );
 
 	/**
 	 * Filters deployment-provided priority boost assertion keys.
