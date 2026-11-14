@@ -154,37 +154,19 @@ class RepairFlowLocationsCommand {
 
 			$current = $this->extractCurrentLocation( $flow_record['flow_config'] );
 
-			// Resolve pipeline's market term.
-			$proposed = FlowLocationGuard::resolvePipelineLocationTermId( $pipeline_name );
+			// Resolve pipeline's market term. Coordinates come from the
+			// pipeline's own Ticketmaster flow so same-named cities with
+			// no state suffix in the pipeline name can still be told apart.
+			$proposed = FlowLocationGuard::resolvePipelineLocationTermId(
+				$pipeline_name,
+				$this->pipelineCoordinates( $pipeline_id, $flow_record['flow_config'], $db_flows )
+			);
 
-			// Determine whether this flow actually needs repair.
-			$needs_repair = false;
-			if ( '' === $current ) {
-				// Flow has an upsert_event step but no location key at
-				// all — treat as needs_repair only if we have a value
-				// to stamp in. Otherwise the upsert handler likely
-				// doesn't expose the field.
-				$needs_repair = ( '' !== $proposed );
-			} elseif ( FlowLocationGuard::isRejectedValue( $current ) ) {
-				$needs_repair = true;
-			} elseif ( is_numeric( $current ) ) {
-				// Numeric — confirm the term still exists.
-				$term = get_term( (int) $current, 'location' );
-				if ( ! $term || is_wp_error( $term ) ) {
-					$needs_repair = true;
-				}
-			} else {
-				// String name — confirm it still resolves to a real
-				// term. If not, mark for repair so a stale name gets
-				// rewritten to a term ID.
-				$term = get_term_by( 'slug', $current, 'location' );
-				if ( ! $term ) {
-					$term = get_term_by( 'name', $current, 'location' );
-				}
-				if ( ! $term ) {
-					$needs_repair = true;
-				}
-			}
+			// Determine whether this flow actually needs repair. A name
+			// counts as resolved only when exactly one location term has
+			// it — the same strictness venue onboarding enforces.
+			$repair_reason = '' === $current ? '' : $this->classify( $current );
+			$needs_repair  = '' === $current ? ( '' !== $proposed ) : ( '' !== $repair_reason );
 
 			if ( ! $needs_repair ) {
 				++$totals['skipped_clean'];
@@ -217,13 +199,19 @@ class RepairFlowLocationsCommand {
 					'current'       => $current,
 					'proposed'      => $proposed,
 					'status'        => 'would_repair',
-					'reason'        => 'dry_run',
+					'reason'        => '' !== $repair_reason ? $repair_reason : 'dry_run',
 				);
 				continue;
 			}
 
 			// COMMIT path — coerce + write via Flows::update_flow().
-			$coerce = FlowLocationGuard::coerceUpsertEventLocation( $flow_record['flow_config'], $proposed );
+			$coerce = FlowLocationGuard::coerceUpsertEventLocation(
+				$flow_record['flow_config'],
+				$proposed,
+				function ( string $value ): bool {
+					return '' !== $this->classify( $value );
+				}
+			);
 
 			if ( empty( $coerce['coerced'] ) ) {
 				++$totals['skipped_clean'];
@@ -252,7 +240,7 @@ class RepairFlowLocationsCommand {
 					'current'       => $current,
 					'proposed'      => $proposed,
 					'status'        => 'repaired',
-					'reason'        => 'flow_config_written',
+					'reason'        => '' !== $repair_reason ? $repair_reason : 'flow_config_written',
 				);
 			} else {
 				++$totals['failed'];
@@ -309,6 +297,78 @@ class RepairFlowLocationsCommand {
 			\WP_CLI::log( '' );
 			\WP_CLI::log( 'Dry run — no changes written. Re-run with --commit to apply.' );
 		}
+	}
+
+	/**
+	 * Per-pipeline coordinate cache.
+	 *
+	 * @var array<int,array|null>
+	 */
+	private array $pipeline_coordinates = array();
+
+	/**
+	 * Classify a stored selection value; '' means clean.
+	 *
+	 * @param string $value Stored taxonomy_location_selection value.
+	 */
+	private function classify( string $value ): string {
+		return FlowLocationGuard::classifySelectionValue(
+			$value,
+			static function ( int $term_id ): bool {
+				$term = get_term( $term_id, 'location' );
+				return $term instanceof \WP_Term;
+			},
+			static function ( string $name ): int {
+				$terms = get_terms(
+					array(
+						'taxonomy'   => 'location',
+						'name'       => $name,
+						'hide_empty' => false,
+						'number'     => 2,
+						'fields'     => 'ids',
+					)
+				);
+				return is_array( $terms ) ? count( $terms ) : 0;
+			}
+		);
+	}
+
+	/**
+	 * Pipeline market coordinates from this flow or a sibling flow's
+	 * Ticketmaster `location` setting.
+	 *
+	 * @param int    $pipeline_id Pipeline ID.
+	 * @param array  $flow_config Current flow config.
+	 * @param object $db_flows    Data Machine Flows repository.
+	 */
+	private function pipelineCoordinates( int $pipeline_id, array $flow_config, $db_flows ): ?array {
+		$own = FlowLocationGuard::extractPipelineCoordinates( $flow_config );
+		if ( null !== $own ) {
+			return $own;
+		}
+		if ( $pipeline_id <= 0 ) {
+			return null;
+		}
+		if ( array_key_exists( $pipeline_id, $this->pipeline_coordinates ) ) {
+			return $this->pipeline_coordinates[ $pipeline_id ];
+		}
+
+		$found = null;
+		foreach ( (array) $db_flows->get_flows_for_pipeline( $pipeline_id ) as $flow ) {
+			$config = $flow['flow_config'] ?? array();
+			if ( is_string( $config ) ) {
+				$config = json_decode( $config, true );
+			}
+			if ( is_array( $config ) ) {
+				$found = FlowLocationGuard::extractPipelineCoordinates( $config );
+				if ( null !== $found ) {
+					break;
+				}
+			}
+		}
+
+		$this->pipeline_coordinates[ $pipeline_id ] = $found;
+		return $found;
 	}
 
 	/**
