@@ -127,7 +127,7 @@ function extrachill_shop_find_us_shipping_zone() {
 		foreach ( $zone_data['zone_locations'] ?? array() as $location ) {
 			if ( 'country' === $location->type && 'US' === $location->code ) {
 				$zone = WC_Shipping_Zones::get_zone( (int) $zone_data['zone_id'] );
-				return $zone ? $zone : null;
+				return $zone instanceof WC_Shipping_Zone ? $zone : null;
 			}
 		}
 	}
