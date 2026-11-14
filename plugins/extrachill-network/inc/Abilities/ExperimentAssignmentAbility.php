@@ -70,10 +70,8 @@ class ExperimentAssignmentAbility {
 						'variant'              => array( 'type' => 'string' ),
 						'surface'              => array( 'type' => 'string' ),
 						'measurement_eligible' => array( 'type' => 'boolean' ),
-						'exposure_token'       => array(
-							'type'      => 'string',
-							'maxLength' => 108,
-						),
+						// Empty when the visitor is not measurement-eligible.
+						'exposure_token'       => extrachill_signed_token_schema( true ),
 					),
 				),
 				'execute_callback'    => array( $this, 'execute' ),
@@ -112,11 +110,7 @@ class ExperimentAssignmentAbility {
 						'variant'            => $this->identifier_schema(),
 						'surface'            => $this->identifier_schema(),
 						'context'            => $this->context_schema(),
-						'exposure_token'     => array(
-							'type'      => 'string',
-							'pattern'   => '^\\d{10}\\.[a-f0-9]{32}\\.[a-f0-9]{64}$',
-							'maxLength' => 108,
-						),
+						'exposure_token'     => extrachill_signed_token_schema(),
 					),
 				),
 				'output_schema'       => array(

@@ -31,7 +31,7 @@ require dirname( __DIR__ ) . '/inc/core/experiments.php';
 require dirname( __DIR__ ) . '/inc/theme/network-dropdown.php';
 $key = 'network-dropdown-everywhere';
 $definition = extrachill_normalize_experiment_definition( extrachill_network_register_dropdown_experiment( array() )[ $key ], $key );
-check( is_array( $definition ) && 1 === $definition['definition_version'], 'definition normalizes' );
+check( is_array( $definition ) && 2 === $definition['definition_version'], 'definition normalizes' );
 check( array( 'control' => 50, 'treatment' => 50 ) === $definition['variants'], '50/50 variants' );
 $listed = extrachill_list_experiments()['items'];
 check( $key === $listed[0]['key'] && 'inactive' === $listed[0]['state'], 'CLI list data ships inactive' );
