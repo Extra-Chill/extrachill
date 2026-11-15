@@ -1,6 +1,6 @@
 # Connecting Your Payout Account
 
-Your payout account is where buyers' money lands and how it reaches your bank. You need one before any product goes on sale. Every sale is paid straight into your account, so Extra Chill never holds your money.
+Your payout account is where sales money is received and sent to your bank. You need one before products can go on sale. Each person who manages the shop must accept the [Seller Agreement](https://extrachill.com/seller-agreement/) before setting up payouts.
 
 ## Connect Your Account
 
@@ -11,7 +11,7 @@ Your payout account is where buyers' money lands and how it reaches your bank. Y
 5. Enter your details: who you are, your business details if you have them, and the bank account you want paid into.
 6. When you finish, you come back to the shop manager.
 
-You must be at least 18 to sell. If you set up payouts for a band, venue, or business, you're confirming you're allowed to act for it.
+You must be at least 18 to sell. If you set up payouts for a band, venue, or business, you're confirming you're allowed to act for it. Complete all requested identity, business, and bank details on the secure setup page. If more information is needed or your details are being checked, return to the Payments tab and follow its prompt.
 
 If you leave partway through, come back to the **Payments** tab and select **Connect payouts** again to pick up where you left off.
 

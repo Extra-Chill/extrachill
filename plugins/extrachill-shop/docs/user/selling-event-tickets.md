@@ -52,6 +52,6 @@ If a buyer disputes a ticket payment with their bank, you can't refund it from E
 
 ## Fees and Taxes
 
-Right now Extra Chill takes no fee on ticket sales and adds no service fee for buyers. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
+The current seller fee and any buyer service fee are shown on the **Payments** tab before you sell. Check that tab for the current amounts, since fees can change. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
 
 You set the full price, with tax included. You're responsible for any sales or admissions tax on your tickets.

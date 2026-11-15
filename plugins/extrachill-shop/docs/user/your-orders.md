@@ -4,7 +4,7 @@ After you check out, here's how to keep track of your order and get help if some
 
 ## Who Handles Your Order
 
-Every order on the shop comes from one seller: an artist, venue, promoter, or Extra Chill itself. That seller packs and ships your order and handles returns, refunds, and questions about it. Extra Chill runs the shop and steps in if you can't sort it out with the seller.
+Every order comes from one seller: an artist, venue, or promoter. That seller packs and ships your order and handles returns, refunds, and questions about it. Read the seller's **Shipping & Returns** details on its shop or product page. If you can't reach the seller or resolve an issue, contact Extra Chill through the [contact form](https://extrachill.com/contact-us/) and choose **Shop/Store Support**.
 
 ## Order Emails
 
@@ -40,7 +40,7 @@ If you'd like the tracking number, ask the seller. They have it once they've shi
 
 ## Returns and Refunds
 
-Each seller sets its own shipping times and return policy. Look for **Shipping & returns** on the seller's storefront or the **Shipping & Returns** tab on its product pages. Every seller agrees to replace or refund items that arrive damaged, defective, or very different from the listing. Contact the seller within 30 days of delivery and include photos.
+Each seller sets its own shipping times and return policy. Look for **Shipping & returns** on the seller's storefront or the **Shipping & Returns** tab on its product pages. For items that arrive damaged, defective, or very different from the listing, contact the seller within 30 days of delivery and include photos. Ask the seller what solution is available under the [Shipping & Returns page](https://shop.extrachill.com/shipping-and-returns/).
 
 Refunds go back to the way you paid. Once a seller refunds your order, its status changes to **Refunded** and you get an email.
 

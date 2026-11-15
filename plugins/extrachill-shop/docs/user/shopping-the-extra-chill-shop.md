@@ -1,13 +1,11 @@
 # Shopping the Extra Chill Shop
 
-The [Extra Chill Shop](https://shop.extrachill.com/) is where you buy merch straight from independent artists, venues, and promoters, plus Extra Chill's own merch and extras for your account or your events. When you buy from an artist, your money goes to that artist.
+Browse and buy from artists, venues, and promoters in the [Extra Chill Shop](https://shop.extrachill.com/). Each seller handles its own orders, shipping, returns, and support. The shop is open to everyone; you don't need an account to buy.
 
 ## What You Can Buy
 
 - **Artist, venue, and promoter merch**, like shirts, stickers, and patches. Each seller packs and ships its own orders.
-- **Extra Chill merch**, like our stickers.
-- **Lifetime Extra Chill Membership.** A one-time purchase that removes ads across every Extra Chill site.
-- **Event Priority Boost.** Puts an upcoming event first on the calendar for its date.
+- **Extra Chill merch and extras**, when available.
 
 Tickets for shows are sold on each event's page, not in the shop. See [Buying Event Tickets](buying-event-tickets.md).
 
@@ -25,7 +23,7 @@ Every seller also has their own shop page, like shop.extrachill.com/artist/their
 
 Your cart can hold items from one seller at a time. If you try to add something from a different seller, you'll see "Your cart has items from another seller. Check out or empty it first."
 
-To buy from two sellers, check out with the first one, then shop the second. Extra Chill's own items (stickers, memberships, and event boosts) count as one seller, so you can buy those together.
+To buy from two sellers, check out with the first one, then shop the second.
 
 ## Place an Order
 
@@ -38,23 +36,11 @@ See [Checking Out and Paying](checking-out-and-paying.md) for each step.
 
 ## Shipping
 
-Shipping is a flat $5 per order, added at checkout before you pay. If every item in your order ships free, so does your order. Some small items, like stickers and patches, ship free.
+Shipping is $5 per order, added at checkout before you pay. If every item in your order ships free, so does your order. Some small items may ship free; check the product details.
 
 The shop ships to addresses in the United States only.
 
 Memberships and event boosts don't ship. There's nothing to wait for.
-
-## Buying a Lifetime Membership
-
-When you add the membership to your cart, enter the **Community Username** of the account that should get it. If you're logged in, your own username is filled in for you. You can change it to give the membership to someone else.
-
-The username must belong to an existing Extra Chill account. Once your payment goes through, that account stops seeing ads on every Extra Chill site.
-
-## Boosting an Event
-
-When you add Event Priority Boost to your cart, paste the **Event URL**. It has to be a published event page on the [Extra Chill Events Calendar](https://events.extrachill.com/). Boost a show that hasn't happened yet, since the boost only matters on the event's date.
-
-Once your payment goes through, the event moves to the top of the calendar for its date.
 
 ## Want to Sell Your Own Merch?
 
