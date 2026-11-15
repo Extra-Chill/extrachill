@@ -46,9 +46,11 @@ jobs:
   docs-agent:
     needs: config
     # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs;
-    # 1f576e6 adds the optional PUBLISH_TOKEN (Automattic/docs-agent#184).
+    # 1f576e6 adds the optional PUBLISH_TOKEN (Automattic/docs-agent#184);
+    # 07f990b runs on WP Codebox v0.33.4, which fails loudly on lost writes
+    # (Automattic/docs-agent#185, Automattic/wp-codebox#2567).
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@1f576e66885358e314963272fbb5afe8d5f0b7b5
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@07f990bb96ad2c076b304367a496d0fd8e8e5edf
     with:
       audience: ${{ fromJSON(needs.config.outputs.config).audience }}
       run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
