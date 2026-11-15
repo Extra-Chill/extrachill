@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import {
 	Children,
 	cloneElement,
@@ -7,6 +10,10 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import './style.scss';
 
 const DEFAULT_STYLES = {
@@ -92,7 +99,7 @@ export const validateDraft = ( draft, configuredLimits = {} ) => {
 				if ( ! [ 'http:', 'https:' ].includes( parsed.protocol ) ) {
 					return 'Every link URL must use HTTP or HTTPS.';
 				}
-			} catch ( error ) {
+			} catch {
 				return 'Every link needs a valid URL.';
 			}
 		}
@@ -345,8 +352,11 @@ function LinksPanel( { draft, change, limits } ) {
 											} );
 										} }
 									/>
-									<label>
+									<label
+										htmlFor={ `ec-lpe-featured-${ sectionIndex }-${ linkIndex }` }
+									>
 										<input
+											id={ `ec-lpe-featured-${ sectionIndex }-${ linkIndex }` }
 											type="checkbox"
 											checked={ !! link.featured }
 											onChange={ ( event ) => {
@@ -492,6 +502,10 @@ function LinksPanel( { draft, change, limits } ) {
 		</div>
 	);
 }
+
+const GRADIENT_KEYWORD_ANGLES = { 'to right': 90, 'to bottom': 180 };
+const gradientAngle = ( direction ) =>
+	GRADIENT_KEYWORD_ANGLES[ direction ] ?? parseFloat( direction );
 
 export const cardBackgroundParts = ( value ) => {
 	if ( value === 'transparent' || value === 'none' ) {
@@ -878,21 +892,11 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 							min="0"
 							max="360"
 							step="any"
-							value={
+							value={ gradientAngle(
 								styles[
 									'--link-page-background-gradient-direction'
-								] === 'to right'
-									? 90
-									: styles[
-												'--link-page-background-gradient-direction'
-										  ] === 'to bottom'
-										? 180
-										: parseFloat(
-												styles[
-													'--link-page-background-gradient-direction'
-												]
-											)
-							}
+								]
+							) }
 							onChange={ ( event ) => {
 								const angle = Number( event.target.value );
 								if (
@@ -1052,15 +1056,28 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 			<Field label="Button Hover / Tapped Text Color">
 				<input
 					type="color"
-					value={ styles[ '--link-page-button-hover-text-color' ] || styles[ '--link-page-link-text-color' ] }
-					onChange={ ( event ) => style( '--link-page-button-hover-text-color', event.target.value ) }
+					value={
+						styles[ '--link-page-button-hover-text-color' ] ||
+						styles[ '--link-page-link-text-color' ]
+					}
+					onChange={ ( event ) =>
+						style(
+							'--link-page-button-hover-text-color',
+							event.target.value
+						)
+					}
 				/>
 			</Field>
 			<Field label="Icon Color">
 				<input
 					type="color"
-					value={ styles[ '--link-page-icon-color' ] || styles[ '--link-page-text-color' ] }
-					onChange={ ( event ) => style( '--link-page-icon-color', event.target.value ) }
+					value={
+						styles[ '--link-page-icon-color' ] ||
+						styles[ '--link-page-text-color' ]
+					}
+					onChange={ ( event ) =>
+						style( '--link-page-icon-color', event.target.value )
+					}
 				/>
 			</Field>
 			<Field label="Button Hover Color">

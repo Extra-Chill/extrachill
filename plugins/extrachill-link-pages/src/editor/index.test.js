@@ -1,6 +1,17 @@
-/* global afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest */
+/* global afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest, KeyboardEvent */
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { act } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import {
 	AdapterBoundary,
 	cardBackgroundParts,
@@ -376,9 +387,7 @@ describe( 'portable editor behavior', () => {
 		await act( async () =>
 			container.querySelector( '.ec-lpe-links-empty__add-link' ).click()
 		);
-		expect(
-			container.querySelector( '.ec-lpe-links-empty' )
-		).toBeNull();
+		expect( container.querySelector( '.ec-lpe-links-empty' ) ).toBeNull();
 		expect(
 			container.querySelectorAll( 'input[aria-label="Link title"]' )
 				.length
@@ -816,9 +825,15 @@ describe( 'portable editor behavior', () => {
 			finish.value = 'gloss';
 			finish.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		} );
-		const preview = container.querySelector( '.extrch-link-page-preview-container' );
-		expect( preview.style.getPropertyValue( '--link-page-button-finish' ) ).toBe( 'gloss' );
-		expect( preview.style.getPropertyValue( '--link-page-button-sheen' ) ).toContain( 'linear-gradient' );
+		const preview = container.querySelector(
+			'.extrch-link-page-preview-container'
+		);
+		expect(
+			preview.style.getPropertyValue( '--link-page-button-finish' )
+		).toBe( 'gloss' );
+		expect(
+			preview.style.getPropertyValue( '--link-page-button-sheen' )
+		).toContain( 'linear-gradient' );
 		expect(
 			container.querySelector( '.extrch-share-page-trigger' )
 		).not.toBeNull();
