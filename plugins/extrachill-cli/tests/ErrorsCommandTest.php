@@ -45,9 +45,13 @@ namespace {
 
 		$errors_command_php  = new ErrorsCommandTestAbility();
 		$errors_command_rest = new ErrorsCommandTestAbility();
+		$errors_command_http = new ErrorsCommandTestAbility();
 
 		function wp_get_ability( $name ) {
-			global $errors_command_php, $errors_command_rest;
+			global $errors_command_php, $errors_command_rest, $errors_command_http;
+			if ( 'extrachill/get-http-5xx-summary' === $name ) {
+				return $errors_command_http;
+			}
 			if ( 'extrachill/get-php-error-summary' === $name ) {
 				return $errors_command_php;
 			}
@@ -86,7 +90,25 @@ namespace {
 	if ( ! $errors_command_wp_bootstrapped ) {
 		require_once dirname( __DIR__ ) . '/inc/Commands/Analytics/ErrorsCommand.php';
 
-		global $errors_command_php, $errors_command_rest, $errors_command_formats;
+		global $errors_command_php, $errors_command_rest, $errors_command_http, $errors_command_formats;
+
+		$errors_command_http->result = array(
+			'total'               => 124,
+			'per_day'             => 124.0,
+			'window_hours'        => 24,
+			'distinct_signatures' => 1,
+			'source'              => 'access_log:/var/log/nginx/access.log',
+			'note'                => 'access log',
+			'rows'                => array(
+				array(
+					'route'         => 'page',
+					'code'          => '504',
+					'count'         => 124,
+					'per_day'       => 124.0,
+					'peak_per_hour' => 90,
+				),
+			),
+		);
 
 		$errors_command_php->result  = array( 'rows' => array() );
 		$errors_command_rest->result = array(
@@ -114,6 +136,8 @@ namespace {
 		errors_command_assert_same( 1, count( $errors_command_rest->inputs ), 'Table default must also read REST 5xx.' );
 		errors_command_assert_same( array( 'route', 'code', 'count', 'per_day', 'peak_per_hour' ), $errors_command_formats[0]['fields'], 'REST 5xx renders as its own source.' );
 		errors_command_assert_same( 168, $errors_command_rest->inputs[0]['hours'], 'The 7d default maps to the 168h retention.' );
+		errors_command_assert_same( 1, count( $errors_command_http->inputs ), 'Table default must also read web server 5xx.' );
+		errors_command_assert_same( array( 'path_class', 'status', 'count', 'per_day', 'peak_per_hour' ), $errors_command_formats[1]['fields'], 'HTTP 5xx renders as its own source with path_class/status columns.' );
 
 		// json defaults to php only (backward compatible shape).
 		$command( array(), array( 'format' => 'json' ) );
@@ -129,6 +153,19 @@ namespace {
 		errors_command_assert_same( 900, $json['items'][0]['count'], 'json carries raw integers.' );
 		errors_command_assert_same( 1, $errors_command_rest->inputs[1]['hours'], '--since=1h reads one hour.' );
 		errors_command_assert_same( 2, count( $errors_command_php->inputs ), '--source=rest does not read PHP errors.' );
+
+		// --source=http reads only the access log counter.
+		$command( array(), array(
+			'format' => 'json',
+			'source' => 'http',
+			'since'  => '2h',
+		) );
+		$json = end( $errors_command_formats );
+		errors_command_assert_same( '504', $json['items'][0]['status'], 'http rows carry the HTTP status.' );
+		errors_command_assert_same( 'page', $json['items'][0]['path_class'], 'http rows carry the path class.' );
+		errors_command_assert_same( 2, $errors_command_http->inputs[1]['hours'], '--since=2h reads two hours.' );
+		errors_command_assert_same( 2, count( $errors_command_rest->inputs ), '--source=http does not read REST 5xx.' );
+		errors_command_assert_same( 2, count( $errors_command_php->inputs ), '--source=http does not read PHP errors.' );
 
 		// Mixed shapes in json are refused.
 		$refused = false;

@@ -66,12 +66,15 @@ class ErrorsCommand {
 	 *
 	 * [--source=<source>]
 	 * : Error source. "php" is debug.log; "rest" is REST responses with status
-	 *   >= 500, which never reach debug.log (max 7 days). Table output defaults
-	 *   to both; json/csv default to php.
+	 *   >= 500, which never reach debug.log; "http" is every 5xx in the web
+	 *   server access log, including gateway errors (502/504) that never reach
+	 *   WordPress (rest and http: max 7 days). Table output defaults to all
+	 *   three; json/csv default to php.
 	 * ---
 	 * options:
 	 *   - php
 	 *   - rest
+	 *   - http
 	 *   - all
 	 * ---
 	 *
@@ -102,6 +105,9 @@ class ErrorsCommand {
 	 *     # REST 5xx responses by route and error code over the last 24 hours.
 	 *     wp extrachill analytics errors --source=rest --since=24h
 	 *
+	 *     # Web server 5xx (gateway errors included) by path class and status.
+	 *     wp extrachill analytics errors --source=http --since=24h
+	 *
 	 * ## NOTES
 	 *
 	 * This is a network/site read and takes NO acting-user context. Do not pass
@@ -117,29 +123,41 @@ class ErrorsCommand {
 		$format = $assoc_args['format'] ?? 'table';
 		$source = $assoc_args['source'] ?? ( 'table' === $format ? 'all' : 'php' );
 		if ( 'all' === $source && 'table' !== $format ) {
-			WP_CLI::error( '--source=all is table-only; pick --source=php or --source=rest for json/csv.' );
+			WP_CLI::error( '--source=all is table-only; pick --source=php, --source=rest or --source=http for json/csv.' );
 		}
-		if ( 'rest' !== $source ) {
+		if ( in_array( $source, array( 'php', 'all' ), true ) ) {
 			$this->report_php( $assoc_args );
 		}
-		if ( 'php' !== $source ) {
+		if ( in_array( $source, array( 'rest', 'all' ), true ) ) {
 			if ( 'all' === $source ) {
 				WP_CLI::log( '' );
 			}
-			$this->report_rest( $assoc_args );
+			$this->report_counter( $assoc_args, 'rest' );
+		}
+		if ( in_array( $source, array( 'http', 'all' ), true ) ) {
+			if ( 'all' === $source ) {
+				WP_CLI::log( '' );
+			}
+			$this->report_counter( $assoc_args, 'http' );
 		}
 	}
 
 	/**
-	 * Report REST responses with status >= 500 (extrachill/get-rest-5xx-summary).
+	 * Report a bounded 5xx counter: REST responses (extrachill/get-rest-5xx-summary)
+	 * or web server access log responses (extrachill/get-http-5xx-summary).
 	 *
-	 * @param array $assoc_args Associative arguments.
+	 * @param array  $assoc_args Associative arguments.
+	 * @param string $kind       "rest" or "http".
 	 * @return void
 	 */
-	private function report_rest( $assoc_args ) {
-		$ability = wp_get_ability( 'extrachill/get-rest-5xx-summary' );
+	private function report_counter( $assoc_args, $kind = 'rest' ) {
+		$is_http = 'http' === $kind;
+		$name    = $is_http ? 'extrachill/get-http-5xx-summary' : 'extrachill/get-rest-5xx-summary';
+		$label   = $is_http ? 'HTTP 5xx' : 'REST 5xx';
+		$cols    = $is_http ? array( 'path_class', 'status' ) : array( 'route', 'code' );
+		$ability = wp_get_ability( $name );
 		if ( ! $ability ) {
-			WP_CLI::warning( 'extrachill/get-rest-5xx-summary ability not found; REST 5xx responses are not instrumented.' );
+			WP_CLI::warning( sprintf( '%s ability not found; %s responses are not instrumented.', $name, $label ) );
 			return;
 		}
 		$format = $assoc_args['format'] ?? 'table';
@@ -158,27 +176,27 @@ class ErrorsCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 		if ( empty( $result['rows'] ) ) {
-			WP_CLI::success( sprintf( 'No REST 5xx responses in the last %d hours.', (int) $result['window_hours'] ) );
+			WP_CLI::success( sprintf( 'No %s responses in the last %d hours.', $label, (int) $result['window_hours'] ) );
 			return;
 		}
 		$rows = array();
 		foreach ( $result['rows'] as $row ) {
 			$rows[] = array(
-				'route'         => $row['route'],
-				'code'          => $row['code'],
+				$cols[0]        => $row['route'],
+				$cols[1]        => $row['code'],
 				'count'         => 'table' === $format ? number_format( $row['count'] ) : (int) $row['count'],
 				'per_day'       => 'table' === $format ? number_format( $row['per_day'], 1 ) : (float) $row['per_day'],
 				'peak_per_hour' => (int) $row['peak_per_hour'],
 			);
 		}
 		if ( 'table' === $format ) {
-			WP_CLI::log( sprintf( 'REST 5xx Responses — last %d hours — source: %s', (int) $result['window_hours'], $result['source'] ) );
+			WP_CLI::log( sprintf( '%s Responses — last %d hours — source: %s', $label, (int) $result['window_hours'], $result['source'] ) );
 			WP_CLI::log( str_repeat( '─', 70 ) );
 		}
-		Utils\format_items( $format, $rows, array( 'route', 'code', 'count', 'per_day', 'peak_per_hour' ) );
+		Utils\format_items( $format, $rows, array( $cols[0], $cols[1], 'count', 'per_day', 'peak_per_hour' ) );
 		if ( 'table' === $format ) {
 			WP_CLI::log( '' );
-			WP_CLI::log( sprintf( 'Total: %s REST 5xx responses (%s/day) across %d signature%s. %s', number_format( $result['total'] ), number_format( $result['per_day'], 1 ), (int) $result['distinct_signatures'], 1 === (int) $result['distinct_signatures'] ? '' : 's', $result['note'] ) );
+			WP_CLI::log( sprintf( 'Total: %s ' . $label . ' responses (%s/day) across %d signature%s. %s', number_format( $result['total'] ), number_format( $result['per_day'], 1 ), (int) $result['distinct_signatures'], 1 === (int) $result['distinct_signatures'] ? '' : 's', $result['note'] ) );
 		}
 	}
 

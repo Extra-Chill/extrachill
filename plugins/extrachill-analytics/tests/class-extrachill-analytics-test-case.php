@@ -72,6 +72,11 @@ abstract class Extrachill_Analytics_TestCase extends WP_UnitTestCase {
 			},
 			5
 		);
+		// Alarm ticks must never tail the runner's real web server log (#1435).
+		// Tests that exercise the access log counter override this later.
+		add_filter( 'extrachill_analytics_http_5xx_log_path', '__return_empty_string', 5 );
+		delete_site_option( 'extrachill_analytics_http_5xx' );
+		delete_site_option( 'extrachill_analytics_http_5xx_cursor' );
 
 		// The harness install stores the site_admins network option as the
 		// literal string "" instead of an array, which breaks grant_super_admin()
