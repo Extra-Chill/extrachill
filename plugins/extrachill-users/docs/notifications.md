@@ -20,3 +20,12 @@ Required payload fields are `actor_id`, `type`, `title`, and `link`; `item_id` i
 | `extrachill-users.publish-notify` | `context:{context}:blog:{blog}:post:{post}` | The post guard records every attempted valid recipient, including failed, preserving the observer's attempt-once/no-storm policy. |
 
 Registered publish-notify contexts and blog IDs are part of the key because post IDs are only unique within a site and independent sources may watch the same post.
+
+## Push Channel
+
+`inc/notifications/push.php` delivers genuine inserts to devices through the optional wp-native-auth primitive `wp_native_auth_send_push( int $user_id, array $message ): array`. The substrate fires `ec_users_notification_inserted( $notification_id, $user_id, $payload )` once per `inserted` receipt; `existing` replays and failures never fire it. When wp-native-auth is not active (`function_exists()` is false) the channel is a no-op. Device tokens are owned by wp-native-auth.
+
+- **Allow-list:** `ec_users_notification_push_types()` (filter `ec_users_notification_push_types`) is the single map of types that push: `reply`, `subscription`, `mention`, approvals (`artist_dispatch_approved`, `artist_dispatch_rejected`, `artist_dispatch_published`, `studio_published`, `artist_import_approved`, `artist_import_rejected`, `event_source_approved`) and requested work (`editorial_submission`, `guest_list_request`, booking inquiry/correction/cancellation/reply types). Engagement nudges are never listed.
+- **Lock-screen safety:** the title is a generic per-type string (for example "New reply from {actor}"). The stored notification title is used as the body only for `public` scope types, or for `forum` scope items whose post and every ancestor are `publish` and not `_bbp_status = closed`. Private/hidden/closed forums, venue-scoped, booking and review items never carry a body. Override with `ec_users_notification_push_is_private`.
+- **Payload:** `data` = `{ notification_id, type, url }`; `collapse_id` is `ec-topic-{topic}` for forum items, otherwise `ec-{type}-{item_id}` (or `ec-notification-{id}`).
+- **Preference:** `ec_notification_push_disabled` user meta, written only by `ec_users_set_notification_push_disabled()`; read with `ec_users_notification_push_enabled()`. Exposed as `push_enabled` on `extrachill/get-notification-preferences` and `extrachill/update-notification-preferences`, and as a toggle in the community settings Notifications tab.

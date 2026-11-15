@@ -274,13 +274,37 @@ function ec_users_notify_with_receipts( $user_ids, array $data ): array {
 		++$receipt[ $status ];
 
 		if ( 'inserted' === $status ) {
-			$notified_ids[] = $user_id;
+			$notified_ids[ $user_id ] = $notification_id;
 		}
 	}
 
 	// Bust each recipient's cached unread count so the badge reflects the new row.
 	if ( $notified_ids ) {
-		ec_users_flush_unread_count_cache( $notified_ids );
+		ec_users_flush_unread_count_cache( array_keys( $notified_ids ) );
+
+		$inserted_payload = array(
+			'actor_id' => $actor_id,
+			'type'     => $type,
+			'title'    => $title,
+			'link'     => $link,
+			'item_id'  => $item_id,
+			'producer' => $producer,
+		);
+
+		foreach ( $notified_ids as $user_id => $notification_id ) {
+			/**
+			 * Fires once per recipient after a GENUINE notification insert.
+			 *
+			 * Never fires for an idempotent replay (`existing` receipt) or a
+			 * failure, so delivery channels (e.g. push) hooked here run exactly
+			 * once per notification row.
+			 *
+			 * @param int   $notification_id Inserted notification row ID.
+			 * @param int   $user_id         Recipient user ID.
+			 * @param array $notification    Sanitized payload: actor_id, type, title, link, item_id, producer.
+			 */
+			do_action( 'ec_users_notification_inserted', (int) $notification_id, (int) $user_id, $inserted_payload );
+		}
 	}
 
 	return $receipt;

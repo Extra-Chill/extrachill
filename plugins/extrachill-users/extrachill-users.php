@@ -205,6 +205,8 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
+	// Push channel: hands genuine inserts to wp-native-auth when it is active.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/push.php';
 	// Publish-notify producer: notify a submitter when their submission goes
 	// live. Network-active so it observes the publish on whatever site the post
 	// lives on; driven by a data-only descriptor registry (feature-agnostic).

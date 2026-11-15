@@ -216,7 +216,7 @@ function extrachill_users_register_notification_abilities() {
 		'extrachill/get-notification-preferences',
 		array(
 			'label'               => __( 'Get Notification Preferences', 'extrachill-users' ),
-			'description'         => __( 'Return a user\'s notification delivery preferences (e.g. whether unread-notification digest emails are enabled). Self-only.', 'extrachill-users' ),
+			'description'         => __( 'Return a user\'s notification delivery preferences (digest emails, push notifications, reply auto-subscribe). Self-only.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'    => 'object',
@@ -233,6 +233,10 @@ function extrachill_users_register_notification_abilities() {
 					'auto_subscribe_replies' => array(
 						'type'        => 'boolean',
 						'description' => 'True when the user is auto-subscribed to replies on content they participate in.',
+					),
+					'push_enabled'           => array(
+						'type'        => 'boolean',
+						'description' => 'True when the user receives push notifications on registered devices.',
 					),
 				),
 			),
@@ -255,7 +259,7 @@ function extrachill_users_register_notification_abilities() {
 		'extrachill/update-notification-preferences',
 		array(
 			'label'               => __( 'Update Notification Preferences', 'extrachill-users' ),
-			'description'         => __( 'Update a user\'s notification delivery preferences. Currently exposes the unread-notification digest-email opt-in toggle. Self-only.', 'extrachill-users' ),
+			'description'         => __( 'Update a user\'s notification delivery preferences: digest emails, push notifications and reply auto-subscribe. Self-only.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -269,6 +273,10 @@ function extrachill_users_register_notification_abilities() {
 						'type'        => 'boolean',
 						'description' => 'Set true to be auto-subscribed to replies on content you participate in, false to opt out.',
 					),
+					'push_enabled'           => array(
+						'type'        => 'boolean',
+						'description' => 'Set true to receive push notifications on registered devices, false to opt out.',
+					),
 				),
 			),
 			'output_schema'       => array(
@@ -277,6 +285,7 @@ function extrachill_users_register_notification_abilities() {
 					'user_id'                => array( 'type' => 'integer' ),
 					'emails_enabled'         => array( 'type' => 'boolean' ),
 					'auto_subscribe_replies' => array( 'type' => 'boolean' ),
+					'push_enabled'           => array( 'type' => 'boolean' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_users_ability_update_notification_preferences',
@@ -415,6 +424,7 @@ function extrachill_users_ability_get_notification_preferences() {
 		'user_id'                => $user_id,
 		'emails_enabled'         => ec_users_notification_emails_enabled( $user_id ),
 		'auto_subscribe_replies' => ec_users_auto_subscribe_enabled( $user_id ),
+		'push_enabled'           => ec_users_notification_push_enabled( $user_id ),
 	);
 }
 
@@ -445,9 +455,15 @@ function extrachill_users_ability_update_notification_preferences( array $input 
 		ec_users_set_auto_subscribe_disabled( $user_id, ! $enabled );
 	}
 
+	if ( array_key_exists( 'push_enabled', $input ) ) {
+		$push_enabled = filter_var( $input['push_enabled'], FILTER_VALIDATE_BOOLEAN );
+		ec_users_set_notification_push_disabled( $user_id, ! $push_enabled );
+	}
+
 	return array(
 		'user_id'                => $user_id,
 		'emails_enabled'         => ec_users_notification_emails_enabled( $user_id ),
 		'auto_subscribe_replies' => ec_users_auto_subscribe_enabled( $user_id ),
+		'push_enabled'           => ec_users_notification_push_enabled( $user_id ),
 	);
 }
