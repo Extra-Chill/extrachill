@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.64.1] - 2026-11-15
+
+### Changed
+- remove no-op switch_to_blog calls on the logged-in hot path
+- one ec_with_blog helper and restore-safe switches
+
 ## [0.64.0] - 2026-11-14
 
 ### Added
