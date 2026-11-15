@@ -206,8 +206,11 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 	$artist_exists  = false;
 	if ( $artist_blog_id ) {
 		switch_to_blog( $artist_blog_id );
-		$artist_exists = get_post_type( $artist_id ) === 'artist_profile';
-		restore_current_blog();
+		try {
+			$artist_exists = get_post_type( $artist_id ) === 'artist_profile';
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	if ( ! $artist_exists ) {
