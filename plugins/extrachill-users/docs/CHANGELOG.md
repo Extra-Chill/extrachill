@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.66.1] - 2026-11-15
+
+### Fixed
+- route team writers to Studio instead of wp-admin
+
 ## [0.66.0] - 2026-11-15
 
 ### Added
