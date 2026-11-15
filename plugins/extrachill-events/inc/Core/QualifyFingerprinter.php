@@ -102,10 +102,16 @@ class QualifyFingerprinter {
 	);
 
 	/**
-	 * Fetch the homepage HTML, follow redirects, and capture metadata used
-	 * by the rest of the fingerprint pipeline.
+	 * Fetch a page, follow redirects, and capture metadata used by the rest
+	 * of the fingerprint pipeline.
 	 *
-	 * @param string $url Homepage URL.
+	 * This is the single HTTP fetch used by qualification: the homepage
+	 * fingerprint, the Ticketmaster ownership precheck, and event-source
+	 * page metadata all read the same response shape.
+	 *
+	 * @param string $url  Page URL.
+	 * @param array  $args Optional request-argument overrides (timeout,
+	 *                     redirection, user-agent, reject_unsafe_urls).
 	 * @return array{
 	 *     http_status:int,
 	 *     final_url:string,
@@ -115,7 +121,7 @@ class QualifyFingerprinter {
 	 *     html:string
 	 * }
 	 */
-	public static function fetch_homepage( string $url ): array {
+	public static function fetch_homepage( string $url, array $args = array() ): array {
 		$result = array(
 			'http_status'          => 0,
 			'final_url'            => $url,
@@ -127,11 +133,14 @@ class QualifyFingerprinter {
 
 		$response = wp_remote_get(
 			$url,
-			array(
-				'timeout'     => 12,
-				'redirection' => 5,
-				'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
-				'headers'     => array( 'Accept' => 'text/html' ),
+			array_merge(
+				array(
+					'timeout'     => 12,
+					'redirection' => 5,
+					'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
+					'headers'     => array( 'Accept' => 'text/html' ),
+				),
+				$args
 			)
 		);
 

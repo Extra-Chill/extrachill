@@ -187,6 +187,26 @@ class VenueQualificationAbilities {
 	 * @return array Results.
 	 */
 	public function executeQualifyVenue( array $input ): array|\WP_Error {
+		$result = $this->qualifyWithPage( $input );
+		if ( is_array( $result ) ) {
+			unset( $result['page'] );
+		}
+		return $result;
+	}
+
+	/**
+	 * Qualify a source and also return the page fetched along the way.
+	 *
+	 * The `page` key carries the single homepage response qualification
+	 * already fetched (url, final_url, http_status, html) so in-process
+	 * callers such as event-source classification can reuse it instead of
+	 * fetching the same page again. It is empty when no fetch happened.
+	 * The public ability strips it; see {@see self::executeQualifyVenue()}.
+	 *
+	 * @param array $input Qualification parameters.
+	 * @return array|\WP_Error Ability payload plus `page`, or an error.
+	 */
+	public function qualifyWithPage( array $input ): array|\WP_Error {
 		$url             = esc_url_raw( $input['url'] ?? '' );
 		$name            = sanitize_text_field( $input['name'] ?? '' );
 		$flow_context    = null;
@@ -244,18 +264,26 @@ class VenueQualificationAbilities {
 		);
 
 		// ---- Ticketmaster precheck (short-circuits everything else). ----
-		$tm_check = $this->checkTicketmasterVenue( $url );
+		// The input-host check needs no fetch; the ownership check reads the
+		// same homepage response the fingerprint uses below.
+		$home     = null;
+		$tm_check = self::analyzeForTicketmasterMarkers( $url, '' );
+		if ( ! $tm_check['disqualified'] ) {
+			// Ownership is judged on the FINAL (post-redirect) URL and
+			// structural markers only; see analyzeForTicketmasterMarkers().
+			$home     = QualifyFingerprinter::fetch_homepage( $url );
+			$tm_check = self::analyzeForTicketmasterMarkers( $home['final_url'], $home['html'] );
+		}
 		if ( $tm_check['disqualified'] ) {
 			$fingerprint['ticketmaster_precheck'] = array(
 				'disqualified' => true,
 				'matched'      => (string) ( $tm_check['matched'] ?? '' ),
 			);
 			$fingerprint['elapsed_ms']            = (int) round( ( microtime( true ) - $started_at ) * 1000 );
-			return $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict );
+			return $this->with_page( $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict ), $url, $home );
 		}
 
-		// ---- Fetch the homepage once and capture status/redirects/HTML. ----
-		$home                                = QualifyFingerprinter::fetch_homepage( $url );
+		// ---- Capture homepage status/redirects/HTML (fetched once above). ----
 		$fingerprint['http_status']          = $home['http_status'];
 		$fingerprint['final_url']            = $home['final_url'];
 		$fingerprint['redirects']            = $home['redirects'];
@@ -344,7 +372,25 @@ class VenueQualificationAbilities {
 		$fingerprint['elapsed_ms'] = (int) round( ( microtime( true ) - $started_at ) * 1000 );
 
 		$method = '' !== $short_circuit_method ? $short_circuit_method : $this->resolve_method_from_attempts( $fingerprint['extractor_attempts'] );
-		return $this->finalize_and_persist( $url, $name, $method, $fingerprint, $persist_verdict );
+		return $this->with_page( $this->finalize_and_persist( $url, $name, $method, $fingerprint, $persist_verdict ), $url, $home );
+	}
+
+	/**
+	 * Attach the fetched homepage response to a qualification payload.
+	 *
+	 * @param array      $result Qualification payload.
+	 * @param string     $url    Requested URL.
+	 * @param array|null $home   Homepage response, or null when not fetched.
+	 * @return array Payload with a `page` key.
+	 */
+	private function with_page( array $result, string $url, ?array $home ): array {
+		$result['page'] = null === $home ? array() : array(
+			'url'         => $url,
+			'final_url'   => (string) $home['final_url'],
+			'http_status' => (int) $home['http_status'],
+			'html'        => (string) $home['html'],
+		);
+		return $result;
 	}
 
 	/**
@@ -540,81 +586,6 @@ class VenueQualificationAbilities {
 			'production_context' => $fingerprint['production_context'] ?? array(),
 			'repair_proposal'    => $repair_proposal,
 		);
-	}
-
-	/**
-	 * Check whether a venue URL belongs to Ticketmaster or Live Nation.
-	 *
-	 * Fetches the page (following redirects) and delegates classification to
-	 * {@see self::analyzeForTicketmasterMarkers()}, which inspects the FINAL
-	 * (post-redirect) URL host and STRUCTURAL ownership markers in the HTML
-	 * — never substring-matching outbound buy-ticket links.
-	 *
-	 * Rationale: promoter aggregator sites (Bowery Presents, AEG Presents,
-	 * etc.) legitimately link to ticketmaster.com per-event as a ticket
-	 * vendor. Those outbound links are pricing data, not ownership signals,
-	 * and must not disqualify the site. See extrachill-events#90.
-	 *
-	 * @param string $url Venue homepage URL.
-	 * @return array{disqualified:bool,reason:string,matched:string}
-	 */
-	private function checkTicketmasterVenue( string $url ): array {
-		$not_tm = array(
-			'disqualified' => false,
-			'reason'       => '',
-			'matched'      => '',
-		);
-
-		// Quick host check on the INPUT URL before fetching. Catches the
-		// trivial case where someone hands us a ticketmaster.com URL outright.
-		$pre_fetch = self::analyzeForTicketmasterMarkers( $url, '' );
-		if ( $pre_fetch['disqualified'] ) {
-			return array(
-				'disqualified' => true,
-				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-				'matched'      => $pre_fetch['matched'],
-			);
-		}
-
-		// Fetch the page, following redirects, so we can inspect the final
-		// URL and the HTML body.
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout'     => 10,
-				'redirection' => 5,
-				'user-agent'  => 'Mozilla/5.0 (compatible; ExtraChillBot/1.0; +https://extrachill.com)',
-				'headers'     => array( 'Accept' => 'text/html' ),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $not_tm;
-		}
-
-		// Resolve the final URL after the redirect chain. WP exposes it on
-		// the Requests response object hung off the wp_remote_get result.
-		$final_url = $url;
-		if ( isset( $response['http_response'] ) && is_object( $response['http_response'] )
-			&& method_exists( $response['http_response'], 'get_response_object' ) ) {
-			$resp_obj = $response['http_response']->get_response_object();
-			if ( isset( $resp_obj->url ) && is_string( $resp_obj->url ) && '' !== $resp_obj->url ) {
-				$final_url = $resp_obj->url;
-			}
-		}
-
-		$html = (string) wp_remote_retrieve_body( $response );
-
-		$analysis = self::analyzeForTicketmasterMarkers( $final_url, $html );
-		if ( $analysis['disqualified'] ) {
-			return array(
-				'disqualified' => true,
-				'reason'       => 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow',
-				'matched'      => $analysis['matched'],
-			);
-		}
-
-		return $not_tm;
 	}
 
 	/**
