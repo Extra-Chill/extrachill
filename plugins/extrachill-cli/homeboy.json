@@ -26,7 +26,8 @@
           "tests/VenueSourceAliasesCommandTest.php",
           "tests/PhotoContestCommandTest.php",
           "tests/NewsletterSendCampaignCommandTest.php",
-          "tests/ShopCommandTest.php"
+          "tests/ShopCommandTest.php",
+          "tests/AppRelaunchEmailCommandTest.php"
         ]
       }
     }
@@ -57,7 +58,8 @@
       "php tests/VenueSourceAliasesCommandTest.php",
       "php tests/PhotoContestCommandTest.php",
       "php tests/NewsletterSendCampaignCommandTest.php",
-      "php tests/ShopCommandTest.php"
+      "php tests/ShopCommandTest.php",
+      "php tests/AppRelaunchEmailCommandTest.php"
     ]
   },
   "version_targets": [

@@ -65,6 +65,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-digest-settings.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/subscription-inventory.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/app-relaunch-email.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voice-contract.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voices.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-formatters.php';

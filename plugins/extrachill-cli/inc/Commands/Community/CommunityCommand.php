@@ -1138,6 +1138,95 @@ class CommunityCommand {
 	}
 
 	/**
+	 * One-time app relaunch email to dormant Community participants.
+	 *
+	 * Thin adapter over extrachill/community-app-relaunch-email. Dry run by
+	 * default: prints the segment counts and a sample. Pass --send to queue the
+	 * email; it refuses while the extrachill_app_store_id or
+	 * extrachill_play_package network options are unset. Already-sent users are
+	 * skipped, so re-running is safe.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--send]
+	 * : Queue the email. Without it nothing is sent.
+	 *
+	 * [--limit=<limit>]
+	 * : Max emails to queue in this run. 0 means the whole segment.
+	 * ---
+	 * default: 0
+	 * ---
+	 *
+	 * [--sample=<sample>]
+	 * : Number of sample recipients to show.
+	 * ---
+	 * default: 10
+	 * ---
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill community app-relaunch-email --url=community.extrachill.com
+	 *     wp extrachill community app-relaunch-email --send --url=community.extrachill.com
+	 *
+	 * @subcommand app-relaunch-email
+	 * @when after_wp_load
+	 */
+	public function app_relaunch_email( $args, $assoc_args ) {
+		unset( $args );
+
+		$ability = \ExtraChill\CLI\OwnerSiteAbility::get( 'community', 'Community', 'extrachill/community-app-relaunch-email' );
+		$send    = (bool) Utils\get_flag_value( $assoc_args, 'send', false );
+		$format  = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+
+		$result = $ability->execute(
+			array(
+				'send'        => $send,
+				'limit'       => max( 0, (int) ( $assoc_args['limit'] ?? 0 ) ),
+				'sample_size' => min( 100, max( 0, (int) ( $assoc_args['sample'] ?? 10 ) ) ),
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		if ( 'json' === $format ) {
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::log( sprintf( 'App relaunch email (%s)', $result['mode'] ) );
+		WP_CLI::log( sprintf( '    Community participants: %d', $result['participants'] ) );
+		WP_CLI::log( sprintf( '    Posted in last 90 days: %d', $result['recent'] ) );
+		WP_CLI::log( sprintf( '    Dormant:                %d', $result['dormant'] ) );
+		foreach ( (array) $result['excluded'] as $reason => $count ) {
+			WP_CLI::log( sprintf( '    Excluded (%s): %d', $reason, $count ) );
+		}
+		WP_CLI::log( sprintf( '    Eligible:               %d', $result['eligible'] ) );
+		WP_CLI::log( sprintf( '    Store links ready:      %s', $result['store_links_ready'] ? 'yes' : 'no' ) );
+
+		if ( ! empty( $result['sample'] ) ) {
+			Utils\format_items( 'table', $result['sample'], array( 'user_id', 'display_name', 'last_post_gmt', 'last_topic' ) );
+		}
+
+		if ( ! $send ) {
+			WP_CLI::log( 'Dry run: nothing sent. Re-run with --send to queue the email.' );
+			return;
+		}
+
+		WP_CLI::success( sprintf( 'Queued %d, failed %d, already sent %d.', $result['sent'], $result['failed'], $result['skipped_already_sent'] ) );
+	}
+
+	/**
 	 * Resolve a user identifier to a WP_User.
 	 *
 	 * @param string $identifier User ID, login, or email.
