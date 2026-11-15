@@ -10,7 +10,6 @@ on:
         options:
           - extrachill-artist-platform
           - extrachill-blog
-          - extrachill-booking
           - extrachill-community
           - extrachill-events
           - extrachill-newsletter
