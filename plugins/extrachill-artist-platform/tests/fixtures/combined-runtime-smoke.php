@@ -10,6 +10,17 @@ define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', $artist_root . '/' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', 'https://artist.example/plugins/artist/' );
 
 function ec_get_blog_id( $type ) { return 'artist' === $type ? 4 : 1; }
+function ec_with_blog( $blog_id, $callback ) {
+	if ( ! function_exists( 'switch_to_blog' ) || (int) get_current_blog_id() === (int) $blog_id ) {
+		return $callback();
+	}
+	switch_to_blog( $blog_id );
+	try {
+		return $callback();
+	} finally {
+		restore_current_blog();
+	}
+}
 function ec_get_site_url( $type ) { return 'artist' === $type ? 'https://artist.extrachill.com' : 'https://extrachill.com'; }
 function get_the_title( $id ) { $post = get_post( $id );
 	return $post ? $post->post_title : ''; }

@@ -7,21 +7,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Run a callback on a blog, always restoring the caller's context. */
-function ec_artist_with_image_blog( $blog_id, $callback ) {
-	$switched = (int) $blog_id !== get_current_blog_id();
-	if ( $switched ) {
-		switch_to_blog( $blog_id );
-	}
-	try {
-		return $callback();
-	} finally {
-		if ( $switched ) {
-			restore_current_blog();
-		}
-	}
-}
-
 /**
  * Resolve/copy a source image into the current blog. Never reuse a bare ID.
  * Existing migration copies are adopted only after verifying file contents.
@@ -34,8 +19,8 @@ function ec_artist_materialize_profile_image( $source_blog, $source_id, $candida
 	if ( ! $source_id ) {
 		return 0;
 	}
-	$source = ec_artist_with_image_blog(
-		$source_blog,
+	$source = ec_with_blog(
+		(int) $source_blog,
 		static function () use ( $source_id ) {
 			if ( ! wp_attachment_is_image( $source_id ) ) {
 				return new WP_Error( 'invalid_profile_image', 'The source profile image is not an image attachment.' );
@@ -109,7 +94,7 @@ function ec_artist_materialize_profile_image( $source_blog, $source_id, $candida
 /** Read/write the artist thumbnail from any storage context. */
 function ec_artist_profile_thumbnail( $artist_id, $image_id = null ) {
 	$blog = (int) ec_get_blog_id( 'artist' );
-	return ec_artist_with_image_blog( $blog, static function () use ( $artist_id, $image_id ) {
+	return ec_with_blog( $blog, static function () use ( $artist_id, $image_id ) {
 		if ( null !== $image_id ) {
 			$image_id ? set_post_thumbnail( $artist_id, $image_id ) : delete_post_thumbnail( $artist_id );
 			if ( (int) get_post_thumbnail_id( $artist_id ) !== (int) $image_id ) {
@@ -124,7 +109,7 @@ function ec_artist_profile_thumbnail( $artist_id, $image_id = null ) {
 function ec_artist_set_profile_image_from_page( $artist_id, $image_id ) {
 	$source_blog = get_current_blog_id();
 	$artist_blog = (int) ec_get_blog_id( 'artist' );
-	$local = ec_artist_with_image_blog( $artist_blog, static function () use ( $source_blog, $image_id, $artist_id ) {
+	$local = ec_with_blog( $artist_blog, static function () use ( $source_blog, $image_id, $artist_id ) {
 		return ec_artist_materialize_profile_image( $source_blog, $image_id, get_post_thumbnail_id( $artist_id ) );
 	} );
 	if ( is_wp_error( $local ) ) {

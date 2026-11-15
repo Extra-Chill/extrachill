@@ -43,33 +43,32 @@ function extrachill_artist_platform_read_artist_data( $artist_id ) {
 		$did_switch = true;
 	}
 
-	$artist = get_post( $artist_id );
+	try {
+		$artist = get_post( $artist_id );
 
-	if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
+		if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
+			return new WP_Error( 'invalid_artist', 'Artist not found.' );
+		}
+
+		$local_city   = get_post_meta( $artist_id, '_local_city', true );
+		$local_scene  = get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true );
+		$genres       = ec_artist_get_genres( $artist_id );
+		$genre_labels = ec_artist_get_genre_labels( $artist_id );
+
+		$profile_image_id  = get_post_thumbnail_id( $artist_id );
+		$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null;
+
+		$header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
+		$header_image_url = $header_image_id ? wp_get_attachment_image_url( (int) $header_image_id, 'large' ) : null;
+
+		$link_page_id = null;
+		if ( function_exists( 'ec_get_link_page_id' ) ) {
+			$link_page_id = ec_get_link_page_id( $artist_id );
+		}
+	} finally {
 		if ( $did_switch ) {
 			restore_current_blog();
 		}
-		return new WP_Error( 'invalid_artist', 'Artist not found.' );
-	}
-
-	$local_city   = get_post_meta( $artist_id, '_local_city', true );
-	$local_scene  = get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true );
-	$genres       = ec_artist_get_genres( $artist_id );
-	$genre_labels = ec_artist_get_genre_labels( $artist_id );
-
-	$profile_image_id  = get_post_thumbnail_id( $artist_id );
-	$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null;
-
-	$header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
-	$header_image_url = $header_image_id ? wp_get_attachment_image_url( (int) $header_image_id, 'large' ) : null;
-
-	$link_page_id = null;
-	if ( function_exists( 'ec_get_link_page_id' ) ) {
-		$link_page_id = ec_get_link_page_id( $artist_id );
-	}
-
-	if ( $did_switch ) {
-		restore_current_blog();
 	}
 
 	return array(

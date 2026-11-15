@@ -42,66 +42,68 @@ function extrachill_artist_platform_ability_artists_list( array $input ) {
 		$did_switch = true;
 	}
 
-	$query_args = array(
-		'post_type'      => 'artist_profile',
-		'post_status'    => 'publish',
-		'posts_per_page' => $per_page,
-		'paged'          => $page,
-		'orderby'        => 'modified',
-		'order'          => 'DESC',
-	);
-
-	if ( '' !== $search ) {
-		$query_args['s'] = $search;
-	}
-
-	if ( null !== $scene ) {
-		$query_args['meta_query'] = array(
-			array(
-				'key'   => EXTRACHILL_ARTIST_LOCAL_SCENE_META,
-				'value' => $scene['slug'],
-			),
+	try {
+		$query_args = array(
+			'post_type'      => 'artist_profile',
+			'post_status'    => 'publish',
+			'posts_per_page' => $per_page,
+			'paged'          => $page,
+			'orderby'        => 'modified',
+			'order'          => 'DESC',
 		);
-	}
 
-	$query   = new WP_Query( $query_args );
-	$artists = array();
+		if ( '' !== $search ) {
+			$query_args['s'] = $search;
+		}
 
-	if ( $query->have_posts() ) {
-		while ( $query->have_posts() ) {
-			$query->the_post();
-			$artist_id = (int) get_the_ID();
-
-			$profile_image_id  = get_post_thumbnail_id( $artist_id );
-			$profile_image_url = $profile_image_id
-				? wp_get_attachment_image_url( (int) $profile_image_id, 'medium' )
-				: null;
-			$local_city        = get_post_meta( $artist_id, '_local_city', true );
-
-			$artists[] = array(
-				'id'                => (int) $artist_id,
-				'name'              => get_the_title(),
-				'slug'              => get_post_field( 'post_name', $artist_id ),
-				'local_city'        => ( $local_city ? $local_city : null ),
-				'local_scene'       => ( get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ? get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) : null ),
-				'genres'            => ec_artist_get_genres( $artist_id ),
-				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
-				'profile_image_url' => $profile_image_url,
+		if ( null !== $scene ) {
+			$query_args['meta_query'] = array(
+				array(
+					'key'   => EXTRACHILL_ARTIST_LOCAL_SCENE_META,
+					'value' => $scene['slug'],
+				),
 			);
 		}
-		wp_reset_postdata();
-	}
 
-	$result = array(
-		'artists'  => $artists,
-		'total'    => (int) $query->found_posts,
-		'page'     => $page,
-		'per_page' => $per_page,
-		'pages'    => (int) $query->max_num_pages,
-	);
+		$query   = new WP_Query( $query_args );
+		$artists = array();
 
-	if ( $did_switch ) {
-		restore_current_blog();
+		if ( $query->have_posts() ) {
+			while ( $query->have_posts() ) {
+				$query->the_post();
+				$artist_id = (int) get_the_ID();
+
+				$profile_image_id  = get_post_thumbnail_id( $artist_id );
+				$profile_image_url = $profile_image_id
+					? wp_get_attachment_image_url( (int) $profile_image_id, 'medium' )
+					: null;
+				$local_city        = get_post_meta( $artist_id, '_local_city', true );
+
+				$artists[] = array(
+					'id'                => (int) $artist_id,
+					'name'              => get_the_title(),
+					'slug'              => get_post_field( 'post_name', $artist_id ),
+					'local_city'        => ( $local_city ? $local_city : null ),
+					'local_scene'       => ( get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ? get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) : null ),
+					'genres'            => ec_artist_get_genres( $artist_id ),
+					'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
+					'profile_image_url' => $profile_image_url,
+				);
+			}
+			wp_reset_postdata();
+		}
+
+		$result = array(
+			'artists'  => $artists,
+			'total'    => (int) $query->found_posts,
+			'page'     => $page,
+			'per_page' => $per_page,
+			'pages'    => (int) $query->max_num_pages,
+		);
+	} finally {
+		if ( $did_switch ) {
+			restore_current_blog();
+		}
 	}
 
 	return $result;

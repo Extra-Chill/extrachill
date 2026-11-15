@@ -52,24 +52,26 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 			$artist_blog_id = ec_get_blog_id( 'artist' );
 			if ( $artist_blog_id ) {
 				switch_to_blog( $artist_blog_id );
-				$normalized_new = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name ) : strtolower( $name );
-				foreach ( $existing_artist_ids as $existing_id ) {
-					$existing_title      = trim( (string) get_the_title( (int) $existing_id ) );
-					$normalized_existing = function_exists( 'mb_strtolower' ) ? mb_strtolower( $existing_title ) : strtolower( $existing_title );
-					if ( $normalized_existing === $normalized_new ) {
-						restore_current_blog();
-						return new WP_Error(
-							'duplicate_artist_name',
-							sprintf(
-								/* translators: %s: the duplicate artist profile name. */
-								__( 'You already have an artist profile named "%s". Open the existing profile instead of creating a duplicate.', 'extrachill-artist-platform' ),
-								$name
-							),
-							array( 'existing_artist_id' => (int) $existing_id )
-						);
+				try {
+					$normalized_new = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name ) : strtolower( $name );
+					foreach ( $existing_artist_ids as $existing_id ) {
+						$existing_title      = trim( (string) get_the_title( (int) $existing_id ) );
+						$normalized_existing = function_exists( 'mb_strtolower' ) ? mb_strtolower( $existing_title ) : strtolower( $existing_title );
+						if ( $normalized_existing === $normalized_new ) {
+							return new WP_Error(
+								'duplicate_artist_name',
+								sprintf(
+									/* translators: %s: the duplicate artist profile name. */
+									__( 'You already have an artist profile named "%s". Open the existing profile instead of creating a duplicate.', 'extrachill-artist-platform' ),
+									$name
+								),
+								array( 'existing_artist_id' => (int) $existing_id )
+							);
+						}
 					}
+				} finally {
+					restore_current_blog();
 				}
-				restore_current_blog();
 			}
 		}
 	}
@@ -81,119 +83,116 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 
 	switch_to_blog( $artist_blog_id );
 
-	$post_data = array(
-		'post_title'   => $name,
-		'post_content' => $bio,
-		'post_type'    => 'artist_profile',
-		'post_status'  => 'publish',
-		'post_author'  => $user_id,
-	);
+	try {
+		$post_data = array(
+			'post_title'   => $name,
+			'post_content' => $bio,
+			'post_type'    => 'artist_profile',
+			'post_status'  => 'publish',
+			'post_author'  => $user_id,
+		);
 
-	$artist_id = wp_insert_post( $post_data, true );
+		$artist_id = wp_insert_post( $post_data, true );
 
-	if ( is_wp_error( $artist_id ) ) {
-		restore_current_blog();
-		return $artist_id;
-	}
-
-	if ( ! function_exists( 'ec_add_artist_membership' ) || ! ec_add_artist_membership( $user_id, $artist_id ) ) {
-		$membership_failure = function_exists( 'ec_get_artist_membership_failure' ) ? ec_get_artist_membership_failure() : null;
-		if ( ! wp_delete_post( $artist_id, true ) ) {
-			restore_current_blog();
-			return new WP_Error(
-				'artist_creation_rollback_failed',
-				'Artist membership and profile rollback both failed. Manual reconciliation is required.',
-				array(
-					'artist_id' => (int) $artist_id,
-					'retryable' => false,
-				)
-			);
+		if ( is_wp_error( $artist_id ) ) {
+			return $artist_id;
 		}
-		restore_current_blog();
-		return $membership_failure ? $membership_failure : new WP_Error( 'artist_membership_failed', 'Artist membership could not be established. No profile was created.' );
-	}
 
-	if ( null !== $local_scene ) {
-		update_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, $local_scene['slug'] );
-	}
-
-	if ( '' !== $local_city ) {
-		update_post_meta( $artist_id, '_local_city', $local_city );
-	}
-
-	// Fail closed: a genre write that cannot be resolved against the network
-	// vocabulary rolls the whole creation back instead of leaving a profile
-	// that silently lost its genres.
-	if ( ! empty( $genres ) ) {
-		$genre_result = ec_artist_set_genres( $artist_id, $genres );
-		if ( is_wp_error( $genre_result ) ) {
-			if ( function_exists( 'ec_remove_artist_membership' ) ) {
-				ec_remove_artist_membership( $user_id, $artist_id );
-			}
-			$deleted = wp_delete_post( $artist_id, true );
-			restore_current_blog();
-			if ( ! $deleted ) {
+		if ( ! function_exists( 'ec_add_artist_membership' ) || ! ec_add_artist_membership( $user_id, $artist_id ) ) {
+			$membership_failure = function_exists( 'ec_get_artist_membership_failure' ) ? ec_get_artist_membership_failure() : null;
+			if ( ! wp_delete_post( $artist_id, true ) ) {
 				return new WP_Error(
 					'artist_creation_rollback_failed',
-					'Artist genre resolution failed and profile rollback also failed. Manual reconciliation is required.',
+					'Artist membership and profile rollback both failed. Manual reconciliation is required.',
 					array(
-						'artist_id'        => (int) $artist_id,
-						'genre_error_code' => $genre_result->get_error_code(),
-						'retryable'        => false,
+						'artist_id' => (int) $artist_id,
+						'retryable' => false,
 					)
 				);
 			}
-			return $genre_result;
+			return $membership_failure ? $membership_failure : new WP_Error( 'artist_membership_failed', 'Artist membership could not be established. No profile was created.' );
 		}
-	}
 
-	// Bind only after genre resolution; binding also mirrors the saved genres.
-	$binding_result = ec_sync_artist_profile_term_binding( $artist_id );
-	if ( is_wp_error( $binding_result ) ) {
-		$membership_removed = function_exists( 'ec_remove_artist_membership' ) && ec_remove_artist_membership( $user_id, $artist_id );
-		$deleted            = wp_delete_post( $artist_id, true );
-		restore_current_blog();
-		if ( ! $membership_removed || ! $deleted ) {
-			return new WP_Error(
-				'artist_creation_rollback_failed',
-				'Artist binding failed and creation rollback was incomplete. Manual reconciliation is required.',
+		if ( null !== $local_scene ) {
+			update_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, $local_scene['slug'] );
+		}
+
+		if ( '' !== $local_city ) {
+			update_post_meta( $artist_id, '_local_city', $local_city );
+		}
+
+		// Fail closed: a genre write that cannot be resolved against the network
+		// vocabulary rolls the whole creation back instead of leaving a profile
+		// that silently lost its genres.
+		if ( ! empty( $genres ) ) {
+			$genre_result = ec_artist_set_genres( $artist_id, $genres );
+			if ( is_wp_error( $genre_result ) ) {
+				if ( function_exists( 'ec_remove_artist_membership' ) ) {
+					ec_remove_artist_membership( $user_id, $artist_id );
+				}
+				$deleted = wp_delete_post( $artist_id, true );
+				if ( ! $deleted ) {
+					return new WP_Error(
+						'artist_creation_rollback_failed',
+						'Artist genre resolution failed and profile rollback also failed. Manual reconciliation is required.',
+						array(
+							'artist_id'        => (int) $artist_id,
+							'genre_error_code' => $genre_result->get_error_code(),
+							'retryable'        => false,
+						)
+					);
+				}
+				return $genre_result;
+			}
+		}
+
+		// Bind only after genre resolution; binding also mirrors the saved genres.
+		$binding_result = ec_sync_artist_profile_term_binding( $artist_id );
+		if ( is_wp_error( $binding_result ) ) {
+			$membership_removed = function_exists( 'ec_remove_artist_membership' ) && ec_remove_artist_membership( $user_id, $artist_id );
+			$deleted            = wp_delete_post( $artist_id, true );
+			if ( ! $membership_removed || ! $deleted ) {
+				return new WP_Error(
+					'artist_creation_rollback_failed',
+					'Artist binding failed and creation rollback was incomplete. Manual reconciliation is required.',
+					array(
+						'artist_id'          => (int) $artist_id,
+						'binding_error_code' => $binding_result->get_error_code(),
+						'retryable'          => false,
+					)
+				);
+			}
+			return $binding_result;
+		}
+
+		// Emit the funnel event while still in the artist blog context so the
+		// event row is stamped with the artist site's blog_id. The existing
+		// extrachill/get-analytics-summary reader aggregates this with no new
+		// read surface. user_id is carried in the payload (and stamped on the
+		// row when the request runs as the creating user) for cohort joins, and
+		// the anonymous first-party visitor_id is passed so this completion step
+		// stitches to the upstream artist_signup_started / user_registration rows
+		// for the same member (Extra-Chill/extrachill-users#145 stitching).
+		if ( defined( 'EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED' ) ) {
+			ec_artist_platform_emit_funnel_event(
+				EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
 				array(
-					'artist_id'          => (int) $artist_id,
-					'binding_error_code' => $binding_result->get_error_code(),
-					'retryable'          => false,
+					'user_id'   => $user_id,
+					'artist_id' => (int) $artist_id,
 				)
 			);
 		}
-		return $binding_result;
+
+		// Link Page creation is deliberate (#256): an artist profile no longer
+		// provisions a published Link Page. Auto-provisioning published 37 empty
+		// public pages that the musician never chose. The artist-creator block
+		// lands on /manage-link-page/, which offers "Get your free link-in-bio";
+		// that path (extrachill/create-artist-link-page) creates and publishes it.
+		// link_page_id stays in the result for existing consumers.
+		$link_page_id = 0;
+	} finally {
+		restore_current_blog();
 	}
-
-	// Emit the funnel event while still in the artist blog context so the
-	// event row is stamped with the artist site's blog_id. The existing
-	// extrachill/get-analytics-summary reader aggregates this with no new
-	// read surface. user_id is carried in the payload (and stamped on the
-	// row when the request runs as the creating user) for cohort joins, and
-	// the anonymous first-party visitor_id is passed so this completion step
-	// stitches to the upstream artist_signup_started / user_registration rows
-	// for the same member (Extra-Chill/extrachill-users#145 stitching).
-	if ( defined( 'EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED' ) ) {
-		ec_artist_platform_emit_funnel_event(
-			EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED,
-			array(
-				'user_id'   => $user_id,
-				'artist_id' => (int) $artist_id,
-			)
-		);
-	}
-
-	// Link Page creation is deliberate (#256): an artist profile no longer
-	// provisions a published Link Page. Auto-provisioning published 37 empty
-	// public pages that the musician never chose. The artist-creator block
-	// lands on /manage-link-page/, which offers "Get your free link-in-bio";
-	// that path (extrachill/create-artist-link-page) creates and publishes it.
-	// link_page_id stays in the result for existing consumers.
-	$link_page_id = 0;
-
-	restore_current_blog();
 
 	$result = function_exists( 'extrachill_artist_platform_read_artist_data' )
 		? extrachill_artist_platform_read_artist_data( $artist_id )
