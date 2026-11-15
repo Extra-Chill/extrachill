@@ -8,7 +8,7 @@ Selling on Extra Chill works like a merch table at a festival. We bring the boot
 - **Tickets:** nothing right now. No fee for you, and no service fee for your buyers.
 - **Opening a shop, listing products, and printing labels:** free.
 
-The fee is taken automatically when the buyer pays. You never get a bill. The current rates are always shown on the **Payments** tab of the shop manager, and the merch rate is shown under **Price** when you add a product. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
+The fee is taken automatically when the buyer pays. You never get a bill. The current rates are always shown on the **Payments** tab of the shop manager, and the merch rate is shown under **Price** when you add a product. The rates are set for Extra Chill as a whole, not separately by each shop. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
 
 ## Payment Processing Fees
 

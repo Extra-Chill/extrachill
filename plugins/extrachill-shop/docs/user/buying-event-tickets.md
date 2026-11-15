@@ -9,7 +9,8 @@ Some shows on the [Extra Chill Events Calendar](https://events.extrachill.com/) 
 3. Choose a **Quantity**. You can buy up to 10 tickets in one order.
 4. Enter your **Name** and **Email**. The name goes on your passes, and the passes go to that email.
 5. Select **Buy tickets** again to go to the secure payment page.
-6. Pay. If the show has a service fee, it's listed on the payment page before you pay.
+6. Check the box to agree to the [Terms of Service](https://extrachill.com/terms-of-service/). You can't buy tickets without it.
+7. Pay on the secure payment page. If the show has a service fee, it's listed there before you pay.
 
 The payment page stays open for 30 minutes. If you close it or run out of time, nothing is charged and you can start over from the event page.
 
