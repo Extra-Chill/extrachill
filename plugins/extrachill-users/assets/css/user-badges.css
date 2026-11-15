@@ -1,7 +1,7 @@
 /*
  * User Badge Styling
  *
- * Badge styling for artists, team members, and professionals.
+ * Badge styling for artists, team members, professionals, and supporters.
  * Used network-wide across forums, leaderboards, and profiles.
  *
  * @package ExtraChill\Users
@@ -10,14 +10,15 @@
 
 /*
  * Badge colors (--artist-badge-color, --team-badge-color,
- * --professional-badge-color) are defined by the theme in root.css.
+ * --professional-badge-color, --supporter-badge-color) are defined by the theme in root.css.
  * This file consumes them rather than redefining them.
  */
 
 /* Base Badge Styling */
 .user-is-artist,
 .extrachill-team-member,
-.user-is-professional {
+.user-is-professional,
+.user-is-supporter {
   margin-right: 5px;
   position: relative;
   cursor: help;
@@ -36,10 +37,15 @@
   color: var(--professional-badge-color);
 }
 
+.user-is-supporter .ec-icon {
+  color: var(--supporter-badge-color);
+}
+
 /* Tooltip Styling */
 .user-is-artist[data-title]::before,
 .extrachill-team-member[data-title]::before,
-.user-is-professional[data-title]::before {
+.user-is-professional[data-title]::before,
+.user-is-supporter[data-title]::before {
   content: attr(data-title);
   position: absolute;
   bottom: 100%;
@@ -61,6 +67,7 @@
 
 .user-is-artist[data-title]:hover::before,
 .extrachill-team-member[data-title]:hover::before,
-.user-is-professional[data-title]:hover::before {
+.user-is-professional[data-title]:hover::before,
+.user-is-supporter[data-title]:hover::before {
   opacity: 1;
 }

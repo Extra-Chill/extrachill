@@ -137,7 +137,8 @@ export type SpacingTokenKey =
 export type BadgeTokenKey =
 	| 'artistBadgeColor'
 	| 'teamBadgeColor'
-	| 'professionalBadgeColor';
+	| 'professionalBadgeColor'
+	| 'supporterBadgeColor';
 
 /**
  * Taxonomy badge token key (camelCase of the kebab-case slug).

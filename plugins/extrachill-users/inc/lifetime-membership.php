@@ -42,10 +42,25 @@ function is_user_lifetime_member( $userDetails = null ) {
 		$user_id = $user->ID;
 	}
 
-	// Check user meta for lifetime membership
-	$membership_data = get_user_meta( $user_id, 'extrachill_lifetime_membership', true );
+	return ec_is_supporter( $user_id );
+}
 
-	return ! empty( $membership_data );
+/**
+ * Whether a user has bought a lifetime membership and is an Extra Chill supporter.
+ *
+ * The membership is how people show their support for Extra Chill. It earns
+ * the supporter badge and ad-free browsing across the network.
+ *
+ * @param int $user_id User ID.
+ * @return bool
+ */
+function ec_is_supporter( $user_id ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	return ! empty( get_user_meta( $user_id, 'extrachill_lifetime_membership', true ) );
 }
 
 /**
