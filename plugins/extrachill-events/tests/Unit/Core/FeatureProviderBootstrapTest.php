@@ -40,10 +40,9 @@ final class FeatureProviderBootstrapTest extends TestCase {
 	public function test_cli_boot_registers_commands_once(): void {
 		$result = $this->run_fixture( 'cli' );
 
-		$this->assertSame( 12, $result['cli_commands'] );
+		$this->assertSame( 11, $result['cli_commands'] );
 		$this->assertSame(
 			array(
-				'extrachill events roundup',
 				'extrachill events ramp',
 				'extrachill venues qualify-stats',
 				'extrachill venues requalify-pending',

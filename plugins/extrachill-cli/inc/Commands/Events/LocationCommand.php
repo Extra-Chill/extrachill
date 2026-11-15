@@ -658,6 +658,11 @@ class LocationCommand {
 	 * [--closing-text=<closing-text>]
 	 * : Optional supporting line on the closing slide.
 	 *
+	 * [--background=<auto-or-ids>]
+	 * : Photo backgrounds: "auto", or comma-separated blog-1 attachment IDs in
+	 * rendered slide order (cover, lists, closing). Slides without an approved
+	 * photo keep the flat background.
+	 *
 	 * [--layout=<layout>]
 	 * : List layout. "calendar" puts one compact row per show with the date
 	 * in a left column, for long ranges such as a venue's month.
@@ -692,6 +697,10 @@ class LocationCommand {
 	 *     wp extrachill events roundup --date-start=2026-11-01 --date-end=2026-11-30 \
 	 *       --location=charleston --tax="venue:charleston-pour-house" \
 	 *       --title="Pour House · November" --layout=calendar --cover --closing
+	 *
+	 *     # Weekend recap with photo backgrounds
+	 *     wp extrachill events roundup --date-start=2026-10-30 --date-end=2026-11-01 \
+	 *       --location=charleston --event-type=concert,dj-set --cover --closing --background=auto
 	 *
 	 *     # Tonight in Charleston
 	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston"
@@ -752,6 +761,7 @@ class LocationCommand {
 				'title'          => 'title',
 				'closing-text'   => 'closing_text',
 				'layout'         => 'layout',
+				'background'     => 'background',
 			) as $cli_key => $ability_key
 		) {
 			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {
@@ -841,6 +851,7 @@ class LocationCommand {
 					'total_events'  => (int) ( $result['total_events'] ?? 0 ),
 					'slide_count'   => (int) ( $result['slide_count'] ?? 0 ),
 					'image_paths'   => $saved_paths,
+					'slides'        => (array) ( $result['slides'] ?? array() ),
 					'event_summary' => (string) ( $result['event_summary'] ?? '' ),
 					'message'       => (string) ( $result['message'] ?? '' ),
 				),
