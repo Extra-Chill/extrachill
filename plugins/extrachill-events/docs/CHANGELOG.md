@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.128.16] - 2026-11-15
+
+### Changed
+- TeamAuthorization is the single policy behind ec_* caps; drop wrapper stack
+- event_roundup handler delegates to roundup abilities
+- one verified service-request grant check
+
 ## [0.128.15] - 2026-11-15
 
 ### Changed
