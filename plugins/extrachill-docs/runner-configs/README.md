@@ -43,6 +43,8 @@ No YAML wrapper. No custom directive class. No string mashing in caller workflow
 
 Run `.github/workflows/docs-agent.yml` with a `component` choice. `dry_run` defaults to true; disable it explicitly for a live run. The workflow resolves the selected plugin's `runner` settings from this map and calls one SHA-pinned upstream workflow. Update that single `uses:` pin after reviewing upstream changes and input compatibility; v0.3.0 does not support the live-run inputs used here.
 
+See [../docs/docs-agent-runner.md](../docs/docs-agent-runner.md) for run settings, reading results, and review.
+
 To add a component, add its `runner` configuration to `platform-map.yml` and its name to the dispatch choices. Preserve the component's stable docs branch and constrain writable paths to its docs directory. Test locally from the monorepo root:
 
 ```sh

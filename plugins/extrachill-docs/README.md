@@ -35,6 +35,10 @@ php scripts/check-user-docs-voice.php ../extrachill-events/docs/user
 
 The theme supplies shared styling and navigation. Team-only pages use WordPress private-page visibility.
 
+## Docs Agent
+
+User help can be drafted by Docs Agent in CI. [docs/docs-agent-runner.md](docs/docs-agent-runner.md) covers dispatch, runner settings, how to read a failed run, and the human review every docs PR needs. Per-component settings live in [runner-configs/platform-map.yml](runner-configs/platform-map.yml).
+
 ## Tests
 
 Run the standalone PHP smoke tests in `tests/`, and the Python configuration tests:
