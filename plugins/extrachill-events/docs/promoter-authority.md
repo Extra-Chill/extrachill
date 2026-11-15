@@ -42,24 +42,14 @@ that supported bound.
 Event attribution, promoter term assignment, `_promoter_type`, WordPress roles,
 and team status grant no authority.
 
-## Term-meta migration
+## Verification state
 
-The CLI-only Data Machine migration `extrachill-events.promoter-verification`
-moves legacy verification to promoter term state on the Events blog:
+Promoter verification lives in promoter term metadata on the Events blog:
 
 - `_ec_promoter_status`: scalar `active` or `revoked`, for SQL projections.
 - `_ec_promoter_verification`: audit array containing `version`,
   `verified_by_user_id`, `verified_at`, `updated_at`, `revoked_by_user_id`,
   and `revoked_at`.
-
-Inspection is read-only and reports legacy-table existence and the number of
-organizations without status metadata. Apply copies audit data before publishing
-status, skips already migrated terms, and drops the legacy table only after no
-unmigrated rows remain. Failed copies preserve the table and can be retried.
-
-Until migration runs, exact organization reads fall back read-only to the
-legacy table only when status metadata is absent. SQL discovery joins use term
-metadata immediately. Run the migration through WP-CLI, never a web request.
 
 ## Abilities
 
