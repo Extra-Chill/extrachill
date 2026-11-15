@@ -6,6 +6,7 @@
       "settings": {
         "standalone_php_test_paths": [
           "tests/AgentsMdSectionTest.php",
+          "tests/SubcommandAnnotationsTest.php",
           "tests/QRCodeCommandTest.php",
           "tests/ExperimentsCommandTest.php",
           "tests/ExperimentsOwnerContractTest.php",
@@ -41,6 +42,7 @@
   "self_checks": {
     "test": [
       "php tests/AgentsMdSectionTest.php",
+      "php tests/SubcommandAnnotationsTest.php",
       "php tests/QRCodeCommandTest.php",
       "php tests/ExperimentsCommandTest.php",
       "php tests/ExperimentsOwnerContractTest.php",

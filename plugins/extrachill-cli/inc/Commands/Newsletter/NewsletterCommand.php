@@ -185,6 +185,7 @@ class NewsletterCommand {
 	 *
 	 *     wp extrachill newsletter push-campaign 123
 	 *
+	 * @subcommand push-campaign
 	 * @when after_wp_load
 	 */
 	public function push_campaign( $args, $assoc_args ) {
@@ -259,11 +260,12 @@ class NewsletterCommand {
 	 * ## EXAMPLES
 	 *
 	 *     # Preview sending to all lists except one.
-	 *     wp extrachill newsletter send_campaign 69 --all-lists --exclude=abc123 --url=newsletter.extrachill.com --user=1
+	 *     wp extrachill newsletter send-campaign 69 --all-lists --exclude=abc123 --url=newsletter.extrachill.com --user=1
 	 *
 	 *     # Schedule for Sunday 9am Eastern.
-	 *     wp extrachill newsletter send_campaign 69 --all-lists --schedule="2026-10-18 09:00" --yes --url=newsletter.extrachill.com --user=1
+	 *     wp extrachill newsletter send-campaign 69 --all-lists --schedule="2026-10-18 09:00" --yes --url=newsletter.extrachill.com --user=1
 	 *
+	 * @subcommand send-campaign
 	 * @when after_wp_load
 	 */
 	public function send_campaign( $args, $assoc_args ) {
@@ -569,6 +571,7 @@ class NewsletterCommand {
 	 *
 	 *     wp extrachill newsletter delete-campaign 184
 	 *
+	 * @subcommand delete-campaign
 	 * @when after_wp_load
 	 */
 	public function delete_campaign( $args, $assoc_args ) {
@@ -604,6 +607,7 @@ class NewsletterCommand {
 	 *
 	 *     wp extrachill newsletter subscriber-status user@example.com --list-id=abc123
 	 *
+	 * @subcommand subscriber-status
 	 * @when after_wp_load
 	 */
 	public function subscriber_status( $args, $assoc_args ) {
