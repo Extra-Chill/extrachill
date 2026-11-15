@@ -39,7 +39,7 @@ require_once __DIR__ . '/inc/Providers/IngestionProvider.php';
 require_once __DIR__ . '/inc/Providers/AdministrationProvider.php';
 require_once __DIR__ . '/inc/Providers/LifecycleProvider.php';
 require_once __DIR__ . '/inc/Providers/CoreRuntimeProvider.php';
-require_once __DIR__ . '/inc/Providers/ArtistUrlImportProvider.php';
+require_once __DIR__ . '/inc/Providers/EventSourceIntakeProvider.php';
 require_once __DIR__ . '/inc/Providers/PromoterAuthorityProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueProvider.php';
 require_once __DIR__ . '/inc/Providers/LinkPagesProvider.php';

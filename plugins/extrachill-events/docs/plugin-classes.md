@@ -11,7 +11,7 @@ Object-oriented classes provided by the ExtraChill Events plugin.
 **Purpose:** Singleton composition facade. Its private constructor registers
 each domain provider (`CliProvider`, `IngestionProvider`,
 `AdministrationProvider`, `LifecycleProvider`, `CoreRuntimeProvider`,
-`ArtistUrlImportProvider`, `PromoterAuthorityProvider`, `VenueProvider`,
+`EventSourceIntakeProvider`, `PromoterAuthorityProvider`, `VenueProvider`,
 `LinkPagesProvider`, `PublicExperienceProvider`, `AbilitiesProvider`,
 `DataMachineEventsProvider`) in order. A provider that throws is logged and
 reported through `extrachill_events_provider_failed` without suppressing the

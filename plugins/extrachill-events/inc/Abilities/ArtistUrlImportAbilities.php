@@ -2618,7 +2618,7 @@ class ArtistUrlImportAbilities {
 	 * Build the admin URL for the artist URL submissions moderation queue.
 	 *
 	 * Resolves the events post-type slug via data-machine-events' public
-	 * constant and the page slug from ArtistUrlSubmissionsAdmin when the
+	 * constant and the page slug from EventSourceSubmissionsAdmin when the
 	 * admin class is loaded (admin context). Falls back to the known slug
 	 * literal for non-admin contexts (REST/CLI) where the admin class may
 	 * not be loaded.
@@ -2628,8 +2628,8 @@ class ArtistUrlImportAbilities {
 	private function moderationQueueUrl(): string {
 		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
 
-		$page_slug = class_exists( '\ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin' )
-			? \ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin::PAGE_SLUG
+		$page_slug = class_exists( '\ExtraChillEvents\Admin\EventSourceSubmissionsAdmin' )
+			? \ExtraChillEvents\Admin\EventSourceSubmissionsAdmin::PAGE_SLUG
 			: 'extrachill-events-artist-url-submissions';
 
 		return admin_url( 'edit.php?post_type=' . $post_type . '&page=' . $page_slug );

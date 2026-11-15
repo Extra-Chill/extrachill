@@ -1,6 +1,6 @@
 <?php
 /**
- * Artist URL Submissions Admin
+ * Event Source Submissions Admin
  *
  * Adds a submenu under the Events post-type menu for moderating
  * recurring event-source submissions queued by the
@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class ArtistUrlSubmissionsAdmin {
+class EventSourceSubmissionsAdmin {
 
 	const PAGE_SLUG = 'extrachill-events-artist-url-submissions';
 
