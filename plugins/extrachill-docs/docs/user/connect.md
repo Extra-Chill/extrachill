@@ -1,6 +1,17 @@
 # Connecting Your AI Client
 
-Connect your own AI client to Extra Chill so it can find things and get work done on Extra Chill as you. You need an Extra Chill account. If you do not have one yet, [create one first](https://community.extrachill.com/login).
+If you already use an AI assistant like ChatGPT or Claude, you can connect it to your Extra Chill account. Then you can just ask it to do things on Extra Chill for you, in plain words, without clicking through the site.
+
+For example, you could ask:
+
+- "What shows are coming up in Charleston this weekend?"
+- "Mark me as going to the show at the Pour House on Friday."
+- "Update my profile bio and add my Bandcamp link."
+- "Turn off the email digest but keep my reply notifications."
+
+Your assistant does the work on Extra Chill and tells you what it did. It acts as you, so it can only do what you can already do when you are signed in.
+
+Setting it up takes about two minutes, and you only do it once. You need an Extra Chill account. If you do not have one yet, [create one first](https://community.extrachill.com/login).
 
 ## Your connection address
 
