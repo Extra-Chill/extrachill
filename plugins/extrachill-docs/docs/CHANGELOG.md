@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.2] - 2026-11-15
+
+### Fixed
+- scope runner briefs to the component and pin Docs Agent cbac654
+
 ## [0.12.1] - 2026-11-14
 
 ### Changed
