@@ -152,10 +152,10 @@ function ec_feature_rollout_render_page() {
 							$effective = ec_feature_tier( $feature );
 
 							// Stored live tier (what the admin previously chose),
-							// defaulting to the ceiling when unset/invalid.
-							$stored = get_site_option( "ec_feature_tier_{$feature}", $ceiling );
-							if ( ! ec_feature_tier_is_valid( $stored ) ) {
-								$stored = $ceiling;
+							// defaulting to the starting tier when unset/invalid.
+							$stored = get_site_option( "ec_feature_tier_{$feature}", ec_feature_default_tier( $feature ) );
+							if ( ! is_string( $stored ) || ! ec_feature_tier_is_valid( $stored ) ) {
+								$stored = ec_feature_default_tier( $feature );
 							}
 
 							// The <select> reflects the clamp: only offer tiers at

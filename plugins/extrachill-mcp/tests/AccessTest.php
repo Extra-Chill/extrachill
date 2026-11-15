@@ -48,7 +48,7 @@ class AccessTest extends WP_UnitTestCase {
 
 	public function tear_down(): void {
 		remove_all_filters( 'extrachill_mcp_is_authorized' );
-		remove_all_filters( 'default_site_option_' . Access::TIER_OPTION );
+		remove_all_filters( 'ec_feature_default_tiers' );
 		delete_site_option( Access::TIER_OPTION );
 		wp_set_current_user( 0 );
 		parent::tear_down();
@@ -230,24 +230,29 @@ class AccessTest extends WP_UnitTestCase {
 		remove_filter( 'ec_feature_ceilings', array( $access, 'register_feature_ceiling' ) );
 	}
 
-	public function test_unset_tier_option_defaults_to_team_not_the_public_ceiling(): void {
-		delete_site_option( Access::TIER_OPTION );
-		$access = new Access();
-		$access->register();
+	public function test_register_default_tier_starts_the_mcp_at_team(): void {
+		$defaults = $this->access->register_default_tier( array( 'shop' => 'public' ) );
 
-		// extrachill-users reads the live tier as get_site_option( $key, $ceiling ).
-		$this->assertSame( 'team', get_site_option( Access::TIER_OPTION, Access::CEILING ) );
-
-		remove_filter( 'agents_ability_call_permission', array( $access, 'filter_substrate_call_permission' ), 10 );
-		remove_filter( 'ec_feature_ceilings', array( $access, 'register_feature_ceiling' ) );
+		$this->assertSame( Access::DEFAULT_TIER, $defaults[ Access::FEATURE ] );
+		$this->assertSame( 'team', $defaults[ Access::FEATURE ] );
+		$this->assertSame( 'public', $defaults['shop'] );
 	}
 
-	public function test_stored_tier_option_wins_over_the_default(): void {
+	public function test_register_default_tier_recovers_from_a_malformed_upstream_value(): void {
+		$this->assertSame( array( Access::FEATURE => 'team' ), $this->access->register_default_tier( 'nope' ) );
+	}
+
+	public function test_register_does_not_filter_the_stored_tier_option(): void {
 		$access = new Access();
 		$access->register();
-		update_site_option( Access::TIER_OPTION, 'public' );
 
-		$this->assertSame( 'public', get_site_option( Access::TIER_OPTION, Access::CEILING ) );
+		// A default_site_option filter makes multisite promotion fail (#1509).
+		$this->assertFalse( has_filter( 'default_site_option_' . Access::TIER_OPTION ) );
+		$this->assertNotFalse( has_filter( 'ec_feature_default_tiers', array( $access, 'register_default_tier' ) ) );
+
+		delete_site_option( Access::TIER_OPTION );
+		$this->assertTrue( update_site_option( Access::TIER_OPTION, 'public' ) );
+		$this->assertSame( 'public', get_site_option( Access::TIER_OPTION ) );
 
 		remove_filter( 'agents_ability_call_permission', array( $access, 'filter_substrate_call_permission' ), 10 );
 		remove_filter( 'ec_feature_ceilings', array( $access, 'register_feature_ceiling' ) );

@@ -87,7 +87,7 @@ class NonTeamAbilityCallTest extends WP_UnitTestCase {
 
 		remove_filter( 'agents_ability_call_permission', array( $this->access, 'filter_substrate_call_permission' ), 10 );
 		remove_filter( 'ec_feature_ceilings', array( $this->access, 'register_feature_ceiling' ) );
-		remove_all_filters( 'default_site_option_' . Access::TIER_OPTION );
+		remove_all_filters( 'ec_feature_default_tiers' );
 		remove_all_filters( 'extrachill_mcp_is_authorized' );
 		wp_set_current_user( 0 );
 

@@ -88,6 +88,53 @@ function ec_feature_ceiling( $feature ) {
 }
 
 /**
+ * Starting-tier registry: feature => live tier used while no operator choice is stored.
+ *
+ * Without an entry, an unset network option falls back to the feature's
+ * ceiling. A feature registers a lower starting tier here when raising its
+ * ceiling must not widen exposure on deploy; promotion stays an explicit
+ * operator action that writes `ec_feature_tier_{feature}`.
+ *
+ * Register through this filter, never through core's
+ * `default_site_option_{option}`: on multisite that filter makes
+ * update_site_option() and add_site_option() treat the missing row as
+ * present, so promotion silently fails.
+ *
+ * @return array<string,string> feature slug => starting tier.
+ */
+function ec_feature_default_tiers() {
+	/**
+	 * Filter the feature starting-tier registry.
+	 *
+	 * @param array<string,string> $defaults feature slug => starting tier.
+	 */
+	$defaults = apply_filters( 'ec_feature_default_tiers', array() );
+
+	return is_array( $defaults ) ? $defaults : array();
+}
+
+/**
+ * Live tier for a feature while its network option is unset.
+ *
+ * The registered starting tier, clamped to the ceiling; the ceiling when none
+ * is registered or the registered value is invalid.
+ *
+ * @param string $feature Feature slug.
+ * @return string One of `admin` | `team` | `public`.
+ */
+function ec_feature_default_tier( $feature ) {
+	$ceiling  = ec_feature_ceiling( $feature );
+	$defaults = ec_feature_default_tiers();
+	$default  = isset( $defaults[ $feature ] ) ? $defaults[ $feature ] : $ceiling;
+
+	if ( ! is_string( $default ) || ! ec_feature_tier_is_valid( $default ) ) {
+		return $ceiling;
+	}
+
+	return ec_feature_tier_min( $default, $ceiling );
+}
+
+/**
  * Whether a tier string is a valid rung on the ladder.
  *
  * @param string $tier Tier string.
@@ -128,7 +175,8 @@ function ec_feature_tier_min( $a, $b ) {
  *
  * Hybrid storage:
  *   - Code ceiling   = ec_feature_ceiling( $feature )      (max the code is ready for)
- *   - Network option = get_site_option( "ec_feature_tier_{$feature}" )  (current live tier)
+ *   - Network option = get_site_option( "ec_feature_tier_{$feature}" )  (current live tier;
+ *                      ec_feature_default_tier() while unset)
  *
  * Effective tier = min( option_tier, ceiling ) on the ladder. The option can
  * NEVER expose a feature past the code ceiling — this is the safety rail that
@@ -140,9 +188,9 @@ function ec_feature_tier_min( $a, $b ) {
 function ec_feature_tier( $feature ) {
 	$ceiling = ec_feature_ceiling( $feature );
 
-	$option_tier = get_site_option( "ec_feature_tier_{$feature}", $ceiling );
-	if ( ! ec_feature_tier_is_valid( $option_tier ) ) {
-		$option_tier = $ceiling;
+	$option_tier = get_site_option( "ec_feature_tier_{$feature}", false );
+	if ( ! is_string( $option_tier ) || ! ec_feature_tier_is_valid( $option_tier ) ) {
+		$option_tier = ec_feature_default_tier( $feature );
 	}
 
 	return ec_feature_tier_min( $option_tier, $ceiling );
