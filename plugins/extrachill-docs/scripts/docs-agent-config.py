@@ -19,6 +19,15 @@ def resolve(component, map_path):
         raise ValueError("Writable paths must match the component's documentation path")
     for field, default in (("bootstrap_contract", {}), ("source_delta", [])):
         config.setdefault(field, default)
+    # The agent and the completion validator read these repository-relative
+    # paths; an unscoped ref (e.g. "inc/**") points outside the component.
+    for item in config["source_delta"]:
+        for ref in item.get("source_refs", []):
+            if not ref.startswith(f"{key}/"):
+                raise ValueError(f"source_delta refs must stay under {key}/: {ref}")
+    for glob in config["bootstrap_contract"].get("required_globs", []):
+        if not glob["pattern"].startswith(f"{key}/"):
+            raise ValueError(f"bootstrap_contract globs must stay under {key}/: {glob['pattern']}")
     return config
 
 
