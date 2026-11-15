@@ -11,10 +11,12 @@ defined( 'ABSPATH' ) || exit;
 
 use ExtraChill\Users\Teams\TeamMembershipRepository;
 
+require_once __DIR__ . '/TeamAuthorization.php';
+
 /** Executes serialized organization and membership mutations. */
 class PromoterAuthorityRepository {
-	public const STATUS_ACTIVE     = 'active';
-	public const STATUS_REVOKED    = 'revoked';
+	public const STATUS_ACTIVE     = TeamAuthorization::STATUS_ACTIVE;
+	public const STATUS_REVOKED    = TeamAuthorization::STATUS_REVOKED;
 	public const MAX_MEMBERS       = 100;
 	public const MAX_ORGANIZATIONS = 500;
 
@@ -41,7 +43,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! PromoterAuthorization::is_site_admin( $actor_user_id ) ) {
+		if ( ! TeamAuthorization::is_site_admin( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 
@@ -124,7 +126,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! PromoterAuthorization::is_site_admin( $actor_user_id ) ) {
+		if ( ! TeamAuthorization::is_site_admin( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 		global $wpdb;
@@ -441,7 +443,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) || $expected_version < 1 ) {
 			return is_wp_error( $valid ) ? $valid : new \WP_Error( 'invalid_promoter_membership_version', __( 'A positive expected version is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$result = ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'promoter' ), $promoter_term_id, $user_id, $expected_version, $is_owner, $revoke, $actor_user_id, ! PromoterAuthorization::is_site_admin( $actor_user_id ) );
+		$result = ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'promoter' ), $promoter_term_id, $user_id, $expected_version, $is_owner, $revoke, $actor_user_id, ! TeamAuthorization::is_site_admin( $actor_user_id ) );
 		if ( ! is_wp_error( $result ) ) {
 			$this->domain_changed( $promoter_term_id, $revoke ? 'membership_revoked' : 'membership_owner_updated' );
 		}

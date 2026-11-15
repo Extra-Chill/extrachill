@@ -95,7 +95,7 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 				if ( TeamAuthorization::is_site_admin( $actor_user_id ) ) {
 					return true;
 				}
-				if ( TeamAuthorization::principal_allows( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
+				if ( TeamAuthorization::principal_allows( $actor_user_id, TeamAuthorization::ACCESS_CAPABILITY ) ) {
 					foreach ( $members as $member ) {
 						if ( $actor_user_id === $member['user_id'] && $member['is_owner'] && TeamMembershipRepository::STATUS_ACTIVE === $member['status'] ) {
 							return true;
