@@ -1,12 +1,16 @@
 <?php
 /**
- * Read-only location taxonomy integrity audit.
+ * `wp extrachill events locations audit-integrity`
  *
- * @package ExtraChillEvents\Cli
+ * Read-only location taxonomy integrity audit. Thin adapter over
+ * LocationIntegrityAuditor (extrachill-events).
+ *
+ * @package ExtraChill\CLI\Commands\Events
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChill\CLI\Commands\Events;
 
+use ExtraChill\CLI\OwnerSiteAbility;
 use ExtraChillEvents\Core\LocationIntegrityAuditor;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -38,44 +42,27 @@ class AuditLocationIntegrityCommand {
 	 *     wp extrachill events locations audit-integrity --url=events.extrachill.com
 	 *     wp extrachill events locations audit-integrity --format=json --url=events.extrachill.com
 	 *
+	 * @when after_wp_load
+	 *
 	 * @param array $args       Positional arguments (unused).
 	 * @param array $assoc_args Named arguments.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
-			return;
-		}
+		unset( $args );
+
+		OwnerSiteAbility::require_service( 'events', 'Events', LocationIntegrityAuditor::class );
 
 		if ( ! taxonomy_exists( 'location' ) ) {
 			\WP_CLI::error( 'The location taxonomy is not registered on this site. Run with --url=events.extrachill.com.' );
 			return;
 		}
 
-		$terms = get_terms(
-			array(
-				'taxonomy'   => 'location',
-				'hide_empty' => false,
-			)
-		);
-		if ( is_wp_error( $terms ) ) {
-			\WP_CLI::error( $terms->get_error_message() );
+		$findings = LocationIntegrityAuditor::audit_site();
+		if ( is_wp_error( $findings ) ) {
+			\WP_CLI::error( $findings->get_error_message() );
 			return;
 		}
 
-		$rows = array_map(
-			static function ( \WP_Term $term ): array {
-				return array(
-					'term_id' => (int) $term->term_id,
-					'name'    => $term->name,
-					'slug'    => $term->slug,
-					'parent'  => (int) $term->parent,
-					'count'   => (int) $term->count,
-				);
-			},
-			$terms
-		);
-
-		$findings = LocationIntegrityAuditor::audit( $rows );
 		if ( empty( $findings ) ) {
 			\WP_CLI::success( 'No location hierarchy or canonical city overlaps found.' );
 			return;

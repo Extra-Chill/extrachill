@@ -29,12 +29,6 @@ final class ExtraChillEvents {
 	/** Register each feature independently in its required order. */
 	private function __construct() {
 		try {
-			\ExtraChillEvents\Providers\CliProvider::register();
-		} catch ( \Throwable $error ) {
-			$this->provider_failed( 'cli', $error );
-		}
-
-		try {
 			\ExtraChillEvents\Providers\IngestionProvider::register();
 		} catch ( \Throwable $error ) {
 			$this->provider_failed( 'ingestion', $error );

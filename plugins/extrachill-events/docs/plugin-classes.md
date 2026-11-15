@@ -9,8 +9,7 @@ Object-oriented classes provided by the ExtraChill Events plugin.
 **File:** `inc/Core/Plugin.php`
 
 **Purpose:** Singleton composition facade. Its private constructor registers
-each domain provider (`CliProvider`, `IngestionProvider`,
-`AdministrationProvider`, `LifecycleProvider`, `CoreRuntimeProvider`,
+each domain provider (`IngestionProvider`, `AdministrationProvider`, `LifecycleProvider`, `CoreRuntimeProvider`,
 `EventSourceIntakeProvider`, `PromoterAuthorityProvider`, `VenueProvider`,
 `LinkPagesProvider`, `PublicExperienceProvider`, `AbilitiesProvider`,
 `DataMachineEventsProvider`) in order. A provider that throws is logged and

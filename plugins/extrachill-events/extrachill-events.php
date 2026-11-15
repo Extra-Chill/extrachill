@@ -34,7 +34,6 @@ if ( file_exists( $extrachill_events_autoload ) ) {
 	require_once $extrachill_events_autoload;
 }
 
-require_once __DIR__ . '/inc/Providers/CliProvider.php';
 require_once __DIR__ . '/inc/Providers/IngestionProvider.php';
 require_once __DIR__ . '/inc/Providers/AdministrationProvider.php';
 require_once __DIR__ . '/inc/Providers/LifecycleProvider.php';

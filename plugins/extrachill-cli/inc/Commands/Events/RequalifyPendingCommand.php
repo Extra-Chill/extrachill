@@ -10,13 +10,17 @@
  * Use case: ship a BandzoogleExtractor → `requalify-pending
  * --platform=bandzoogle` → list of venues now qualifying that were blocked.
  *
- * @package ExtraChillEvents\Cli
+ * Thin adapter over VenueRequalifier (extrachill-events).
+ *
+ * @package ExtraChill\CLI\Commands\Events
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChill\CLI\Commands\Events;
 
+use ExtraChill\CLI\OwnerSiteAbility;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\QualifyVerdictsTable;
+use ExtraChillEvents\Core\VenueRequalifier;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -69,13 +73,14 @@ class RequalifyPendingCommand {
 	 *     wp extrachill venues requalify-pending --verdict=bot_blocked --limit=10
 	 *     wp extrachill venues requalify-pending --platform=squarespace --dry-run
 	 *
+	 * @when after_wp_load
+	 *
 	 * @param array $args       Positional args.
 	 * @param array $assoc_args Named args.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
-			return;
-		}
+		unset( $args );
+		OwnerSiteAbility::require_service( 'events', 'Events', VenueRequalifier::class );
 
 		if ( ! QualifyVerdictsTable::table_exists() ) {
 			\WP_CLI::error( 'Qualify verdicts table does not exist on this site. Deactivate/reactivate extrachill-events to install it.' );
@@ -93,7 +98,8 @@ class RequalifyPendingCommand {
 			return;
 		}
 
-		$candidates = $this->fetch_candidates( $verdict, $platform, $limit );
+		$requalifier = new VenueRequalifier();
+		$candidates  = $requalifier->pending_candidates( $verdict, $platform, $limit );
 
 		if ( empty( $candidates ) ) {
 			\WP_CLI::log( 'No URLs match the requested filter.' );
@@ -118,58 +124,27 @@ class RequalifyPendingCommand {
 			return;
 		}
 
-		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/qualify-venue' ) : null;
-		if ( ! $ability ) {
-			\WP_CLI::error( 'extrachill/qualify-venue ability not available.' );
+		$progress = \WP_CLI\Utils\make_progress_bar( 'Requalifying', count( $candidates ) );
+		$outcome  = $requalifier->requalify_pending(
+			$candidates,
+			static function () use ( $progress ): void {
+				$progress->tick(); // @phpstan-ignore method.notFound (make_progress_bar() returns cli\progress\Bar|WP_CLI\NoOp; NoOp forwards via __call() and Bar implements tick() at runtime.)
+			}
+		);
+		if ( is_wp_error( $outcome ) ) {
+			\WP_CLI::error( $outcome->get_error_message() );
 			return;
 		}
-
-		$results  = array();
-		$progress = \WP_CLI\Utils\make_progress_bar( 'Requalifying', count( $candidates ) );
-		foreach ( $candidates as $c ) {
-			$result = $ability->execute( array( 'url' => $c['url'] ) );
-			$progress->tick();
-
-			if ( is_wp_error( $result ) ) {
-				$results[] = array(
-					'url'            => $c['url'],
-					'old_verdict'    => $c['verdict'],
-					'new_verdict'    => 'error',
-					'agent_guidance' => '',
-					'event_count'    => 0,
-					'flipped'        => 'no',
-				);
-				continue;
-			}
-
-			$new_verdict = (string) ( $result['verdict'] ?? '' );
-			$flipped     = ( $new_verdict !== $c['verdict'] ) ? 'YES' : 'no';
-
-			$results[] = array(
-				'url'            => $c['url'],
-				'old_verdict'    => $c['verdict'],
-				'new_verdict'    => $new_verdict,
-				'agent_guidance' => (string) ( $result['agent_guidance'] ?? '' ),
-				'event_count'    => (int) ( $result['event_count'] ?? 0 ),
-				'flipped'        => $flipped,
-			);
-		}
-		$progress->finish();
+		$progress->finish(); // @phpstan-ignore method.notFound (make_progress_bar() returns cli\progress\Bar|WP_CLI\NoOp; NoOp forwards via __call() and Bar implements finish() at runtime.)
 
 		// Surface the promotions (verdict flipped to QUALIFIED_STRUCTURED) up
 		// top so the operator sees what is now actionable.
-		$promotions = array_values(
-			array_filter(
-				$results,
-				static function ( $r ) {
-					return QualifyVerdict::QUALIFIED_STRUCTURED === $r['new_verdict'];
-				}
-			)
-		);
+		$results    = $outcome['results'];
+		$promotions = $outcome['promotions'];
 
 		if ( 'json' === $format ) {
 			\WP_CLI::log(
-				wp_json_encode(
+				(string) wp_json_encode(
 					array(
 						'total'      => count( $results ),
 						'promotions' => $promotions,
@@ -191,66 +166,5 @@ class RequalifyPendingCommand {
 		}
 
 		\WP_CLI\Utils\format_items( $format, $results, array( 'url', 'old_verdict', 'new_verdict', 'event_count', 'flipped' ) );
-	}
-
-	/**
-	 * Fetch latest-verdict-per-URL rows matching the filter.
-	 *
-	 * @param string $verdict  Verdict to filter on, or '' for any.
-	 * @param string $platform Platform slug to require in fingerprint, or '' for any.
-	 * @param int    $limit    Max rows.
-	 * @return array<int,array{url:string,verdict:string,platforms:array<int,string>,qualified_at:string}>
-	 */
-	private function fetch_candidates( string $verdict, string $platform, int $limit ): array {
-		global $wpdb;
-		$table = QualifyVerdictsTable::table_name();
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared
-		$rows = $wpdb->get_results(
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			$wpdb->prepare(
-				"SELECT v.url, v.verdict, v.fingerprint, v.qualified_at
-				FROM {$table} v
-				INNER JOIN (
-					SELECT url_hash, MAX(id) AS max_id
-					FROM {$table}
-					GROUP BY url_hash
-				) latest ON latest.max_id = v.id
-				WHERE v.verdict = %s
-				ORDER BY v.qualified_at DESC
-				LIMIT %d",
-				$verdict,
-				// Over-fetch when platform filter is set so the post-filter
-				// still hits --limit. Cap at a sane upper bound.
-				'' === $platform ? $limit : min( $limit * 10, 1000 )
-			),
-			ARRAY_A
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$out = array();
-		foreach ( (array) $rows as $row ) {
-			$decoded   = json_decode( (string) ( $row['fingerprint'] ?? '' ), true );
-			$platforms = is_array( $decoded ) && isset( $decoded['platforms_detected'] ) && is_array( $decoded['platforms_detected'] )
-				? array_values( array_map( 'strval', $decoded['platforms_detected'] ) )
-				: array();
-
-			if ( '' !== $platform && ! in_array( $platform, $platforms, true ) ) {
-				continue;
-			}
-
-			$out[] = array(
-				'url'          => (string) $row['url'],
-				'verdict'      => (string) $row['verdict'],
-				'platforms'    => $platforms,
-				'qualified_at' => (string) $row['qualified_at'],
-			);
-
-			if ( count( $out ) >= $limit ) {
-				break;
-			}
-		}
-
-		return $out;
 	}
 }
