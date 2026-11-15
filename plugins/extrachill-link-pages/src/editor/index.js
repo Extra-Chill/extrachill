@@ -1,6 +1,8 @@
 /**
  * WordPress dependencies
  */
+// Provided at runtime as a webpack external by @wordpress/scripts.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import {
 	Children,
 	cloneElement,
