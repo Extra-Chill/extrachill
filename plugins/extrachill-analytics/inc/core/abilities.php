@@ -24,6 +24,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_ips_
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_view_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_cta_click_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_network_click_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_content_link_click_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_form_submit_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_cta_funnel_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_page_analytics_ability' );
@@ -38,6 +39,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_route_transi
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_geo_bridge_experiment_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_experiment_summary_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_crosslink_targets_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_crosslink_clicks_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_stickiness_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_activation_funnel_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_ability' );

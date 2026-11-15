@@ -1,8 +1,11 @@
 /* global afterEach, beforeEach, describe, expect, it, jest, MouseEvent, HTMLFormElement */
 
-const CTA_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-cta-click/run';
-const NETWORK_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-network-click/run';
-const FORM_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-form-submit/run';
+const CTA_ENDPOINT =
+	'/wp-json/wp-abilities/v1/abilities/extrachill/track-cta-click/run';
+const NETWORK_ENDPOINT =
+	'/wp-json/wp-abilities/v1/abilities/extrachill/track-network-click/run';
+const FORM_ENDPOINT =
+	'/wp-json/wp-abilities/v1/abilities/extrachill/track-form-submit/run';
 const OUTBOUND_ENDPOINT = '/wp-json/extrachill/v1/analytics/click';
 
 const baseConfig = {
@@ -42,8 +45,7 @@ function loadTracker( config ) {
 		} ),
 	} );
 
-	const originalAddEventListener =
-		document.addEventListener.bind( document );
+	const originalAddEventListener = document.addEventListener.bind( document );
 	const addSpy = jest
 		.spyOn( document, 'addEventListener' )
 		.mockImplementation( ( type, handler, options ) => {
@@ -182,9 +184,9 @@ describe( 'cta_click', () => {
 			.querySelector( 'a' )
 			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
 
-		expect(
-			calls.some( ( c ) => c.endpoint === OUTBOUND_ENDPOINT )
-		).toBe( true );
+		expect( calls.some( ( c ) => c.endpoint === OUTBOUND_ENDPOINT ) ).toBe(
+			true
+		);
 		expect( calls.some( ( c ) => c.endpoint === CTA_ENDPOINT ) ).toBe(
 			true
 		);
@@ -292,17 +294,27 @@ describe( 'network_click', () => {
 	} );
 
 	it( 'records exactly one cross-network click with path-only attribution', () => {
-		document.body.innerHTML = '<header data-ec-track-placement="site-menu"><a href="https://community.extrachill.com/recent/?secret=x#top"><span> Recent   activity </span></a></header>';
+		document.body.innerHTML =
+			'<header data-ec-track-placement="site-menu"><a href="https://community.extrachill.com/recent/?secret=x#top"><span> Recent   activity </span></a></header>';
 		const calls = loadTracker( baseConfig );
-		document.querySelector( 'span' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
-		expect( calls ).toEqual( [ { endpoint: NETWORK_ENDPOINT, input: { input: {
-			dest_host: 'community.extrachill.com',
-			dest_path: '/recent/',
-			label: 'Recent activity',
-			placement: 'site-menu',
-			route: 'singular',
-			source_url: 'http://localhost/story/',
-		} } } ] );
+		document
+			.querySelector( 'span' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls ).toEqual( [
+			{
+				endpoint: NETWORK_ENDPOINT,
+				input: {
+					input: {
+						dest_host: 'community.extrachill.com',
+						dest_path: '/recent/',
+						label: 'Recent activity',
+						placement: 'site-menu',
+						route: 'singular',
+						source_url: 'http://localhost/story/',
+					},
+				},
+			},
+		] );
 	} );
 
 	it.each( [
@@ -315,16 +327,126 @@ describe( 'network_click', () => {
 	] )( 'does not attribute excluded link %s', ( markup ) => {
 		document.body.innerHTML = markup;
 		const calls = loadTracker( baseConfig );
-		document.querySelector( 'a' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
-		expect( calls.filter( ( c ) => c.endpoint === NETWORK_ENDPOINT ) ).toHaveLength( 0 );
+		document
+			.querySelector( 'a' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect(
+			calls.filter( ( c ) => c.endpoint === NETWORK_ENDPOINT )
+		).toHaveLength( 0 );
 	} );
 
 	it( 'uses the nearest landmark and works without the outbound endpoint', () => {
-		document.body.innerHTML = '<footer><nav><a href="https://extrachill.com/">Home</a></nav></footer>';
+		document.body.innerHTML =
+			'<footer><nav><a href="https://extrachill.com/">Home</a></nav></footer>';
 		const calls = loadTracker( { ...baseConfig, endpoint: undefined } );
-		document.querySelector( 'a' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		document
+			.querySelector( 'a' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
 		expect( calls ).toHaveLength( 1 );
 		expect( calls[ 0 ].input.input.placement ).toBe( 'nav' );
+	} );
+} );
+
+describe( 'content_link_click', () => {
+	const CONTENT_ENDPOINT =
+		'/wp-json/wp-abilities/v1/abilities/extrachill/track-content-link-click/run';
+	const contentConfig = {
+		...baseConfig,
+		contentEndpoint: CONTENT_ENDPOINT,
+		postId: 42,
+		proof: 'abc123',
+	};
+
+	beforeEach( () => {
+		window.history.pushState( {}, '', '/story/?private=yes#top' );
+	} );
+
+	afterEach( () => {
+		delete global.ecOutboundTracking;
+		jest.restoreAllMocks();
+	} );
+
+	function contentCalls( calls ) {
+		return calls.filter( ( c ) => c.endpoint === CONTENT_ENDPOINT );
+	}
+
+	it( 'records a same-site crosslink in the post body with the proven post', () => {
+		document.body.innerHTML =
+			'<div class="entry-content"><p><a href="/other-story/?utm=x#h"><em> Other   story </em></a></p></div>';
+		const calls = loadTracker( contentConfig );
+		document
+			.querySelector( 'em' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls ).toEqual( [
+			{
+				endpoint: CONTENT_ENDPOINT,
+				input: {
+					input: {
+						post_id: 42,
+						proof: 'abc123',
+						dest_host: 'localhost',
+						dest_path: '/other-story/',
+						label: 'Other story',
+						source_url: 'http://localhost/story/',
+					},
+				},
+			},
+		] );
+	} );
+
+	it( 'fires alongside network_click for a cross-site link in the body', () => {
+		document.body.innerHTML =
+			'<div class="entry-content"><a href="https://artist.extrachill.com/artists/grateful-dead">Grateful Dead</a></div>';
+		const calls = loadTracker( contentConfig );
+		document
+			.querySelector( 'a' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls.map( ( c ) => c.endpoint ).sort() ).toEqual(
+			[ CONTENT_ENDPOINT, NETWORK_ENDPOINT ].sort()
+		);
+		expect( contentCalls( calls )[ 0 ].input.input.dest_host ).toBe(
+			'artist.extrachill.com'
+		);
+	} );
+
+	it.each( [
+		[
+			'outside the post body',
+			'<nav><a href="/other-story/">Nav</a></nav>',
+		],
+		[
+			'off network',
+			'<div class="entry-content"><a href="https://tickets.example/show/">Tickets</a></div>',
+		],
+		[
+			'same-page fragment',
+			'<div class="entry-content"><a href="#section-2">Jump</a></div>',
+		],
+		[
+			'opted out',
+			'<div class="entry-content"><a data-ec-track="off" href="/other-story/">Off</a></div>',
+		],
+		[
+			'editable',
+			'<div class="entry-content" contenteditable="true"><a href="/other-story/">Edit</a></div>',
+		],
+	] )( 'does not record a link %s', ( _label, markup ) => {
+		document.body.innerHTML = markup;
+		const calls = loadTracker( contentConfig );
+		document
+			.querySelector( 'a' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( contentCalls( calls ) ).toHaveLength( 0 );
+	} );
+
+	it( 'stays silent off singular pages, where no proof is rendered', () => {
+		document.body.innerHTML =
+			'<div class="entry-content"><a href="/other-story/">Other</a></div>';
+		const calls = loadTracker( { ...baseConfig, route: 'archive' } );
+		document
+			.querySelector( 'a' )
+			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls ).toHaveLength( 0 );
 	} );
 } );
 
@@ -348,9 +470,9 @@ describe( 'outbound_click regression', () => {
 			.querySelector( 'a' )
 			.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
 
-		expect(
-			calls.some( ( c ) => c.endpoint === OUTBOUND_ENDPOINT )
-		).toBe( false );
+		expect( calls.some( ( c ) => c.endpoint === OUTBOUND_ENDPOINT ) ).toBe(
+			false
+		);
 	} );
 
 	it( 'still records an off-network anchor click unchanged', () => {

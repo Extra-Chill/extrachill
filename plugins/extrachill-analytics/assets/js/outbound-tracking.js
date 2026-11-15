@@ -228,6 +228,43 @@
 		} );
 	}
 
+	// The post body. Links here are crosslinks we place on purpose, so a click
+	// on one is the crosslink-density signal (#1436).
+	const CONTENT_SELECTOR = '.entry-content';
+
+	function trackContentLinkClick( anchorEl, url ) {
+		if (
+			! config.contentEndpoint ||
+			! config.postId ||
+			! config.proof ||
+			isExcludedContext() ||
+			isContentEditableContext( anchorEl ) ||
+			! anchorEl.closest ||
+			! anchorEl.closest( CONTENT_SELECTOR ) ||
+			'off' === anchorEl.getAttribute( 'data-ec-track' )
+		) {
+			return;
+		}
+
+		// Same-page fragment jumps (table of contents, footnotes) are not links
+		// to other content.
+		if (
+			url.host === window.location.host &&
+			url.pathname === window.location.pathname
+		) {
+			return;
+		}
+
+		sendAbility( config.contentEndpoint, {
+			post_id: config.postId,
+			proof: config.proof,
+			dest_host: url.hostname,
+			dest_path: url.pathname.slice( 0, 512 ),
+			label: resolveLabel( anchorEl ),
+			source_url: window.location.origin + window.location.pathname,
+		} );
+	}
+
 	// Delegated capture: one listener on the document catches clicks on any
 	// element, including ones added after load. Capture phase so we record the
 	// intent before any navigation handler can swallow it. Outbound-click
@@ -238,7 +275,11 @@
 	document.addEventListener(
 		'click',
 		function ( event ) {
-			if ( config.endpoint || config.networkEndpoint ) {
+			if (
+				config.endpoint ||
+				config.networkEndpoint ||
+				config.contentEndpoint
+			) {
 				// Resolve the anchor the click landed on (could be a child element).
 				let anchorEl = event.target;
 				while ( anchorEl && anchorEl.nodeName !== 'A' ) {
@@ -254,11 +295,22 @@
 					}
 					if (
 						url &&
-						( url.protocol === 'http:' || url.protocol === 'https:' )
+						( url.protocol === 'http:' ||
+							url.protocol === 'https:' )
 					) {
 						const host = url.hostname;
-						if ( host && ! isNetworkHost( host ) && config.endpoint ) {
-							sendOutboundClick( url.origin + url.pathname, host );
+						if ( host && isNetworkHost( host ) ) {
+							trackContentLinkClick( anchorEl, url );
+						}
+						if (
+							host &&
+							! isNetworkHost( host ) &&
+							config.endpoint
+						) {
+							sendOutboundClick(
+								url.origin + url.pathname,
+								host
+							);
 						} else if (
 							isNetworkHost( host ) &&
 							url.host !== window.location.host &&
@@ -273,7 +325,9 @@
 								label: resolveLabel( anchorEl ),
 								placement: resolvePlacement( anchorEl ),
 								route: config.route || 'other',
-								source_url: window.location.origin + window.location.pathname,
+								source_url:
+									window.location.origin +
+									window.location.pathname,
 							} );
 						}
 					}

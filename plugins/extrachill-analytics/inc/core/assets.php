@@ -529,17 +529,28 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		)
 	);
 
-	wp_localize_script(
-		'extrachill-outbound-tracking',
-		'ecOutboundTracking',
-		array(
-			'endpoint'        => rest_url( 'extrachill/v1/analytics/click' ),
-			'networkHosts'    => $network_hosts,
-			'networkEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-network-click/run' ),
-			'ctaEndpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
-			'formEndpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
-			'route'           => $route,
-		)
+	$config = array(
+		'endpoint'        => rest_url( 'extrachill/v1/analytics/click' ),
+		'networkHosts'    => $network_hosts,
+		'networkEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-network-click/run' ),
+		'ctaEndpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
+		'formEndpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
+		'route'           => $route,
 	);
+
+	// In-article link clicks (#1436) are attributed to the post being read. The
+	// source post rides on the same per-page (not per-visitor) pageview proof,
+	// so cached pages stay cacheable and the server can verify attribution.
+	$post_id      = 'singular' === $route && is_singular() ? (int) get_the_ID() : 0;
+	$request_host = isset( $_SERVER['HTTP_HOST'] )
+		? wp_parse_url( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ), PHP_URL_HOST )
+		: '';
+	if ( $post_id > 0 && is_string( $request_host ) && '' !== $request_host ) {
+		$config['contentEndpoint'] = rest_url( 'wp-abilities/v1/abilities/extrachill/track-content-link-click/run' );
+		$config['postId']          = $post_id;
+		$config['proof']           = extrachill_analytics_pageview_proof( $post_id, $source_path, 'singular', $request_host );
+	}
+
+	wp_localize_script( 'extrachill-outbound-tracking', 'ecOutboundTracking', $config );
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_outbound_tracking' );
