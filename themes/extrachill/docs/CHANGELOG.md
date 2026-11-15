@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.20.0] - 2026-11-15
+
+### Added
+- Extra Chill Supporter badge for lifetime members
+
+### Fixed
+- regenerate design-system.html for the supporter badge token
+
 ## [2.19.0] - 2026-11-15
 
 ### Added
