@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.4] - 2026-11-15
+
+### Fixed
+- pin Docs Agent fcc284b and title docs PRs by component
+
 ## [0.12.3] - 2026-11-15
 
 ### Fixed
