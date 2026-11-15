@@ -43,7 +43,8 @@
       "php tests/sendy-single-config-smoke.php",
       "php tests/member-subscriptions-smoke.php",
       "php tests/optional-ability-input-smoke.php",
-      "php tests/newsletter-link-tagging-smoke.php"
+      "php tests/newsletter-link-tagging-smoke.php",
+      "php tests/recent-newsletters-snapshot-smoke.php"
     ]
   }
 }
