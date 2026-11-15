@@ -342,6 +342,22 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'owner_runtime_unavailable', extrachill_shop_route_webhook_event( $this->dispute() )->get_error_code() );
 		$this->assertSame( 'issued', $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['status'] );
 	}
+	public function test_closed_ticket_dispute_records_the_outcome_only(): void {
+		$this->checkout();
+		extrachill_shop_route_webhook_event( $this->event() );
+		extrachill_shop_route_webhook_event( $this->dispute() );
+		$GLOBALS['test_owner_calls'] = array();
+		$closed                      = $this->dispute();
+		$closed->type                = 'charge.dispute.closed';
+		$closed->data->object->status = 'lost';
+		$this->assertTrue( extrachill_shop_route_webhook_event( $closed ) );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $closed ) );
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( 'lost', $order['dispute_outcome'] );
+		$this->assertSame( 'disputed', $order['status'] );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+		$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+	}
 	public function test_show_refund_refunds_open_orders_and_counts_check_ins(): void {
 		$this->checkout();
 		extrachill_shop_route_webhook_event( $this->event() );

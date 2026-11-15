@@ -333,7 +333,7 @@ function ec_render_network_payments_page() {
 				<li><?php esc_html_e( 'Create a Stripe account at stripe.com and enable Stripe Connect in your dashboard.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > API keys: copy your Secret Key and Publishable Key.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired. Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, checkout.session.expired, charge.refunded, charge.dispute.created and account.updated. Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, checkout.session.expired, charge.refunded, charge.dispute.created, charge.dispute.closed and account.updated. Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
 			</ol>
 			<p>
 				<strong><?php esc_html_e( 'Stripe Webhook URL:', 'extrachill-network' ); ?></strong>

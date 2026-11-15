@@ -16,6 +16,8 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_options']                 = array( 'admin_email' => 'admin@extrachill.com' );
 		$GLOBALS['test_post_meta']               = array();
 		$GLOBALS['test_orders']                  = array();
+		$GLOBALS['test_wc_refunds']              = array();
+		$GLOBALS['test_wc_refund_objects']       = array();
 		$GLOBALS['test_transients']              = array();
 		$GLOBALS['test_stripe_status']           = null;
 		$GLOBALS['test_stripe_status_calls']     = array();
@@ -363,6 +365,145 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( array(), $GLOBALS['notification_mail'] );
 	}
 
+	// ── Closed disputes (#1471) ───────────────────────────────────────────────
+
+	private function closed( string $status, string $account = 'acct_merch', string $intent = 'pi_cs_a' ) {
+		return (object) array(
+			'type'    => 'charge.dispute.closed',
+			'account' => $account,
+			'data'    => (object) array( 'object' => (object) array( 'id' => 'dp_merch', 'payment_intent' => $intent, 'amount' => 2500, 'status' => $status, 'reason' => 'product_not_received', 'metadata' => (object) array() ) ),
+		);
+	}
+
+	private function charge_refunded( int $amount ) {
+		return (object) array(
+			'type'    => 'charge.refunded',
+			'account' => 'acct_merch',
+			'data'    => (object) array(
+				'object' => (object) array(
+					'id'              => 'ch_merch',
+					'payment_intent'  => 'pi_cs_a',
+					'amount_refunded' => $amount,
+					'refunds'         => (object) array( 'has_more' => false, 'data' => array( (object) array( 'id' => 're_x', 'amount' => $amount, 'status' => 'succeeded', 'metadata' => (object) array() ) ) ),
+					'metadata'        => (object) array(),
+				),
+			),
+		);
+	}
+
+	private function disputed_paid_order( string $before = 'processing' ): MerchCheckoutOrder {
+		$order         = $this->paid_order();
+		$order->status = $before;
+		$GLOBALS['test_owner_callback'] = static fn() => array( 'sent' => 1 );
+		extrachill_shop_route_webhook_event( $this->dispute() );
+		$GLOBALS['test_owner_calls']  = array();
+		$GLOBALS['notification_mail'] = array();
+		return $order;
+	}
+
+	private function seller_subjects(): array {
+		return array_map( static fn( $call ) => $call['args']['body']['input']['subject'], $GLOBALS['test_owner_calls'] );
+	}
+
+	public function test_dispute_hold_remembers_the_prior_status(): void {
+		$order = $this->disputed_paid_order( 'completed' );
+		$this->assertSame( 'on-hold', $order->status );
+		$this->assertSame( 'completed', $order->meta['_extrachill_dispute_prior_status'] );
+	}
+
+	public function test_won_dispute_restores_the_status_and_clears_the_flag_once(): void {
+		$order = $this->disputed_paid_order( 'completed' );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'won' ) ) );
+		$this->assertSame( 'completed', $order->status );
+		$this->assertArrayNotHasKey( '_extrachill_dispute', $order->meta );
+		$this->assertArrayNotHasKey( '_extrachill_dispute_prior_status', $order->meta );
+		$this->assertSame( 'dp_merch:won', $order->meta['_extrachill_dispute_outcome'] );
+		$this->assertFalse( extrachill_shop_order_is_disputed( $order ) );
+		$this->assertStringContainsString( 'seller\'s favor', end( $order->notes ) );
+		$this->assertSame( array( 'Order #123: dispute settled in your favor' ), $this->seller_subjects() );
+		$this->assertSame( array(), $GLOBALS['test_wc_refunds'] );
+
+		// Replays change nothing and send no more email.
+		$notes = count( $order->notes );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'won' ) ) );
+		$this->assertCount( $notes, $order->notes );
+		$this->assertCount( 1, $GLOBALS['test_owner_calls'] );
+		// A late `created` replay does not put it back on hold.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->dispute() ) );
+		$this->assertSame( 'completed', $order->status );
+		$this->assertCount( 1, $GLOBALS['test_owner_calls'] );
+	}
+
+	public function test_won_without_a_recorded_status_falls_back_to_processing(): void {
+		$order = $this->disputed_paid_order();
+		unset( $order->meta['_extrachill_dispute_prior_status'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'warning_closed' ) ) );
+		$this->assertSame( 'processing', $order->status );
+		$this->assertSame( 'dp_merch:won', $order->meta['_extrachill_dispute_outcome'] );
+	}
+
+	public function test_lost_dispute_records_one_refund_and_marks_the_order_refunded(): void {
+		$order = $this->disputed_paid_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'lost' ) ) );
+		$this->assertSame( 'refunded', $order->status );
+		$this->assertCount( 1, $GLOBALS['test_wc_refunds'] );
+		$this->assertSame( 25.0, $GLOBALS['test_wc_refunds'][0]['amount'] );
+		$this->assertFalse( $GLOBALS['test_wc_refunds'][0]['refund_payment'] );
+		$this->assertSame( 'dp_merch', $order->get_refunds()[0]->get_meta( '_extrachill_stripe_refund_id' ) );
+		$this->assertArrayNotHasKey( '_extrachill_dispute', $order->meta );
+		$this->assertSame( 'dp_merch:lost', $order->meta['_extrachill_dispute_outcome'] );
+		$this->assertStringContainsString( 'returned $25.00 to the buyer', end( $order->notes ) );
+		$this->assertSame( array( 'Order #123: dispute lost' ), $this->seller_subjects() );
+
+		// Replay, then a charge.refunded for the same money: still one refund.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'lost' ) ) );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->charge_refunded( 2500 ) ) );
+		$this->assertCount( 1, $GLOBALS['test_wc_refunds'] );
+		$this->assertCount( 1, $GLOBALS['test_owner_calls'] );
+		$this->assertSame( 0.0, $order->get_remaining_refund_amount() );
+	}
+
+	public function test_lost_dispute_after_charge_refunded_is_not_recorded_twice(): void {
+		$order = $this->disputed_paid_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->charge_refunded( 2500 ) ) );
+		$this->assertCount( 1, $GLOBALS['test_wc_refunds'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'lost' ) ) );
+		$this->assertCount( 1, $GLOBALS['test_wc_refunds'] );
+		$this->assertSame( 'refunded', $order->status );
+		$this->assertSame( 'dp_merch:lost', $order->meta['_extrachill_dispute_outcome'] );
+	}
+
+	public function test_partial_lost_dispute_keeps_later_dashboard_refunds(): void {
+		$order                                = $this->disputed_paid_order();
+		$closed                               = $this->closed( 'lost' );
+		$closed->data->object->amount         = 1000;
+		$this->assertTrue( extrachill_shop_route_webhook_event( $closed ) );
+		$this->assertSame( 'processing', $order->status );
+		$this->assertSame( 15.0, $order->get_remaining_refund_amount() );
+		// The seller then refunds $5 from their dashboard; the charge shows only that.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->charge_refunded( 500 ) ) );
+		$this->assertSame( array( 10.0, 5.0 ), array_column( $GLOBALS['test_wc_refunds'], 'amount' ) );
+	}
+
+	public function test_closed_dispute_on_unknown_charge_or_account_is_ignored(): void {
+		$order = $this->disputed_paid_order();
+		$log   = ini_set( 'error_log', '/dev/null' ); // The handler logs the miss for operators.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'won', 'acct_merch', 'pi_unknown' ) ) );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'lost', 'acct_other' ) ) );
+		ini_set( 'error_log', (string) $log );
+		$this->assertSame( 'on-hold', $order->status );
+		$this->assertSame( 'dp_merch', $order->meta['_extrachill_dispute'] );
+		$this->assertSame( array(), $GLOBALS['test_wc_refunds'] );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+	}
+
+	public function test_dispute_still_under_review_changes_nothing(): void {
+		$order = $this->disputed_paid_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed( 'under_review' ) ) );
+		$this->assertSame( 'on-hold', $order->status );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+	}
+
 	// ── Removed transfer-era handlers ─────────────────────────────────────────
 
 	public function test_removed_platform_events_change_nothing(): void {
@@ -394,6 +535,6 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$this->assertNotEmpty( $connect );
 		$listed = static fn( $text ) => preg_match_all( '/[a-z_]+\.[a-z_.]+/', $text, $m ) ? $m[0] : array();
 		$this->assertSame( $sessions, $listed( $platform[1] ) );
-		$this->assertSame( array_merge( $sessions, array( 'charge.refunded', 'charge.dispute.created', 'account.updated' ) ), $listed( $connect[1] ) );
+		$this->assertSame( array_merge( $sessions, array( 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed', 'account.updated' ) ), $listed( $connect[1] ) );
 	}
 }

@@ -39,6 +39,8 @@ final class MerchCheckoutOrder {
 	public function payment_complete( $intent ) { ++$this->paid; $this->status = 'processing'; }
 	public function has_status( $statuses ) { return in_array( $this->status, (array) $statuses, true ); }
 	public function update_status( $status, $note = '' ) { $this->status = $status; $this->notes[] = $note; }
+	public function get_status() { return $this->status; }
+	public function delete_meta_data( $key ) { unset( $this->meta[ $key ] ); }
 }
 final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
