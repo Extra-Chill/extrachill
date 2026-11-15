@@ -76,6 +76,7 @@ class MigratePostCommand {
 	 *     wp extrachill network migrate-post 88 --from=studio --to=main --delete-source
 	 *
 	 * @subcommand migrate-post
+	 * @alias migrate_post
 	 * @when after_wp_load
 	 */
 	public function migrate_post( $args, $assoc_args ) {

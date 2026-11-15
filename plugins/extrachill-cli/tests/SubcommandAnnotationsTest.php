@@ -59,4 +59,22 @@ foreach ( array(
 	}
 }
 
+// Existing callers used the underscore names; keep them working as aliases.
+foreach ( array(
+	'Network/MigratePostCommand.php'    => array( 'migrate-post' => 'migrate_post' ),
+	'Newsletter/NewsletterCommand.php' => array(
+		'push-campaign'     => 'push_campaign',
+		'send-campaign'     => 'send_campaign',
+		'delete-campaign'   => 'delete_campaign',
+		'subscriber-status' => 'subscriber_status',
+	),
+) as $path => $pairs ) {
+	$source = file_get_contents( dirname( __DIR__ ) . '/inc/Commands/' . $path );
+	foreach ( $pairs as $subcommand => $alias ) {
+		if ( ! preg_match( '/@subcommand ' . preg_quote( $subcommand, '/' ) . '\s*\n\s*\*\s*@alias ' . preg_quote( $alias, '/' ) . '\s/', $source ) ) {
+			throw new RuntimeException( $path . ' must keep ' . $alias . ' as an alias of ' . $subcommand );
+		}
+	}
+}
+
 fwrite( STDOUT, 'Subcommand annotation tests passed (' . count( $checked ) . " methods).\n" );
