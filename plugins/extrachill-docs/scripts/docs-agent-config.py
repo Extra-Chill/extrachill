@@ -7,6 +7,9 @@ from pathlib import Path
 
 import yaml
 
+DEFAULT_MAX_TURNS = 40
+MAX_TURNS_CEILING = 120
+
 
 def resolve(component, map_path):
     platforms = yaml.safe_load(Path(map_path).read_text())["plugins"]
@@ -17,8 +20,11 @@ def resolve(component, map_path):
     config = dict(entry["runner"])
     if config["writable_paths"] != f"{key}/{entry['docs_subpath']}/**":
         raise ValueError("Writable paths must match the component's documentation path")
-    for field, default in (("bootstrap_contract", {}), ("source_delta", [])):
+    for field, default in (("bootstrap_contract", {}), ("source_delta", []), ("max_turns", DEFAULT_MAX_TURNS)):
         config.setdefault(field, default)
+    turns = config["max_turns"]
+    if isinstance(turns, bool) or not isinstance(turns, int) or not 1 <= turns <= MAX_TURNS_CEILING:
+        raise ValueError(f"max_turns must be an integer from 1 to {MAX_TURNS_CEILING}")
     # The agent and the completion validator read these repository-relative
     # paths; an unscoped ref (e.g. "inc/**") points outside the component.
     for item in config["source_delta"]:

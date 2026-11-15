@@ -34,6 +34,7 @@ class DocsAgentConfigTest(unittest.TestCase):
                     self.assertTrue(ref.startswith(f"plugins/{component}/"), ref)
             self.assertIn("writing-rules.md", settings["prompt"])
             self.assertEqual(len(settings["drift_checks"]), 1)
+            self.assertIsInstance(settings["max_turns"], int)
             if component in ("extrachill-events", "extrachill-newsletter", "extrachill-shop"):
                 self.assertEqual(settings["run_kind"], "maintenance")
                 self.assertTrue(settings["source_delta"])
@@ -52,6 +53,22 @@ class DocsAgentConfigTest(unittest.TestCase):
             handle.flush()
             with self.assertRaises(ValueError):
                 config.resolve("extrachill-shop", handle.name)
+
+    def test_max_turns_defaults_and_bounds(self):
+        import tempfile
+
+        self.assertEqual(config.resolve("extrachill-community", MAP)["max_turns"], 40)
+        self.assertEqual(config.resolve("extrachill-shop", MAP)["max_turns"], 80)
+        workflow = (ROOT / ".github/workflows/docs-agent.yml").read_text()
+        self.assertIn("max_turns: ${{ fromJSON(needs.config.outputs.config).max_turns }}", workflow)
+        for bad in (0, 121, "80", True):
+            platforms = yaml.safe_load(MAP.read_text())
+            platforms["plugins"]["plugins/extrachill-shop"]["runner"]["max_turns"] = bad
+            with tempfile.NamedTemporaryFile("w", suffix=".yml") as handle:
+                yaml.safe_dump(platforms, handle)
+                handle.flush()
+                with self.assertRaises(ValueError):
+                    config.resolve("extrachill-shop", handle.name)
 
     def test_rejects_unknown_or_unconfigured_component(self):
         for component in ("unknown", "extrachill-news-wire", "../extrachill-community"):
