@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.54.3] - 2026-11-15
+
+### Changed
+- event-source REST into extrachill-api; move or delete events CLI tools
+
 ## [0.54.2] - 2026-11-15
 
 ### Changed
