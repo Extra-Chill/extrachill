@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.2] - 2026-11-15
+
+### Fixed
+- require Terms at ticket checkout; show tickets in My Account
+
 ## [0.11.1] - 2026-11-15
 
 ### Fixed
