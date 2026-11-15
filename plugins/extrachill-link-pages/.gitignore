@@ -1,5 +1,5 @@
 /vendor/
 /node_modules/
-/build/*.zip
+/build/
 /tools/vendor/
 /.phpunit.result.cache
