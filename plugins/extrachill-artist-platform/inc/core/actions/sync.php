@@ -245,14 +245,7 @@ add_action( 'added_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10
 add_action( 'updated_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
 add_action( 'deleted_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
 
-/**
- * Seed identity onto a freshly created Link Page.
- *
- * @param int $link_page_id Link Page ID.
- * @param int $artist_id    Artist profile ID.
- */
-function ec_artist_push_identity_on_link_page_created( $link_page_id, $artist_id ) {
-	unset( $link_page_id );
-	ec_artist_push_link_page_identity( $artist_id );
-}
-add_action( 'ec_link_page_created', 'ec_artist_push_identity_on_link_page_created', 20, 2 );
+// A freshly created Link Page gets its identity from ec_create_link_page()
+// once provisioning has released the page lock. The identity push takes a
+// separate page lock scope, which cannot nest inside the combined scope the
+// `ec_link_page_created` finalizer runs in.

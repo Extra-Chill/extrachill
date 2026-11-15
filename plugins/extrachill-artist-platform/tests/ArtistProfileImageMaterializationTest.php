@@ -122,6 +122,37 @@ final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_Tes
 		}
 	}
 
+	public function test_link_page_created_after_the_profile_photo_gets_that_photo() {
+		if ( ! function_exists( 'ec_get_link_page_storage_blog_id' ) ) {
+			$this->markTestSkipped( 'Requires the standalone Link Pages storage runtime.' );
+		}
+		$this->ec_require_mysql_advisory_locks();
+		$artist  = $this->create_artist_profile( 'Photo first band' );
+		$storage = $this->isolated_blog();
+		$this->ec_inject_filter( 'ec_link_page_storage_blog_id', static function () use ( $storage ) { return $storage; } );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$source = $this->image();
+			set_post_thumbnail( $artist, $source );
+			$page = ec_create_link_page( $artist );
+			$this->assertNotWPError( $page );
+			$current = ec_read_link_page_persistence( (int) $page );
+			$this->assertNotWPError( $current );
+			$this->assertTrue( $current['display_title_is_owned'] );
+			$this->assertSame( 'Photo first band', $current['display_title'] );
+			$local = (int) $current['profile_image_id'];
+			$this->assertGreaterThan( 0, $local );
+		} finally {
+			restore_current_blog();
+		}
+		switch_to_blog( $storage );
+		try {
+			$this->assertSame( $this->artist_blog_id() . ':' . $source, get_post_meta( $local, '_ec_source_attachment', true ) );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
 	public function test_collision_is_not_reused_and_migration_copy_is_adopted() {
 		$source_blog = get_current_blog_id();
 		$source = $this->image();
