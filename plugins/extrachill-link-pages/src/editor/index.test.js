@@ -2,11 +2,15 @@
 /**
  * WordPress dependencies
  */
+// Installed transitively through @wordpress/scripts for tests.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { createRoot } from '@wordpress/element';
 
 /**
  * External dependencies
  */
+// React's test-only act helper is supplied transitively by @wordpress/element.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { act } from 'react';
 
 /**

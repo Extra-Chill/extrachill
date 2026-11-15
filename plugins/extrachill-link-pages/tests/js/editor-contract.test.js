@@ -41,4 +41,5 @@ assert.match(
 	editorStyles,
 	/\.ec-lpe-field input[^,]*:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\)/
 );
+// eslint-disable-next-line no-console
 console.log( 'editor contract tests passed' );

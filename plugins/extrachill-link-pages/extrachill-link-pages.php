@@ -845,13 +845,16 @@ function ec_validate_link_pages_runtime( $check_readiness = true ) {
 	if ( isset( $GLOBALS['ec_link_pages_runtime_error'] ) && is_wp_error( $GLOBALS['ec_link_pages_runtime_error'] ) ) {
 		return $GLOBALS['ec_link_pages_runtime_error'];
 	}
-	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
+	// The storage and API constants are only defined when not already defined,
+	// so an earlier loader may have declared them with incompatible values.
+	// PHPStan sees only this file's definitions, hence the suppressions.
+	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) { // @phpstan-ignore notIdentical.alwaysFalse
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
 	}
 	if ( ! function_exists( 'ec_link_page_post_type' ) || 'ec_link_page' !== ec_link_page_post_type() ) {
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
 	}
-	if ( '4' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) {
+	if ( '4' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) { // @phpstan-ignore notIdentical.alwaysFalse
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime API version is not supported.' );
 	}
 	foreach ( ec_link_pages_runtime_function_contract() as $function => $signature ) {
@@ -937,8 +940,9 @@ function ec_enqueue_link_page_editor() {
 		'extrch-share-modal'         => 'assets/css/extrch-share-modal.css',
 		'extrch-custom-social-icons' => 'assets/css/custom-social-icons.css',
 	) as $handle => $path ) {
-		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
-		wp_enqueue_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION );
+		$file  = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
+		$mtime = file_exists( $file ) ? filemtime( $file ) : false;
+		wp_enqueue_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), false !== $mtime ? (string) $mtime : EXTRACHILL_LINK_PAGES_VERSION );
 	}
 	return true;
 }

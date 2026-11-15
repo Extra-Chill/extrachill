@@ -8,6 +8,15 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * Variables provided by ec_render_link_page_subscribe_component().
+ *
+ * @var string $heading      Form heading.
+ * @var string $description  Form description.
+ * @var string $url          Subscribe API URL.
+ * @var int    $link_page_id Link Page ID.
+ */
 ?>
 <div id="extrch-subscribe-modal" class="extrch-subscribe-modal extrch-modal extrch-modal-hidden" role="dialog" aria-modal="true" aria-labelledby="extrch-subscribe-modal-title">
 	<div class="extrch-subscribe-modal-overlay extrch-modal-overlay"></div>

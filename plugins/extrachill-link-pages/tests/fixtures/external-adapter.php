@@ -1,35 +1,55 @@
 <?php
+/**
+ * Fixture: a real Artist Platform adapter registering against the runtime.
+ *
+ * Runs in its own PHP process and prints the registered providers as JSON.
+ *
+ * @package ExtraChillLinkPages
+ */
 
 define( 'ABSPATH', __DIR__ . '/' );
 $GLOBALS['state'] = array();
-class WP_Error { public function __construct( $code, $message ) {} }
-function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
-function plugin_basename( $file ) { return basename( dirname( $file ) ) . '/' . basename( $file ); }
+require_once dirname( __DIR__ ) . '/support/class-wp-error.php';
+function plugin_dir_path( $file ) {
+	return dirname( $file ) . '/'; }
+function plugin_basename( $file ) {
+	return basename( dirname( $file ) ) . '/' . basename( $file ); }
 function add_action() {}
 function do_action() {}
 function register_activation_hook() {}
 function register_deactivation_hook() {}
-function post_type_exists() { return false; }
+function post_type_exists() {
+	return false; }
 function register_post_type() {}
 function flush_rewrite_rules() {}
-function __( $text ) { return $text; }
-function _x( $text ) { return $text; }
-function is_wp_error( $value ) { return $value instanceof WP_Error; }
-function is_multisite() { return false; }
-function get_current_blog_id() { return 1; }
+function __( $text ) {
+	return $text; }
+function _x( $text ) {
+	return $text; }
+function is_wp_error( $value ) {
+	return $value instanceof WP_Error; }
+function is_multisite() {
+	return false; }
+function get_current_blog_id() {
+	return 1; }
 
 $root = dirname( __DIR__, 2 );
 require_once $root . '/extrachill-link-pages.php';
-$external = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: dirname( __DIR__, 3 ) . '/extrachill-artist-platform';
+$external = getenv( 'ARTIST_PLATFORM_WORKTREE' );
+if ( ! $external ) {
+	$external = dirname( __DIR__, 3 ) . '/extrachill-artist-platform';
+}
 if ( ! is_dir( $external . '/inc/link-pages' ) ) {
-	fwrite( STDERR, 'The external adapter fixture requires the Extra Chill Artist Platform sibling checkout. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $external . ")\n" );
+	fwrite( STDERR, 'The external adapter fixture requires the Extra Chill Artist Platform sibling checkout. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $external . ")\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI fixture reports setup errors on stderr.
 	exit( 1 );
 }
 $definition_file = $external . '/inc/link-pages/class-artist-link-pages.php';
 require_once $definition_file;
 ec_register_link_page_operation_provider( 'artist-platform', array( 'ExtraChillArtistPlatform\\Artist_Link_Pages', 'operation_provider' ) );
-echo json_encode( array(
-	'ready' => ec_link_pages_runtime_ready(),
-	'owner_providers' => array_column( ec_link_page_owner_compatibility_registry()->snapshot(), 'name' ),
-	'operation_providers' => array_column( ec_link_page_operation_provider_registry()->snapshot(), 'name' ),
-) );
+echo json_encode( // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone process; WordPress is not loaded.
+	array(
+		'ready'               => ec_link_pages_runtime_ready(),
+		'owner_providers'     => array_column( ec_link_page_owner_compatibility_registry()->snapshot(), 'name' ),
+		'operation_providers' => array_column( ec_link_page_operation_provider_registry()->snapshot(), 'name' ),
+	)
+);

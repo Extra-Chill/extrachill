@@ -1,6 +1,18 @@
 <?php
-/** Portable Link Page editor block mount. */
+/**
+ * Portable Link Page editor block mount.
+ *
+ * @package ExtraChillLinkPages
+ */
+
 defined( 'ABSPATH' ) || exit;
+
+/**
+ * Variables provided by the block render callback.
+ *
+ * @var array<string, mixed> $attributes Block attributes.
+ * @var WP_Block             $block      Block instance.
+ */
 
 $configuration = apply_filters( 'ec_link_page_editor_configuration', null, $attributes, $block );
 if ( ! is_array( $configuration ) || empty( $configuration['adapter'] ) || empty( $configuration['identities'] ) ) {

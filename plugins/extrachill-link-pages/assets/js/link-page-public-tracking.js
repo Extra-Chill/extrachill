@@ -5,8 +5,6 @@
  * URL normalization is handled server-side.
  */
 
-/* global navigator */
-
 ( function () {
 	'use strict';
 

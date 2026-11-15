@@ -381,7 +381,7 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 		foreach ( $section['links'] as &$item ) {
 			if ( ! empty( $item['featured'] ) ) {
 				$item['featured'] = ! $featured_seen;
-				$featured_seen = true;
+				$featured_seen    = true;
 			}
 		}
 		unset( $item );
@@ -452,7 +452,7 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 			if ( '--link-page-card-bg-color' === $key && preg_match( '/^rgba?\(/i', $value ) ) {
 				/* Require valid channels and an alpha between zero and one. */
 				$channel = '(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})';
-				$rgb = $channel . '\s*,\s*' . $channel . '\s*,\s*' . $channel;
+				$rgb     = $channel . '\s*,\s*' . $channel . '\s*,\s*' . $channel;
 				if ( ! preg_match( '/^(?:rgb\(\s*' . $rgb . '\s*\)|rgba\(\s*' . $rgb . '\s*,\s*(?:0|1|0?\.\d+|1\.0+)\s*\))$/i', $value ) ) {
 					return new WP_Error( 'invalid_link_page_css_value', 'A Link Page color is invalid.' );
 				}
@@ -637,11 +637,11 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
 	}
-	$styles                              = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
-	$links                               = get_post_meta( $link_page_id, '_link_page_links', true );
-	$defaults                            = ec_link_page_defaults_for( 'styles' );
-	$stored_styles                       = is_array( $styles ) ? $styles : array();
-	$styles                              = array_merge( $defaults, $stored_styles );
+	$styles        = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
+	$links         = get_post_meta( $link_page_id, '_link_page_links', true );
+	$defaults      = ec_link_page_defaults_for( 'styles' );
+	$stored_styles = is_array( $styles ) ? $styles : array();
+	$styles        = array_merge( $defaults, $stored_styles );
 	// Resolve legacy derived colors only when no independent value was saved.
 	if ( ! isset( $stored_styles['--link-page-button-hover-text-color'] ) ) {
 		$styles['--link-page-button-hover-text-color'] = $styles['--link-page-link-text-color'];
@@ -649,8 +649,8 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	if ( ! isset( $stored_styles['--link-page-icon-color'] ) ) {
 		$styles['--link-page-icon-color'] = $styles['--link-page-text-color'];
 	}
-	$settings                                      = ec_link_page_defaults_for( 'settings' );
-	$map = array(
+	$settings = ec_link_page_defaults_for( 'settings' );
+	$map      = array(
 		'link_expiration_enabled' => '_link_expiration_enabled',
 		'redirect_enabled'        => '_link_page_redirect_enabled',
 		'redirect_target_url'     => '_link_page_redirect_target_url',
@@ -674,10 +674,10 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		}
 	}
 	// Compatibility style aliases are projections, not independent settings.
-	$styles['_link_page_profile_img_shape']  = $settings['profile_image_shape'];
-	$styles['--link-page-profile-img-shape'] = $settings['profile_image_shape'];
+	$styles['_link_page_profile_img_shape']     = $settings['profile_image_shape'];
+	$styles['--link-page-profile-img-shape']    = $settings['profile_image_shape'];
 	$styles['--link-page-background-image-url'] = ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '';
-	$settings['overlay_enabled'] = '1' === (string) ( $styles['overlay'] ?? '1' );
+	$settings['overlay_enabled']                = '1' === (string) ( $styles['overlay'] ?? '1' );
 	if ( ! in_array( $settings['subscribe_display_mode'], array( 'icon_modal', 'inline_form', 'disabled' ), true ) ) {
 		$settings['subscribe_display_mode'] = 'icon_modal';
 	}
@@ -693,6 +693,7 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	$display_title_is_owned = '' !== trim( $display_title_raw );
 	$profile_image_id       = absint( get_post_meta( $link_page_id, '_link_page_profile_image_id', true ) );
 	$social_links_raw       = get_post_meta( $link_page_id, '_link_page_social_links', true );
+	$post_title             = get_post_field( 'post_title', $link_page_id );
 
 	$data = array(
 		'link_page_id'           => $link_page_id,
@@ -705,7 +706,7 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 			),
 		),
 		'bio'                    => (string) get_post_meta( $link_page_id, '_link_page_bio_text', true ),
-		'display_title'          => $display_title_is_owned ? $display_title_raw : (string) get_post_field( 'post_title', $link_page_id ),
+		'display_title'          => $display_title_is_owned ? $display_title_raw : ( is_scalar( $post_title ) ? (string) $post_title : '' ),
 		'display_title_is_owned' => $display_title_is_owned,
 		'profile_image_id'       => $profile_image_id,
 		'profile_image_url'      => $profile_image_id ? (string) wp_get_attachment_url( $profile_image_id ) : '',
@@ -759,7 +760,8 @@ function ec_write_link_page_meta( $link_page_id, $meta_key, $value, $delete = fa
 			return true;
 		}
 		$result = delete_post_meta( $link_page_id, $meta_key );
-		return false !== $result && ! metadata_exists( 'post', $link_page_id, $meta_key );
+		// PHPStan reuses the pre-delete metadata_exists() result, but delete_post_meta() changes it.
+		return false !== $result && ! metadata_exists( 'post', $link_page_id, $meta_key ); // @phpstan-ignore booleanNot.alwaysFalse, booleanAnd.alwaysFalse
 	}
 	$current_exists = metadata_exists( 'post', $link_page_id, $meta_key );
 	$current        = $current_exists ? get_post_meta( $link_page_id, $meta_key, true ) : null;
@@ -1130,7 +1132,9 @@ function ec_provision_owned_link_page_internal( $owner_reference, $title, $slug,
 				'created'      => false,
 			);
 		}
-		$previous_slug = $existing && $force ? (string) get_post_field( 'post_name', $existing ) : '';
+		// An existing page only reaches this point when $force replaces it.
+		$previous_slug = $existing ? get_post_field( 'post_name', $existing ) : '';
+		$previous_slug = is_scalar( $previous_slug ) ? (string) $previous_slug : '';
 		$result        = ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $force );
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -1227,8 +1231,10 @@ function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $
 		return $existing;
 	}
 	$previous_slug = '';
-	if ( $existing && $force ) {
-		$previous_slug = (string) get_post_field( 'post_name', $existing );
+	// An existing page only reaches this point when $force replaces it.
+	if ( $existing ) {
+		$previous_slug = get_post_field( 'post_name', $existing );
+		$previous_slug = is_scalar( $previous_slug ) ? (string) $previous_slug : '';
 		$renamed       = wp_update_post(
 			array(
 				'ID'        => $existing,
@@ -1262,9 +1268,12 @@ function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $
 		),
 		true
 	);
-	if ( is_wp_error( $link_page_id ) || ! $link_page_id ) {
-		$error = is_wp_error( $link_page_id ) ? $link_page_id : new WP_Error( 'link_page_creation_failed', 'The Link Page could not be created.' );
-		return ec_compensate_link_page_creation_error( $error, $existing, $owner_reference, $previous_slug );
+	if ( is_wp_error( $link_page_id ) ) {
+		return ec_compensate_link_page_creation_error( $link_page_id, $existing, $owner_reference, $previous_slug );
+	}
+	// The stubs promise a positive ID, but a zero insert ID must still be refused.
+	if ( ! $link_page_id ) { // @phpstan-ignore booleanNot.alwaysFalse
+		return ec_compensate_link_page_creation_error( new WP_Error( 'link_page_creation_failed', 'The Link Page could not be created.' ), $existing, $owner_reference, $previous_slug );
 	}
 	$created = get_post( $link_page_id );
 	if ( ! $created || $slug !== $created->post_name ) {
@@ -1278,7 +1287,7 @@ function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $
 		$error       = is_wp_error( $compensated ) ? $compensated : new WP_Error( 'link_page_owner_assignment_failed', 'The Link Page owner could not be assigned.' );
 		return ec_compensate_link_page_creation_error( $error, $existing, $owner_reference, $previous_slug );
 	}
-	if ( $existing && $force ) {
+	if ( $existing ) {
 		delete_post_meta( $existing, EC_LINK_PAGE_OWNER_META_KEY, $owner_reference );
 		if ( ! empty( ec_get_stored_link_page_owner_references( $existing ) ) ) {
 			$compensated = ec_compensate_created_link_page( $link_page_id );

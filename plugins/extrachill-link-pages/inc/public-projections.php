@@ -481,11 +481,14 @@ function ec_link_page_apply_host_features( $projection, $owned, $context ) {
 		/**
 		 * Edit-button endpoints for a Link Page.
 		 *
-		 * @param array  $endpoints       `permissions_url` (GET, bearer token,
-		 *                                returns {can_edit, manage_url}) and
-		 *                                optional `handoff_url`. Default none.
-		 * @param int    $link_page_id    Link Page ID.
-		 * @param string $owner_reference Normalized owner reference.
+		 * Callbacks should return an array; any other value is discarded.
+		 *
+		 * @param array|mixed $endpoints       `permissions_url` (GET, bearer
+		 *                                     token, returns {can_edit,
+		 *                                     manage_url}) and optional
+		 *                                     `handoff_url`. Default none.
+		 * @param int         $link_page_id    Link Page ID.
+		 * @param string      $owner_reference Normalized owner reference.
 		 */
 		$endpoints   = apply_filters( 'ec_link_page_management_endpoints', array(), $link_page_id, $owner );
 		$permissions = is_array( $endpoints ) ? esc_url_raw( (string) ( $endpoints['permissions_url'] ?? '' ), array( 'http', 'https' ) ) : '';

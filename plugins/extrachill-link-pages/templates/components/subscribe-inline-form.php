@@ -9,6 +9,15 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Variables provided by ec_render_link_page_subscribe_component().
+ *
+ * @var string $heading      Form heading.
+ * @var string $description  Form description.
+ * @var string $url          Subscribe API URL.
+ * @var int    $link_page_id Link Page ID.
+ */
+
 $ec_form_id = 'extrch-subscribe-form-link-page-' . absint( $link_page_id );
 ?>
 <section class="extrch-subscribe-inline-form-container extrch-link-page-subscribe-inline-form-container" aria-labelledby="<?php echo esc_attr( $ec_form_id ); ?>-heading">

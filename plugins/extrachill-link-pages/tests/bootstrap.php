@@ -1,190 +1,48 @@
 <?php
+/**
+ * Standalone PHPUnit bootstrap: a fake-WordPress harness for Link Pages.
+ *
+ * Defines just enough of the WordPress API, backed by $GLOBALS['ec_test'],
+ * to load the plugin and exercise it without a WordPress install.
+ *
+ * @package ExtraChillLinkPages
+ */
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'ARRAY_A', 'ARRAY_A' );
 
-class WP_Error {
-	private $code;
-	private $message;
-	private $data;
+require_once __DIR__ . '/support/class-wp-error.php';
+require_once __DIR__ . '/support/class-ectestactivationexception.php';
+require_once __DIR__ . '/support/class-ectestmultisiteapiunavailable.php';
+require_once __DIR__ . '/support/class-ectestwpdb.php';
+require_once __DIR__ . '/support/class-wp-block-type-registry.php';
 
-	public function __construct( $code, $message, $data = null ) {
-		$this->code    = $code;
-		$this->message = $message;
-		$this->data    = $data;
-	}
-
-	public function get_error_code() {
-		return $this->code; }
-	public function get_error_message() {
-		return $this->message; }
-	public function get_error_data() {
-		return $this->data; }
-}
-
-class EcTestActivationException extends RuntimeException {}
-
-/** Raised when production code reaches for a multisite-only API on single site. */
-class EcTestMultisiteApiUnavailable extends RuntimeException {}
-
-class EcTestWpdb {
-	public $postmeta           = 'wp_postmeta';
-	public $posts              = 'wp_posts';
-	public $comments           = 'wp_comments';
-	public $term_relationships = 'wp_term_relationships';
-	public $last_error         = '';
-	public $insert_id          = 0;
-	private $locks             = array();
-	public function prepare( $query, ...$args ) {
-		return vsprintf( str_replace( '%s', "'%s'", $query ), $args ); }
-	public function get_blog_prefix( $blog_id ) {
-		return 'wp_' . (int) $blog_id . '_'; }
-	public function get_results( $query, $output = null ) {
-		$blog_id = get_current_blog_id();
-		if ( preg_match( "/SELECT \* FROM wp_posts WHERE post_type = '([^']+)'/", $query, $type_match ) ) {
-			$posts = array_values(
-				array_filter(
-					$GLOBALS['ec_test']['blogs'][ $blog_id ]['posts'],
-					static function ( $post ) use ( $type_match ) {
-						return $type_match[1] === $post->post_type;
-					}
-				)
-			);
-			usort(
-				$posts,
-				static function ( $left, $right ) {
-					return $left->ID <=> $right->ID;
-				}
-			);
-			return $posts;
-		}
-		if ( preg_match( '/SELECT post_id, meta_key, meta_value FROM wp_postmeta WHERE post_id IN \(([^)]+)\)/', $query, $matches ) ) {
-			$ids  = array_map( 'intval', explode( ',', $matches[1] ) );
-			$rows = array();
-			foreach ( $GLOBALS['ec_test']['meta_rows'] ?? array() as $meta_id => $row ) {
-				if ( $blog_id === (int) $row['blog_id'] && in_array( (int) $row['post_id'], $ids, true ) ) {
-					$rows[ $meta_id ] = array_intersect_key( $row, array_flip( array( 'post_id', 'meta_key', 'meta_value' ) ) );
-				}
-			}
-			ksort( $rows, SORT_NUMERIC );
-			return array_values( $rows );
-		}
-		return array();
-	}
-	public function get_col( $query ) {
-		$posts = $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'];
-		$ids   = array();
-		if ( preg_match( "/post_type = 'attachment' AND post_parent = (\d+)/", $query, $matches ) ) {
-			foreach ( $posts as $id => $post ) {
-				if ( 'attachment' === $post->post_type && (int) $post->post_parent === (int) $matches[1] ) {
-					$ids[] = (int) $id; }
-			}
-		} elseif ( preg_match( "/post_name = '([^']+)'/", $query, $matches ) ) {
-			foreach ( $posts as $id => $post ) {
-				if ( $matches[1] === $post->post_name ) {
-					$ids[] = (int) $id; }
-			}
-		}
-		sort( $ids, SORT_NUMERIC );
-		return $ids;
-	}
-	public function get_row( $query ) {
-		if ( preg_match( '/FROM wp_postmeta WHERE meta_id = (\d+)/', $query, $matches ) ) {
-			$row = $GLOBALS['ec_test']['meta_rows'][ (int) $matches[1] ] ?? null;
-			return $row && get_current_blog_id() === (int) $row['blog_id'] ? array_intersect_key( $row, array_flip( array( 'post_id', 'meta_key', 'meta_value' ) ) ) : null;
-		}
-		if ( preg_match( '/FROM wp_(\d+)_posts WHERE ID = (\d+)/', $query, $matches ) ) {
-			$post = $GLOBALS['ec_test']['blogs'][ (int) $matches[1] ]['posts'][ (int) $matches[2] ] ?? null;
-			return $post ? (object) array(
-				'ID'          => $post->ID,
-				'post_type'   => $post->post_type,
-				'post_status' => $post->post_status ?? 'publish',
-			) : null;
-		}
-		if ( preg_match( "/FROM wp_(\d+)_term_taxonomy WHERE term_id = (\d+) AND taxonomy = '([^']+)'/", $query, $matches ) ) {
-			$term = $GLOBALS['ec_test']['blogs'][ (int) $matches[1] ]['terms'][ (int) $matches[2] ] ?? null;
-			return $term && $term->taxonomy === $matches[3] ? (object) array(
-				'term_id'  => $term->term_id,
-				'taxonomy' => $term->taxonomy,
-			) : null;
-		}
-		if ( preg_match( '/FROM wp_(\d+)_term_taxonomy WHERE term_id = (\d+)/', $query, $matches ) ) {
-			$term = $GLOBALS['ec_test']['blogs'][ (int) $matches[1] ]['terms'][ (int) $matches[2] ] ?? null;
-			return $term ? (object) array(
-				'term_id'  => $term->term_id,
-				'taxonomy' => $term->taxonomy,
-			) : null;
-		}
-		return null;
-	}
-	public function get_var( $query ) {
-		if ( false !== strpos( $query, 'GET_LOCK' ) ) {
-			++$GLOBALS['ec_test']['lock_acquires'];
-			preg_match( "/GET_LOCK\('([^']+)'/", $query, $matches );
-			$lock_name = $matches[1] ?? $query;
-			if ( ! empty( $GLOBALS['ec_test']['fail_advisory_lock'] ) || isset( $this->locks[ $lock_name ] ) ) {
-				return '0'; }
-			$this->locks[ $lock_name ]                = true;
-			$GLOBALS['ec_test']['advisory_lock_held'] = true;
-			return '1';
-		}
-		if ( false !== strpos( $query, 'RELEASE_LOCK' ) ) {
-			++$GLOBALS['ec_test']['lock_releases'];
-			preg_match( "/RELEASE_LOCK\('([^']+)'/", $query, $matches );
-			unset( $this->locks[ $matches[1] ?? $query ] );
-			$GLOBALS['ec_test']['advisory_lock_held'] = ! empty( $this->locks );
-			return '1';
-		}
-		if ( false !== strpos( $query, 'COUNT(*)' ) ) {
-			return '0'; }
-		return '1';
-	}
-	public function insert( $table, $data, $formats = null ) {
-		if ( $this->postmeta !== $table || ! empty( $GLOBALS['ec_test']['fail_raw_meta_insert'] ) ) {
-			return false; }
-		$meta_id                                     = ++$GLOBALS['ec_test']['next_meta_id'];
-		$this->insert_id                             = $meta_id;
-		$GLOBALS['ec_test']['meta_rows'][ $meta_id ] = array_merge( array( 'blog_id' => get_current_blog_id() ), $data );
-		$GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['post_meta'][ $data['post_id'] ][ $data['meta_key'] ][] = maybe_unserialize( $data['meta_value'] );
-		if ( isset( $GLOBALS['ec_test']['after_raw_meta_insert'] ) ) {
-			$callback = $GLOBALS['ec_test']['after_raw_meta_insert'];
-			unset( $GLOBALS['ec_test']['after_raw_meta_insert'] );
-			$callback( $meta_id );
-		}
-		return 1;
-	}
-	public function update( $table, $data, $where, $formats = null, $where_formats = null ) {
-		if ( $this->posts !== $table || ! isset( $where['ID'] ) || ! get_post( $where['ID'] ) ) {
-			return false; }
-		foreach ( $data as $key => $value ) {
-			$GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $where['ID'] ]->{$key} = $value; }
-		return 1;
-	}
-}
-
-$GLOBALS['wpdb'] = new EcTestWpdb();
+$GLOBALS['wpdb'] = new EcTestWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- the harness installs its fake wpdb.
 
 function is_wp_error( $value ) {
 	return $value instanceof WP_Error; }
 function absint( $value ) {
 	return abs( (int) $value ); }
 function wp_json_encode( $value ) {
-	return json_encode( $value ); }
+	return json_encode( $value ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- this is the wp_json_encode() stub.
+}
 function __( $text ) {
 	return $text; }
 function _x( $text ) {
 	return $text; }
 function esc_attr_e( $text ) {
-	echo $text; }
+	echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pass-through stub of the escaping function itself.
+}
 function esc_html_e( $text ) {
-	echo $text; }
+	echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pass-through stub of the escaping function itself.
+}
 function esc_attr( $value ) {
 	return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_url( $value ) {
 	return esc_attr( $value ); }
 function esc_url_raw( $value, $protocols = null ) {
 	$url = filter_var( (string) $value, FILTER_SANITIZE_URL );
-	if ( $protocols && $url && ! in_array( strtolower( (string) parse_url( $url, PHP_URL_SCHEME ) ), $protocols, true ) ) {
+	if ( $protocols && $url && ! in_array( strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ), $protocols, true ) ) {
 		return ''; }
 	return $url;
 }
@@ -193,15 +51,17 @@ function esc_js( $value ) {
 function wp_kses_post( $value ) {
 	return (string) $value; }
 function wp_strip_all_tags( $value ) {
-	return strip_tags( (string) $value ); }
+	return strip_tags( (string) $value ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- this is the wp_strip_all_tags() stub.
+}
 function wp_parse_url( $url, $component = -1 ) {
-	return parse_url( $url, $component ); }
+	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- this is the wp_parse_url() stub.
+}
 function wp_unslash( $value ) {
 	return $value; }
 function sanitize_text_field( $value ) {
-	return trim( strip_tags( (string) $value ) ); }
+	return trim( wp_strip_all_tags( (string) $value ) ); }
 function sanitize_textarea_field( $value ) {
-	return trim( strip_tags( (string) $value ) ); }
+	return trim( wp_strip_all_tags( (string) $value ) ); }
 function sanitize_key( $value ) {
 	return strtolower( preg_replace( '/[^a-z0-9_-]/', '', (string) $value ) ); }
 function sanitize_title( $value ) {
@@ -222,22 +82,8 @@ function register_activation_hook( $file, $callback ) {
 	$GLOBALS['ec_test']['activation_hook'] = $callback; }
 function register_deactivation_hook( $file, $callback ) {
 	$GLOBALS['ec_test']['deactivation_hook'] = $callback; }
-class WP_Block_Type_Registry {
-	private static $instance;
-	private $registered = array();
-	public static function get_instance() {
-		return self::$instance ?? ( self::$instance = new self() ); }
-	public function is_registered( $name ) {
-		return isset( $this->registered[ $name ] ); }
-	public function register( $name, $source ) {
-		$this->registered[ $name ] = $source; }
-	public function source( $name ) {
-		return $this->registered[ $name ] ?? ''; }
-	public function reset() {
-		$this->registered = array(); }
-}
 function register_block_type( $path ) {
-	$metadata = json_decode( file_get_contents( rtrim( $path, '/' ) . '/block.json' ), true );
+	$metadata = json_decode( file_get_contents( rtrim( $path, '/' ) . '/block.json' ), true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local block.json.
 	WP_Block_Type_Registry::get_instance()->register( $metadata['name'], $path );
 	$GLOBALS['ec_test']['registered_blocks'][] = $path;
 }
@@ -283,16 +129,17 @@ function did_action( $hook ) {
 function esc_html( $value ) {
 	return $value; }
 function wp_die( $message ) {
-	throw new EcTestActivationException( $message ); }
+	throw new EcTestActivationException( $message ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- test exception, never rendered.
+}
 function is_multisite() {
 	return ! empty( $GLOBALS['ec_test']['multisite'] ); }
-function get_site_option( $key, $default = false ) {
-	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $default; }
+function get_site_option( $key, $default_value = false ) {
+	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $default_value; }
 function update_site_option( $key, $value ) {
 	$GLOBALS['ec_test']['site_options'][ $key ] = $value;
 	return true; }
-function get_network_option( $network_id, $key, $default = false ) {
-	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $default; }
+function get_network_option( $network_id, $key, $default_value = false ) {
+	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $default_value; }
 function update_network_option( $network_id, $key, $value ) {
 	$call = ++$GLOBALS['ec_test']['network_option_write_calls'];
 	if ( ! empty( $GLOBALS['ec_test']['fail_network_option_write'] ) || in_array( $call, $GLOBALS['ec_test']['fail_network_option_write_calls'] ?? array(), true ) ) {
@@ -331,21 +178,21 @@ function ec_test_reset() {
 	$GLOBALS['_wp_switched_stack'] = array();
 	$GLOBALS['switched']           = false;
 	$GLOBALS['ec_test']            = array(
-		'current_blog_id'       => 4,
-		'blog_stack'            => array(),
-		'flushes'               => 0,
-		'next_meta_id'          => 0,
-		'next_post_id'          => 100,
+		'current_blog_id'            => 4,
+		'blog_stack'                 => array(),
+		'flushes'                    => 0,
+		'next_meta_id'               => 0,
+		'next_post_id'               => 100,
 		'network_option_write_calls' => 0,
-		'meta_write_calls'      => 0,
-		'lock_acquires'         => 0,
-		'lock_releases'         => 0,
-		'registered_post_types' => array(),
-		'multisite'             => true,
-		'actions'               => $base_actions,
-		'filters'               => $base_filters,
-		'did_actions'           => array( 'wp_loaded' => 1 ),
-		'blogs'                 => array(
+		'meta_write_calls'           => 0,
+		'lock_acquires'              => 0,
+		'lock_releases'              => 0,
+		'registered_post_types'      => array(),
+		'multisite'                  => true,
+		'actions'                    => $base_actions,
+		'filters'                    => $base_filters,
+		'did_actions'                => array( 'wp_loaded' => 1 ),
+		'blogs'                      => array(
 			4  => array(
 				'posts'     => array(),
 				'post_meta' => array(),
@@ -371,11 +218,13 @@ function ec_test_reset() {
 		$directory = sys_get_temp_dir() . '/ec-link-pages-blog-' . $blog_id;
 		if ( is_dir( $directory ) ) {
 			$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
+			// phpcs:disable WordPress.WP.AlternativeFunctions -- resets temp upload dirs; no WP_Filesystem in the harness.
 			foreach ( $iterator as $item ) {
 				$item->isDir() ? rmdir( $item->getPathname() ) : unlink( $item->getPathname() ); }
 			rmdir( $directory );
 		}
 		mkdir( $directory, 0777, true );
+		// phpcs:enable WordPress.WP.AlternativeFunctions
 	}
 	foreach ( array( ec_link_page_owner_compatibility_registry(), ec_link_page_operation_provider_registry(), ec_link_page_public_projection_registry() ) as $registry ) {
 		$reflection = new ReflectionObject( $registry );
@@ -443,6 +292,8 @@ function restore_current_blog() {
  * Without this guard the harness silently grants production code a multisite
  * API that will not exist at runtime — the exact gap that let a single-site
  * activation fatal ship undetected (issue #15).
+ *
+ * @throws EcTestMultisiteApiUnavailable When called while is_multisite() is false.
  */
 function get_site( $blog_id ) {
 	if ( ! is_multisite() ) {
@@ -567,8 +418,8 @@ function add_post_meta( $post_id, $key, $value, $unique = false ) {
 	$GLOBALS['ec_test']['meta_rows'][ $meta_id ] = array(
 		'blog_id'    => $blog_id,
 		'post_id'    => $post_id,
-		'meta_key'   => $key,
-		'meta_value' => $value,
+		'meta_key'   => $key, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- in-memory row, not a query.
+		'meta_value' => $value, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- in-memory row, not a query.
 	);
 	if ( isset( $GLOBALS['ec_test']['after_add'] ) ) {
 		$callback = $GLOBALS['ec_test']['after_add'];
@@ -628,7 +479,7 @@ function get_posts( $args ) {
 	$ids   = array_slice( $ids, (int) ( $args['offset'] ?? 0 ), $limit < 0 ? null : (int) $limit );
 	return ( $args['fields'] ?? '' ) === 'ids' ? $ids : array_map( 'get_post', $ids );
 }
-function wp_insert_post( $data, $wp_error = false ) {
+function wp_insert_post( $data, $wp_error = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	if ( ! empty( $GLOBALS['ec_test']['insert_error'] ) ) {
 		return new WP_Error( 'insert_failed', 'Insert failed.' ); }
 	if ( isset( $GLOBALS['ec_test']['before_insert_post'] ) ) {
@@ -664,9 +515,9 @@ function wp_insert_post( $data, $wp_error = false ) {
 		$callback( $id ); }
 	return $id;
 }
-function wp_insert_attachment( $data, $file = false, $parent = 0, $wp_error = false ) {
+function wp_insert_attachment( $data, $file = false, $parent_post_id = 0, $wp_error = false ) {
 	$data['post_type']   = 'attachment';
-	$data['post_parent'] = $parent;
+	$data['post_parent'] = $parent_post_id;
 	return wp_insert_post( $data, $wp_error ); }
 function wp_update_post( $data, $wp_error = false ) {
 	if ( ! empty( $GLOBALS['probe_profile_context'] ) ) {
@@ -704,7 +555,7 @@ function wp_unique_post_slug( $slug, $post_id, $post_status, $post_type, $post_p
 	$suffix    = 2;
 	$conflicts = static function ( $value ) use ( $post_id, $post_type, $post_parent ) {
 		foreach ( ec_test_store( 'posts' ) as $id => $post ) {
-			if ( (int) $id === (int) $post_id || $value !== ( $post->post_name ?? '' ) ) {
+			if ( (int) $id === (int) $post_id || ( $post->post_name ?? '' ) !== $value ) {
 				continue; }
 			if ( 'attachment' === $post_type || 'attachment' === $post->post_type || ( $post_type === $post->post_type && (int) ( $post->post_parent ?? 0 ) === $post_parent ) ) {
 				return true; }
@@ -712,7 +563,7 @@ function wp_unique_post_slug( $slug, $post_id, $post_status, $post_type, $post_p
 		return false;
 	};
 	while ( $conflicts( $candidate ) ) {
-		$candidate = $slug . '-' . $suffix++; }
+		$candidate = $slug . '-' . ( $suffix++ ); }
 	return $candidate;
 }
 function wp_get_attachment_url( $id ) {
@@ -722,9 +573,11 @@ function wp_upload_dir() {
 function wp_get_attachment_metadata( $id ) {
 	return get_post_meta( $id, '_wp_attachment_metadata', true ); }
 function wp_mkdir_p( $path ) {
-	return is_dir( $path ) || mkdir( $path, 0777, true ); }
+	return is_dir( $path ) || mkdir( $path, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- this is the wp_mkdir_p() stub.
+}
 function wp_delete_file( $path ) {
-	return unlink( $path ); }
+	return unlink( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- this is the wp_delete_file() stub.
+}
 function clean_post_cache( $post_id ) {
 	$GLOBALS['ec_test']['cleaned_post_caches'][] = (int) $post_id; }
 function wp_cache_delete( $key, $group = '' ) {
@@ -736,25 +589,25 @@ function wp_generate_uuid4() {
 function wp_slash( $value ) {
 	return $value; }
 function maybe_unserialize( $value ) {
-	$result = is_string( $value ) ? @unserialize( $value ) : false;
+	$result = is_string( $value ) ? @unserialize( $value ) : false; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- mirrors core maybe_unserialize() on harness-owned data.
 	return false !== $result || 'b:0;' === $value ? $result : $value; }
 function wp_register_ability( $name, $args ) {
 	$GLOBALS['ec_test']['abilities'][ $name ] = $args; }
 function wp_get_ability( $name ) {
 	return $GLOBALS['ec_test']['abilities'][ $name ] ?? null; }
-function current_user_can( $capability ) {
+function current_user_can( $capability ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return true; }
 function current_time() {
 	return (int) ( $GLOBALS['ec_test']['now'] ?? time() ); }
 function current_datetime() {
 	return new DateTimeImmutable( '@' . (int) ( $GLOBALS['ec_test']['now'] ?? time() ) ); }
-function get_option( $key, $default = false ) {
-	return $GLOBALS['ec_test']['options'][ $key ] ?? $default; }
+function get_option( $key, $default_value = false ) {
+	return $GLOBALS['ec_test']['options'][ $key ] ?? $default_value; }
 function update_option( $key, $value ) {
 	$GLOBALS['ec_test']['options'][ $key ] = $value;
 	return true; }
 function add_rewrite_tag() {}
-function add_rewrite_rule( $regex, $query, $position ) {
+function add_rewrite_rule( $regex, $query, $position ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- params are captured via compact().
 	$GLOBALS['ec_test']['rewrite_rules'][] = compact( 'regex', 'query', 'position' ); }
 function status_header( $status ) {
 	$GLOBALS['ec_test']['status'] = $status; }
@@ -771,16 +624,16 @@ function get_queried_object() {
 function setup_postdata( $post ) {
 	$GLOBALS['ec_test']['postdata_setup'][] = is_object( $post ) && isset( $post->ID ) ? (int) $post->ID : 0;
 	return true; }
-function get_the_ID() {
+function get_the_ID() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName -- stubs a WordPress core function name.
 	$post = $GLOBALS['post'] ?? null;
 	return is_object( $post ) && isset( $post->ID ) ? (int) $post->ID : false; }
-function get_the_modified_date( $format, $post_id ) {
+function get_the_modified_date( $format, $post_id ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return '2026-08-23T00:00:00+00:00'; }
-function __return_true() {
+function __return_true() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName -- stubs a WordPress core function name.
 	return true; }
-function get_bloginfo( $key = '' ) {
+function get_bloginfo( $key = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return 'UTF-8'; }
-function get_site_icon_url( $size = 512 ) {
+function get_site_icon_url( $size = 512 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return ''; }
 function wp_print_styles() {
 	$GLOBALS['ec_test']['printed_styles'] = true; }
@@ -788,22 +641,22 @@ function wp_print_footer_scripts() {}
 function language_attributes() {}
 function get_template_directory_uri() {
 	return 'https://example.test/themes/extrachill'; }
-function wp_register_style( $handle, $src, $deps = array(), $ver = false, $media = 'all' ) {
+function wp_register_style( $handle, $src, $deps = array(), $ver = false, $media = 'all' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- params are captured via compact().
 	$GLOBALS['ec_test']['registered_styles'][ $handle ] = compact( 'src', 'deps', 'ver', 'media' ); }
-function wp_enqueue_style( $handle, $src = '', $deps = array(), $ver = false, $media = 'all' ) {
+function wp_enqueue_style( $handle, $src = '', $deps = array(), $ver = false, $media = 'all' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- params are captured via compact().
 	$GLOBALS['ec_test']['enqueued_styles'][] = $handle;
 	if ( '' !== $src ) {
 		$GLOBALS['ec_test']['registered_styles'][ $handle ] = compact( 'src', 'deps', 'ver', 'media' );
 	}
 }
-function wp_style_is( $handle, $status = 'enqueued' ) {
+function wp_style_is( $handle, $status = 'enqueued' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return in_array( $handle, $GLOBALS['ec_test']['enqueued_styles'] ?? array(), true ); }
 function wp_add_inline_style( $handle, $data ) {
 	$GLOBALS['ec_test']['inline_styles'][ $handle ][] = $data;
 	return true; }
-function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) {
+function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	$GLOBALS['ec_test']['enqueued_scripts'][] = $handle; }
-function wp_script_is( $handle, $status = 'registered' ) {
+function wp_script_is( $handle, $status = 'registered' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter -- stub mirrors the WordPress core signature.
 	return in_array( $handle, $GLOBALS['ec_test']['registered_script_handles'] ?? array(), true ); }
 
 // Seed a default blog before the plugin file's top-level self-validation runs
@@ -820,22 +673,32 @@ if ( ! function_exists( 'get_home_url' ) ) {
 	}
 }
 // Fixture host answers, as the Extra Chill host integration does in production.
-add_filter( 'ec_link_page_public_host', static function () { return 'extrachill.link'; } );
-add_filter( 'ec_link_page_root_slug', static function () { return 'extra-chill'; } );
+add_filter(
+	'ec_link_page_public_host',
+	static function () {
+		return 'extrachill.link';
+	}
+);
+add_filter(
+	'ec_link_page_root_slug',
+	static function () {
+		return 'extra-chill';
+	}
+);
 require_once dirname( __DIR__ ) . '/extrachill-link-pages.php';
 ec_test_reset();
 if ( ! function_exists( 'get_query_var' ) ) {
-	function get_query_var( $key, $default = '' ) {
-		return $GLOBALS['ec_test']['query_vars'][ $key ] ?? $default;
+	function get_query_var( $key, $default_value = '' ) {
+		return $GLOBALS['ec_test']['query_vars'][ $key ] ?? $default_value;
 	}
 }
 if ( ! function_exists( 'get_blog_option' ) ) {
-	function get_blog_option( $blog_id, $option, $default = false ) {
-		return $GLOBALS['ec_test']['blog_options'][ (int) $blog_id ][ $option ] ?? $default;
+	function get_blog_option( $blog_id, $option, $default_value = false ) {
+		return $GLOBALS['ec_test']['blog_options'][ (int) $blog_id ][ $option ] ?? $default_value;
 	}
 }
 if ( ! function_exists( '__return_false' ) ) {
-	function __return_false() {
+	function __return_false() { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName -- stubs a WordPress core function name.
 		return false;
 	}
 }
@@ -844,4 +707,3 @@ if ( ! function_exists( 'rest_url' ) ) {
 		return 'https://storage.test/wp-json/' . ltrim( (string) $path, '/' );
 	}
 }
-

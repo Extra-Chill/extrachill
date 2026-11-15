@@ -1,7 +1,17 @@
+/**
+ * WordPress dependencies
+ */
+// WordPress packages are provided at runtime as webpack externals by @wordpress/scripts.
+/* eslint-disable import/no-unresolved, import/no-extraneous-dependencies */
 import { useBlockProps } from '@wordpress/block-editor';
 import { registerBlockType } from '@wordpress/blocks';
 import { Placeholder } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+/* eslint-enable import/no-unresolved, import/no-extraneous-dependencies */
+
+/**
+ * Internal dependencies
+ */
 import metadata from './block.json';
 import './editor.scss';
 
