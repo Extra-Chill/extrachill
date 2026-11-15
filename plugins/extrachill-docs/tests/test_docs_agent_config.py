@@ -70,6 +70,15 @@ class DocsAgentConfigTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     config.resolve("extrachill-shop", handle.name)
 
+    def test_pr_title_scope_and_pin(self):
+        workflow = (ROOT / ".github/workflows/docs-agent.yml").read_text()
+        # Docs PRs are titled docs(<component>): user docs <run_kind>.
+        self.assertIn("docs_scope: ${{ inputs.component }}", workflow)
+        pins = [line for line in workflow.splitlines() if "maintain-docs.yml@" in line]
+        self.assertEqual(len(pins), 1)
+        self.assertRegex(pins[0], r"maintain-docs\.yml@[0-9a-f]{40}$")
+        self.assertTrue((ROOT / "plugins/extrachill-docs/docs/docs-agent-runner.md").is_file())
+
     def test_rejects_unknown_or_unconfigured_component(self):
         for component in ("unknown", "extrachill-news-wire", "../extrachill-community"):
             with self.assertRaises(ValueError):

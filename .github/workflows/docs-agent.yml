@@ -51,16 +51,23 @@ jobs:
     # (Automattic/docs-agent#185, Automattic/wp-codebox#2567); 4897641 raises
     # the agent turn budget from 12 to 40 (Automattic/docs-agent#186); e227ea8
     # makes WP Codebox honor it (v0.33.5, Automattic/docs-agent#187);
-    # cbac654a6bc370c0e5d30dbb262f80c69812e17c[:7] bounds user-docs discovery so pages are written incrementally
+    # cbac654 bounds user-docs discovery so pages are written incrementally
     # (Automattic/docs-agent#188) and runs on WP Codebox v0.33.6, which always
-    # reports why an agent runtime failed (Automattic/docs-agent#189).
+    # reports why an agent runtime failed (Automattic/docs-agent#189);
+    # fcc284b makes maintenance keep accurate content and concrete values
+    # (Automattic/docs-agent#191), titles PRs docs(<component>): ... via
+    # docs_scope, and runs on WP Codebox v0.33.7: the docs branch is used as
+    # given and workspace_git_status/diff work (Automattic/docs-agent#192,
+    # Automattic/wp-codebox#2592). Runner guide:
+    # plugins/extrachill-docs/docs/docs-agent-runner.md
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@cbac654a6bc370c0e5d30dbb262f80c69812e17c
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@fcc284b4a635911a15f40b3b1d61a170ddb22076
     with:
       audience: ${{ fromJSON(needs.config.outputs.config).audience }}
       run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
       base_ref: ${{ fromJSON(needs.config.outputs.config).base_ref }}
       docs_branch: ${{ fromJSON(needs.config.outputs.config).docs_branch }}
+      docs_scope: ${{ inputs.component }}
       writable_paths: ${{ fromJSON(needs.config.outputs.config).writable_paths }}
       context_repositories: ${{ toJSON(fromJSON(needs.config.outputs.config).context_repositories) }}
       bootstrap_contract: ${{ toJSON(fromJSON(needs.config.outputs.config).bootstrap_contract) }}
