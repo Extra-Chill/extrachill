@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.3] - 2026-11-15
+
+### Fixed
+- give the shop maintenance run an 80-turn budget
+
 ## [0.12.2] - 2026-11-15
 
 ### Fixed
