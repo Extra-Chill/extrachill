@@ -35,6 +35,7 @@ function check( $condition, $message ) {
 	if ( ! $condition ) { fwrite( STDERR, "FAIL: $message\n" ); exit( 1 ); }
 }
 require dirname( __DIR__, 2 ) . '/extrachill-link-pages/inc/section-sources.php';
+require __DIR__ . '/artist-identity-fixture.php';
 require dirname( __DIR__ ) . '/inc/core/link-page-upcoming-shows.php';
 check( in_array( 'extrachill_events_register_upcoming_shows_source', $GLOBALS['hooks']['plugins_loaded'], true ), 'deferred bootstrap' );
 extrachill_events_register_upcoming_shows_source();

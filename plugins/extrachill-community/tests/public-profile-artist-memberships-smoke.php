@@ -59,6 +59,7 @@ function esc_html__( $text ) {
 	return esc_html( $text );
 }
 
+require __DIR__ . '/artist-identity-fixture.php';
 require __DIR__ . '/../inc/user-profiles/public-profile.php';
 
 $failures = 0;
@@ -78,11 +79,13 @@ function check( $label, $condition ) {
 $GLOBALS['_test_artist_ids'] = array( 101, 102, 103 );
 $GLOBALS['_test_posts']      = array(
 	101 => (object) array(
+		'post_type'   => 'artist_profile',
 		'post_title'  => 'The Example Band',
 		'post_name'   => 'the-example-band',
 		'post_status' => 'publish',
 	),
 	103 => (object) array(
+		'post_type'   => 'artist_profile',
 		'post_title'  => 'Unpublished Artist',
 		'post_name'   => 'unpublished-artist',
 		'post_status' => 'draft',

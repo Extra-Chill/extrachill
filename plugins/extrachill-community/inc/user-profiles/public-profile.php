@@ -66,17 +66,11 @@ function extrachill_community_get_artist_memberships( $user_id ) {
 	}
 
 	$memberships = array();
-
-	switch_to_blog( $artist_blog_id );
-	try {
-		foreach ( $artist_ids as $artist_id ) {
-			$artist_post = get_post( $artist_id );
-			if ( $artist_post && 'publish' === $artist_post->post_status ) {
-				$memberships[ $artist_post->post_title ] = get_permalink( $artist_post );
-			}
+	foreach ( $artist_ids as $artist_id ) {
+		$identity = ec_get_artist_identity( array( 'profile_id' => (int) $artist_id ) );
+		if ( null !== $identity && 'publish' === $identity['status'] ) {
+			$memberships[ $identity['name'] ] = $identity['permalink'];
 		}
-	} finally {
-		restore_current_blog();
 	}
 
 	return $memberships;

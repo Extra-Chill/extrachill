@@ -217,6 +217,7 @@ namespace {
 	function extrachill_community_maybe_convert_markdown( $content ) { return $content; }
 
 	voice_reset();
+	require __DIR__ . '/artist-identity-fixture.php';
 	require __DIR__ . '/../inc/content/public-voice-contract.php';
 	require __DIR__ . '/../inc/content/public-voices.php';
 	require __DIR__ . '/../inc/content/recent-feed.php';
