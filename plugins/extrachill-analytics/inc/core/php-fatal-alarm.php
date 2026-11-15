@@ -606,6 +606,18 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_deli
 		}
 	}
 
+	// Gateway errors (502/504) never reach WordPress at all (#1435). Advance
+	// the access log cursor on real ticks, then alarm on the sustained rate.
+	if ( ! $dry_run ) {
+		$result['http_5xx_tail'] = extrachill_analytics_http_5xx_tail();
+	}
+	foreach ( extrachill_analytics_http_5xx_alarm_candidates( $state, $now, $window ) as $row ) {
+		$candidates[] = $row;
+		if ( $row['would_alarm'] ) {
+			$alarms[] = $row;
+		}
+	}
+
 	$result['candidates'] = $candidates;
 	$result['alarms']     = $alarms;
 
@@ -1191,6 +1203,7 @@ function extrachill_analytics_fatal_alarm_reason_text( $alarm ) {
 		'sustained_rest_5xx'   => 'sustained REST 5xx rate',
 		'disk_pressure'        => 'disk nearly full',
 		'still_low_after_24h'  => 'still low after 24h',
+		'sustained_http_5xx'   => 'sustained gateway errors',
 	);
 
 	$reasons = array();
@@ -1222,6 +1235,21 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
 				$alarm['sample'],
 				'When this filesystem fills, MariaDB fails writes (ENOSPC) and Redis stops persisting (MISCONF).',
 				'Triage: `df -h` then `du -xh --max-depth=2 / | sort -h | tail -20`',
+			)
+		);
+	}
+	if ( 'http_5xx' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$prefix . '🚨 **Gateway error alarm** — ' . extrachill_analytics_fatal_alarm_reason_text( $alarm ),
+				'',
+				'**Signature:** `' . $alarm['signature'] . '`',
+				'**Last full hour:** ' . (int) $alarm['rate_per_hr'] . ' (still firing)',
+				'',
+				$alarm['sample'],
+				'The web server answered these itself: PHP-FPM was saturated, down, or too slow. WordPress never saw these requests.',
+				'Triage: `wp extrachill analytics errors --source=http --since=2h`',
 			)
 		);
 	}
@@ -1291,6 +1319,31 @@ function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 				'4. If a process keeps refilling the disk, file an issue in the owning repo with the evidence.',
 				'',
 				'Report back with what was using the space, what you freed, and the new `df -h` line.',
+			)
+		);
+	}
+	if ( 'http_5xx' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$mention . '🚨 **Gateway error alarm — investigate and fix.**',
+				'',
+				'The web server is answering requests with gateway errors at a sustained rate. These responses come from the web server when PHP-FPM is saturated, down, or too slow; WordPress, debug.log and the REST counter never see them.',
+				'',
+				'**Goal:** find what is starving or killing PHP-FPM, and get a fix up.',
+				'',
+				'- Signature: `' . $alarm['signature'] . '`',
+				'- ' . $alarm['sample'],
+				'',
+				'**Workflow:**',
+				'1. Confirm it is still firing: `wp extrachill analytics errors --source=http --since=2h`, and `tail` the access log for 502/504.',
+				'2. Check the web server error log for `upstream timed out` / `connect() failed`, the PHP-FPM log for `max_children` warnings, plus `uptime`, free memory, and the slowest current requests.',
+				'3. Look for the trigger: a bot wave on one path class, a slow query, a stuck cron or long-running job, or a recent deploy.',
+				'4. File an issue in the owning repo with the evidence pasted in, and cook the fix with `homeboy agent-task cook`. Server config changes (pool size, rate limits) go to the operator as a recommendation; do not edit them yourself.',
+				'',
+				'If real users are getting errors on pages right now, say so plainly at the top of your report.',
+				'',
+				'Report back with the cause, the issue URL, and the PR URL or recommendation.',
 			)
 		);
 	}
