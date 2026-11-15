@@ -646,13 +646,14 @@ class RsvpPassAbilities {
 		$code     = trim( (string) ( $input['code'] ?? '' ) );
 
 		if ( '' !== $code ) {
-			$result = RsvpPassesTable::redeem_by_code( $event_id, $code, get_current_user_id() );
-			// Not a pass for this event: it may be a venue's or promoter's
-			// standing list pass (extrachill#1130), checked in per event.
-			if ( is_wp_error( $result ) && 'rsvp_pass_not_found' === $result->get_error_code() && function_exists( 'extrachill_events_owner_list_check_in' ) ) {
-				return extrachill_events_owner_list_check_in( $event_id, $code, get_current_user_id() );
+			// One code namespace: a venue's or promoter's standing list pass
+			// (extrachill#1130) checks in once per show; any other pass
+			// redeems at its own event.
+			$pass = RsvpPassesTable::find_by_code( strtoupper( $code ) );
+			if ( $pass && RsvpPassesTable::is_owner_pass( $pass ) && function_exists( 'extrachill_events_owner_list_check_in' ) ) {
+				return extrachill_events_owner_list_check_in( $event_id, $pass, get_current_user_id() );
 			}
-			return $result;
+			return RsvpPassesTable::redeem_for_event( $pass, $event_id, get_current_user_id() );
 		}
 
 		$user_id = (int) ( $input['user_id'] ?? 0 );

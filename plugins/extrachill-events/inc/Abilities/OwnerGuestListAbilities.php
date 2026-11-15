@@ -5,9 +5,10 @@
  * A venue's or promoter's permanent guest list: list, add, remove. Behavior
  * lives in inc/core/owner-guest-list.php. Only the venue's active team, the
  * promoter's active members, and admins may touch a list
- * (extrachill_events_user_can_manage_owner_list()). Door check-in is not
- * here: it rides extrachill/redeem-event-pass, whose code path falls
- * through to the owner's list for codes that are not per-event passes.
+ * (extrachill_events_user_can_manage_owner_list()). Each person is an
+ * owner pass in the shared passes table (extrachill#1521); member_id is the
+ * pass ID. Door check-in is not here: it rides extrachill/redeem-event-pass,
+ * which looks a code up once and checks owner passes in per show.
  *
  * @package ExtraChillEvents\Abilities
  */

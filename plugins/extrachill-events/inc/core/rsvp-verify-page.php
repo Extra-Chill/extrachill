@@ -42,6 +42,21 @@ function extrachill_events_rsvp_verify_rewrite_rules(): void {
 
 	add_rewrite_tag( '%ec_rsvp_verify%', '(1)' );
 	add_rewrite_rule( '^rsvp-verify/?$', 'index.php?ec_rsvp_verify=1', 'top' );
+
+	// The holder's view of a standing-list pass (extrachill#1130) is served
+	// by this same page; /owner-pass/?code= links keep working (#1521).
+	add_rewrite_tag( '%ec_pass_holder%', '(1)' );
+	add_rewrite_rule( '^owner-pass/?$', 'index.php?ec_rsvp_verify=1&ec_pass_holder=1', 'top' );
+}
+
+/**
+ * Whether the request is the pass holder's view (/owner-pass/) rather than
+ * the door's scan view.
+ *
+ * @return bool
+ */
+function extrachill_events_is_pass_holder_view(): bool {
+	return extrachill_events_is_rsvp_verify_page() && '1' === (string) get_query_var( 'ec_pass_holder', '' );
 }
 add_action( 'init', 'extrachill_events_rsvp_verify_rewrite_rules' );
 
@@ -142,7 +157,7 @@ add_filter( 'extrachill_template_archive', 'extrachill_events_rsvp_verify_templa
  */
 function extrachill_events_rsvp_verify_title( array $parts ): array {
 	if ( extrachill_events_is_rsvp_verify_page() ) {
-		$parts['title'] = __( 'Verify RSVP Pass', 'extrachill-events' );
+		$parts['title'] = extrachill_events_is_pass_holder_view() ? __( 'Guest List Pass', 'extrachill-events' ) : __( 'Verify RSVP Pass', 'extrachill-events' );
 	}
 
 	return $parts;

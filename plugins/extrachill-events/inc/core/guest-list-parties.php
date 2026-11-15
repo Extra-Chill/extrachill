@@ -408,19 +408,45 @@ function extrachill_events_door_list_import_source( array $pass ): string {
 }
 
 /**
- * The account-less guest rows for the door list, with their source.
+ * The account-less guest rows for the door list, with their source, and
+ * the venue's and promoter's standing-list people (owner passes,
+ * extrachill#1130/#1521) read in the same query. Owner rows read
+ * "Name (Venue list)", carry `owner_list: true` and tonight's check-in.
  *
- * @param int $event_id Event post ID.
+ * @param int  $event_id      Event post ID.
+ * @param bool $event_guests  Include the event's own guest list passes (false when the event has no guest list page).
  * @return array[] Each: pass_id, label, guest_name, source (party name or ''), added_by (host display name or ''), code, status, redeemed_at (formatted).
  */
-function extrachill_events_door_list_guest_rows( int $event_id ): array {
-	$passes = array_values(
+function extrachill_events_door_list_guest_rows( int $event_id, bool $event_guests = true ): array {
+	// A standing list works at every published show its owner is tagged on,
+	// guest list perk or not.
+	$owners = array();
+	$post   = get_post( $event_id );
+	if ( $post && 'publish' === ( $post->post_status ?? '' ) && function_exists( 'extrachill_events_owner_list_owners_for_event' ) ) {
+		foreach ( extrachill_events_owner_list_owners_for_event( $event_id ) as $owner ) {
+			$owners[ $owner['owner_type'] . ':' . $owner['owner_id'] ] = $owner;
+		}
+	}
+	if ( ! $event_guests && ! $owners ) {
+		return array();
+	}
+
+	$owner_keys = array_map(
+		static function ( $owner ) {
+			return array( $owner['owner_type'], $owner['owner_id'] );
+		},
+		array_values( $owners )
+	);
+	$passes     = array_values(
 		array_filter(
-			RsvpPassesTable::list_guest_passes( $event_id ),
-			static function ( $pass ) {
+			RsvpPassesTable::list_guest_passes( $event_id, 500, $owner_keys ),
+			static function ( $pass ) use ( $event_guests, $owners ) {
+				if ( RsvpPassesTable::is_owner_pass( $pass ) ) {
+					return isset( $owners[ $pass['owner_type'] . ':' . $pass['owner_term_id'] ] ) && RsvpPassesTable::STATUS_ACTIVE === $pass['status'];
+				}
 				// Only names the venue put on the list: pending and denied
 				// submissions (extrachill#1129) are not on the door list.
-				return in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
+				return $event_guests && in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
 			}
 		)
 	);
@@ -435,8 +461,14 @@ function extrachill_events_door_list_guest_rows( int $event_id ): array {
 		}
 	}
 
-	$rows = array();
+	$checkins = null;
+	$rows     = array();
 	foreach ( $passes as $pass ) {
+		if ( RsvpPassesTable::is_owner_pass( $pass ) ) {
+			$checkins = null === $checkins ? RsvpPassesTable::list_checkins_for_event( $event_id ) : $checkins;
+			$rows[]   = extrachill_events_owner_list_door_row( $pass, $owners[ $pass['owner_type'] . ':' . $pass['owner_term_id'] ], $checkins[ (int) $pass['id'] ] ?? null );
+			continue;
+		}
 		$added_by_id = (int) ( $pass['issued_by_user_id'] ?? 0 );
 		$added_by    = $added_by_id ? get_userdata( $added_by_id ) : false;
 		$guest_name  = (string) ( $pass['guest_name'] ?? '' );

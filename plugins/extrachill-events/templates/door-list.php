@@ -23,7 +23,7 @@
  * @var string $perk_text    Attendee-facing perk description (perk events only).
  * @var array  $guest_list   extrachill_events_get_guest_list_counts() result (perk events only).
  * @var array  $guest_rows   Guest list passes with no account (extrachill_events_door_list_guest_rows()): label ("Jake (Slim S.O.U.L.)" when an invited band added them), guest_name, source (party name or ''), code, status, redeemed_at (formatted), added_by (host display name, or '' when the guest claimed it with the password or a band added it).
- *                            Also the venue's and promoter's standing owner's-list people (extrachill_events_owner_list_door_rows(), extrachill#1130): label "Name (Venue list)", owner_list true, status 'redeemed' once checked in at this event; never removable from here (that is the owner's list panel).
+ *                            Also the venue's and promoter's standing owner's-list people (owner passes, read in the same query, extrachill#1130): label "Name (Venue list)", owner_list true, status 'redeemed' once checked in at this event; never removable from here (that is the owner's list panel).
  * @var string $guest_list_url Guest list page URL when the event has a password-gated list, else ''.
  * @var array  $door_rows    $rows and $guest_rows merged with a `kind` ('attendee'|'guest') and sorted A to Z by extrachill_events_sort_guest_rows() (extrachill#1142); this is what renders.
  * @var array  $rows         Each: user_id, display_name, marked_at (formatted), pass_status ('active'|'redeemed'|'revoked'|''), redeemed_at (formatted, or '').

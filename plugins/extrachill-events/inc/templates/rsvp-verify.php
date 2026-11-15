@@ -9,6 +9,12 @@
  * a Redeem control. Ships no CSS of its own; see rsvp-pass.php's docblock
  * for the same design-system contract.
  *
+ * Also the one pass page for a venue's or promoter's standing list pass
+ * (extrachill#1130, #1521): /owner-pass/?code= is served here in holder
+ * view (name, list, QR, code), the link the team copies or emails. The
+ * code is the bearer secret, exactly like a per-event pass link; a removed
+ * or unknown code shows one generic "no longer valid" message.
+ *
  * @package ExtraChillEvents
  */
 
@@ -18,20 +24,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $code = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page render; the state-changing Redeem action is its own ability call with its own authorization check.
 
+// One lookup for both scopes: per-event passes and owner passes share a code namespace.
 $pass       = ( '' !== $code && class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) )
-	? \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( $code )
+	? \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( strtoupper( $code ) )
 	: null;
+$owner_pass = $pass && \ExtraChillEvents\Core\RsvpPassesTable::is_owner_pass( $pass );
 $event_id   = $pass ? (int) $pass['event_id'] : 0;
 $authorized = $pass
+	&& ! $owner_pass
 	&& is_user_logged_in()
 	&& function_exists( 'extrachill_events_user_can_manage_event' )
 	&& extrachill_events_user_can_manage_event( get_current_user_id(), $event_id );
 
-// Not a per-event pass: maybe a venue's or promoter's standing list pass
-// (extrachill#1130). Same non-enumerating contract: null renders the
-// generic message below. ?event= pins the show; otherwise tonight's shows.
-$owner_view = ( ! $pass && '' !== $code && is_user_logged_in() && function_exists( 'extrachill_events_owner_list_verify_view' ) )
-	? extrachill_events_owner_list_verify_view( $code, get_current_user_id(), isset( $_GET['event'] ) ? absint( $_GET['event'] ) : 0 ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only render; check-in is its own authorized ability call.
+// The holder's own view of a standing list pass (/owner-pass/), and nothing else.
+if ( function_exists( 'extrachill_events_is_pass_holder_view' ) && extrachill_events_is_pass_holder_view() ) {
+	$holder_owner = ( $owner_pass && 'active' === $pass['status'] )
+		? extrachill_events_owner_list_owner( (string) $pass['owner_type'], (int) $pass['owner_term_id'] )
+		: null;
+	get_header();
+	?>
+	<main class="extrachill-content ec-rsvp-verify-page">
+		<div class="ec-rsvp-verify ec-surface-card ec-card-padding ec-narrow-column">
+			<?php if ( is_array( $holder_owner ) ) : ?>
+				<h1 class="ec-rsvp-verify__heading"><?php echo esc_html( (string) $pass['guest_name'] ); ?></h1>
+				<p class="ec-rsvp-verify__perk">
+					<?php
+					/* translators: 1: "Venue list" or "Promoter list", 2: venue or promoter name. */
+					printf( esc_html__( '%1$s: %2$s', 'extrachill-events' ), esc_html( $holder_owner['label'] ), esc_html( $holder_owner['owner_name'] ) );
+					?>
+				</p>
+				<p>
+					<?php
+					/* translators: %s: venue or promoter name. */
+					printf( esc_html__( 'Show this at the door at any %s show.', 'extrachill-events' ), esc_html( $holder_owner['owner_name'] ) );
+					?>
+				</p>
+				<p>
+					<img src="<?php echo esc_url( extrachill_events_rsvp_pass_qr_url( (string) $pass['code'] ) ); ?>" width="250" height="250" alt="<?php esc_attr_e( 'QR code for this pass', 'extrachill-events' ); ?>">
+				</p>
+				<p><strong><code><?php echo esc_html( (string) $pass['code'] ); ?></code></strong></p>
+			<?php else : ?>
+				<p class="notice notice-info"><?php esc_html_e( 'This pass is no longer valid.', 'extrachill-events' ); ?></p>
+			<?php endif; ?>
+		</div>
+	</main>
+	<?php
+	get_footer();
+	return;
+}
+
+// A venue's or promoter's standing list pass (extrachill#1130) at the door.
+// Same non-enumerating contract: null renders the generic message below.
+// ?event= pins the show; otherwise tonight's shows.
+$owner_view = ( $owner_pass && is_user_logged_in() && function_exists( 'extrachill_events_owner_list_verify_view' ) )
+	? extrachill_events_owner_list_verify_view( $pass, get_current_user_id(), isset( $_GET['event'] ) ? absint( $_GET['event'] ) : 0 ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only render; check-in is its own authorized ability call.
 	: null;
 
 get_header();

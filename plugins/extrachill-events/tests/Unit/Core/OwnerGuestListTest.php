@@ -11,6 +11,11 @@
  * labelled "Venue list" / "Promoter list"; and the /rsvp-verify/ scan view
  * stays non-enumerating.
  *
+ * Since extrachill#1521 each person is an owner pass in the shared passes
+ * table (event_id 0 + owner_type/owner_term_id) with per-show check-ins in
+ * the pass check-ins table: one code namespace with per-event passes,
+ * which must keep working exactly as before.
+ *
  * Reuses the shims loaded by RsvpGuestListRequestsTest.php and the
  * membership row shapes from EventManagementAuthorityTest.php.
  *
@@ -21,7 +26,6 @@
 
 use ExtraChillEvents\Abilities\OwnerGuestListAbilities;
 use ExtraChillEvents\Abilities\RsvpPassAbilities;
-use ExtraChillEvents\Core\OwnerGuestListTable;
 use ExtraChillEvents\Core\RsvpPassesTable;
 
 require_once __DIR__ . '/../../Support/team-members-fake.php';
@@ -47,7 +51,6 @@ if ( ! function_exists( 'home_url' ) ) {
 }
 
 require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/TeamAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueMembershipRepository.php';
@@ -55,7 +58,7 @@ require_once dirname( __DIR__, 3 ) . '/inc/core/owner-guest-list.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/RsvpPassAbilities.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/OwnerGuestListAbilities.php';
 
-/** Stateful $wpdb for the owner's-list tables, the passes table, and membership lookups. */
+/** Stateful $wpdb for the passes and pass check-ins tables, and membership lookups. */
 final class OwnerGuestListFakeWpdb {
 
 	public $base_prefix = 'wp_';
@@ -93,7 +96,8 @@ final class OwnerGuestListFakeWpdb {
 	}
 
 	/**
-	 * Rows matching every `col = value` pair in a WHERE clause.
+	 * Rows matching a WHERE clause of `col = value` / `col IS NULL` terms
+	 * joined by AND, with top-level OR between groups.
 	 *
 	 * @param string $sql Query.
 	 * @return array<int, array<string, mixed>>
@@ -103,18 +107,31 @@ final class OwnerGuestListFakeWpdb {
 		if ( ! preg_match( '/WHERE (.+?)(?: ORDER BY| LIMIT|$)/', $sql, $where ) ) {
 			return $rows;
 		}
-		preg_match_all( "/(\w+) = ('([^']*)'|\d+)/", $where[1], $pairs, PREG_SET_ORDER );
+		$groups = array();
+		foreach ( explode( ' OR ', $where[1] ) as $group ) {
+			preg_match_all( "/(\w+) = ('([^']*)'|\d+)/", $group, $pairs, PREG_SET_ORDER );
+			preg_match_all( '/(\w+) IS NULL/', $group, $nulls );
+			$groups[] = array( $pairs, $nulls[1] );
+		}
 		return array_values(
 			array_filter(
 				$rows,
-				static function ( $row ) use ( $pairs ) {
-					foreach ( $pairs as $pair ) {
-						$expected = "'" === $pair[2][0] ? $pair[3] : $pair[2];
-						if ( (string) ( $row[ $pair[1] ] ?? '' ) !== (string) $expected ) {
-							return false;
+				static function ( $row ) use ( $groups ) {
+					foreach ( $groups as $group ) {
+						foreach ( $group[0] as $pair ) {
+							$expected = "'" === $pair[2][0] ? $pair[3] : $pair[2];
+							if ( (string) ( $row[ $pair[1] ] ?? '' ) !== (string) $expected ) {
+								continue 2;
+							}
 						}
+						foreach ( $group[1] as $column ) {
+							if ( null !== ( $row[ $column ] ?? null ) ) {
+								continue 2;
+							}
+						}
+						return true;
 					}
-					return true;
+					return false;
 				}
 			)
 		);
@@ -123,10 +140,10 @@ final class OwnerGuestListFakeWpdb {
 	public function insert( $table, $data ) {
 
 		list( $table, $data ) = ec_team_fake_write( $table, $data );
-		if ( false !== strpos( $table, 'owner_guest_list_checkins' ) ) {
+		if ( false !== strpos( $table, 'ec_event_pass_checkins' ) ) {
 			foreach ( $this->rows( $table ) as $row ) {
-				if ( (int) $row['member_id'] === (int) $data['member_id'] && (int) $row['event_id'] === (int) $data['event_id'] ) {
-					return false; // Unique (member_id, event_id).
+				if ( (int) $row['pass_id'] === (int) $data['pass_id'] && (int) $row['event_id'] === (int) $data['event_id'] ) {
+					return false; // Unique (pass_id, event_id).
 				}
 			}
 		}
@@ -196,11 +213,23 @@ final class OwnerGuestListFakeWpdb {
 		return '1';
 	}
 
+	/** Applies the per-event redeem compare-and-set (`UPDATE t SET ... WHERE ...`). */
 	public function query( $query ) {
 
 		$query = ec_team_fake_sql( $query );
-		unset( $query );
-		return 0;
+		if ( ! preg_match( '/^UPDATE (\S+) SET (.+) WHERE (.+)$/', $query, $m ) ) {
+			return 0;
+		}
+		preg_match_all( "/(\w+) = ('([^']*)'|\d+)/", $m[2], $sets, PREG_SET_ORDER );
+		$data = array();
+		foreach ( $sets as $set ) {
+			$data[ $set[1] ] = "'" === $set[2][0] ? $set[3] : $set[2];
+		}
+		$count = 0;
+		foreach ( $this->matching( "SELECT * FROM {$m[1]} WHERE {$m[3]}" ) as $match ) {
+			$count += $this->update( $m[1], $data, array( 'id' => $match['id'] ) );
+		}
+		return $count;
 	}
 }
 
@@ -469,7 +498,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'invalid_email', extrachill_events_add_owner_list_name( 'venue', self::VENUE_ID, 'Sam', 'not-an-email' )->get_error_code() );
 		$this->assertSame( 'owner_list_invalid_owner', extrachill_events_add_owner_list_name( 'artist', self::VENUE_ID, 'Sam' )->get_error_code() );
 		$this->assertSame( 'owner_list_owner_not_found', extrachill_events_add_owner_list_name( 'venue', 424242, 'Sam' )->get_error_code() );
-		$this->assertSame( array(), $this->db->rows( OwnerGuestListTable::table_name() ) );
+		$this->assertSame( array(), $this->db->rows( RsvpPassesTable::table_name() ) );
 	}
 
 	public function test_one_pass_checks_in_once_per_event_across_events(): void {
@@ -487,20 +516,20 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$next_week = $this->redeem( self::VENUE_SHOW_2, $code );
 		$this->assertFalse( $next_week['already_redeemed'], 'The same pass checks in fresh at the next show.' );
 
-		$this->assertCount( 2, $this->db->rows( OwnerGuestListTable::checkins_table_name() ) );
+		$this->assertCount( 2, $this->db->rows( RsvpPassesTable::checkins_table_name() ) );
 	}
 
 	public function test_lost_race_reports_the_winner(): void {
-		$member = OwnerGuestListTable::find_by_code( $this->add_to_venue_list()['code'] );
-		$this->db->tables[ OwnerGuestListTable::checkins_table_name() ][] = array(
+		$member = RsvpPassesTable::find_by_code( $this->add_to_venue_list()['code'] );
+		$this->db->tables[ RsvpPassesTable::checkins_table_name() ][] = array(
 			'id'                    => 999,
-			'member_id'             => $member['id'],
+			'pass_id'               => $member['id'],
 			'event_id'              => self::VENUE_SHOW,
 			'checked_in_at'         => '2026-06-01 22:00:00',
 			'checked_in_by_user_id' => self::ADMIN_ID,
 		);
 
-		$result = OwnerGuestListTable::check_in( (int) $member['id'], self::VENUE_SHOW, self::VENUE_MEMBER );
+		$result = RsvpPassesTable::check_in( (int) $member['id'], self::VENUE_SHOW, self::VENUE_MEMBER );
 		$this->assertTrue( $result['already_redeemed'] );
 		$this->assertSame( '2026-06-01 22:00:00', $result['redeemed_at'] );
 		$this->assertSame( self::ADMIN_ID, $result['redeemed_by_user_id'] );
@@ -522,7 +551,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 
 		$unknown = $this->redeem( self::VENUE_SHOW, 'ZZZZZ-ZZZZZ-ZZZZZ' );
 		$this->assertSame( 'rsvp_pass_not_found', $unknown->get_error_code() );
-		$this->assertCount( 1, $this->db->rows( OwnerGuestListTable::checkins_table_name() ) );
+		$this->assertCount( 1, $this->db->rows( RsvpPassesTable::checkins_table_name() ) );
 	}
 
 	public function test_removed_pass_is_rejected_immediately(): void {
@@ -534,7 +563,8 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$denied = $this->redeem( self::VENUE_SHOW_2, $added['code'] );
 		$this->assertSame( 'owner_list_removed', $denied->get_error_code() );
 		$this->assertStringStartsWith( 'Not on the list', $denied->get_error_message() );
-		$this->assertSame( array(), extrachill_events_owner_list_door_rows( self::VENUE_SHOW_2 ), 'Gone from the door list too.' );
+		$this->assertSame( array(), $this->owner_door_rows( self::VENUE_SHOW_2 ), 'Gone from the door list too.' );
+		$this->assertSame( 'revoked', RsvpPassesTable::find_by_code( $added['code'] )['status'], 'Removal is the pass revocation.' );
 
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_remove_owner_list_name( 'venue', self::VENUE_ID, $added['member_id'] ), 'Removing twice is a miss.' );
 	}
@@ -555,7 +585,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$after = extrachill_events_get_guest_list_counts( self::VENUE_SHOW );
 		$this->assertSame( $before, $after, 'Claimed, checked in, and spots left are unchanged.' );
 		$this->assertSame( 1, (int) $after['spots_left'] );
-		$this->assertSame( array(), $this->db->rows( RsvpPassesTable::table_name() ), 'No per-event pass rows written.' );
+		$this->assertSame( array( 0, 0, 0 ), array_map( 'intval', array_column( $this->db->rows( RsvpPassesTable::table_name() ), 'event_id' ) ), 'Only owner passes, no per-event pass rows.' );
 	}
 
 	public function test_door_list_rows_are_labelled_per_owner_with_check_in_state(): void {
@@ -563,7 +593,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		extrachill_events_add_owner_list_name( 'promoter', self::PROMOTER_ID, 'Dee', '', self::PROMOTER_MEMBER );
 		$this->redeem( self::VENUE_SHOW, $sam['code'] );
 
-		$rows = extrachill_events_owner_list_door_rows( self::VENUE_SHOW );
+		$rows = $this->owner_door_rows( self::VENUE_SHOW );
 		$this->assertCount( 1, $rows, 'A venue show lists the venue list only.' );
 		$this->assertSame( 'Sam (Venue list)', $rows[0]['label'] );
 		$this->assertSame( 'Venue list', $rows[0]['source'] );
@@ -571,14 +601,14 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertTrue( $rows[0]['owner_list'] );
 		$this->assertSame( $sam['code'], $rows[0]['code'] );
 
-		$next_week = extrachill_events_owner_list_door_rows( self::VENUE_SHOW_2 );
+		$next_week = $this->owner_door_rows( self::VENUE_SHOW_2 );
 		$this->assertSame( 'active', $next_week[0]['status'], 'Check-in is per event.' );
 
-		$promoter_show = extrachill_events_owner_list_door_rows( self::PROMOTER_SHOW );
+		$promoter_show = $this->owner_door_rows( self::PROMOTER_SHOW );
 		$this->assertSame( array( 'Dee (Promoter list)' ), array_column( $promoter_show, 'label' ) );
 
-		$this->assertSame( array(), extrachill_events_owner_list_door_rows( self::DRAFT_SHOW ) );
-		$this->assertSame( array(), extrachill_events_owner_list_door_rows( self::OTHER_SHOW ) );
+		$this->assertSame( array(), $this->owner_door_rows( self::DRAFT_SHOW ) );
+		$this->assertSame( array(), $this->owner_door_rows( self::OTHER_SHOW ) );
 	}
 
 	public function test_door_list_template_labels_and_never_offers_permanent_removal(): void {
@@ -587,14 +617,14 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertStringContainsString( 'empty( $guest_rows )', $source );
 
 		$integration = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-integration.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
-		$this->assertStringContainsString( 'extrachill_events_owner_list_door_rows( $event_id )', $integration );
+		$this->assertStringContainsString( "extrachill_events_door_list_guest_rows( \$event_id, '' !== \$guest_list_url )", $integration );
 	}
 
 	public function test_scan_view_for_tonight_show(): void {
 		$sam = $this->add_to_venue_list( 'Sam' );
 		$this->tonight( array( 'venue:' . self::VENUE_ID => array( self::VENUE_SHOW ) ) );
 
-		$view = extrachill_events_owner_list_verify_view( strtolower( $sam['code'] ), self::VENUE_MEMBER );
+		$view = $this->verify_view( strtolower( $sam['code'] ), self::VENUE_MEMBER );
 		$this->assertSame( 'eligible', $view['state'] );
 		$this->assertSame( 'Sam', $view['name'] );
 		$this->assertSame( 'Venue list', $view['owner']['label'] );
@@ -602,12 +632,12 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( '', $view['events'][0]['checked_in_at'] );
 
 		$this->redeem( self::VENUE_SHOW, $sam['code'] );
-		$view = extrachill_events_owner_list_verify_view( $sam['code'], self::VENUE_MEMBER );
+		$view = $this->verify_view( $sam['code'], self::VENUE_MEMBER );
 		$this->assertNotSame( '', $view['events'][0]['checked_in_at'], 'Shows the existing check-in.' );
 
-		$this->assertNull( extrachill_events_owner_list_verify_view( $sam['code'], self::OUTSIDER ), 'Outsiders get the generic message.' );
-		$this->assertNull( extrachill_events_owner_list_verify_view( $sam['code'], 0 ), 'Logged out gets the generic message.' );
-		$this->assertNull( extrachill_events_owner_list_verify_view( 'ZZZZZ-ZZZZZ-ZZZZZ', self::VENUE_MEMBER ) );
+		$this->assertNull( $this->verify_view( $sam['code'], self::OUTSIDER ), 'Outsiders get the generic message.' );
+		$this->assertNull( $this->verify_view( $sam['code'], 0 ), 'Logged out gets the generic message.' );
+		$this->assertNull( $this->verify_view( 'ZZZZZ-ZZZZZ-ZZZZZ', self::VENUE_MEMBER ) );
 	}
 
 	public function test_scan_view_at_a_show_that_is_not_theirs_says_not_on_the_list(): void {
@@ -615,31 +645,79 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		// The other venue's door staff scans Sam at their own show tonight.
 		$this->tonight( array( 'venue:' . self::OTHER_VENUE_ID => array( self::OTHER_SHOW ) ) );
 
-		$view = extrachill_events_owner_list_verify_view( $sam['code'], self::OTHER_VENUE_TEAM );
+		$view = $this->verify_view( $sam['code'], self::OTHER_VENUE_TEAM );
 		$this->assertSame( 'not_eligible', $view['state'] );
 		$this->assertArrayNotHasKey( 'name', $view, 'No name for a pass that is not for this show.' );
 
-		$pinned = extrachill_events_owner_list_verify_view( $sam['code'], self::OTHER_VENUE_TEAM, self::OTHER_SHOW );
+		$pinned = $this->verify_view( $sam['code'], self::OTHER_VENUE_TEAM, self::OTHER_SHOW );
 		$this->assertSame( 'not_eligible', $pinned['state'] );
 
-		$this->assertNull( extrachill_events_owner_list_verify_view( $sam['code'], self::OUTSIDER, self::OTHER_SHOW ), 'Pinning a show you do not run reveals nothing.' );
+		$this->assertNull( $this->verify_view( $sam['code'], self::OUTSIDER, self::OTHER_SHOW ), 'Pinning a show you do not run reveals nothing.' );
 	}
 
 	public function test_scan_view_after_removal(): void {
 		$sam = $this->add_to_venue_list( 'Sam' );
 		extrachill_events_remove_owner_list_name( 'venue', self::VENUE_ID, $sam['member_id'] );
 
-		$view = extrachill_events_owner_list_verify_view( $sam['code'], self::VENUE_MEMBER );
+		$view = $this->verify_view( $sam['code'], self::VENUE_MEMBER );
 		$this->assertSame( 'removed', $view['state'] );
 		$this->assertArrayNotHasKey( 'name', $view );
-		$this->assertNull( extrachill_events_owner_list_verify_view( $sam['code'], self::OUTSIDER ) );
+		$this->assertNull( $this->verify_view( $sam['code'], self::OUTSIDER ) );
 	}
 
-	public function test_schema_is_versioned_with_the_passes_table(): void {
-		$this->assertSame( '7', RsvpPassesTable::SCHEMA_VERSION );
-		$sql = implode( "\n", OwnerGuestListTable::schema_sql( 'DEFAULT CHARSET=utf8mb4' ) );
-		$this->assertStringContainsString( 'UNIQUE KEY code (code)', $sql );
-		$this->assertStringContainsString( 'UNIQUE KEY member_event (member_id, event_id)', $sql );
-		$this->assertStringContainsString( 'wp_7_ec_owner_guest_list_checkins', $sql );
+	public function test_codes_resolve_across_both_scopes_and_per_event_passes_are_unaffected(): void {
+		$this->as_user( self::VENUE_MEMBER );
+		$sam   = $this->add_to_venue_list( 'Sam' );
+		$guest = RsvpPassesTable::issue_anonymous( self::VENUE_SHOW, 0, 'Jo', self::VENUE_MEMBER );
+		$this->assertIsArray( $guest );
+		$this->assertFalse( RsvpPassesTable::is_owner_pass( $guest ) );
+		$this->assertTrue( RsvpPassesTable::is_owner_pass( RsvpPassesTable::find_by_code( $sam['code'] ) ) );
+
+		// A per-event pass redeems once, at its own event only, on the row.
+		$this->assertSame( 'rsvp_pass_not_found', $this->redeem( self::VENUE_SHOW_2, $guest['code'] )->get_error_code() );
+		$first = $this->redeem( self::VENUE_SHOW, $guest['code'] );
+		$this->assertFalse( $first['already_redeemed'] );
+		$this->assertArrayNotHasKey( 'label', $first, 'Per-event redemption is not an owner check-in.' );
+		$this->assertSame( 'redeemed', RsvpPassesTable::find_by_code( $guest['code'] )['status'] );
+		$this->assertTrue( $this->redeem( self::VENUE_SHOW, $guest['code'] )['already_redeemed'] );
+		$this->assertSame( array(), $this->db->rows( RsvpPassesTable::checkins_table_name() ), 'Per-event passes never write check-ins.' );
+
+		// An owner pass never redeems through the per-event path, and is never `redeemed`.
+		$this->assertSame( 'rsvp_pass_not_found', RsvpPassesTable::redeem_by_code( self::VENUE_SHOW, $sam['code'], self::VENUE_MEMBER )->get_error_code() );
+		$this->assertFalse( $this->redeem( self::VENUE_SHOW, strtolower( $sam['code'] ) )['already_redeemed'], 'The door may type the code in lower case.' );
+		$this->assertSame( 'active', RsvpPassesTable::find_by_code( $sam['code'] )['status'] );
+
+		// One door query: the event's guest and the venue's standing list, labelled.
+		$rows = extrachill_events_door_list_guest_rows( self::VENUE_SHOW );
+		$rows = array_column( $rows, null, 'label' );
+		$this->assertEqualsCanonicalizing( array( 'Jo', 'Sam (Venue list)' ), array_keys( $rows ) );
+		$this->assertSame( array( 'redeemed', 'redeemed' ), array_column( $rows, 'status' ) );
+		$this->assertArrayNotHasKey( 'owner_list', $rows['Jo'] );
+		$this->assertTrue( $rows['Sam (Venue list)']['owner_list'] );
+		$this->assertSame( array( 'Sam (Venue list)' ), array_column( extrachill_events_door_list_guest_rows( self::VENUE_SHOW, false ), 'label' ), 'No guest list page: only the standing list.' );
+	}
+
+	public function test_owner_pass_storage_shape(): void {
+		$sam  = $this->add_to_venue_list( 'Sam', 'sam@example.com' );
+		$pass = RsvpPassesTable::find_by_code( $sam['code'] );
+		$this->assertSame( 0, (int) $pass['event_id'] );
+		$this->assertSame( 'venue', $pass['owner_type'] );
+		$this->assertSame( self::VENUE_ID, (int) $pass['owner_term_id'] );
+		$this->assertSame( 'sam@example.com', $pass['email'] );
+		$this->assertSame( self::VENUE_MEMBER, (int) $pass['issued_by_user_id'] );
+		$this->assertSame( (int) $pass['id'], $sam['member_id'], 'member_id is the pass ID.' );
+		$this->assertSame( 'active', $sam['status'] );
+		$this->assertSame( 'removed', extrachill_events_owner_list_member_summary( array( 'status' => 'revoked' ) + $pass )['status'], 'A revoked pass still reads `removed` in the ability contract.' );
+		$this->assertSame( '8', RsvpPassesTable::SCHEMA_VERSION );
+	}
+
+	/** The scan view, fed the one code lookup the verify page does. */
+	private function verify_view( string $code, int $user_id, int $event_id = 0 ): ?array {
+		return extrachill_events_owner_list_verify_view( RsvpPassesTable::find_by_code( strtoupper( $code ) ), $user_id, $event_id );
+	}
+
+	/** Door rows for an event with no guest list page: the standing lists only. */
+	private function owner_door_rows( int $event_id ): array {
+		return extrachill_events_door_list_guest_rows( $event_id, false );
 	}
 }
