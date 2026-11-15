@@ -146,10 +146,21 @@ export const updateShopOrderStatus = (
 		...( trackingNumber ? { tracking_number: trackingNumber } : {} ),
 	} );
 
-export const refundShopOrder = ( orderId, seller ) =>
+/**
+ * Refund an order.
+ *
+ * @param {number|string}      orderId  Order ID.
+ * @param {Object}             seller   Seller reference.
+ * @param {number|string|null} [amount] Dollars to refund; omit for everything left.
+ * @return {Promise<Object>} Refund result.
+ */
+export const refundShopOrder = ( orderId, seller, amount = null ) =>
 	runAbility( 'shop-refund-order', {
 		id: Number( orderId ),
 		seller: sellerRef( seller ),
+		...( amount !== null && amount !== ''
+			? { amount: Number( amount ) }
+			: {} ),
 	} );
 
 // ─── Shipping ───────────────────────────────────────────────────────────────
@@ -160,6 +171,12 @@ export const getShippingAddress = ( seller ) =>
 export const updateShippingAddress = ( seller, address ) =>
 	runAbility( 'shop-update-shipping-address', {
 		...address,
+		seller: sellerRef( seller ),
+	} );
+
+export const updateReturnPolicy = ( seller, returnPolicy ) =>
+	runAbility( 'shop-update-shipping-address', {
+		return_policy: returnPolicy,
 		seller: sellerRef( seller ),
 	} );
 
@@ -200,7 +217,7 @@ export const purchaseShippingLabel = (
 export const quoteShippingLabel = ( orderId, seller, parcel ) =>
 	purchaseShippingLabel( orderId, seller, { parcel, quote: true } );
 
-// ─── Payments (Stripe Connect) ──────────────────────────────────────────────
+// ─── Payments (payout account) ──────────────────────────────────────────────
 
 const stripeParams = ( seller ) => ( {
 	seller_type: seller.type,

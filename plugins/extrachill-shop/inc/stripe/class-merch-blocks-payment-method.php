@@ -69,8 +69,8 @@ final class ExtraChill_Merch_Blocks_Payment_Method extends AbstractPaymentMethod
 	 */
 	public function get_payment_method_data() {
 		return array(
-			'title'       => $this->get_setting( 'title', 'Pay securely with Stripe' ),
-			'description' => $this->get_setting( 'description', "You'll be redirected to Stripe to pay securely." ),
+			'title'       => $this->get_setting( 'title', 'Pay securely' ),
+			'description' => $this->get_setting( 'description', "You'll be redirected to our secure checkout to pay." ),
 			'supports'    => $this->get_supported_features(),
 		);
 	}

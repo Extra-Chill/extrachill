@@ -95,18 +95,18 @@ function extrachill_shop_ability_stripe_onboarding_link( array $input ): array|W
 	}
 
 	if ( ! function_exists( 'extrachill_shop_create_seller_stripe_account' ) ) {
-		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_not_available', 'Payouts are not available right now.', array( 'status' => 500 ) );
 	}
 
 	$result = extrachill_shop_create_seller_stripe_account( $seller );
 	if ( ! $result['success'] ) {
-		return new WP_Error( 'stripe_account_creation_failed', $result['error'] ?? 'Stripe account creation failed.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_account_creation_failed', $result['error'] ?? 'The payout account could not be created.', array( 'status' => 500 ) );
 	}
 
 	$account_id = (string) ( $result['account_id'] ?? '' );
 
 	if ( ! function_exists( 'extrachill_shop_create_account_link' ) ) {
-		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_not_available', 'Payouts are not available right now.', array( 'status' => 500 ) );
 	}
 
 	$link_result = extrachill_shop_create_account_link( $account_id, 'account_onboarding', $seller );
@@ -115,7 +115,7 @@ function extrachill_shop_ability_stripe_onboarding_link( array $input ): array|W
 		if ( 'seller_agreement_required' === ( $link_result['code'] ?? '' ) ) {
 			return extrachill_shop_seller_agreement_required_error();
 		}
-		return new WP_Error( 'stripe_link_creation_failed', $link_result['error'] ?? 'Stripe link creation failed.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_link_creation_failed', $link_result['error'] ?? 'The payout setup link could not be created.', array( 'status' => 500 ) );
 	}
 
 	return array(

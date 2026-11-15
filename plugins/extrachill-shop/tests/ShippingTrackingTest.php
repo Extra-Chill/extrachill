@@ -20,6 +20,9 @@ namespace {
 	 * Completed order email; a customer note sends the Customer note email.
 	 */
 	final class BuyerOrderDetailsOrder {
+		public $refunded = 0.0;
+		public function get_total_refunded() { return $this->refunded; }
+		public function get_remaining_refund_amount() { return (float) $this->get_total() - $this->refunded; }
 		public $meta           = array();
 		public $notes          = array();
 		public $customer_notes = array();

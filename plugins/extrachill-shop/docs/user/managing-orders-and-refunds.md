@@ -19,7 +19,7 @@ The **Orders** tab also shows a number for orders waiting to ship.
 Open the [shop manager](https://shop.extrachill.com/manage/) and go to the **Orders** tab. Pick a view:
 
 - **All:** every paid order.
-- **Needs Fulfillment:** paid orders you haven't shipped yet.
+- **Needs Fulfillment:** paid orders you haven't shipped yet. Disputed orders are left out, because they mustn't ship.
 - **Completed:** shipped and refunded orders.
 
 Each order card shows the order number, its status, the buyer's name, the date, the number of items, and your payout. Select a card to open it.
@@ -39,7 +39,8 @@ Select **Back** to return to the list.
 ## Order Status
 
 - **processing:** paid and waiting for you to ship.
-- **on-hold:** paused. This usually means the buyer disputed the payment (see below).
+- **on-hold:** paused.
+- **disputed:** the buyer disputed the payment with their bank (see below).
 - **completed:** shipped.
 - **refunded:** the buyer got their money back.
 
@@ -53,11 +54,14 @@ The buyer's email doesn't include tracking, so if they ask, send them the tracki
 
 1. Open the order.
 2. Select **Refund Order**.
-3. Check the amount and select **Yes, Refund**.
+3. The **Refund amount** starts at everything still refundable on the order. Leave it for a full refund, or lower it for a partial refund, like one missing item.
+4. Select **Yes, Refund**.
 
-The buyer gets back everything still unrefunded on the order, including shipping, and the order changes to **refunded**. The money goes back the way they paid. Extra Chill's fee for the order is returned to you along with it, except the buyer's shipping charge if it already paid for an Extra Chill label: the postage was spent, so that part stays with Extra Chill.
+The money goes back the way the buyer paid. A full refund includes shipping and changes the order to **refunded**. After a partial refund, the order shows **Refunded so far**, and you can refund more later, up to what's left.
 
-Refunds from the shop manager are always for the whole order. Always refund here, not from your payout dashboard, so the order and the buyer's record stay up to date.
+Extra Chill's fee is returned to you in proportion. Refund $10 of a $25 order and you get back $10/$25 of the fee. On a full refund the buyer's shipping charge comes back to you too, unless it already paid for an Extra Chill label. In that case the postage was spent, so that part stays with Extra Chill.
+
+Refund from the shop manager when you can. If you refund from your payout dashboard instead, we record the refund on the order, add a note, and return the same share of Extra Chill's fee.
 
 You can refund an order before or after you ship it. Under the [Seller Agreement](https://extrachill.com/seller-agreement/), you replace or refund anything that arrives damaged, defective, or very different from your listing.
 
@@ -65,11 +69,11 @@ You can refund an order before or after you ship it. Under the [Seller Agreement
 
 Sometimes a buyer asks their bank to reverse a charge. When that happens:
 
-- The order goes **on-hold**.
+- The order goes on hold and shows as **disputed**, with a warning at the top.
 - We email your shop's managers with the amount and the reason.
-- If you haven't shipped yet, don't ship until it's settled.
+- **Mark as Shipped**, **Buy Label**, and **Refund Order** are turned off for that order, and it leaves **Needs Fulfillment**. If you haven't shipped yet, don't.
 
-Respond from your payout dashboard, under payments and disputes, before the deadline shown there. If you don't respond in time, the bank usually sides with the buyer. Disputed amounts and dispute fees come out of your balance.
+Respond from your payout dashboard (the button is on the **Payments** tab), under payments and disputes, before the deadline shown there. If you don't respond in time, the bank usually sides with the buyer. Disputed amounts and dispute fees come out of your balance.
 
 ## Buyer Questions and Privacy
 

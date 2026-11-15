@@ -57,6 +57,7 @@ const OrdersTab = ( {
 	const [ actionLoading, setActionLoading ] = useState( false );
 	const [ actionError, setActionError ] = useState( '' );
 	const [ showRefundConfirm, setShowRefundConfirm ] = useState( false );
+	const [ refundAmount, setRefundAmount ] = useState( '' );
 	const [ labelPurchasing, setLabelPurchasing ] = useState( false );
 	const [ labelSuccess, setLabelSuccess ] = useState( null );
 	const [ parcel, setParcel ] = useState( DEFAULT_PARCEL );
@@ -68,6 +69,7 @@ const OrdersTab = ( {
 		setTrackingInput( '' );
 		setActionError( '' );
 		setShowRefundConfirm( false );
+		setRefundAmount( '' );
 		setLabelSuccess( null );
 		setParcel( {
 			...DEFAULT_PARCEL,
@@ -123,10 +125,25 @@ const OrdersTab = ( {
 		if ( ! selectedOrder ) {
 			return;
 		}
+		const amount = Number( refundAmount );
+		if ( ! Number.isFinite( amount ) || amount <= 0 ) {
+			setActionError( 'Enter a refund amount greater than $0.00.' );
+			return;
+		}
+		if ( amount > refundable + 0.000001 ) {
+			setActionError(
+				`You can refund up to ${ money( refundable ) } on this order.`
+			);
+			return;
+		}
 		setActionLoading( true );
 		setActionError( '' );
 		try {
-			await onRefund( selectedOrder.id );
+			// A full refund sends no amount, so the server refunds exactly what is left.
+			await onRefund(
+				selectedOrder.id,
+				amount >= refundable ? null : amount
+			);
 			setShowRefundConfirm( false );
 			onSelectOrder( null );
 		} catch ( err ) {
@@ -195,13 +212,36 @@ const OrdersTab = ( {
 		return parts.join( '\n' );
 	};
 
+	// On hold for a bank dispute: no shipping, labels or refunds until it is settled.
+	const disputed = !! selectedOrder?.disputed;
+	const refundable = Number(
+		selectedOrder?.refundable ?? selectedOrder?.order_total ?? 0
+	);
 	const canMarkShipped =
 		selectedOrder &&
+		! disputed &&
 		( selectedOrder.status === 'processing' ||
 			selectedOrder.status === 'on-hold' );
-	const canRefund = selectedOrder && selectedOrder.status !== 'refunded';
+	const canRefund =
+		selectedOrder &&
+		! disputed &&
+		selectedOrder.status !== 'refunded' &&
+		refundable > 0;
+
+	const openRefundForm = () => {
+		setRefundAmount( refundable.toFixed( 2 ) );
+		setActionError( '' );
+		setShowRefundConfirm( true );
+	};
+
+	const statusLabel = ( order ) =>
+		order?.disputed ? 'disputed' : order?.status;
 
 	const getOrderStatusTone = ( status ) => {
+		if ( status === 'disputed' ) {
+			return 'error';
+		}
+
 		if ( status === 'completed' ) {
 			return 'success';
 		}
@@ -274,10 +314,12 @@ const OrdersTab = ( {
 									#{ order.number }
 								</span>
 								<Badge
-									tone={ getOrderStatusTone( order.status ) }
+									tone={ getOrderStatusTone(
+										statusLabel( order )
+									) }
 									variant="solid"
 								>
-									{ order.status }
+									{ statusLabel( order ) }
 								</Badge>
 							</div>
 							<div className="ec-asm__order-card-meta">
@@ -317,12 +359,25 @@ const OrdersTab = ( {
 						</button>
 						<h4>Order #{ selectedOrder.number }</h4>
 						<Badge
-							tone={ getOrderStatusTone( selectedOrder.status ) }
+							tone={ getOrderStatusTone(
+								statusLabel( selectedOrder )
+							) }
 							variant="solid"
 						>
-							{ selectedOrder.status }
+							{ statusLabel( selectedOrder ) }
 						</Badge>
 					</div>
+
+					{ disputed && (
+						<InlineStatus tone="error">
+							<strong>Disputed payment.</strong> The buyer
+							disputed this payment with their bank. Don&apos;t
+							ship this order. Respond to the dispute in your
+							payout dashboard (on the Payments tab) before the
+							deadline shown there. The order stays on hold until
+							the dispute is settled.
+						</InlineStatus>
+					) }
 
 					{ actionError && (
 						<InlineStatus tone="error">
@@ -384,6 +439,12 @@ const OrdersTab = ( {
 									2
 								) }
 							</p>
+							{ Number( selectedOrder.refunded_total ) > 0 && (
+								<p className="ec-asm__muted">
+									Refunded so far:{ ' ' }
+									{ money( selectedOrder.refunded_total ) }
+								</p>
+							) }
 						</div>
 
 						{ selectedOrder.tracking_number && (
@@ -711,7 +772,7 @@ const OrdersTab = ( {
 							<button
 								type="button"
 								className="button-danger button-small"
-								onClick={ () => setShowRefundConfirm( true ) }
+								onClick={ openRefundForm }
 								disabled={ actionLoading }
 							>
 								Refund Order
@@ -720,13 +781,37 @@ const OrdersTab = ( {
 
 						{ showRefundConfirm && (
 							<div className="ec-asm__refund-confirm">
+								<FieldGroup
+									label="Refund amount ($)"
+									help={
+										<span className="ec-asm__muted">
+											Up to { money( refundable ) }. For a
+											partial refund, Extra Chill&apos;s
+											fee is returned in proportion.
+										</span>
+									}
+								>
+									<input
+										type="number"
+										min="0.01"
+										max={ refundable.toFixed( 2 ) }
+										step="0.01"
+										value={ refundAmount }
+										onChange={ ( e ) =>
+											setRefundAmount( e.target.value )
+										}
+										disabled={ actionLoading }
+									/>
+								</FieldGroup>
 								<p>
 									<strong>Are you sure?</strong> This will
-									issue a full refund of $
-									{ (
-										selectedOrder.order_total || 0
-									).toFixed( 2 ) }
-									.
+									refund{ ' ' }
+									{ money( Number( refundAmount ) || 0 ) } to
+									the buyer
+									{ Number( refundAmount ) >= refundable
+										? ' (the full amount left on this order)'
+										: '' }
+									. This can&apos;t be undone.
 								</p>
 								<ActionRow className="ec-asm__actions">
 									<button

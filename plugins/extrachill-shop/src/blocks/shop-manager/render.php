@@ -51,8 +51,10 @@ $ec_shop_config = array(
 	'restUrl'            => esc_url_raw( rest_url() ),
 	'nonce'              => wp_create_nonce( 'wp_rest' ),
 	'pageUrl'            => esc_url_raw( (string) get_permalink() ),
-	// Shown beside "Connect Stripe"; one source of truth in inc/core/legal-documents.php.
+	// Shown beside "Connect payouts"; one source of truth in inc/core/legal-documents.php.
 	'sellerAgreementUrl' => esc_url_raw( extrachill_shop_legal_document( 'seller_agreement', 'url' ) ),
+	// Fee rates the Seller Agreement promises sellers see before listing.
+	'fees'               => extrachill_shop_seller_fee_rates(),
 );
 
 $ec_shop_wrapper = get_block_wrapper_attributes( array( 'class' => 'ec-shop-manager' ) );

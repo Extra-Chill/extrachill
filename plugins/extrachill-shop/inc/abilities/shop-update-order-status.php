@@ -101,6 +101,12 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 		return new WP_Error( 'rest_forbidden', 'This order does not contain products from this seller.', array( 'status' => 403 ) );
 	}
 
+	// A disputed order is on hold until the bank decides; shipping it now
+	// risks losing both the goods and the money.
+	if ( extrachill_shop_order_is_disputed( $order ) ) {
+		return extrachill_shop_order_disputed_error();
+	}
+
 	// Shipped without an Extra Chill label: the seller paid the postage, so
 	// the shipping held in the application fee goes back to them.
 	if ( 'completed' === $new_status && '' === extrachill_shop_get_order_shipment( $order )['label_url'] ) {

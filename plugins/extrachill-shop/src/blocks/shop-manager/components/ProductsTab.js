@@ -66,6 +66,7 @@ const ProductsTab = ( {
 	loading,
 	error,
 	stripeStatus,
+	fees,
 	onOpenPayments,
 	onRefresh,
 } ) => {
@@ -198,7 +199,7 @@ const ProductsTab = ( {
 		const wantsPublish = draft.status === 'publish';
 		if ( wantsPublish && ! canReceivePayments ) {
 			setLocalError(
-				'Connect Stripe in the Payments tab before products can go live.'
+				'Connect payouts in the Payments tab before products can go live.'
 			);
 			return;
 		}
@@ -440,18 +441,18 @@ const ProductsTab = ( {
 		}
 
 		if ( ! stripeStatus?.connected ) {
-			return 'Connect Stripe in the Payments tab before products can go live.';
+			return 'Connect payouts in the Payments tab before products can go live.';
 		}
 
 		if ( stripeStatus?.status === 'pending' ) {
-			return 'Stripe setup has started. Finish setup in the Payments tab before publishing products.';
+			return 'Payout setup has started. Finish setup in the Payments tab before publishing products.';
 		}
 
 		if ( stripeStatus?.status === 'restricted' ) {
-			return 'Stripe needs more information. Visit the Payments tab to finish setup before publishing.';
+			return 'Your payout account needs more information. Visit the Payments tab to finish setup before publishing.';
 		}
 
-		return 'Set up Stripe in the Payments tab before products can go live.';
+		return 'Set up payouts in the Payments tab before products can go live.';
 	}, [ seller, canReceivePayments, stripeStatus ] );
 
 	return (
@@ -592,7 +593,7 @@ const ProductsTab = ( {
 											! canReceivePayments
 										) {
 											setLocalError(
-												'Connect Stripe in the Payments tab before products can go live.'
+												'Connect payouts in the Payments tab before products can go live.'
 											);
 											return;
 										}
@@ -767,7 +768,17 @@ const ProductsTab = ( {
 							</div>
 
 							<div className="ec-asm__row">
-								<FieldGroup label="Price" required>
+								<FieldGroup
+									label="Price"
+									required
+									help={
+										fees?.merch_summary ? (
+											<span className="ec-asm__muted">
+												{ fees.merch_summary }
+											</span>
+										) : undefined
+									}
+								>
 									<input
 										type="number"
 										step="0.01"

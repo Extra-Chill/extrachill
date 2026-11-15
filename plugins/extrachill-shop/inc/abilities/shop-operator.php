@@ -291,7 +291,8 @@ function extrachill_shop_ability_list_sellers( array $input = array() ): array {
 			'stripe_account'      => $record ? (string) $record['account_id'] : '',
 			'stripe_status'       => $record ? (string) $record['status'] : '',
 			'onboarding_complete' => $record ? ! empty( $record['onboarding_complete'] ) : false,
-			'ship_from'           => false !== extrachill_shop_get_seller_shipping_address( $seller ),
+			// The record can hold only a return policy; ship-from needs a street.
+			'ship_from'           => ! empty( extrachill_shop_get_seller_shipping_address( $seller )['street1'] ?? '' ),
 		);
 	}
 	usort(

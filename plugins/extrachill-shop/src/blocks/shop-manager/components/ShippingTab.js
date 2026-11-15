@@ -17,7 +17,13 @@ import { useEffect, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getShippingAddress, updateShippingAddress } from '../api';
+import {
+	getShippingAddress,
+	updateReturnPolicy,
+	updateShippingAddress,
+} from '../api';
+
+const RETURN_POLICY_MAX = 2000;
 
 const US_STATES = [
 	{ value: '', label: 'Select State' },
@@ -88,6 +94,10 @@ const ShippingTab = ( { seller } ) => {
 		zip: '',
 		country: 'US',
 	} );
+	const [ returnPolicy, setReturnPolicy ] = useState( '' );
+	const [ policySaving, setPolicySaving ] = useState( false );
+	const [ policySuccess, setPolicySuccess ] = useState( false );
+	const [ policyError, setPolicyError ] = useState( '' );
 
 	useEffect( () => {
 		if ( ! seller ) {
@@ -110,6 +120,7 @@ const ShippingTab = ( { seller } ) => {
 						country: 'US',
 					} );
 				}
+				setReturnPolicy( data?.return_policy || '' );
 			} catch {
 				setError( 'Could not load shipping address.' );
 			} finally {
@@ -154,6 +165,22 @@ const ShippingTab = ( { seller } ) => {
 			setError( err?.message || 'Failed to save address.' );
 		} finally {
 			setSaving( false );
+		}
+	};
+
+	const handleSavePolicy = async () => {
+		setPolicySaving( true );
+		setPolicyError( '' );
+		setPolicySuccess( false );
+		try {
+			const result = await updateReturnPolicy( seller, returnPolicy );
+			setReturnPolicy( result?.return_policy ?? returnPolicy );
+			setPolicySuccess( true );
+			setTimeout( () => setPolicySuccess( false ), 3000 );
+		} catch ( err ) {
+			setPolicyError( err?.message || 'Failed to save your policy.' );
+		} finally {
+			setPolicySaving( false );
 		}
 	};
 
@@ -281,6 +308,48 @@ const ShippingTab = ( { seller } ) => {
 						disabled={ saving }
 					>
 						{ saving ? 'Saving...' : 'Save Address' }
+					</button>
+				</ActionRow>
+			</div>
+
+			<div className="ec-asm__form">
+				<h4>Shipping times and returns</h4>
+				{ policyError && (
+					<InlineStatus tone="error">{ policyError }</InlineStatus>
+				) }
+				{ policySuccess && (
+					<InlineStatus tone="success">Policy saved.</InlineStatus>
+				) }
+				<FieldGroup
+					label="Your shipping and return policy"
+					help={
+						<span className="ec-asm__muted">
+							Shown on your storefront and on each of your product
+							pages. Say how soon you ship and whether you accept
+							returns or exchanges. { returnPolicy.length }/
+							{ RETURN_POLICY_MAX }
+						</span>
+					}
+				>
+					<textarea
+						rows={ 5 }
+						maxLength={ RETURN_POLICY_MAX }
+						value={ returnPolicy }
+						onChange={ ( e ) => {
+							setReturnPolicy( e.target.value );
+							setPolicyError( '' );
+						} }
+						placeholder="Orders ship within 3 business days. Returns accepted within 30 days for unworn items; buyer pays return shipping."
+					/>
+				</FieldGroup>
+				<ActionRow className="ec-asm__actions">
+					<button
+						type="button"
+						className="button-1 button-small"
+						onClick={ handleSavePolicy }
+						disabled={ policySaving }
+					>
+						{ policySaving ? 'Saving...' : 'Save Policy' }
 					</button>
 				</ActionRow>
 			</div>

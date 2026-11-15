@@ -219,8 +219,54 @@ function extrachill_shop_set_seller_shipping_address( $seller, array $address ) 
 	if ( is_wp_error( $seller ) ) {
 		return false;
 	}
-	$key = 'extrachill_shop_shipping_seller_' . $seller['type'] . ':' . $seller['id'];
+	$key      = 'extrachill_shop_shipping_seller_' . $seller['type'] . ':' . $seller['id'];
+	$existing = get_option( $key, false );
+	// The return policy shares this record; an address save keeps it.
+	if ( ! array_key_exists( 'return_policy', $address ) && is_array( $existing ) && isset( $existing['return_policy'] ) ) {
+		$address['return_policy'] = $existing['return_policy'];
+	}
 	return update_option( $key, $address, false ) || get_option( $key, false ) === $address;
+}
+
+/** Longest return policy a seller can publish, in characters. */
+const EXTRACHILL_SHOP_RETURN_POLICY_MAX = 2000;
+
+/**
+ * A seller's published shipping times and return policy ('' when unset).
+ *
+ * Stored with the seller's shipping settings (the ship-from address record).
+ *
+ * @param mixed $seller Seller reference.
+ * @return string Plain text.
+ */
+function extrachill_shop_get_seller_return_policy( $seller ): string {
+	$record = extrachill_shop_get_seller_shipping_address( $seller );
+	return is_array( $record ) && isset( $record['return_policy'] ) ? (string) $record['return_policy'] : '';
+}
+
+/**
+ * Save a seller's shipping times and return policy, keeping their address.
+ *
+ * @param mixed  $seller Seller reference.
+ * @param string $policy Plain text; '' clears it.
+ * @return bool
+ */
+function extrachill_shop_set_seller_return_policy( $seller, string $policy ): bool {
+	$record                  = extrachill_shop_get_seller_shipping_address( $seller );
+	$record                  = is_array( $record ) ? $record : array();
+	$record['return_policy'] = $policy;
+	return extrachill_shop_set_seller_shipping_address( $seller, $record );
+}
+
+/**
+ * Clean seller-entered return policy text.
+ *
+ * @param mixed $policy Raw input.
+ * @return string Plain text, line breaks kept, at most EXTRACHILL_SHOP_RETURN_POLICY_MAX characters.
+ */
+function extrachill_shop_sanitize_return_policy( $policy ): string {
+	$policy = trim( sanitize_textarea_field( (string) $policy ) );
+	return function_exists( 'mb_substr' ) ? mb_substr( $policy, 0, EXTRACHILL_SHOP_RETURN_POLICY_MAX ) : substr( $policy, 0, EXTRACHILL_SHOP_RETURN_POLICY_MAX );
 }
 
 /**

@@ -40,7 +40,7 @@ If you'd like the tracking number, ask the seller. They have it once they've shi
 
 ## Returns and Refunds
 
-Each seller sets its own return policy, usually in its product descriptions. Every seller agrees to replace or refund items that arrive damaged, defective, or very different from the listing. Contact the seller within 30 days of delivery and include photos.
+Each seller sets its own shipping times and return policy. Look for **Shipping & returns** on the seller's storefront or the **Shipping & Returns** tab on its product pages. Every seller agrees to replace or refund items that arrive damaged, defective, or very different from the listing. Contact the seller within 30 days of delivery and include photos.
 
 Refunds go back to the way you paid. Once a seller refunds your order, its status changes to **Refunded** and you get an email.
 

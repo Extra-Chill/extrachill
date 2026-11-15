@@ -78,10 +78,12 @@ export class ShopResource extends BaseResource {
     return this.put(`extrachill/v1/shop/orders/${orderId}/status`, { ...data, ...this.sellerParams(seller) });
   }
 
-  refundOrder(orderId: number, seller: ShopSellerRef, reason?: string): Promise<ShopRefundResponse> {
+  /** Refund an order; omit `amount` (dollars) to refund everything left. */
+  refundOrder(orderId: number, seller: ShopSellerRef, reason?: string, amount?: number): Promise<ShopRefundResponse> {
     return this.post(`extrachill/v1/shop/orders/${orderId}/refund`, {
       ...this.sellerParams(seller),
       ...(reason ? { reason } : {}),
+      ...(amount !== undefined ? { amount } : {}),
     });
   }
 
@@ -118,6 +120,11 @@ export class ShopResource extends BaseResource {
 
   updateShippingAddress(seller: ShopSellerRef, address: ShippingAddress): Promise<ShippingAddressUpdateResponse> {
     return this.put('extrachill/v1/shop/shipping-address', { ...address, ...this.sellerParams(seller) } as Record<string, unknown>);
+  }
+
+  /** Save the seller's shipping times and return policy, keeping their address. */
+  updateReturnPolicy(seller: ShopSellerRef, returnPolicy: string): Promise<ShippingAddressUpdateResponse> {
+    return this.put('extrachill/v1/shop/shipping-address', { return_policy: returnPolicy, ...this.sellerParams(seller) });
   }
 
   purchaseShippingLabel(

@@ -19,4 +19,14 @@ class Refund {
 			'metadata' => (object) $params['metadata'],
 		);
 	}
+
+	/** Lists `$GLOBALS['stripe_refund_list']`; calls go to `$GLOBALS['stripe_refund_list_calls']`. */
+	public static function all( $params, $options ) {
+		$GLOBALS['stripe_refund_list_calls'][] = array( $params, $options );
+		$rows                                  = $GLOBALS['stripe_refund_list'] ?? array();
+		return new class( $rows ) {
+			public function __construct( private array $rows ) {}
+			public function autoPagingIterator() { return new \ArrayIterator( $this->rows ); }
+		};
+	}
 }

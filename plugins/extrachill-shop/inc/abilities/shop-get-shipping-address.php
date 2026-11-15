@@ -35,9 +35,10 @@ function extrachill_shop_register_get_shipping_address_ability(): void {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'  => extrachill_shop_seller_input_schema(),
-					'address' => array( 'type' => 'object' ),
-					'is_set'  => array( 'type' => 'boolean' ),
+					'seller'        => extrachill_shop_seller_input_schema(),
+					'address'       => array( 'type' => 'object' ),
+					'is_set'        => array( 'type' => 'boolean' ),
+					'return_policy' => array( 'type' => 'string' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_get_shipping_address',
@@ -80,10 +81,12 @@ function extrachill_shop_ability_get_shipping_address( array $input ): array|WP_
 
 	$address = extrachill_shop_get_seller_shipping_address( $seller );
 	$address = is_array( $address ) ? array_merge( $default, $address ) : $default;
+	unset( $address['return_policy'] );
 
 	return array(
-		'seller'  => $seller,
-		'address' => $address,
-		'is_set'  => ! empty( $address['name'] ) && ! empty( $address['street1'] ),
+		'seller'        => $seller,
+		'address'       => $address,
+		'is_set'        => ! empty( $address['name'] ) && ! empty( $address['street1'] ),
+		'return_policy' => extrachill_shop_get_seller_return_policy( $seller ),
 	);
 }

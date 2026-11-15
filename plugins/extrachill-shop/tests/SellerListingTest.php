@@ -39,6 +39,9 @@ class WP_Query {
 	}
 }
 class SellerListingOrder {
+	public $refunded = 0.0;
+	public function get_total_refunded() { return $this->refunded; }
+	public function get_remaining_refund_amount() { return (float) $this->get_total() - $this->refunded; }
 	public $meta  = array();
 	public $saves = 0;
 	private $products;
@@ -198,13 +201,42 @@ final class SellerListingTest extends TestCase {
 		) );
 		$this->assertSame( 2, $result['total'] );
 		$this->assertCount( 1, $result['orders'] );
-		$args = $GLOBALS['listing_queries'][1];
-		$this->assertSame( array(
-			array(
-				'key'   => '_extrachill_seller',
-				'value' => 'venue:1226',
+		$seller_clause = array(
+			'key'   => '_extrachill_seller',
+			'value' => 'venue:1226',
+		);
+		// The page query is scoped to the seller only; All includes disputed orders.
+		$this->assertSame( array( $seller_clause ), $GLOBALS['listing_queries'][0]['meta_query'] );
+		// The Needs Fulfillment count leaves disputed orders out.
+		$this->assertSame( array( $seller_clause, extrachill_shop_not_disputed_meta_clause() ), $GLOBALS['listing_queries'][1]['meta_query'] );
+	}
+	public function test_cpt_adapter_excludes_disputed_orders_when_asked(): void {
+		$query = extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_seller' => 'venue:1226', 'extrachill_exclude_disputed' => true ) );
+		$this->assertSame( extrachill_shop_not_disputed_meta_clause(), $query['meta_query'][1] );
+		$this->assertSame( 'NOT EXISTS', $query['meta_query'][1][0]['compare'] );
+		$this->assertCount( 1, extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_seller' => 'venue:1226' ) )['meta_query'] );
+	}
+	public function test_needs_fulfillment_query_excludes_disputed_orders(): void {
+		\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
+		extrachill_shop_ability_list_orders( array(
+			'seller' => array(
+				'type' => 'venue',
+				'id'   => 1226,
 			),
-		), $args['meta_query'] );
+			'status' => 'needs_fulfillment',
+		) );
+		$this->assertTrue( $GLOBALS['listing_queries'][0]['extrachill_exclude_disputed'] );
+		$this->assertSame( array( 'wc-processing', 'wc-on-hold' ), $GLOBALS['listing_queries'][0]['status'] );
+		$this->assertTrue( $GLOBALS['listing_queries'][1]['extrachill_exclude_disputed'] );
+
+		$GLOBALS['listing_queries'] = array();
+		extrachill_shop_ability_list_orders( array(
+			'seller' => array(
+				'type' => 'venue',
+				'id'   => 1226,
+			),
+		) );
+		$this->assertArrayNotHasKey( 'extrachill_exclude_disputed', $GLOBALS['listing_queries'][0] );
 	}
 	public function test_cpt_adapter_adds_exact_seller_constraint(): void {
 		$query = extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_seller' => 'venue:1226' ) );

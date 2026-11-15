@@ -13,7 +13,7 @@ Checkout takes a couple of minutes. You enter where your order should go, agree 
 1. Open your cart and select **Proceed to checkout**.
 2. Enter your email address and your billing and shipping details. Double-check the address, because the seller ships to exactly what you type.
 3. Check your total. Shipping is a flat $5 per order, or free when every item ships free.
-4. Choose the secure payment option.
+4. Choose **Pay securely**.
 5. Check the box to agree to the [Terms of Service](https://extrachill.com/terms-of-service/) and [Privacy Policy](https://extrachill.com/privacy-policy/). You can't place the order without it.
 6. Place your order.
 

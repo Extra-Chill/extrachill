@@ -131,7 +131,9 @@ const App = ( { config } ) => {
 			const data = await getStripeConnectStatus( seller );
 			setStripeStatus( data || null );
 		} catch ( err ) {
-			setStripeError( err?.message || 'Could not load Stripe status.' );
+			setStripeError(
+				err?.message || 'Could not load your payout status.'
+			);
 		} finally {
 			stripeRequestInFlight.current = false;
 			setStripeLoading( false );
@@ -192,8 +194,8 @@ const App = ( { config } ) => {
 	);
 
 	const handleRefundOrder = useCallback(
-		async ( orderId ) => {
-			await refundShopOrder( orderId, seller );
+		async ( orderId, amount ) => {
+			await refundShopOrder( orderId, seller, amount );
 			await loadOrders();
 		},
 		[ seller, loadOrders ]
@@ -206,7 +208,7 @@ const App = ( { config } ) => {
 		}
 		if ( ! sellerAgreementAccepted ) {
 			setStripeError(
-				'Please agree to the Seller Agreement before connecting Stripe.'
+				'Please agree to the Seller Agreement before connecting payouts.'
 			);
 			return;
 		}
@@ -223,9 +225,7 @@ const App = ( { config } ) => {
 			}
 			window.location.assign( url );
 		} catch ( err ) {
-			setStripeError(
-				err?.message || 'Could not start Stripe onboarding.'
-			);
+			setStripeError( err?.message || 'Could not start payout setup.' );
 			setStripeLoading( false );
 		}
 	}, [ seller, sellerAgreementAccepted ] );
@@ -246,12 +246,16 @@ const App = ( { config } ) => {
 			window.open( url, '_blank', 'noopener,noreferrer' );
 		} catch ( err ) {
 			setStripeError(
-				err?.message || 'Could not open Stripe dashboard.'
+				err?.message || 'Could not open your payout dashboard.'
 			);
 		} finally {
 			setStripeLoading( false );
 		}
 	}, [ seller ] );
+
+	// Current fee rates: the live payout status carries them, the page config
+	// has them before it loads.
+	const fees = stripeStatus?.fees || config.fees || null;
 
 	const currentSeller = sellers.find(
 		( s ) => sellerKey( s ) === sellerKey( seller )
@@ -268,6 +272,7 @@ const App = ( { config } ) => {
 						loading={ loading }
 						error={ error }
 						stripeStatus={ stripeStatus }
+						fees={ fees }
 						onOpenPayments={ openPaymentsTab }
 						onRefresh={ load }
 					/>
@@ -295,6 +300,7 @@ const App = ( { config } ) => {
 					<PaymentsTab
 						seller={ seller }
 						status={ stripeStatus }
+						fees={ fees }
 						loading={ stripeLoading }
 						error={ stripeError }
 						sellerAgreementUrl={ config.sellerAgreementUrl || '' }

@@ -26,13 +26,19 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_shipping_
 function extrachill_api_register_shipping_address_routes() {
 	$fields = array( 'name', 'street1', 'street2', 'city', 'state', 'zip' );
 	$args   = extrachill_api_shop_seller_args();
+	// Address fields are validated by the ability: send all of them to save the
+	// ship-from address, or only return_policy to update the policy.
 	foreach ( $fields as $field ) {
 		$args[ $field ] = array(
-			'required'          => 'street2' !== $field,
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_text_field',
 		);
 	}
+	$args['return_policy'] = array(
+		'type'              => 'string',
+		'sanitize_callback' => 'sanitize_textarea_field',
+	);
+	$update_params         = array_merge( $fields, array( 'return_policy' ) );
 
 	extrachill_api_shop_register_ability_route(
 		'/shop/shipping-address',
@@ -45,7 +51,7 @@ function extrachill_api_register_shipping_address_routes() {
 			array(
 				'methods' => WP_REST_Server::EDITABLE,
 				'ability' => 'extrachill/shop-update-shipping-address',
-				'params'  => $fields,
+				'params'  => $update_params,
 				'args'    => $args,
 			),
 		)

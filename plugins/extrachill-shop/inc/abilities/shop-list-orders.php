@@ -107,12 +107,14 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 	);
 	$args = extrachill_shop_scope_order_query_to_seller( $args, $seller );
 	if ( 'needs_fulfillment' === $status ) {
+		// Disputed orders are on hold but must not be shipped; they stay under All.
+		$args           = extrachill_shop_exclude_disputed_orders( $args );
 		$args['status'] = array( 'wc-processing', 'wc-on-hold' );
 	} elseif ( 'completed' === $status ) {
 		$args['status'] = array( 'wc-completed', 'wc-refunded' );
 	}
 	$result                  = wc_get_orders( $args );
-	$count_args              = array_merge( $args, array(
+	$count_args              = array_merge( extrachill_shop_exclude_disputed_orders( $args ), array(
 		'limit'  => 1,
 		'paged'  => 1,
 		'return' => 'ids',
@@ -204,6 +206,11 @@ function extrachill_shop_ability_build_order_response( $order ): array {
 		'items'           => $items,
 		'seller_payout'   => (float) ( $record['seller_payout'] ?? 0 ),
 		'order_total'     => (float) ( $record['total'] ?? 0 ),
+		// On hold for a bank dispute: the seller must not ship, label or refund it.
+		'disputed'        => extrachill_shop_order_is_disputed( $order ),
+		'refunded_total'  => round( (float) $order->get_total_refunded(), 2 ),
+		// The most a seller can still refund (the refund form's default and maximum).
+		'refundable'      => max( 0.0, round( (float) $order->get_remaining_refund_amount(), 2 ) ),
 		'tracking_number' => $shipment['tracking_number'],
 		'label_url'       => $shipment['label_url'],
 		'label_cost'      => $shipment['cost'],

@@ -102,7 +102,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 	if ( empty( $from_address['name'] ) || empty( $from_address['street1'] ) ) {
 		return new WP_Error(
 			'no_shipping_address',
-			'Please set up your shipping address in the Settings tab before printing labels.',
+			'Please set up your shipping address in the Shipping tab before printing labels.',
 			array( 'status' => 400 )
 		);
 	}
@@ -123,6 +123,11 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 
 	if ( ! extrachill_shop_order_has_seller( $order, $seller ) ) {
 		return new WP_Error( 'invalid_seller', 'This order does not contain products from your seller.', array( 'status' => 400 ) );
+	}
+
+	// No label (new or reprint) while a bank dispute holds the order.
+	if ( extrachill_shop_order_is_disputed( $order ) ) {
+		return extrachill_shop_order_disputed_error();
 	}
 	$record = extrachill_shop_get_order_seller_record( $order );
 

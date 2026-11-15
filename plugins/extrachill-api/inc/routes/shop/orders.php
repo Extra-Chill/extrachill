@@ -96,7 +96,7 @@ function extrachill_api_register_shop_orders_routes() {
 			array(
 				'methods' => WP_REST_Server::CREATABLE,
 				'ability' => 'extrachill/shop-refund-order',
-				'params'  => array( 'id', 'reason' ),
+				'params'  => array( 'id', 'reason', 'amount' ),
 				'args'    => array_merge(
 					$order_id,
 					extrachill_api_shop_seller_args(),
@@ -104,6 +104,10 @@ function extrachill_api_register_shop_orders_routes() {
 						'reason' => array(
 							'type'              => 'string',
 							'sanitize_callback' => 'sanitize_text_field',
+						),
+						// Optional partial refund in dollars; the ability validates it.
+						'amount' => array(
+							'type' => 'number',
 						),
 					)
 				),
