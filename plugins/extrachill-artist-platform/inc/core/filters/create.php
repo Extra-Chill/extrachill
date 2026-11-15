@@ -96,7 +96,7 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	// Seed the artist name and profile photo now that provisioning released
 	// the page lock. The page already exists, so a failed push is logged
 	// rather than undoing the creation; the next artist save retries it.
-	$identity = ec_artist_push_link_page_identity( $artist_id );
+	$identity = function_exists( 'ec_artist_push_link_page_identity' ) ? ec_artist_push_link_page_identity( $artist_id ) : true;
 	if ( is_wp_error( $identity ) ) {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- operator signal for a non-fatal post-create step.
 		error_log( sprintf( 'Link Page %d identity push failed: %s', $new_link_page_id, $identity->get_error_code() ) );

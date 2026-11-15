@@ -18,30 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/profile-image.php';
-
-/**
- * Re-entrancy guard for identity pushes.
- */
-class ArtistDataSyncManager {
-	/**
-	 * Whether a push is in progress.
-	 *
-	 * @var bool
-	 */
-	private static $is_syncing = false;
-
-	public static function is_syncing() {
-		return self::$is_syncing;
-	}
-
-	public static function start_sync() {
-		self::$is_syncing = true;
-	}
-
-	public static function stop_sync() {
-		self::$is_syncing = false;
-	}
-}
+require_once __DIR__ . '/class-artist-data-sync-manager.php';
 
 /**
  * Write owned fields to an artist's Link Page from any artist context.
@@ -119,7 +96,7 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 
 /** Materialize and persist identity while holding the page lock, on the artist blog. */
 function ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id ) {
-	$artist   = get_post( $artist_id );
+	$artist    = get_post( $artist_id );
 	$permalink = get_permalink( $artist_id );
 	$identity  = array(
 		'display_title'      => $artist ? $artist->post_title : '',
@@ -143,7 +120,7 @@ function ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id ) {
 		return $local_image;
 	}
 	$identity['profile_image_id'] = $local_image;
-	$changes = array();
+	$changes                      = array();
 	if ( ! $current['display_title_is_owned'] || $current['display_title'] !== $identity['display_title'] ) {
 		$changes['display_title'] = $identity['display_title'];
 	}
