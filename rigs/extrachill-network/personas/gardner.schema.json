@@ -70,7 +70,7 @@
 				},
 				"baseline_capabilities": {
 					"type": "array",
-					"minItems": 11,
+					"minItems": 10,
 					"uniqueItems": true,
 					"items": { "type": "string", "minLength": 1 }
 				},

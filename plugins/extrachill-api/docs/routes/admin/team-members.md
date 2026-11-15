@@ -118,7 +118,7 @@ Manage team membership across the multisite network. Team membership is stored a
 
 **Capabilities granted by the role**:
 - Standard WP: `read`, `upload_files`, `edit_posts`, `edit_published_posts`, `edit_others_posts`, `delete_posts`
-- Custom EC: `access_studio`, `access_roadie`, `access_transcribe`, `access_events_admin`, `access_admin_bar`, `submit_for_review`
+- Custom EC: `access_studio`, `access_roadie`, `access_transcribe`, `access_events_admin`, `submit_for_review`
 
 **Integration pattern**:
 ```php

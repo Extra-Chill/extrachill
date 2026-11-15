@@ -216,7 +216,7 @@ if ( get_role( 'extra_chill_team' ) ) {
 	$gardner->set_role( 'administrator' );
 	$evidence['steps']['team_role_fallback'] = true;
 }
-foreach ( array( 'access_events_admin', 'access_admin_bar', 'submit_for_review' ) as $capability ) {
+foreach ( array( 'access_events_admin', 'submit_for_review' ) as $capability ) {
 	$gardner->add_cap( $capability );
 }
 // Explicit per-user grant from the canonical contract's explicit_user_grants.

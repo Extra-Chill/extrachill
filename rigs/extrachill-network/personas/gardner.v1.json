@@ -27,7 +27,6 @@
 			"access_roadie",
 			"access_transcribe",
 			"access_events_admin",
-			"access_admin_bar",
 			"submit_for_review"
 		],
 		"explicit_user_grants": [
