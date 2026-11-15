@@ -80,8 +80,6 @@ final class LifecycleProvider {
 	 * request retries if the winner did not finish.
 	 */
 	public static function maybe_install_schema(): void {
-		delete_option( 'extrachill_events_promoter_authority_schema_version' );
-		delete_option( 'extrachill_events_promoter_authority_schema_error' );
 		if ( self::schemas_current() ) {
 			return;
 		}
