@@ -9,10 +9,12 @@ on:
         required: true
         options:
           - extrachill-artist-platform
+          - extrachill-blog
           - extrachill-community
           - extrachill-events
           - extrachill-newsletter
           - extrachill-shop
+          - extrachill-users
       dry_run:
         description: Validate the run without starting a live agent run
         type: boolean

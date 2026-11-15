@@ -111,12 +111,36 @@ plugins:
     parent_slug: "blog"
     audience: "readers of the Extra Chill blog and contributors pitching stories or commenting on articles"
     docs_subpath: "docs/user"
+    runner:
+      audience: "user"
+      run_kind: "bootstrap"
+      base_ref: "main"
+      docs_branch: "docs-agent/extrachill-blog-user-docs"
+      max_turns: 80
+      writable_paths: "plugins/extrachill-blog/docs/user/**"
+      context_repositories: []
+      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-blog/docs/user/*.md", "min": 2}], "forbidden_phrases": ["following users"]}
+      drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-blog/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-blog/ and write only under plugins/extrachill-blog/docs/user/. Read source only under plugins/extrachill-blog/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for readers of the Extra Chill blog and contributors pitching stories or commenting on articles. Cover: finding and reading articles, commenting, and how musicians and contributors can pitch or submit stories, including Artist Dispatch if it is available to them. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
+      model: "gpt-6-luna"
 
-  plugins/extrachill-roadie:
-    platform_name: "Roadie"
-    parent_slug: "chat"
-    audience: "anyone chatting with the Extra Chill AI assistant, on the website or bridged through their personal messaging app"
+  plugins/extrachill-users:
+    platform_name: "Accounts"
+    parent_slug: "accounts"
+    audience: "anyone with an Extra Chill account: signing up, signing in, setting up a profile and avatar, managing notifications and email digests, badges and ranks, and lifetime membership"
     docs_subpath: "docs/user"
+    runner:
+      audience: "user"
+      run_kind: "bootstrap"
+      base_ref: "main"
+      docs_branch: "docs-agent/extrachill-users-user-docs"
+      max_turns: 80
+      writable_paths: "plugins/extrachill-users/docs/user/**"
+      context_repositories: []
+      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-users/docs/user/*.md", "min": 5}], "forbidden_phrases": ["following users"]}
+      drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-users/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-users/ and write only under plugins/extrachill-users/docs/user/. Read source only under plugins/extrachill-users/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for anyone with an Extra Chill account: signing up, signing in, setting up a profile and avatar, managing notifications and email digests, badges and ranks, and lifetime membership. Cover: creating an account and signing in (including signing in with Google and what to do when sign-in is blocked or a password is forgotten), the first-time setup steps, your profile and avatar, badges and ranks, notification and digest settings, and what lifetime membership includes. One account works across every Extra Chill site; explain that plainly. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
+      model: "gpt-6-luna"
 
   plugins/extrachill-studio:
     platform_name: "Studio"
