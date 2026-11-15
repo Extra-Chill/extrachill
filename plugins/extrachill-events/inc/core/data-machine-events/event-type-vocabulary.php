@@ -58,9 +58,7 @@ function extrachill_events_init_event_type_vocabulary() {
  *   the declaration to `Other` retargets that coercion automatically.
  * - The default IS stamped by code on the direct-update path
  *   (data-machine-events EventUpdateAbilities resolves any declared-but-
- *   unresolvable value to the default term) and by this plugin's
- *   backfill-event-type CLI, which resolves its final fallback from the
- *   declared default rather than a hardcoded name.
+ *   unresolvable value to the default term).
  * - Matching is case-insensitive against term name, slug, AND schema_type,
  *   in declaration order. Because of the schema_type arm, a bare "Event"
  *   value resolves to the FIRST `Event`-mapped entry (Karaoke) — declaration
