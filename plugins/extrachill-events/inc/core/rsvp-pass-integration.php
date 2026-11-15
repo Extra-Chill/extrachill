@@ -188,15 +188,12 @@ function extrachill_events_get_door_list_rows( int $event_id ): array {
 		? extrachill_events_guest_list_url( $event_id )
 		: '';
 	// Each row carries its source: the invited band or management that
-	// added it (extrachill#1128), or the host who comped it (#1119).
-	$guest_rows = ( '' !== $guest_list_url && function_exists( 'extrachill_events_door_list_guest_rows' ) )
-		? extrachill_events_door_list_guest_rows( $event_id )
+	// added it (extrachill#1128), the host who comped it (#1119), or the
+	// venue's or promoter's standing list (#1130), which works at every
+	// show its owner is tagged on, guest list perk or not.
+	$guest_rows = function_exists( 'extrachill_events_door_list_guest_rows' )
+		? extrachill_events_door_list_guest_rows( $event_id, '' !== $guest_list_url )
 		: array();
-	// The venue's and promoter's standing lists (extrachill#1130) work at
-	// every show they're tagged on, guest list perk or not.
-	if ( function_exists( 'extrachill_events_owner_list_door_rows' ) && class_exists( '\\ExtraChillEvents\\Core\\OwnerGuestListTable' ) ) {
-		$guest_rows = array_merge( $guest_rows, extrachill_events_owner_list_door_rows( $event_id ) );
-	}
 
 	// One A to Z list for the door: accounts, guests, and owner's lists
 	// interleaved by name, each "+N" right after its primary (extrachill#1142).

@@ -149,13 +149,10 @@ function extrachill_events_serve_rsvp_pass_qr(): void {
 	}
 
 	$pass = \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( $code );
-	// Only passes that work at the door get a QR: not revoked, pending, or denied (extrachill#1129).
+	// Only passes that work at the door get a QR: not revoked, pending, or
+	// denied (extrachill#1129). Owner passes (extrachill#1130) are active
+	// while the person is on the list.
 	$works = $pass && in_array( $pass['status'], array( \ExtraChillEvents\Core\RsvpPassesTable::STATUS_ACTIVE, \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REDEEMED ), true );
-	// A venue's or promoter's standing list pass (extrachill#1130), while the person is still on the list.
-	if ( ! $pass && class_exists( '\\ExtraChillEvents\\Core\\OwnerGuestListTable' ) ) {
-		$member = \ExtraChillEvents\Core\OwnerGuestListTable::find_by_code( $code );
-		$works  = $member && \ExtraChillEvents\Core\OwnerGuestListTable::STATUS_ACTIVE === $member['status'];
-	}
 	if ( ! $works ) {
 		status_header( 404 );
 		exit;

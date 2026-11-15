@@ -16,19 +16,22 @@
  *    promoter term. It does not need the event's own guest list (the RSVP
  *    perk) turned on: the owner's list is the owner's standing door policy,
  *    not a per-show perk. It never uses one of the event's guest list spots.
- *  - Check-in: once per person per event, recorded in its own table, so the
- *    same pass checks in tonight and again next week.
- *  - Removal: immediate. The code is dead at the next scan.
+ *  - Check-in: once per person per event, recorded in the pass check-ins
+ *    table, so the same pass checks in tonight and again next week.
+ *  - Removal: immediate. The pass is revoked; the code is dead at the next
+ *    scan.
  *
- * Storage: ExtraChillEvents\Core\OwnerGuestListTable. Abilities:
- * ExtraChillEvents\Abilities\OwnerGuestListAbilities. Door check-in rides
- * the existing extrachill/redeem-event-pass ability (a code that is not a
- * per-event pass falls through to this list).
+ * Storage (extrachill#1521): each person is an owner pass in the shared
+ * passes table (ExtraChillEvents\Core\RsvpPassesTable: event_id 0 plus
+ * owner_type/owner_term_id), in the same code namespace as per-event
+ * passes. Abilities: ExtraChillEvents\Abilities\OwnerGuestListAbilities.
+ * Door check-in rides extrachill/redeem-event-pass, which looks the code up
+ * once and sends owner passes here.
  *
  * @package ExtraChillEvents
  */
 
-use ExtraChillEvents\Core\OwnerGuestListTable;
+use ExtraChillEvents\Core\RsvpPassesTable;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -41,7 +44,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string
  */
 function extrachill_events_owner_list_label( string $owner_type ): string {
-	return OwnerGuestListTable::OWNER_PROMOTER === $owner_type
+	return RsvpPassesTable::OWNER_PROMOTER === $owner_type
 		? __( 'Promoter list', 'extrachill-events' )
 		: __( 'Venue list', 'extrachill-events' );
 }
@@ -54,7 +57,7 @@ function extrachill_events_owner_list_label( string $owner_type ): string {
  * @return array{owner_type: string, owner_id: int, owner_name: string, label: string}|WP_Error
  */
 function extrachill_events_owner_list_owner( string $owner_type, int $term_id ) {
-	if ( ! in_array( $owner_type, OwnerGuestListTable::owner_types(), true ) ) {
+	if ( ! in_array( $owner_type, RsvpPassesTable::owner_types(), true ) ) {
 		return new WP_Error( 'owner_list_invalid_owner', __( 'An owner\'s list belongs to a venue or a promoter.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
@@ -89,7 +92,7 @@ function extrachill_events_user_can_manage_owner_list( int $user_id, string $own
 		return true;
 	}
 
-	if ( OwnerGuestListTable::OWNER_VENUE === $owner_type ) {
+	if ( RsvpPassesTable::OWNER_VENUE === $owner_type ) {
 		if ( ! class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 			return false;
 		}
@@ -97,7 +100,7 @@ function extrachill_events_user_can_manage_owner_list( int $user_id, string $own
 		return is_array( $membership );
 	}
 
-	if ( OwnerGuestListTable::OWNER_PROMOTER === $owner_type ) {
+	if ( RsvpPassesTable::OWNER_PROMOTER === $owner_type ) {
 		return user_can( $user_id, 'ec_access_promoter', $term_id ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
 	}
 
@@ -113,7 +116,7 @@ function extrachill_events_user_can_manage_owner_list( int $user_id, string $own
  */
 function extrachill_events_owner_list_owners_for_event( int $event_id ): array {
 	$owners = array();
-	foreach ( OwnerGuestListTable::owner_types() as $owner_type ) {
+	foreach ( RsvpPassesTable::owner_types() as $owner_type ) {
 		$terms = wp_get_post_terms( $event_id, $owner_type );
 		if ( is_wp_error( $terms ) ) {
 			continue;
@@ -129,16 +132,16 @@ function extrachill_events_owner_list_owners_for_event( int $event_id ): array {
 }
 
 /**
- * Whether an owner's-list member may check in at an event: the person is
- * still on the list, and the event is a published show tagged with their
- * list's venue or promoter.
+ * Whether an owner pass may check in at an event: the person is still on
+ * the list, and the event is a published show tagged with their list's
+ * venue or promoter.
  *
- * @param array $member   Member row.
+ * @param array $pass     Owner pass row.
  * @param int   $event_id Event post ID.
  * @return bool
  */
-function extrachill_events_owner_list_event_is_eligible( array $member, int $event_id ): bool {
-	if ( OwnerGuestListTable::STATUS_ACTIVE !== (string) $member['status'] ) {
+function extrachill_events_owner_list_event_is_eligible( array $pass, int $event_id ): bool {
+	if ( ! RsvpPassesTable::is_owner_pass( $pass ) || RsvpPassesTable::STATUS_ACTIVE !== (string) $pass['status'] ) {
 		return false;
 	}
 
@@ -147,12 +150,12 @@ function extrachill_events_owner_list_event_is_eligible( array $member, int $eve
 		return false;
 	}
 
-	$terms = wp_get_post_terms( $event_id, (string) $member['owner_type'] );
+	$terms = wp_get_post_terms( $event_id, (string) $pass['owner_type'] );
 	if ( is_wp_error( $terms ) ) {
 		return false;
 	}
 	foreach ( (array) $terms as $term ) {
-		if ( (int) $term->term_id === (int) $member['owner_term_id'] ) {
+		if ( (int) $term->term_id === (int) $pass['owner_term_id'] ) {
 			return true;
 		}
 	}
@@ -160,7 +163,8 @@ function extrachill_events_owner_list_event_is_eligible( array $member, int $eve
 }
 
 /**
- * Pass page link for an owner's-list pass: the holder's QR and code.
+ * Pass page link for an owner pass: the holder's QR and code. /owner-pass/
+ * is served by the shared pass page (inc/core/rsvp-verify-page.php).
  *
  * @param string $code Pass code.
  * @return string
@@ -170,26 +174,28 @@ function extrachill_events_owner_list_pass_url( string $code ): string {
 }
 
 /**
- * Shape a member row for ability output.
+ * Shape an owner pass for ability output. The contract predates the move
+ * into the passes table: member_id is the pass ID, and a revoked pass
+ * reads `removed`.
  *
- * @param array $member Member row.
+ * @param array $pass Owner pass row.
  * @return array
  */
-function extrachill_events_owner_list_member_summary( array $member ): array {
-	$added_by_id = (int) ( $member['added_by_user_id'] ?? 0 );
+function extrachill_events_owner_list_member_summary( array $pass ): array {
+	$added_by_id = (int) ( $pass['issued_by_user_id'] ?? 0 );
 	$added_by    = $added_by_id ? get_userdata( $added_by_id ) : false;
-	$code        = (string) $member['code'];
+	$code        = (string) $pass['code'];
 
 	return array(
-		'member_id'  => (int) $member['id'],
-		'name'       => (string) $member['name'],
-		'email'      => (string) $member['email'],
+		'member_id'  => (int) $pass['id'],
+		'name'       => (string) $pass['guest_name'],
+		'email'      => (string) ( $pass['email'] ?? '' ),
 		'code'       => $code,
-		'status'     => (string) $member['status'],
+		'status'     => RsvpPassesTable::STATUS_REVOKED === (string) $pass['status'] ? 'removed' : (string) $pass['status'],
 		'pass_url'   => extrachill_events_owner_list_pass_url( $code ),
 		'qr_url'     => function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ? extrachill_events_rsvp_pass_qr_url( $code ) : '',
 		'added_by'   => $added_by ? (string) $added_by->display_name : '',
-		'created_at' => (string) $member['created_at'],
+		'created_at' => (string) $pass['issued_at'],
 	);
 }
 
@@ -206,7 +212,7 @@ function extrachill_events_list_owner_list( string $owner_type, int $term_id ) {
 		return $owner;
 	}
 
-	$owner['members'] = array_map( 'extrachill_events_owner_list_member_summary', OwnerGuestListTable::list_for_owner( $owner_type, $term_id ) );
+	$owner['members'] = array_map( 'extrachill_events_owner_list_member_summary', RsvpPassesTable::list_owner_passes( $owner_type, $term_id ) );
 	return $owner;
 }
 
@@ -238,7 +244,7 @@ function extrachill_events_add_owner_list_name( string $owner_type, int $term_id
 		return new WP_Error( 'invalid_email', __( 'Enter a valid email address, or leave it blank.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
-	$member = OwnerGuestListTable::create( $owner_type, $term_id, $name, $email, $actor_id );
+	$member = RsvpPassesTable::issue_owner_pass( $owner_type, $term_id, $name, $email, $actor_id );
 	if ( ! $member ) {
 		return new WP_Error( 'owner_list_write_failed', __( 'The guest could not be added. Try again.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
@@ -259,7 +265,8 @@ function extrachill_events_add_owner_list_name( string $owner_type, int $term_id
  * @return array|WP_Error `{ removed: true, member_id }` or an error.
  */
 function extrachill_events_remove_owner_list_name( string $owner_type, int $term_id, int $member_id, int $actor_id = 0 ) {
-	if ( ! OwnerGuestListTable::remove( $owner_type, $term_id, $member_id, $actor_id ) ) {
+	unset( $actor_id );
+	if ( ! RsvpPassesTable::revoke_owner_pass( $owner_type, $term_id, $member_id ) ) {
 		return new WP_Error( 'owner_list_member_not_found', __( 'That person is not on this list.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
@@ -270,95 +277,68 @@ function extrachill_events_remove_owner_list_name( string $owner_type, int $term
 }
 
 /**
- * Check an owner's-list pass in at one event. Authorization (the caller
- * can run this event's door) is the caller's job: the redeem-event-pass
- * ability checks it.
+ * Check an owner pass in at one event. Authorization (the caller can run
+ * this event's door) is the caller's job: the redeem-event-pass ability
+ * checks it, after looking the code up once.
  *
- * Errors read "Not on the list" so the door gets one plain answer for an
- * unknown code, a removed person, or a show that isn't theirs.
+ * Errors read "Not on the list" so the door gets one plain answer for a
+ * removed person or a show that isn't theirs.
  *
- * @param int    $event_id Event post ID.
- * @param string $code     Pass code.
- * @param int    $actor_id Door staff checking them in.
+ * @param int   $event_id Event post ID.
+ * @param array $pass     Owner pass row.
+ * @param int   $actor_id Door staff checking them in.
  * @return array|WP_Error `{ already_redeemed, redeemed_at, redeemed_by_user_id, name, label }`.
  */
-function extrachill_events_owner_list_check_in( int $event_id, string $code, int $actor_id ) {
-	$code   = strtoupper( trim( $code ) );
-	$member = '' === $code ? null : OwnerGuestListTable::find_by_code( $code );
-	if ( ! $member ) {
-		return new WP_Error( 'rsvp_pass_not_found', __( 'No pass found for this code.', 'extrachill-events' ), array( 'status' => 404 ) );
-	}
-
-	if ( OwnerGuestListTable::STATUS_ACTIVE !== (string) $member['status'] ) {
+function extrachill_events_owner_list_check_in( int $event_id, array $pass, int $actor_id ) {
+	if ( RsvpPassesTable::STATUS_ACTIVE !== (string) $pass['status'] ) {
 		return new WP_Error( 'owner_list_removed', __( 'Not on the list. This person was taken off the list.', 'extrachill-events' ), array( 'status' => 410 ) );
 	}
 
-	if ( ! extrachill_events_owner_list_event_is_eligible( $member, $event_id ) ) {
+	if ( ! extrachill_events_owner_list_event_is_eligible( $pass, $event_id ) ) {
 		return new WP_Error( 'owner_list_not_eligible', __( 'Not on the list. This pass is not for this show.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
-	$result = OwnerGuestListTable::check_in( (int) $member['id'], $event_id, $actor_id );
+	$result = RsvpPassesTable::check_in( (int) $pass['id'], $event_id, $actor_id );
 	if ( function_exists( 'extrachill_cache_purge_post' ) ) {
 		extrachill_cache_purge_post( $event_id );
 	}
 
 	return $result + array(
-		'name'  => (string) $member['name'],
-		'label' => extrachill_events_owner_list_label( (string) $member['owner_type'] ),
+		'name'  => (string) $pass['guest_name'],
+		'label' => extrachill_events_owner_list_label( (string) $pass['owner_type'] ),
 	);
 }
 
 /**
- * Door list rows for an event's owner's lists: everyone on the list of any
- * venue or promoter the event is tagged with, labelled, with tonight's
- * check-in state. Same row shape as extrachill_events_door_list_guest_rows()
- * plus `owner_list: true`, so the door list renders them alongside the
- * per-event guests (and never offers to remove them from the standing list).
+ * Door list row for an owner pass, in the shape of
+ * extrachill_events_door_list_guest_rows() plus `owner_list: true`, so the
+ * door list never offers to remove it from the standing list.
  *
- * @param int $event_id Event post ID.
- * @return array[]
+ * @param array      $pass    Owner pass row.
+ * @param array      $owner   Owner summary from extrachill_events_owner_list_owner().
+ * @param array|null $checkin Tonight's check-in, if any.
+ * @return array
  */
-function extrachill_events_owner_list_door_rows( int $event_id ): array {
-	$post = get_post( $event_id );
-	if ( ! $post || 'publish' !== ( $post->post_status ?? '' ) ) {
-		return array();
-	}
-
-	$checkins = null;
-	$rows     = array();
-	foreach ( extrachill_events_owner_list_owners_for_event( $event_id ) as $owner ) {
-		$members = OwnerGuestListTable::list_for_owner( $owner['owner_type'], $owner['owner_id'] );
-		if ( ! $members ) {
-			continue;
-		}
-		if ( null === $checkins ) {
-			$checkins = OwnerGuestListTable::list_checkins_for_event( $event_id );
-		}
-		foreach ( $members as $member ) {
-			$checkin = $checkins[ (int) $member['id'] ] ?? null;
-			$rows[]  = array(
-				'pass_id'     => (int) ( $member['id'] ?? 0 ),
-				'label'       => sprintf(
-					/* translators: 1: guest name, 2: "Venue list" or "Promoter list". */
-					__( '%1$s (%2$s)', 'extrachill-events' ),
-					(string) $member['name'],
-					$owner['label']
-				),
-				'guest_name'  => (string) $member['name'],
-				'source'      => $owner['label'],
-				'owner_name'  => $owner['owner_name'],
-				'added_by'    => '',
-				'code'        => (string) $member['code'],
-				'status'      => $checkin ? 'redeemed' : 'active',
-				'redeemed_at' => $checkin
-					? mysql2date( (string) get_option( 'time_format' ), get_date_from_gmt( (string) $checkin['checked_in_at'] ) )
-					: '',
-				'owner_list'  => true,
-			);
-		}
-	}
-
-	return $rows;
+function extrachill_events_owner_list_door_row( array $pass, array $owner, ?array $checkin ): array {
+	return array(
+		'pass_id'     => (int) ( $pass['id'] ?? 0 ),
+		'label'       => sprintf(
+			/* translators: 1: guest name, 2: "Venue list" or "Promoter list". */
+			__( '%1$s (%2$s)', 'extrachill-events' ),
+			(string) $pass['guest_name'],
+			$owner['label']
+		),
+		'guest_name'  => (string) $pass['guest_name'],
+		'source'      => $owner['label'],
+		'owner_name'  => $owner['owner_name'],
+		'added_by'    => '',
+		'code'        => (string) $pass['code'],
+		'status'      => $checkin ? RsvpPassesTable::STATUS_REDEEMED : RsvpPassesTable::STATUS_ACTIVE,
+		'redeemed_at' => $checkin
+			? mysql2date( (string) get_option( 'time_format' ), get_date_from_gmt( (string) $checkin['checked_in_at'] ) )
+			: '',
+		'owner_list'  => true,
+	);
 }
 
 /**
@@ -421,13 +401,13 @@ function extrachill_events_owner_list_staff_door_event_ids( int $user_id ): arra
 	if ( class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 		$venue_ids = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->list_active_venue_ids_for_user( $user_id );
 		foreach ( is_wp_error( $venue_ids ) ? array() : (array) $venue_ids as $venue_id ) {
-			$owners[] = array( OwnerGuestListTable::OWNER_VENUE, (int) $venue_id );
+			$owners[] = array( RsvpPassesTable::OWNER_VENUE, (int) $venue_id );
 		}
 	}
 	if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
 		$memberships = ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->list_active_memberships_for_user( $user_id );
 		foreach ( is_wp_error( $memberships ) ? array() : (array) $memberships as $membership ) {
-			$owners[] = array( OwnerGuestListTable::OWNER_PROMOTER, (int) $membership['promoter_term_id'] );
+			$owners[] = array( RsvpPassesTable::OWNER_PROMOTER, (int) $membership['promoter_term_id'] );
 		}
 	}
 
@@ -439,21 +419,19 @@ function extrachill_events_owner_list_staff_door_event_ids( int $user_id ): arra
 }
 
 /**
- * What the /rsvp-verify/ scan page shows for an owner's-list code.
+ * What the /rsvp-verify/ scan page shows for an owner pass.
  *
  * Non-enumerating like the per-event verify page: null (the generic "could
  * not be verified") unless the viewer runs the door for a show this pass
  * could be scanned at. A removed or ineligible pass reveals no name.
  *
- * @param string $code     Scanned code.
- * @param int    $user_id  Viewer.
- * @param int    $event_id Show the viewer is scanning for, when known (0 = work it out from tonight's shows).
+ * @param array|null $member   Pass row the scanned code resolved to (null when none).
+ * @param int        $user_id  Viewer.
+ * @param int        $event_id Show the viewer is scanning for, when known (0 = work it out from tonight's shows).
  * @return array|null `{ state: eligible|not_eligible|removed, owner, name?, events?[] }`, or null.
  */
-function extrachill_events_owner_list_verify_view( string $code, int $user_id, int $event_id = 0 ): ?array {
-	$code   = strtoupper( trim( $code ) );
-	$member = ( $user_id > 0 && '' !== $code ) ? OwnerGuestListTable::find_by_code( $code ) : null;
-	if ( ! $member ) {
+function extrachill_events_owner_list_verify_view( ?array $member, int $user_id, int $event_id = 0 ): ?array {
+	if ( ! $member || $user_id < 1 || ! RsvpPassesTable::is_owner_pass( $member ) ) {
 		return null;
 	}
 
@@ -464,7 +442,7 @@ function extrachill_events_owner_list_verify_view( string $code, int $user_id, i
 
 	$owner_team = extrachill_events_user_can_manage_owner_list( $user_id, $owner['owner_type'], $owner['owner_id'] );
 
-	if ( OwnerGuestListTable::STATUS_ACTIVE !== (string) $member['status'] ) {
+	if ( RsvpPassesTable::STATUS_ACTIVE !== (string) $member['status'] ) {
 		$scanned_at_door = $event_id > 0 && extrachill_events_user_can_manage_event( $user_id, $event_id );
 		return ( $owner_team || $scanned_at_door )
 			? array(
@@ -478,7 +456,7 @@ function extrachill_events_owner_list_verify_view( string $code, int $user_id, i
 	$events     = array();
 	foreach ( $candidates as $candidate ) {
 		if ( extrachill_events_owner_list_event_is_eligible( $member, (int) $candidate ) && extrachill_events_user_can_manage_event( $user_id, (int) $candidate ) ) {
-			$checkin  = OwnerGuestListTable::find_checkin( (int) $member['id'], (int) $candidate );
+			$checkin  = RsvpPassesTable::find_checkin( (int) $member['id'], (int) $candidate );
 			$post     = get_post( (int) $candidate );
 			$events[] = array(
 				'event_id'      => (int) $candidate,
@@ -492,7 +470,7 @@ function extrachill_events_owner_list_verify_view( string $code, int $user_id, i
 		return array(
 			'state'  => 'eligible',
 			'owner'  => $owner,
-			'name'   => (string) $member['name'],
+			'name'   => (string) $member['guest_name'],
 			'code'   => (string) $member['code'],
 			'events' => $events,
 		);
@@ -522,11 +500,11 @@ function extrachill_events_owner_list_verify_view( string $code, int $user_id, i
  * per-event pass email: the code, the QR, and a button to the pass page.
  *
  * @param array $owner  Owner summary from extrachill_events_owner_list_owner().
- * @param array $member Member row.
+ * @param array $member Owner pass row.
  * @return bool Whether the email was queued.
  */
 function extrachill_events_send_owner_list_pass_email( array $owner, array $member ): bool {
-	if ( ! function_exists( 'ec_send_email_queued' ) || '' === (string) $member['email'] ) {
+	if ( ! function_exists( 'ec_send_email_queued' ) || '' === (string) ( $member['email'] ?? '' ) ) {
 		return false;
 	}
 
@@ -555,7 +533,7 @@ function extrachill_events_send_owner_list_pass_email( array $owner, array $memb
 			'template'  => 'extrachill/branded',
 			'context'   => array(
 				'body_html'      => $html,
-				'recipient_name' => (string) $member['name'],
+				'recipient_name' => (string) $member['guest_name'],
 				'cta_url'        => extrachill_events_owner_list_pass_url( $code ),
 				'cta_label'      => __( 'Open my pass', 'extrachill-events' ),
 			),

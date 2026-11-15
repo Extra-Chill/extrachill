@@ -138,8 +138,8 @@ require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterAuthorityAbilities.php
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterWorkspaceAbilities.php';
 require_once __DIR__ . '/fixtures/promoter-link-pages-principal.php';
 require_once dirname( __DIR__ ) . '/inc/Core/TeamCapabilities.php';
-require_once dirname( __DIR__ ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-management-authority.php';
+require_once dirname( __DIR__ ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__ ) . '/inc/core/owner-guest-list.php';
 require_once dirname( __DIR__ ) . '/inc/core/guest-list-requests.php';
 

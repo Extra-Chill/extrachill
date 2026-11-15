@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int $event_id Event post ID.
  */
 function extrachill_events_render_owner_guest_lists( int $event_id ): void {
-	if ( ! class_exists( '\\ExtraChillEvents\\Core\\OwnerGuestListTable' ) || ! function_exists( 'extrachill_events_owner_lists_for_manager' ) ) {
+	if ( ! function_exists( 'extrachill_events_owner_lists_for_manager' ) ) {
 		return;
 	}
 

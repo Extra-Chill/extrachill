@@ -20,6 +20,13 @@
  * forever — a reactivated pass gets a fresh code, see issue_or_reactivate()),
  * and by single-use redemption (once redeemed, the code is dead).
  *
+ * Owner passes (extrachill#1130, #1521) share this table and its code
+ * namespace: a venue's or promoter's standing guest list pass is a row with
+ * event_id 0 plus owner_type/owner_term_id. It never counts against any
+ * event's spots (every count is scoped to one event_id), is never
+ * `redeemed`, and checks in once per show through the pass check-ins table.
+ * Revoking it (taking the person off the list) kills the code at once.
+ *
  * @package ExtraChillEvents\Core
  * @since   0.69.0
  */
@@ -32,7 +39,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '7';
+	const SCHEMA_VERSION = '8';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -49,6 +56,13 @@ final class RsvpPassesTable {
 
 	/** A submitted name the venue turned down. Dead forever; never redeems. */
 	const STATUS_DENIED = 'denied';
+
+	/** Owner types of an owner pass, which are also the owning taxonomies. */
+	const OWNER_VENUE    = 'venue';
+	const OWNER_PROMOTER = 'promoter';
+
+	/** Tables of the old standalone owner's list (schema 6-7), dropped by schema 8 when empty. */
+	private const LEGACY_OWNER_TABLES = array( 'ec_owner_guest_list', 'ec_owner_guest_list_checkins' );
 
 	/** Charset-safe alphabet for pass codes: no ambiguous 0/O/1/I/L. */
 	private const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -68,6 +82,35 @@ final class RsvpPassesTable {
 	}
 
 	/**
+	 * Owner pass check-ins: one row per (pass, event).
+	 *
+	 * @return string
+	 */
+	public static function checkins_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_event_pass_checkins';
+	}
+
+	/**
+	 * Owner types that can hold a standing list.
+	 *
+	 * @return string[]
+	 */
+	public static function owner_types(): array {
+		return array( self::OWNER_VENUE, self::OWNER_PROMOTER );
+	}
+
+	/**
+	 * Whether a pass row is an owner pass rather than a per-event pass.
+	 *
+	 * @param array $pass Pass row.
+	 * @return bool
+	 */
+	public static function is_owner_pass( array $pass ): bool {
+		return 0 === (int) ( $pass['event_id'] ?? 0 ) && '' !== (string) ( $pass['owner_type'] ?? '' );
+	}
+
+	/**
 	 * Install / upgrade the table via dbDelta. Idempotent.
 	 */
 	public static function create_table(): void {
@@ -82,6 +125,9 @@ final class RsvpPassesTable {
 			user_id bigint(20) unsigned NULL DEFAULT NULL,
 			code varchar(20) NOT NULL,
 			guest_name varchar(100) NULL DEFAULT NULL,
+			email varchar(200) NULL DEFAULT NULL,
+			owner_type varchar(16) NULL DEFAULT NULL,
+			owner_term_id bigint(20) unsigned NULL DEFAULT NULL,
 			status varchar(16) NOT NULL DEFAULT 'active',
 			issued_at datetime NOT NULL,
 			revoked_at datetime NULL,
@@ -99,20 +145,33 @@ final class RsvpPassesTable {
 			KEY event_status (event_id, status),
 			KEY event_party (event_id, party_id),
 			KEY order_reference (order_reference),
-			KEY idempotency_key (idempotency_key)
+			KEY idempotency_key (idempotency_key),
+			KEY owner_status (owner_type, owner_term_id, status)
 		) ENGINE=InnoDB {$charset};";
+
+		$checkins = self::checkins_table_name();
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
-		// Schema 6 (extrachill#1130) adds the owner's guest list: a venue's
-		// or promoter's standing list and its per-event check-ins, in their
-		// own two tables (OwnerGuestListTable). Plain dbDelta creates.
-		if ( class_exists( OwnerGuestListTable::class ) ) {
-			foreach ( OwnerGuestListTable::schema_sql( $charset ) as $owner_list_sql ) {
-				dbDelta( $owner_list_sql );
-			}
-		}
+		// Schema 8 (extrachill#1521): the owner's list (#1130) moves into
+		// this table as owner passes (event_id 0 + owner_type/owner_term_id,
+		// plus email). Their once-per-show check-ins get a small table whose
+		// unique key is the compare-and-set. The two old owner tables are
+		// dropped only while empty.
+		dbDelta(
+			"CREATE TABLE {$checkins} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			pass_id bigint(20) unsigned NOT NULL,
+			event_id bigint(20) unsigned NOT NULL,
+			checked_in_at datetime NOT NULL,
+			checked_in_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY pass_event (pass_id, event_id),
+			KEY event_id (event_id)
+		) ENGINE=InnoDB {$charset};"
+		);
+		self::drop_legacy_owner_tables();
 
 		// Schema 5 (extrachill#1129) adds the party request columns (origin,
 		// requested_spots, request_note, requested_at, decided_*). Pass rows
@@ -138,6 +197,46 @@ final class RsvpPassesTable {
 		$wpdb->query( "ALTER TABLE {$table} MODIFY user_id bigint(20) unsigned NULL DEFAULT NULL" );
 
 		update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
+	}
+
+	/**
+	 * Drop the old standalone owner's-list tables, but only when both are
+	 * empty. Rows left behind mean someone wrote to them after the move: the
+	 * tables stay and the upgrade logs it rather than destroying data.
+	 */
+	private static function drop_legacy_owner_tables(): void {
+		global $wpdb;
+
+		$rows  = 0;
+		$found = array();
+		foreach ( self::LEGACY_OWNER_TABLES as $suffix ) {
+			$legacy = $wpdb->prefix . $suffix;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema existence cannot use cached data.
+			if ( $legacy !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $legacy ) ) ) {
+				continue;
+			}
+			$found[] = $legacy;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name; live count.
+			$rows += (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$legacy}" );
+		}
+
+		if ( $rows > 0 ) {
+			do_action(
+				'datamachine_log',
+				'warning',
+				'Legacy owner guest list tables still hold rows; left in place',
+				array(
+					'tables' => $found,
+					'rows'   => $rows,
+				)
+			);
+			return;
+		}
+
+		foreach ( $found as $legacy ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-time drop of an empty legacy table with a trusted internal name.
+			$wpdb->query( "DROP TABLE IF EXISTS {$legacy}" );
+		}
 	}
 
 	/** Install only when the stored schema version is stale. */
@@ -736,28 +835,241 @@ final class RsvpPassesTable {
 	}
 
 	/**
-	 * List an event's account-less guest list passes for the door list.
+	 * List an event's account-less guest list passes for the door list,
+	 * plus, in the same query, the active owner passes of the venues and
+	 * promoters given (the owners the event is tagged with).
 	 *
-	 * @param int $event_id Event post ID.
-	 * @param int $limit    Max rows. Clamped to 1-1000.
+	 * @param int     $event_id Event post ID.
+	 * @param int     $limit    Max rows. Clamped to 1-1000.
+	 * @param array[] $owners   Each `array( owner_type, owner_term_id )`.
 	 * @return array[] Pass rows, oldest first.
 	 */
-	public static function list_guest_passes( int $event_id, int $limit = 500 ): array {
+	public static function list_guest_passes( int $event_id, int $limit = 500, array $owners = array() ): array {
 		global $wpdb;
 		$table = self::table_name();
 		$limit = max( 1, min( 1000, $limit ) );
 
+		$where = $wpdb->prepare( 'event_id = %d AND user_id IS NULL', $event_id );
+		foreach ( $owners as $owner ) {
+			$where .= $wpdb->prepare( ' OR event_id = 0 AND status = %s AND owner_type = %s AND owner_term_id = %d', self::STATUS_ACTIVE, (string) $owner[0], (int) $owner[1] );
+		}
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE event_id = %d AND user_id IS NULL ORDER BY issued_at ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
-				$event_id,
+				"SELECT * FROM {$table} WHERE {$where} ORDER BY issued_at ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name; WHERE built from prepared fragments.
 				$limit
 			),
 			ARRAY_A
 		);
 
 		return (array) $rows;
+	}
+
+	/**
+	 * Put a person on a venue's or promoter's standing list: a fresh owner
+	 * pass that is no event's.
+	 *
+	 * @param string $owner_type        venue|promoter.
+	 * @param int    $owner_term_id     Venue or promoter term ID.
+	 * @param string $guest_name        Name shown at the door.
+	 * @param string $email             Optional email ('' for none).
+	 * @param int    $issued_by_user_id Team member adding them.
+	 * @return array|null The new pass row, or null on write failure.
+	 */
+	public static function issue_owner_pass( string $owner_type, int $owner_term_id, string $guest_name, string $email, int $issued_by_user_id ): ?array {
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		// A code collision on the unique key (75 bits; vanishingly rare)
+		// fails the insert; one retry with a new code covers it.
+		for ( $attempt = 0; $attempt < 2; $attempt++ ) {
+			$code     = self::generate_code();
+			$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write.
+				self::table_name(),
+				array(
+					'event_id'      => 0,
+					'code'          => $code,
+					'guest_name'    => $guest_name,
+					'email'         => '' === $email ? null : $email,
+					'owner_type'    => $owner_type,
+					'owner_term_id' => $owner_term_id,
+					'status'        => self::STATUS_ACTIVE,
+					'issued_at'     => $now,
+					'updated_at'    => $now,
+				)
+				+ ( $issued_by_user_id > 0 ? array( 'issued_by_user_id' => $issued_by_user_id ) : array() )
+			);
+			if ( false !== $inserted ) {
+				return self::find_by_code( $code );
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Active owner passes of one venue or promoter, oldest first.
+	 *
+	 * @param string $owner_type    venue|promoter.
+	 * @param int    $owner_term_id Term ID.
+	 * @return array[]
+	 */
+	public static function list_owner_passes( string $owner_type, int $owner_term_id ): array {
+		global $wpdb;
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE event_id = 0 AND owner_type = %s AND owner_term_id = %d AND status = %s ORDER BY issued_at ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$owner_type,
+				$owner_term_id,
+				self::STATUS_ACTIVE,
+				500
+			),
+			ARRAY_A
+		);
+
+		return (array) $rows;
+	}
+
+	/**
+	 * Take someone off a standing list: the owner pass is revoked and its
+	 * code dies at once. Past check-ins stay on record.
+	 *
+	 * @param string $owner_type    venue|promoter the pass must belong to.
+	 * @param int    $owner_term_id Term the pass must belong to.
+	 * @param int    $pass_id       Pass ID.
+	 * @return bool Whether an active owner pass was revoked.
+	 */
+	public static function revoke_owner_pass( string $owner_type, int $owner_term_id, int $pass_id ): bool {
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; the status in WHERE is the compare-and-set.
+			self::table_name(),
+			array(
+				'status'     => self::STATUS_REVOKED,
+				'revoked_at' => $now,
+				'updated_at' => $now,
+			),
+			array(
+				'id'            => $pass_id,
+				'event_id'      => 0,
+				'owner_type'    => $owner_type,
+				'owner_term_id' => $owner_term_id,
+				'status'        => self::STATUS_ACTIVE,
+			)
+		);
+
+		return false !== $updated && $updated > 0;
+	}
+
+	/**
+	 * An owner pass's check-in at one event, if any.
+	 *
+	 * @param int $pass_id  Pass ID.
+	 * @param int $event_id Event post ID.
+	 * @return array|null
+	 */
+	public static function find_checkin( int $pass_id, int $event_id ): ?array {
+		global $wpdb;
+		$table = self::checkins_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Door state must read live rows.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE pass_id = %d AND event_id = %d LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$pass_id,
+				$event_id
+			),
+			ARRAY_A
+		);
+
+		return $row ? $row : null;
+	}
+
+	/**
+	 * Every owner pass check-in at one event, keyed by pass ID.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @return array<int, array>
+	 */
+	public static function list_checkins_for_event( int $event_id ): array {
+		global $wpdb;
+		$table = self::checkins_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Door state must read live rows.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE event_id = %d LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id,
+				1000
+			),
+			ARRAY_A
+		);
+
+		$by_pass = array();
+		foreach ( (array) $rows as $row ) {
+			$by_pass[ (int) $row['pass_id'] ] = $row;
+		}
+		return $by_pass;
+	}
+
+	/**
+	 * Check an owner pass in at one event. Atomic: the (pass, event) unique
+	 * key is the compare-and-set, so a double-tap or two door staff at once
+	 * record one check-in and the loser reads the winner's.
+	 *
+	 * Eligibility (active pass, event tagged with the owner) is the caller's
+	 * job; see extrachill_events_owner_list_check_in().
+	 *
+	 * @param int $pass_id    Owner pass ID.
+	 * @param int $event_id   Event post ID.
+	 * @param int $by_user_id Door staff checking them in.
+	 * @return array{already_redeemed: bool, redeemed_at: string, redeemed_by_user_id: int}
+	 */
+	public static function check_in( int $pass_id, int $event_id, int $by_user_id ): array {
+		$existing = self::find_checkin( $pass_id, $event_id );
+		if ( ! $existing ) {
+			global $wpdb;
+			$now = current_time( 'mysql', true );
+
+			$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write; the unique key is the concurrency primitive.
+				self::checkins_table_name(),
+				array(
+					'pass_id'       => $pass_id,
+					'event_id'      => $event_id,
+					'checked_in_at' => $now,
+				)
+				+ ( $by_user_id > 0 ? array( 'checked_in_by_user_id' => $by_user_id ) : array() )
+			);
+
+			if ( false !== $inserted ) {
+				return array(
+					'already_redeemed'    => false,
+					'redeemed_at'         => $now,
+					'redeemed_by_user_id' => $by_user_id,
+				);
+			}
+
+			// Lost the race on the unique key: report the winner's check-in.
+			$existing = self::find_checkin( $pass_id, $event_id );
+			if ( ! $existing ) {
+				return array(
+					'already_redeemed'    => true,
+					'redeemed_at'         => $now,
+					'redeemed_by_user_id' => $by_user_id,
+				);
+			}
+		}
+
+		return array(
+			'already_redeemed'    => true,
+			'redeemed_at'         => (string) $existing['checked_in_at'],
+			'redeemed_by_user_id' => (int) ( $existing['checked_in_by_user_id'] ?? 0 ),
+		);
 	}
 
 	/**
@@ -769,8 +1081,21 @@ final class RsvpPassesTable {
 	 * @return array|\WP_Error Same shape as redeem().
 	 */
 	public static function redeem_by_code( int $event_id, string $code, int $redeemed_by_user_id ) {
-		$pass = '' === $code ? null : self::find_by_code( $code );
-		if ( ! $pass || (int) $pass['event_id'] !== $event_id ) {
+		return self::redeem_for_event( '' === $code ? null : self::find_by_code( $code ), $event_id, $redeemed_by_user_id );
+	}
+
+	/**
+	 * Redeem an already looked-up per-event pass at its event.
+	 *
+	 * @param array|null $pass                Pass row from find_by_code(), or null.
+	 * @param int        $event_id            Event post ID the pass must belong to.
+	 * @param int        $redeemed_by_user_id Host user ID performing the redemption.
+	 * @return array|\WP_Error Same shape as redeem().
+	 */
+	public static function redeem_for_event( ?array $pass, int $event_id, int $redeemed_by_user_id ) {
+		// An owner pass (event_id 0) is never redeemed here: it checks in
+		// per show through check_in().
+		if ( ! $pass || $event_id < 1 || (int) $pass['event_id'] !== $event_id ) {
 			return new \WP_Error( 'rsvp_pass_not_found', __( 'No pass found for this code.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
