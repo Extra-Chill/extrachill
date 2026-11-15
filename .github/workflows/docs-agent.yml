@@ -48,9 +48,10 @@ jobs:
     # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs;
     # 1f576e6 adds the optional PUBLISH_TOKEN (Automattic/docs-agent#184);
     # 07f990b runs on WP Codebox v0.33.4, which fails loudly on lost writes
-    # (Automattic/docs-agent#185, Automattic/wp-codebox#2567).
+    # (Automattic/docs-agent#185, Automattic/wp-codebox#2567); 4897641 raises
+    # the agent turn budget from 12 to 40 (Automattic/docs-agent#186).
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@07f990bb96ad2c076b304367a496d0fd8e8e5edf
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@48976415158e7fede8fd587f3bbdb7b6b1e25c34
     with:
       audience: ${{ fromJSON(needs.config.outputs.config).audience }}
       run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
