@@ -28,6 +28,31 @@ function extrachill_events_ticket_return_state(): string {
 }
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
+/**
+ * Terms of Service URL shown on the ticket form.
+ *
+ * Shop owns the legal documents and records the accepted Terms version on
+ * the ticket order. Shop is not active on Events, so this links the same
+ * network Terms page unless Shop's helper happens to be loaded.
+ *
+ * @return string
+ */
+function extrachill_events_ticket_terms_url(): string {
+	if ( function_exists( 'extrachill_shop_legal_document' ) ) {
+		$url = extrachill_shop_legal_document( 'terms', 'url' );
+	} else {
+		$main = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : null;
+		$url  = ( $main ? trailingslashit( $main ) : 'https://extrachill.com/' ) . 'terms-of-service/';
+	}
+
+	/**
+	 * Filter the Terms of Service URL on the ticket checkout form.
+	 *
+	 * @param string $url Terms of Service URL.
+	 */
+	return (string) apply_filters( 'extrachill_events_ticket_terms_url', $url );
+}
+
 /** Read the public offer through its owner ability. */
 function extrachill_events_checkout_offer( $post_id ) {
 	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-event-ticket-offer' ) : null;
@@ -121,6 +146,10 @@ function extrachill_events_enqueue_ticket_checkout() {
 	wp_localize_script( 'ec-ticket-checkout', 'ecTicketCheckout', array(
 		'url'   => trailingslashit( ec_get_site_url( 'shop' ) ) . 'wp-json/extrachill/v1/events/tickets/checkout',
 		'error' => __( 'Unable to start checkout. Please try again.', 'extrachill-events' ),
+		'terms' => __( 'Please agree to the Terms of Service to buy tickets.', 'extrachill-events' ),
+		// Logged-in buyers send the network-wide auth cookie plus a REST nonce
+		// so Shop records the order under their account (My Account > Tickets).
+		'nonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
 	) );
 	if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 		ec_enqueue_turnstile_script();

@@ -5,6 +5,8 @@ import type {
   Venue,
   GeoSearchResult,
   EventSubmissionRequest,
+  TicketCheckoutRequest,
+  TicketCheckoutResponse,
   UpcomingCountsResponse,
 } from '../types';
 
@@ -84,6 +86,14 @@ export class EventsResource extends BaseResource {
    */
   submitEvent(data: EventSubmissionRequest): Promise<{ success: boolean; id: number }> {
     return this.post('extrachill/v1/event-submissions', data as unknown as Record<string, unknown>);
+  }
+
+  /**
+   * Start a paid ticket checkout. Call it against the Shop site, which owns
+   * ticket payments; requires `terms_accepted: true`.
+   */
+  startTicketCheckout(data: TicketCheckoutRequest): Promise<TicketCheckoutResponse> {
+    return this.post('extrachill/v1/events/tickets/checkout', data as unknown as Record<string, unknown>);
   }
 
   /**

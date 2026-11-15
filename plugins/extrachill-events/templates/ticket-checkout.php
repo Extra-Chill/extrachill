@@ -26,6 +26,27 @@ if ( in_array( strtolower( $currency ), array( 'bhd', 'jod', 'kwd', 'omr', 'tnd'
 		<p><label><?php esc_html_e( 'Quantity', 'extrachill-events' ); ?> <input name="quantity" type="number" min="1" max="<?php echo esc_attr( (string) $maximum ); ?>" value="1" required></label></p>
 		<p><label><?php esc_html_e( 'Name', 'extrachill-events' ); ?> <input name="name" type="text" autocomplete="name" maxlength="100" required></label></p>
 		<p><label><?php esc_html_e( 'Email', 'extrachill-events' ); ?> <input name="email" type="email" autocomplete="email" required></label></p>
+		<label class="ec-checkbox-row">
+			<input name="terms_accepted" type="checkbox" value="1" required>
+			<span>
+			<?php
+			echo wp_kses(
+				sprintf(
+					/* translators: %s: Terms of Service URL. */
+					__( 'I agree to the <a href="%s" target="_blank" rel="noopener noreferrer">Terms of Service</a>.', 'extrachill-events' ),
+					esc_url( extrachill_events_ticket_terms_url() )
+				),
+				array(
+					'a' => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+				)
+			);
+			?>
+			</span>
+		</label>
 		<?php
 		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 			echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'interaction-only' ) ) );

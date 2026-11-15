@@ -11,6 +11,9 @@ require_once __DIR__ . '/fixtures/ticket-test-functions.php';
 require_once dirname( __DIR__ ) . '/inc/core/ticket-service-authority.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/tickets.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/webhooks.php';
+require_once dirname( __DIR__ ) . '/inc/core/legal-documents.php';
+require_once dirname( __DIR__ ) . '/inc/core/account-tickets.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/tickets.php';
 // Ticket orders are option rows; the show-wide refund scans them by prefix.
 // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test double for the options table scan.
 $GLOBALS['wpdb'] = new class() {
@@ -25,20 +28,22 @@ $GLOBALS['wpdb'] = new class() {
 final class TicketTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
 		extrachill_shop_reset_seller_permission_cache();
-		$GLOBALS['test_options']        = array(
+		$GLOBALS['test_options']           = array(
 			'extrachill_shop_stripe_seller_venue:9911' => array(
 				'account_id'       => 'acct_venue',
 				'status'           => 'active',
 				'status_synced_at' => '2026-11-01T00:00:00+00:00',
 			),
 		);
-		$GLOBALS['test_user_id']        = 551;
-		$GLOBALS['test_site_options']   = array();
-		$GLOBALS['test_blog_options']   = array();
-		$GLOBALS['ticket_refunds']      = array();
-		$GLOBALS['ticket_refund_fail']  = false;
-		$GLOBALS['test_owner_calls']    = array();
-		$GLOBALS['ticket_offer']        = array(
+		$GLOBALS['test_user_id']           = 551;
+		$GLOBALS['test_site_options']      = array();
+		$GLOBALS['test_blog_options']      = array();
+		$GLOBALS['ticket_refunds']         = array();
+		$GLOBALS['ticket_refund_fail']     = false;
+		$GLOBALS['test_owner_calls']       = array();
+		$GLOBALS['test_user_meta']         = array();
+		$GLOBALS['ticket_session_request'] = null;
+		$GLOBALS['ticket_offer']           = array(
 			'event_id'    => 101,
 			'title'       => 'Lo-Fi show',
 			'url'         => 'https://events.extrachill.com/show',
@@ -52,9 +57,9 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				'id'   => 9911,
 			),
 		);
-		$GLOBALS['ticket_issue_status'] = 'issued';
-		$GLOBALS['ticket_redeemed']     = false;
-		$GLOBALS['test_owner_callback'] = static function ( $site, $method, $route ) {
+		$GLOBALS['ticket_issue_status']    = 'issued';
+		$GLOBALS['ticket_redeemed']        = false;
+		$GLOBALS['test_owner_callback']    = static function ( $site, $method, $route ) {
 			if ( str_contains( $route, 'get-event-ticket-offer' ) ) {
 				return $GLOBALS['ticket_offer']; }
 			if ( str_contains( $route, 'get-commerce-seller' ) ) {
@@ -71,7 +76,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			if ( str_contains( $route, 'get-ticket-order-status' ) ) {
 				return array(
 					'event_id'     => 101,
-					'passes'       => array(),
+					'passes'       => $GLOBALS['ticket_passes'] ?? array(),
 					'any_redeemed' => $GLOBALS['ticket_redeemed'],
 					'refundable'   => ! $GLOBALS['ticket_redeemed'],
 				); }
@@ -82,12 +87,15 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			return array( 'revoked' => true );
 		};
 	}
-	private function checkout() { return extrachill_shop_start_ticket_checkout( array(
-		'event'    => 101,
-		'quantity' => 2,
-		'name'     => 'Buyer',
-		'email'    => 'buyer@example.com',
-	) ); }
+	private function checkout( array $overrides = array() ) {
+		return extrachill_shop_start_ticket_checkout( array_merge( array(
+			'event'          => 101,
+			'quantity'       => 2,
+			'name'           => 'Buyer',
+			'email'          => 'buyer@example.com',
+			'terms_accepted' => true,
+		), $overrides ) );
+	}
 	private function event( $type = 'checkout.session.completed' ) {
 		if ( 'charge.refunded' === $type ) {
 			// Real charges carry no PaymentIntent metadata.
@@ -391,5 +399,100 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		};
 		$this->assertSame( 'cannot_manage_seller', extrachill_shop_refund_event_ticket_orders( array( 'event_id' => 101 ) )->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+	}
+
+	public function test_checkout_without_terms_is_rejected_before_stripe(): void {
+		foreach ( array( array( 'terms_accepted' => false ), array( 'terms_accepted' => 'yes' ) ) as $overrides ) {
+			$error = $this->checkout( $overrides );
+			$this->assertSame( 'terms_required', $error->get_error_code() );
+			$this->assertSame( 400, $error->get_error_data()['status'] );
+			$this->assertSame( 'https://extrachill.com/terms-of-service/', $error->get_error_data()['terms_url'] );
+		}
+		$input = array(
+			'event'    => 101,
+			'quantity' => 2,
+			'name'     => 'Buyer',
+			'email'    => 'buyer@example.com',
+		);
+		$this->assertSame( 'terms_required', extrachill_shop_start_ticket_checkout( $input )->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'] );
+		$this->assertArrayNotHasKey( 'extrachill_ticket_order_cs_ticket', $GLOBALS['test_options'] );
+	}
+	public function test_checkout_records_terms_version_and_buyer(): void {
+		$this->checkout();
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( '2026-11-14', $order['terms_version'] );
+		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', $order['terms_accepted_at'] );
+		$this->assertSame( 551, $order['buyer_user_id'] );
+		$this->assertSame( 'buyer@example.com', $order['buyer_email'] );
+		$this->assertSame( 'Lo-Fi show', $order['event_title'] );
+		$metadata = $GLOBALS['ticket_session_request'][0]['metadata'];
+		$this->assertSame( '2026-11-14', $metadata['terms_version'] );
+		$this->assertSame( $order['terms_accepted_at'], $metadata['terms_accepted_at'] );
+		$this->assertSame( '551', $metadata['buyer_user_id'] );
+		$this->assertSame( array( 'cs_ticket' ), get_user_meta( 551, EXTRACHILL_SHOP_BUYER_TICKET_ORDER_META, false ) );
+	}
+	public function test_guest_checkout_records_no_buyer(): void {
+		$GLOBALS['test_user_id'] = 0;
+		$this->checkout();
+		$this->assertSame( 0, $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['buyer_user_id'] );
+		$this->assertArrayNotHasKey( 'buyer_user_id', $GLOBALS['ticket_session_request'][0]['metadata'] );
+		$this->assertSame( array(), $GLOBALS['test_user_meta'] );
+	}
+	public function test_account_tab_lists_the_buyers_paid_tickets(): void {
+		$this->checkout();
+		$GLOBALS['ticket_passes'] = array(
+			array(
+				'code'   => 'ABC234',
+				'status' => 'active',
+				'url'    => 'https://events.extrachill.com/show/guest-list/?pass=ABC234',
+			),
+			array(
+				'code'   => 'DEF567',
+				'status' => 'redeemed',
+			),
+		);
+		// Unpaid Sessions stay off the list.
+		$this->assertSame( array(), extrachill_shop_list_my_ticket_orders()['orders'] );
+		extrachill_shop_route_webhook_event( $this->event() );
+		$orders = extrachill_shop_list_my_ticket_orders()['orders'];
+		$this->assertCount( 1, $orders );
+		$this->assertSame( 'cs_ticket', $orders[0]['reference'] );
+		$this->assertSame( 'issued', $orders[0]['status'] );
+		$this->assertSame( 2, $orders[0]['quantity'] );
+		$this->assertSame( 'ABC234', $orders[0]['passes'][0]['code'] );
+		$this->assertSame( '', $orders[0]['passes'][1]['url'] );
+		$html = extrachill_shop_account_tickets_html( $orders );
+		$this->assertStringContainsString( 'Lo-Fi show', $html );
+		$this->assertStringContainsString( 'Confirmed', $html );
+		$this->assertStringContainsString( 'href="https://events.extrachill.com/show/guest-list/?pass=ABC234"', $html );
+		$this->assertStringContainsString( 'DEF567 · Checked in', $html );
+		$this->assertSame( 1, substr_count( $html, 'Open pass' ), 'Only active passes link out.' );
+		unset( $GLOBALS['ticket_passes'] );
+	}
+	public function test_buyer_cannot_see_another_buyers_tickets(): void {
+		$this->checkout();
+		extrachill_shop_route_webhook_event( $this->event() );
+		$GLOBALS['test_user_id'] = 552;
+		$this->assertSame( array(), extrachill_shop_list_my_ticket_orders()['orders'] );
+		// Even a reference planted in another user's index is re-checked against the order's buyer.
+		add_user_meta( 552, EXTRACHILL_SHOP_BUYER_TICKET_ORDER_META, 'cs_ticket' );
+		$this->assertSame( array(), extrachill_shop_list_my_ticket_orders()['orders'] );
+		$this->assertSame( array(), extrachill_shop_get_buyer_ticket_orders( 0 ) );
+		$this->assertStringContainsString( 'no ticket orders yet', extrachill_shop_account_tickets_html( array() ) );
+	}
+	public function test_account_menu_and_endpoint_registration(): void {
+		$items = extrachill_shop_tickets_menu_item( array(
+			'dashboard' => 'Dashboard',
+			'orders'    => 'Orders',
+			'downloads' => 'Downloads',
+		) );
+		$this->assertSame( array( 'dashboard', 'orders', 'tickets', 'downloads' ), array_keys( $items ) );
+		$this->assertSame( 'Tickets', $items['tickets'] );
+		$this->assertSame( 'tickets', extrachill_shop_tickets_query_var( array() )['tickets'] );
+		extrachill_shop_register_ticket_abilities();
+		$ability = $GLOBALS['test_abilities']['extrachill/list-my-ticket-orders'];
+		$this->assertSame( 'is_user_logged_in', $ability['permission_callback'] );
+		$this->assertSame( 'boolean', $GLOBALS['test_abilities']['extrachill/start-ticket-checkout']['input_schema']['properties']['terms_accepted']['type'] );
 	}
 }

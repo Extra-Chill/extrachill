@@ -10,21 +10,41 @@
 			}
 			const error = form.querySelector( '[data-ticket-error]' );
 			const fields = new FormData( form );
+			if ( ! fields.get( 'terms_accepted' ) ) {
+				error.textContent = ecTicketCheckout.terms || ecTicketCheckout.error;
+				error.hidden = false;
+				return;
+			}
 			button.disabled = true;
 			error.hidden = true;
-			try {
-				const response = await fetch( ecTicketCheckout.url, {
+			const body = JSON.stringify( {
+				event: Number( form.dataset.event ),
+				quantity: Number( fields.get( 'quantity' ) ),
+				name: fields.get( 'name' ),
+				email: fields.get( 'email' ),
+				terms_accepted: true,
+				turnstile_response: fields.get( 'cf-turnstile-response' ) || '',
+			} );
+			// Logged-in buyers send their account cookie and REST nonce so the
+			// order lands in My Account > Tickets. A stale nonce falls back to a
+			// guest checkout rather than blocking the purchase.
+			const send = ( signedIn ) =>
+				fetch( ecTicketCheckout.url, {
 					method: 'POST',
-					credentials: 'omit',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify( {
-						event: Number( form.dataset.event ),
-						quantity: Number( fields.get( 'quantity' ) ),
-						name: fields.get( 'name' ),
-						email: fields.get( 'email' ),
-						turnstile_response: fields.get( 'cf-turnstile-response' ) || '',
-					} ),
+					credentials: signedIn ? 'include' : 'omit',
+					headers: signedIn
+						? { 'Content-Type': 'application/json', 'X-WP-Nonce': ecTicketCheckout.nonce }
+						: { 'Content-Type': 'application/json' },
+					body,
 				} );
+			try {
+				let response = await send( !! ecTicketCheckout.nonce );
+				if ( ecTicketCheckout.nonce && response.status === 403 ) {
+					const failure = await response.clone().json().catch( () => ( {} ) );
+					if ( failure.code === 'rest_cookie_invalid_nonce' ) {
+						response = await send( false );
+					}
+				}
 				const result = await response.json();
 				if ( ! response.ok ) {
 					throw new Error( result.message || ecTicketCheckout.error );

@@ -2,10 +2,23 @@
 /** Seller-settled ticket payments. No WooCommerce orders or tax calculation. */
 defined( 'ABSPATH' ) || exit;
 
+/** User meta (one row per order) indexing a logged-in buyer's ticket order references. */
+const EXTRACHILL_SHOP_BUYER_TICKET_ORDER_META = '_extrachill_shop_ticket_order';
+
 function extrachill_shop_start_ticket_checkout( array $input ) {
 	if ( ! is_int( $input['quantity'] ?? null ) || $input['quantity'] < 1 || $input['quantity'] > 10 || empty( trim( $input['name'] ?? '' ) ) || ! is_email( $input['email'] ?? '' ) ) {
 		return new WP_Error( 'invalid_ticket_input', 'A name, email and quantity from 1 to 10 are required.', array( 'status' => 400 ) );
 	}
+	// Ticket checkout skips the WooCommerce Checkout block, so it asks for the
+	// same Terms consent itself and records it on the ticket order.
+	if ( true !== ( $input['terms_accepted'] ?? null ) ) {
+		return extrachill_shop_ticket_terms_required_error();
+	}
+	$terms = array(
+		'terms_accepted_at' => gmdate( 'Y-m-d\TH:i:s\Z' ),
+		'terms_version'     => extrachill_shop_legal_document( 'terms', 'version' ),
+	);
+	$buyer = get_current_user_id();
 	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', array( 'event' => $input['event'] ) );
 	if ( is_wp_error( $offer ) ) {
 		return $offer; }
@@ -32,8 +45,11 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'seller_type' => $seller['type'],
 		'seller_id'   => (string) $seller['id'],
 		'kind'        => 'extrachill_ticket',
-	);
-	$items    = array(
+	) + $terms;
+	if ( $buyer > 0 ) {
+		$metadata['buyer_user_id'] = (string) $buyer;
+	}
+	$items = array(
 		array(
 			'quantity'   => $input['quantity'],
 			'price_data' => array(
@@ -73,6 +89,12 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'event'          => $offer['event_id'],
 			'payment_intent' => '',
 			'status'         => 'pending',
+			'buyer_user_id'  => $buyer,
+			'buyer_email'    => $input['email'],
+			'event_title'    => (string) $offer['title'],
+			'event_url'      => (string) $offer['url'],
+			'quantity'       => $input['quantity'],
+			'created_at'     => gmdate( 'Y-m-d\TH:i:s\Z' ),
 			'sales'          => array(
 				'event_id'     => (int) $offer['event_id'],
 				'tickets_sold' => $input['quantity'],
@@ -81,13 +103,34 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 				'currency'     => $offer['currency'],
 				'period_start' => gmdate( 'Y-m-d H:i:s' ),
 			),
-		), false );
+		) + $terms, false );
+		if ( $buyer > 0 ) {
+			// Buyer index for My Account > Tickets; orders stay option rows.
+			add_user_meta( $buyer, EXTRACHILL_SHOP_BUYER_TICKET_ORDER_META, $session->id );
+		}
 		return array(
 			'checkout_url' => $session->url,
 			'session_id'   => $session->id,
 		);
 	} catch ( \Exception $e ) {
 		return new WP_Error( 'ticket_checkout_failed', 'Ticket checkout failed.', array( 'status' => 502 ) ); }
+}
+
+/**
+ * Error for a ticket checkout without Terms of Service acceptance.
+ *
+ * @return WP_Error
+ */
+function extrachill_shop_ticket_terms_required_error(): WP_Error {
+	return new WP_Error(
+		'terms_required',
+		'Please agree to the Terms of Service to buy tickets.',
+		array(
+			'status'        => 400,
+			'terms_url'     => extrachill_shop_legal_document( 'terms', 'url' ),
+			'terms_version' => extrachill_shop_legal_document( 'terms', 'version' ),
+		)
+	);
 }
 
 function extrachill_shop_record_ticket_sales( $reference, array $order, $refund = null ) {
