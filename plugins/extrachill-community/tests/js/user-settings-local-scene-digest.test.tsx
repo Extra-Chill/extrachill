@@ -86,6 +86,7 @@ async function renderSettings( hasLocalScene = true, subscribed = false ) {
 				user_id: 7,
 				emails_enabled: true,
 				auto_subscribe_replies: true,
+				push_enabled: true,
 			} );
 		}
 		if ( ability === 'extrachill/entity-subscription-status' ) {

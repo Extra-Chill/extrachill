@@ -979,6 +979,7 @@ function NotificationsTab( {
 	const [ saving, setSaving ] = useState( false );
 	const [ emailsEnabled, setEmailsEnabled ] = useState( true );
 	const [ autoSubscribe, setAutoSubscribe ] = useState( true );
+	const [ pushEnabled, setPushEnabled ] = useState( true );
 	const [ sceneDigestEnabled, setSceneDigestEnabled ] = useState( false );
 	const [ savedSceneDigestEnabled, setSavedSceneDigestEnabled ] =
 		useState( false );
@@ -1009,6 +1010,7 @@ function NotificationsTab( {
 			.then( ( [ preferences, status ] ) => {
 				setEmailsEnabled( preferences.emails_enabled );
 				setAutoSubscribe( preferences.auto_subscribe_replies );
+				setPushEnabled( preferences.push_enabled ?? true );
 				setSceneDigestEnabled( status?.subscribed ?? false );
 				setSavedSceneDigestEnabled( status?.subscribed ?? false );
 				setLoading( false );
@@ -1033,6 +1035,7 @@ function NotificationsTab( {
 				client.execute( 'extrachill/update-notification-preferences', {
 					emails_enabled: emailsEnabled,
 					auto_subscribe_replies: autoSubscribe,
+					push_enabled: pushEnabled,
 				} ),
 			];
 			if (
@@ -1068,6 +1071,7 @@ function NotificationsTab( {
 	}, [
 		emailsEnabled,
 		autoSubscribe,
+		pushEnabled,
 		localScene,
 		sceneDigestEnabled,
 		savedSceneDigestEnabled,
@@ -1104,6 +1108,24 @@ function NotificationsTab( {
 						<strong>Email notifications</strong>
 						<div style={ styles.mutedText }>
 							Receive email digests for your notifications.
+						</div>
+					</label>
+				</li>
+				<li style={ styles.checkboxItem }>
+					<input
+						type="checkbox"
+						id="ec-notif-push"
+						checked={ pushEnabled }
+						onChange={ ( e ) => setPushEnabled( e.target.checked ) }
+					/>
+					<label
+						htmlFor="ec-notif-push"
+						style={ { fontWeight: 'normal', cursor: 'pointer' } }
+					>
+						<strong>Push notifications</strong>
+						<div style={ styles.mutedText }>
+							Get replies, mentions and requests on your phone
+							through the Extra Chill app.
 						</div>
 					</label>
 				</li>

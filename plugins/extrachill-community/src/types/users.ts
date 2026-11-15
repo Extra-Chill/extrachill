@@ -150,12 +150,13 @@ export interface ResolvedSubscriptionEntity extends EntitySubscriptionIdentity {
 //
 // Mirrors extrachill/get-notification-preferences and
 // extrachill/update-notification-preferences (extrachill-users). Both abilities
-// expose the same two boolean toggles; update accepts the same shape it returns.
+// expose the same boolean toggles; update accepts the same shape it returns.
 
 export interface NotificationPreferences {
 	user_id: number;
 	emails_enabled: boolean;
 	auto_subscribe_replies: boolean;
+	push_enabled: boolean;
 }
 
 export interface EntitySubscriptionStatus {

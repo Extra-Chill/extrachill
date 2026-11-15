@@ -60,6 +60,7 @@ function extrachill_users_privacy_meta_keys() {
 		'extrachill_notifications',
 		'ec_notifications_last_emailed',
 		'ec_notification_emails_disabled',
+		'ec_notification_push_disabled',
 		'ec_auto_subscribe_replies_disabled',
 		'_extrachill_default_event_location',
 		'_extrachill_local_scene',
