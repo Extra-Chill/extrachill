@@ -61,6 +61,22 @@ Running either command group against another network site exits with the exact
 owner URL. If the owner plugin is inactive or incomplete on that site, the
 command exits with an owner-plugin capability error.
 
+### City and venue expansion
+
+Thin adapters over the `extrachill/add-city`, `extrachill/expand-venues` and
+`extrachill/venue-expansion-report` Events abilities. They replace the old
+`wp extrachill-events add-city|expand|expand-report` root commands. Run them
+against the Events site as an administrator:
+
+```bash
+wp --url=https://events.extrachill.com --user=1 extrachill events add-city "Nashville, TN" --dry-run
+wp --url=https://events.extrachill.com --user=1 extrachill venues expand --cities-file=cities.txt
+wp --url=https://events.extrachill.com --user=1 extrachill venues expand --cities-file=cities.txt --apply
+wp --url=https://events.extrachill.com --user=1 extrachill venues expand-report --batch-job-id=123
+```
+
+`venues expand` only prints the plan unless `--apply` is passed.
+
 ### Shop
 
 Operator commands for the Shop site. Each one is a thin adapter over an

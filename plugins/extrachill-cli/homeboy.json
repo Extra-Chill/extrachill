@@ -26,6 +26,7 @@
           "tests/RevenueCommandRuntimeTest.php",
           "tests/RegenerateOgCardCommandTest.php",
           "tests/VenueSourceAliasesCommandTest.php",
+          "tests/EventsCityExpansionCommandTest.php",
           "tests/PhotoContestCommandTest.php",
           "tests/NewsletterSendCampaignCommandTest.php",
           "tests/ShopCommandTest.php"
@@ -59,6 +60,7 @@
       "php tests/RevenueCommandRuntimeTest.php",
       "php tests/RegenerateOgCardCommandTest.php",
       "php tests/VenueSourceAliasesCommandTest.php",
+      "php tests/EventsCityExpansionCommandTest.php",
       "php tests/PhotoContestCommandTest.php",
       "php tests/NewsletterSendCampaignCommandTest.php",
       "php tests/ShopCommandTest.php"
