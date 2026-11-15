@@ -212,8 +212,45 @@ function LinksPanel( { draft, change, limits } ) {
 		sections[ sectionIndex ] = { ...section, links: items };
 		change( { page: { ...draft.page, links: sections } } );
 	};
+	// A new page has no sections. Its first link should not require creating
+	// a section first, so the empty state adds an untitled section that
+	// already holds one empty link.
+	const addFirstLink = () =>
+		change( {
+			page: {
+				...draft.page,
+				links: [
+					{
+						id: tempId( 'section' ),
+						section_title: '',
+						links: [
+							{
+								id: tempId( 'link' ),
+								link_text: '',
+								link_url: '',
+							},
+						],
+					},
+				],
+			},
+		} );
 	return (
 		<div className="ec-tab ec-tab--links">
+			{ draft.page.links.length === 0 && (
+				<div className="ec-lpe-links-empty">
+					<p>
+						Add the links you want fans to find: your music, shows,
+						merch and more.
+					</p>
+					<button
+						type="button"
+						className="button-1 button-medium ec-lpe-links-empty__add-link"
+						onClick={ addFirstLink }
+					>
+						Add Link
+					</button>
+				</div>
+			) }
 			{ draft.page.links.map( ( section, sectionIndex ) => (
 				<fieldset
 					className="ec-lpe-section"
@@ -408,7 +445,7 @@ function LinksPanel( { draft, change, limits } ) {
 						) ) }
 						<button
 							type="button"
-							className="button-2"
+							className="button-2 button-small"
 							disabled={
 								section.links.length >= limits.linksPerSection
 							}
@@ -432,7 +469,7 @@ function LinksPanel( { draft, change, limits } ) {
 			) ) }
 			<button
 				type="button"
-				className="button-2"
+				className="button-2 button-medium"
 				disabled={ draft.page.links.length >= limits.sections }
 				onClick={ () =>
 					change( {
@@ -2011,10 +2048,19 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 	if ( ! draft ) {
 		return null;
 	}
+	// A page with no links, bio or socials has nothing to show yet. "Saved"
+	// there reads as if something already happened, so it gets a first-step
+	// prompt instead, and "Saved" only describes a page with content.
+	const hasContent =
+		draft.page.links.some(
+			( section ) => ( section.links || [] ).length > 0
+		) ||
+		!! draft.page.bio ||
+		draft.socials.length > 0;
 	let saveLabel = 'Saved';
 	if ( 'saving' === phase ) {
-		saveLabel = 'Saving...';
-	} else if ( dirty ) {
+		saveLabel = 'Saving…';
+	} else if ( dirty || ! hasContent ) {
 		saveLabel = 'Save changes';
 	}
 	return (
@@ -2093,13 +2139,22 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 					{ message && <span role="status">{ message }</span> }
 					<button
 						type="submit"
-						className="button-1"
+						className="button-1 button-medium"
 						disabled={ isBusy || ! dirty }
 					>
 						{ saveLabel }
 					</button>
 				</div>
 			</header>
+			{ ! hasContent && ! dirty && (
+				<div className="notice notice-info ec-editor__first-steps">
+					<p>
+						<strong>Your Link Page is live but empty.</strong> Add
+						your first link on the Links tab and a short bio on the
+						Info tab, then press Save changes.
+					</p>
+				</div>
+			) }
 			<fieldset className="ec-editor__controls" disabled={ isBusy }>
 				<div className="ec-editor__body">
 					<div className="ec-editor__sidebar">

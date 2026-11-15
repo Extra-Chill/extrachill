@@ -356,6 +356,55 @@ describe( 'portable editor behavior', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'offers Add Link on an empty page and no premature Saved state', async () => {
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async () =>
+				documentFor( 'a', { link_sections: [] } )
+			),
+			save: jest.fn(),
+		};
+		const { container, root } = await renderEditor();
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).not.toBeNull();
+		const submit = container.querySelector( 'button[type="submit"]' );
+		expect( submit.textContent ).toBe( 'Save changes' );
+		expect( submit.disabled ).toBe( true );
+		await act( async () =>
+			container.querySelector( '[role="tab"][id$="-links"]' ).click()
+		);
+		await act( async () =>
+			container.querySelector( '.ec-lpe-links-empty__add-link' ).click()
+		);
+		expect(
+			container.querySelector( '.ec-lpe-links-empty' )
+		).toBeNull();
+		expect(
+			container.querySelectorAll( 'input[aria-label="Link title"]' )
+				.length
+		).toBe( 1 );
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).toBeNull();
+		expect( submit.disabled ).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'shows Saved for an unchanged page with content', async () => {
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async () => documentFor() ),
+			save: jest.fn(),
+		};
+		const { container, root } = await renderEditor();
+		expect(
+			container.querySelector( 'button[type="submit"]' ).textContent
+		).toBe( 'Saved' );
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).toBeNull();
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'rejects blank and malformed links before adapter save', async () => {
 		const save = jest.fn();
 		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
