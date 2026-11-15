@@ -5,12 +5,14 @@
  * @package ExtraChill\Users
  */
 
+// phpcs:disable Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
+
 namespace ExtraChill\Users\Teams;
 
 /**
  * Team membership double backed by $GLOBALS['ec_test_rosters'].
  */
-class TeamMembershipRepository { // phpcs:ignore Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
+class TeamMembershipRepository {
 	/**
 	 * Return the active artist IDs seeded for the user.
 	 *

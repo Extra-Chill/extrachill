@@ -5,10 +5,12 @@
  * @package ExtraChill\Users
  */
 
+// phpcs:disable Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
+
 /**
  * Minimal WP_Error double.
  */
-class WP_Error { // phpcs:ignore Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
+class WP_Error {
 	/**
 	 * Error code.
 	 *
