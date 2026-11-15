@@ -10,7 +10,7 @@ namespace ExtraChill\Users\Teams;
 /**
  * Team membership double backed by $GLOBALS['ec_test_rosters'].
  */
-class TeamMembershipRepository {
+class TeamMembershipRepository { // phpcs:ignore Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
 	/**
 	 * Return the active artist IDs seeded for the user.
 	 *

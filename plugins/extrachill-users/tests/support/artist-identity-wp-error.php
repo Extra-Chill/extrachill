@@ -8,7 +8,7 @@
 /**
  * Minimal WP_Error double.
  */
-class WP_Error {
+class WP_Error { // phpcs:ignore Generic.Classes.DuplicateClassName.Found -- Test double for the standalone smoke.
 	/**
 	 * Error code.
 	 *
