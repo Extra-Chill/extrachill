@@ -121,7 +121,7 @@ function extrachill_newsletter_snapshot_on_newsletter_blog() {
  *
  * @param string  $new_status New post status.
  * @param string  $old_status Old post status.
- * @param WP_Post $post       Post object.
+ * @param mixed   $post       Post object.
  */
 function extrachill_newsletter_snapshot_on_transition( $new_status, $old_status, $post ) {
 	if ( ! is_object( $post ) || 'newsletter' !== $post->post_type ) {
