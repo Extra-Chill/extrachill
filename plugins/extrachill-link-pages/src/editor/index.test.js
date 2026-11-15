@@ -384,6 +384,9 @@ describe( 'portable editor behavior', () => {
 		await act( async () =>
 			container.querySelector( '[role="tab"][id$="-links"]' ).click()
 		);
+		expect(
+			container.querySelector( '.ec-lpe-add-section' ).className
+		).toBe( 'button-3 button-small ec-lpe-add-section' );
 		await act( async () =>
 			container.querySelector( '.ec-lpe-links-empty__add-link' ).click()
 		);
