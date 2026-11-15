@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.31.0] - 2026-11-15
+
+### Added
+- push delivery channel for notifications
+
 ## [1.30.6] - 2026-11-15
 
 ### Changed
