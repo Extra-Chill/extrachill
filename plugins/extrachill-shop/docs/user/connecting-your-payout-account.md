@@ -7,13 +7,13 @@ Your payout account is where buyers' money lands and how it reaches your bank. Y
 1. Open the [shop manager](https://shop.extrachill.com/manage/) and choose the shop you're setting up.
 2. Go to the **Payments** tab.
 3. Read the [Seller Agreement](https://extrachill.com/seller-agreement/), then check **I agree to the Seller Agreement**.
-4. Select the connect button. You'll go to a secure setup page run by our payment partner.
+4. Select **Connect payouts**. You'll go to a secure setup page run by our payment partner.
 5. Enter your details: who you are, your business details if you have them, and the bank account you want paid into.
 6. When you finish, you come back to the shop manager.
 
 You must be at least 18 to sell. If you set up payouts for a band, venue, or business, you're confirming you're allowed to act for it.
 
-If you leave partway through, come back to the **Payments** tab and select the connect button again to pick up where you left off.
+If you leave partway through, come back to the **Payments** tab and select **Connect payouts** again to pick up where you left off.
 
 ## Check Your Status
 
@@ -32,7 +32,7 @@ Until your account can receive payments, you can't publish products and buyers c
 
 ## See Your Money
 
-Once you're connected, select the dashboard button on the **Payments** tab. It opens your payout dashboard in a new tab, where you can see your balance, each payment, upcoming payouts to your bank, and your bank details.
+Once you're connected, select **Open payout dashboard** on the **Payments** tab. It opens your payout dashboard in a new tab, where you can see your balance, each payment, upcoming payouts to your bank, and your bank details.
 
 Money moves to your bank on your payout account's schedule. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md) for what Extra Chill takes from each sale.
 

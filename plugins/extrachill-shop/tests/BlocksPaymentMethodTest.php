@@ -88,8 +88,8 @@ final class BlocksPaymentMethodTest extends \PHPUnit\Framework\TestCase {
 
 	public function test_payment_method_data_uses_gateway_settings(): void {
 		$data = $this->registered_method()->get_payment_method_data();
-		$this->assertSame( 'Pay securely with Stripe', $data['title'] );
-		$this->assertSame( "You'll be redirected to Stripe to pay securely.", $data['description'] );
+		$this->assertSame( 'Pay securely', $data['title'] );
+		$this->assertSame( "You'll be redirected to our secure checkout to pay.", $data['description'] );
 
 		$GLOBALS['test_options']['woocommerce_extrachill_stripe_checkout_settings'] = array(
 			'enabled'     => 'yes',

@@ -30,8 +30,8 @@ class ExtraChill_Merch_Gateway extends WC_Payment_Gateway {
 		$this->init_settings();
 
 		$this->enabled     = $this->get_option( 'enabled', 'yes' );
-		$this->title       = $this->get_option( 'title', 'Pay securely with Stripe' );
-		$this->description = $this->get_option( 'description', "You'll be redirected to Stripe to pay securely." );
+		$this->title       = $this->get_option( 'title', 'Pay securely' );
+		$this->description = $this->get_option( 'description', "You'll be redirected to our secure checkout to pay." );
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 	}
@@ -50,12 +50,12 @@ class ExtraChill_Merch_Gateway extends WC_Payment_Gateway {
 			'title'       => array(
 				'title'   => 'Title',
 				'type'    => 'text',
-				'default' => 'Pay securely with Stripe',
+				'default' => 'Pay securely',
 			),
 			'description' => array(
 				'title'   => 'Description',
 				'type'    => 'textarea',
-				'default' => "You'll be redirected to Stripe to pay securely.",
+				'default' => "You'll be redirected to our secure checkout to pay.",
 			),
 		);
 	}

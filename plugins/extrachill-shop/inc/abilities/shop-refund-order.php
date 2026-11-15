@@ -2,7 +2,8 @@
 /**
  * Ability: extrachill/shop-refund-order
  *
- * Issue a full refund for a seller's order (Stripe direct charge).
+ * Refund a seller's order in full or in part (direct charge). Partial
+ * refunds return a prorated share of the platform application fee.
  * Canonical implementation — the REST route in extrachill-api refactors
  * to a thin shim that delegates here.
  *
@@ -25,7 +26,7 @@ function extrachill_shop_register_refund_order_ability(): void {
 		'extrachill/shop-refund-order',
 		array(
 			'label'               => __( 'Refund Shop Order', 'extrachill-shop' ),
-			'description'         => __( 'Refund a seller\'s order in full, including the platform application fee.', 'extrachill-shop' ),
+			'description'         => __( 'Refund a seller\'s order in full or in part. The platform application fee is returned in proportion.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -39,6 +40,10 @@ function extrachill_shop_register_refund_order_ability(): void {
 						'type'        => 'string',
 						'description' => 'Optional refund reason shown on the order.',
 					),
+					'amount' => array(
+						'type'        => 'number',
+						'description' => 'Optional amount to refund in dollars. Defaults to everything still refundable; cannot exceed it.',
+					),
 				),
 				'required'   => array( 'id', 'seller' ),
 			),
@@ -48,6 +53,7 @@ function extrachill_shop_register_refund_order_ability(): void {
 					'success'       => array( 'type' => 'boolean' ),
 					'order_id'      => array( 'type' => 'integer' ),
 					'refund_amount' => array( 'type' => 'number' ),
+					'remaining'     => array( 'type' => 'number' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_refund_order',
@@ -100,7 +106,12 @@ function extrachill_shop_ability_refund_order( array $input ): array|WP_Error {
 			return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 		}
 
-		return extrachill_shop_refund_seller_portion( $order, $seller, sanitize_text_field( (string) ( $input['reason'] ?? '' ) ) );
+		return extrachill_shop_refund_seller_portion(
+			$order,
+			$seller,
+			sanitize_text_field( (string) ( $input['reason'] ?? '' ) ),
+			$input['amount'] ?? null
+		);
 	} finally {
 		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 	}

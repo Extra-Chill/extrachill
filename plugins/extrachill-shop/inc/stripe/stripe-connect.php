@@ -64,7 +64,7 @@ function extrachill_shop_create_seller_stripe_account( $seller ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
-			'error'   => 'Stripe is not configured.',
+			'error'   => 'Payouts are not configured.',
 		);
 	}
 
@@ -132,7 +132,7 @@ function extrachill_shop_create_seller_stripe_account( $seller ) {
 	) ) {
 		return array(
 			'success' => false,
-			'error'   => 'Stripe account binding could not be stored.',
+			'error'   => 'The payout account could not be saved.',
 		);
 	}
 
@@ -165,7 +165,7 @@ function extrachill_shop_create_account_link( $account_id, $type = 'account_onbo
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
-			'error'   => 'Stripe is not configured.',
+			'error'   => 'Payouts are not configured.',
 		);
 	}
 
@@ -213,7 +213,7 @@ function extrachill_shop_create_dashboard_link( $account_id ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
-			'error'   => 'Stripe is not configured.',
+			'error'   => 'Payouts are not configured.',
 		);
 	}
 
@@ -243,7 +243,7 @@ function extrachill_shop_get_account_status( $account_id ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
-			'error'   => 'Stripe is not configured.',
+			'error'   => 'Payouts are not configured.',
 		);
 	}
 

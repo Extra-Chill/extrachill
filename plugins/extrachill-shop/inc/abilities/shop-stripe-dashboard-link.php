@@ -70,11 +70,11 @@ function extrachill_shop_ability_stripe_dashboard_link( array $input ): array|WP
 	$account_id = extrachill_shop_get_seller_stripe_account( $seller );
 
 	if ( empty( $account_id ) ) {
-		return new WP_Error( 'no_stripe_account', 'No Stripe account connected.', array( 'status' => 400 ) );
+		return new WP_Error( 'no_stripe_account', 'No payout account connected.', array( 'status' => 400 ) );
 	}
 
 	if ( ! function_exists( 'extrachill_shop_create_dashboard_link' ) ) {
-		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_not_available', 'Payouts are not available right now.', array( 'status' => 500 ) );
 	}
 
 	$link_result = extrachill_shop_create_dashboard_link( $account_id );

@@ -298,6 +298,32 @@ function extrachill_shop_close_merch_session( $session, $account, $outcome ) {
 }
 
 /**
+ * The merch order paid by a PaymentIntent on a connected account.
+ *
+ * Charges, refunds and disputes do not carry the Checkout Session metadata,
+ * so webhooks find the order by the PaymentIntent fulfilment stored on it.
+ *
+ * @param string $intent  PaymentIntent ID.
+ * @param string $account Connected account the charge is on.
+ * @return WC_Order|null Null when no order matches this intent and account.
+ */
+function extrachill_shop_find_merch_order_by_payment_intent( string $intent, $account ) {
+	$orders = '' === $intent ? array() : wc_get_orders(
+		array(
+			'limit'          => 1,
+			'payment_method' => 'extrachill_stripe_checkout',
+			'meta_key'       => '_extrachill_payment_intent', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One indexed lookup per webhook.
+			'meta_value'     => $intent, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One indexed lookup per webhook.
+		)
+	);
+	$order  = $orders ? $orders[0] : null;
+	if ( ! $order || (string) $order->get_meta( '_extrachill_stripe_account' ) !== (string) $account ) {
+		return null;
+	}
+	return $order;
+}
+
+/**
  * A buyer disputed a merch payment with their bank.
  *
  * On Express direct charges the platform covers a seller's negative
@@ -309,17 +335,8 @@ function extrachill_shop_close_merch_session( $session, $account, $outcome ) {
  * @return true|WP_Error
  */
 function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
-	$intent = (string) ( $dispute->payment_intent ?? '' );
-	$orders = '' === $intent ? array() : wc_get_orders(
-		array(
-			'limit'          => 1,
-			'payment_method' => 'extrachill_stripe_checkout',
-			'meta_key'       => '_extrachill_payment_intent', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One indexed lookup per dispute.
-			'meta_value'     => $intent, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One indexed lookup per dispute.
-		)
-	);
-	$order  = $orders ? $orders[0] : null;
-	if ( ! $order || (string) $order->get_meta( '_extrachill_stripe_account' ) !== (string) $account ) {
+	$order = extrachill_shop_find_merch_order_by_payment_intent( (string) ( $dispute->payment_intent ?? '' ), $account );
+	if ( ! $order ) {
 		error_log( 'Extra Chill dispute ' . ( $dispute->id ?? '' ) . ' on ' . $account . ' matches no merch order.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility; a retry would not find it either.
 		return true;
 	}
@@ -336,7 +353,7 @@ function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
 	$number  = $order->get_order_number();
 	$subject = sprintf( 'Order #%s was disputed', $number );
 	$body    = '<p>' . esc_html( sprintf( 'The buyer on order #%1$s disputed their $%2$s payment with their bank (reason: %3$s).', $number, $amount, $reason ) ) . '</p>'
-		. '<p>' . esc_html( 'Stripe has held the payment and a dispute fee. If you have not shipped yet, hold the order. Respond in your Stripe dashboard under Payments, then Disputes, before the deadline shown there, or the bank keeps the money with the buyer.' ) . '</p>';
+		. '<p>' . esc_html( 'The payment and a dispute fee are on hold. If you have not shipped yet, do not ship: the order is on hold in your shop manager. Respond in your payout dashboard under Payments, then Disputes, before the deadline shown there, or the bank keeps the money with the buyer.' ) . '</p>';
 	$seller  = extrachill_shop_get_order_seller( $order );
 	if ( null !== $seller ) {
 		extrachill_shop_notify_seller(
@@ -344,9 +361,9 @@ function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
 			array(
 				'subject'   => $subject,
 				'body_html' => $body,
-				'preheader' => sprintf( 'A buyer disputed order #%s. Respond in Stripe before the deadline.', $number ),
+				'preheader' => sprintf( 'A buyer disputed order #%s. Respond in your payout dashboard before the deadline.', $number ),
 				'cta_url'   => 'https://connect.stripe.com/express_login',
-				'cta_label' => 'Open Stripe',
+				'cta_label' => 'Open payout dashboard',
 			)
 		);
 	}

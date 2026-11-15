@@ -33,6 +33,9 @@ final class OrderSellerRecordTestItem {
 }
 
 final class OrderSellerRecordTestOrder {
+	public $refunded = 0.0;
+	public function get_total_refunded() { return $this->refunded; }
+	public function get_remaining_refund_amount() { return (float) $this->get_total() - $this->refunded; }
 	public $meta   = array();
 	public $status = 'pending';
 	public function get_id() { return 321; }

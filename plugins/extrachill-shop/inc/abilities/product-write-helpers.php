@@ -113,7 +113,7 @@ function extrachill_shop_product_can_publish( $product_id ) {
 	}
 
 	if ( ! $can_receive_payments ) {
-		return new WP_Error( 'stripe_not_ready', 'Connect Stripe before products can go live.', array( 'status' => 400 ) );
+		return new WP_Error( 'stripe_not_ready', 'Connect payouts before products can go live.', array( 'status' => 400 ) );
 	}
 
 	return true;

@@ -1,5 +1,5 @@
 /**
- * PaymentsTab - Stripe Connect integration for seller payments
+ * PaymentsTab - payout account setup and the current Extra Chill fees.
  */
 
 /**
@@ -10,6 +10,7 @@ import { ActionRow, InlineStatus, Panel } from '@extrachill/components';
 const PaymentsTab = ( {
 	seller,
 	status,
+	fees,
 	loading,
 	error,
 	sellerAgreementUrl,
@@ -31,16 +32,31 @@ const PaymentsTab = ( {
 			{ showPaymentsNote && (
 				<InlineStatus tone="warning">
 					<strong>Note:</strong> Products stay as drafts until your
-					Stripe account can receive payments.
+					payout account can receive payments.
 				</InlineStatus>
 			) }
 
 			{ sellsTickets && (
 				<InlineStatus tone="info">
-					This Stripe account also receives your ticket sales. Ticket
+					This payout account also receives your ticket sales. Ticket
 					prices are set on each event; ticket payouts and refunds
-					show in your Stripe dashboard.
+					show in your payout dashboard.
 				</InlineStatus>
+			) }
+
+			{ fees && (
+				<div>
+					<h4>Fees</h4>
+					<ul>
+						<li>{ fees.merch_summary }</li>
+						{ sellsTickets && <li>{ fees.ticket_summary }</li> }
+					</ul>
+					<p className="ec-asm__muted">
+						The fee is taken automatically when the buyer pays.
+						Payment processing fees come out of your payout account
+						separately.
+					</p>
+				</div>
 			) }
 
 			{ loading && (
@@ -119,7 +135,7 @@ const PaymentsTab = ( {
 									loading || ! sellerAgreementAccepted
 								}
 							>
-								Connect Stripe
+								Connect payouts
 							</button>
 						) : (
 							<button
@@ -128,7 +144,7 @@ const PaymentsTab = ( {
 								onClick={ onOpenDashboard }
 								disabled={ loading }
 							>
-								Open Stripe Dashboard
+								Open payout dashboard
 							</button>
 						) }
 						<button

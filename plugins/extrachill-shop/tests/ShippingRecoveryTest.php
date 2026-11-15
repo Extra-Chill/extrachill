@@ -34,6 +34,9 @@ namespace {
 
 	/** A paid venue order with everything the label and status abilities read. */
 	final class ShippingRecoveryOrder {
+		public $refunded = 0.0;
+		public function get_total_refunded() { return $this->refunded; }
+		public function get_remaining_refund_amount() { return (float) $this->get_total() - $this->refunded; }
 		public $meta   = array();
 		public $notes  = array();
 		public $status = 'processing';

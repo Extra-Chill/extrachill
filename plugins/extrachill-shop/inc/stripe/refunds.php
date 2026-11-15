@@ -41,25 +41,38 @@ function extrachill_shop_get_order_seller_payout( $order, array $seller ) {
 }
 
 /**
- * Refund a seller's order in full.
+ * Refund a seller's order, in full or in part.
  *
  * A cart holds products from one seller, so the seller's portion is the whole
- * order. This refunds whatever is still refundable through WooCommerce, which
- * calls the gateway to issue the direct-charge Stripe refund.
+ * order. Without an amount this refunds whatever is still refundable; with
+ * one it refunds that much, up to what is left. WooCommerce records the
+ * refund and calls the gateway to issue the direct-charge refund, and the
+ * gateway returns the prorated application fee
+ * (`extrachill_shop_merch_fee_refund_target()`).
  *
- * @param WC_Order $order  Order.
- * @param array    $seller Seller reference.
- * @param string   $reason Refund reason shown on the order.
+ * @param WC_Order          $order  Order.
+ * @param array             $seller Seller reference.
+ * @param string            $reason Refund reason shown on the order.
+ * @param float|string|null $amount Amount in major units, or null for everything left.
  * @return array|WP_Error
  */
-function extrachill_shop_refund_seller_portion( $order, array $seller, $reason = '' ) {
+function extrachill_shop_refund_seller_portion( $order, array $seller, $reason = '', $amount = null ) {
 	if ( null === extrachill_shop_get_order_seller_payout( $order, $seller ) ) {
 		return new WP_Error( 'invalid_seller', 'This order does not contain products from this seller.', array( 'status' => 400 ) );
 	}
+	// The bank decides a disputed payment; a refund now is refused upstream.
+	if ( extrachill_shop_order_is_disputed( $order ) ) {
+		return extrachill_shop_order_disputed_error();
+	}
 
-	$refund_amount = round( (float) $order->get_remaining_refund_amount(), 2 );
-	if ( $refund_amount <= 0 ) {
+	$remaining = round( (float) $order->get_remaining_refund_amount(), 2 );
+	if ( $remaining <= 0 ) {
 		return new WP_Error( 'already_refunded', 'This order has already been refunded.', array( 'status' => 409 ) );
+	}
+
+	$refund_amount = extrachill_shop_validate_refund_amount( $amount, $remaining );
+	if ( is_wp_error( $refund_amount ) ) {
+		return $refund_amount;
 	}
 
 	$wc_refund = wc_create_refund(
@@ -78,7 +91,37 @@ function extrachill_shop_refund_seller_portion( $order, array $seller, $reason =
 		'success'       => true,
 		'order_id'      => (int) $order->get_id(),
 		'refund_amount' => $refund_amount,
+		'remaining'     => max( 0.0, round( $remaining - $refund_amount, 2 ) ),
 	);
+}
+
+/**
+ * Validate a seller's refund amount against what is left to refund.
+ *
+ * @param float|string|null $amount    Requested amount in major units, or null for all of it.
+ * @param float             $remaining Refundable amount left on the order.
+ * @return float|WP_Error Amount to refund, rounded to cents.
+ */
+function extrachill_shop_validate_refund_amount( $amount, $remaining ) {
+	$remaining = round( (float) $remaining, 2 );
+	if ( null === $amount || '' === $amount ) {
+		return $remaining;
+	}
+	if ( ! is_numeric( $amount ) || round( (float) $amount, 2 ) <= 0 ) {
+		return new WP_Error( 'invalid_refund_amount', 'Enter a refund amount greater than $0.00.', array( 'status' => 400 ) );
+	}
+	$amount = round( (float) $amount, 2 );
+	if ( $amount > $remaining ) {
+		return new WP_Error(
+			'refund_exceeds_remaining',
+			sprintf( 'You can refund up to $%s on this order.', number_format( $remaining, 2 ) ),
+			array(
+				'status'    => 400,
+				'remaining' => $remaining,
+			)
+		);
+	}
+	return $amount;
 }
 
 /**
@@ -95,7 +138,7 @@ function extrachill_shop_refund_seller_portion( $order, array $seller, $reason =
  */
 function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 	if ( ! $order || ! $order->get_meta( '_extrachill_payment_intent' ) || ! extrachill_shop_stripe_init() ) {
-		return new WP_Error( 'refund_unavailable', 'No refundable Stripe payment found.' );
+		return new WP_Error( 'refund_unavailable', 'No refundable payment found for this order.' );
 	}
 	$minor = (int) round( (float) $amount * 100 );
 	if ( $minor <= 0 ) {
@@ -125,11 +168,14 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 	try {
 		$refund = \Stripe\Refund::create( $params, $options );
 		if ( ! in_array( $refund->status ?? 'succeeded', array( 'succeeded', 'pending' ), true ) ) {
-			return new WP_Error( 'refund_failed', 'Stripe refund failed.' );
+			return new WP_Error( 'refund_failed', 'The payment refund failed.' );
 		}
 	} catch ( \Exception $e ) {
-		return new WP_Error( 'refund_failed', 'Stripe refund failed. Please retry.' );
+		return new WP_Error( 'refund_failed', 'The payment refund failed. Please retry.' );
 	}
+	// Tag the WooCommerce refund row with this refund ID once it is final
+	// (`woocommerce_refund_created`), so `charge.refunded` skips it.
+	$GLOBALS['extrachill_shop_pending_refund_id'] = (string) ( $refund->id ?? '' );
 	if ( '' !== $account ) {
 		// The buyer has their money, so the WooCommerce refund stands even if
 		// the fee refund fails; the order note tells an operator to finish it.
@@ -238,4 +284,163 @@ function extrachill_shop_refund_merch_application_fee( $order ) {
 	} catch ( \Exception $e ) {
 		return new WP_Error( 'fee_refund_failed', $e->getMessage() );
 	}
+}
+
+/**
+ * WooCommerce refund meta naming the Stripe refund it records.
+ */
+const EXTRACHILL_SHOP_REFUND_ID_META = '_extrachill_stripe_refund_id';
+
+add_action( 'woocommerce_refund_created', 'extrachill_shop_tag_refund_with_stripe_id' );
+
+/**
+ * Store the Stripe refund ID our gateway just issued on the WooCommerce refund.
+ *
+ * WooCommerce saves the refund row, calls the gateway, then fires
+ * `woocommerce_refund_created`; the gateway leaves the ID for this hook.
+ *
+ * @param int $refund_id WooCommerce refund ID.
+ */
+function extrachill_shop_tag_refund_with_stripe_id( $refund_id ): void {
+	$stripe_id = (string) ( $GLOBALS['extrachill_shop_pending_refund_id'] ?? '' );
+	unset( $GLOBALS['extrachill_shop_pending_refund_id'] );
+	$refund = '' === $stripe_id ? null : wc_get_order( $refund_id );
+	if ( $refund ) {
+		$refund->update_meta_data( EXTRACHILL_SHOP_REFUND_ID_META, $stripe_id );
+		$refund->save();
+	}
+}
+
+/**
+ * Stripe refund IDs already recorded as WooCommerce refunds on an order.
+ *
+ * @param WC_Order $order Order.
+ * @return string[]
+ */
+function extrachill_shop_recorded_merch_refunds( $order ): array {
+	$ids = array();
+	foreach ( $order->get_refunds() as $refund ) {
+		$id = (string) $refund->get_meta( EXTRACHILL_SHOP_REFUND_ID_META );
+		if ( '' !== $id ) {
+			$ids[] = $id;
+		}
+	}
+	return $ids;
+}
+
+/**
+ * Refunds on a charge, from the event or, when it is truncated, from Stripe.
+ *
+ * @param object $charge  Stripe charge.
+ * @param string $account Connected account.
+ * @return iterable<object>
+ */
+function extrachill_shop_charge_refund_rows( $charge, $account ) {
+	$refunds = $charge->refunds ?? null;
+	if ( $refunds && empty( $refunds->has_more ) ) {
+		return $refunds->data ?? array();
+	}
+	// @phpstan-ignore-next-line staticMethod.notFound -- Refund::all comes from the SDK's ApiOperations\All trait.
+	$refunds = \Stripe\Refund::all(
+		array(
+			'charge' => $charge->id,
+			'limit'  => 100,
+		),
+		array( 'stripe_account' => $account )
+	);
+	return $refunds->autoPagingIterator();
+}
+
+/**
+ * Record merch refunds made outside Extra Chill (`charge.refunded`).
+ *
+ * A seller can refund a buyer from their payout dashboard. The money has
+ * moved, so each new refund is recorded in WooCommerce without refunding
+ * the payment again, and the order gets a note. Idempotent:
+ *
+ * - Nothing happens unless the charge's `amount_refunded` exceeds what the
+ *   order already records, so our own refunds (recorded in WooCommerce
+ *   before the payment refund is issued) and replays are no-ops.
+ * - Refunds already recorded carry their Stripe refund ID in WooCommerce
+ *   refund meta and are skipped. Refunds created by
+ *   `extrachill_shop_refund_merch_payment()` also carry the order ID in
+ *   their metadata, which covers a webhook that beats the meta write.
+ *
+ * Seller orders then get the prorated application fee back
+ * (`extrachill_shop_refund_merch_application_fee()`), as a refund from the
+ * shop manager would.
+ *
+ * @param object $charge  Stripe charge.
+ * @param string $account Connected account the charge is on.
+ * @return true|WP_Error WP_Error asks Stripe to retry.
+ */
+function extrachill_shop_merch_charge_refunded( $charge, $account ) {
+	$order = extrachill_shop_find_merch_order_by_payment_intent( (string) ( $charge->payment_intent ?? '' ), $account );
+	if ( ! $order ) {
+		error_log( 'Extra Chill charge.refunded ' . ( $charge->id ?? '' ) . ' on ' . $account . ' matches no merch order.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility; a retry would not find it either.
+		return true;
+	}
+
+	$recorded_minor = (int) round( (float) $order->get_total_refunded() * 100 );
+	$unrecorded     = (int) ( $charge->amount_refunded ?? 0 ) - $recorded_minor;
+	if ( $unrecorded <= 0 ) {
+		return true;
+	}
+
+	$order_id = (string) $order->get_id();
+	$known    = extrachill_shop_recorded_merch_refunds( $order );
+	$added    = 0;
+	try {
+		$rows = extrachill_shop_charge_refund_rows( $charge, $account );
+		foreach ( $rows as $refund ) {
+			$refund_id = (string) ( $refund->id ?? '' );
+			$status    = (string) ( $refund->status ?? 'succeeded' );
+			if ( '' === $refund_id || ! in_array( $status, array( 'succeeded', 'pending' ), true ) || in_array( $refund_id, $known, true ) ) {
+				continue;
+			}
+			// Issued by our own refund flow, which recorded it in WooCommerce first.
+			if ( (string) ( $refund->metadata->order_id ?? '' ) === $order_id ) {
+				continue;
+			}
+			$remaining = (int) round( (float) $order->get_remaining_refund_amount() * 100 );
+			$minor     = min( (int) ( $refund->amount ?? 0 ), $unrecorded, $remaining );
+			if ( $minor <= 0 ) {
+				break;
+			}
+			$wc_refund = wc_create_refund(
+				array(
+					'order_id'       => (int) $order->get_id(),
+					'amount'         => round( $minor / 100, 2 ),
+					'reason'         => 'Refunded from the seller\'s payout dashboard.',
+					'refund_payment' => false,
+				)
+			);
+			if ( is_wp_error( $wc_refund ) ) {
+				return new WP_Error( 'merch_refund_record_failed', 'Could not record refund ' . $refund_id . ': ' . $wc_refund->get_error_message(), array( 'status' => 500 ) );
+			}
+			$wc_refund->update_meta_data( EXTRACHILL_SHOP_REFUND_ID_META, $refund_id );
+			$wc_refund->save();
+			$known[] = $refund_id;
+			$order->add_order_note( sprintf( 'The seller refunded $%1$s from their payout dashboard (refund %2$s). Recorded here; no further payment refund was issued.', number_format( $minor / 100, 2 ), $refund_id ) );
+			$unrecorded -= $minor;
+			$added      += $minor;
+			if ( $unrecorded <= 0 ) {
+				break;
+			}
+		}
+	} catch ( \Exception $e ) {
+		return new WP_Error( 'merch_refund_lookup_failed', 'Could not list refunds for charge ' . ( $charge->id ?? '' ) . ': ' . $e->getMessage(), array( 'status' => 500 ) );
+	}
+
+	if ( $added > 0 && '' !== (string) $order->get_meta( '_extrachill_stripe_account' ) ) {
+		// Same fee math as a shop-manager refund: return the prorated commission
+		// (and unspent shipping once fully refunded). The buyer's refund stands
+		// either way; a failure is left in a note for an operator.
+		$fresh      = wc_get_order( $order->get_id() );
+		$fee_refund = extrachill_shop_refund_merch_application_fee( $fresh ? $fresh : $order );
+		if ( is_wp_error( $fee_refund ) ) {
+			$order->add_order_note( 'Dashboard refund recorded, but returning the Extra Chill application fee to the seller failed: ' . $fee_refund->get_error_message() );
+		}
+	}
+	return true;
 }

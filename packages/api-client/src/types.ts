@@ -673,6 +673,12 @@ export interface ShopOrder {
   }>;
   seller_payout: number;
   order_total: number;
+  /** On hold for a bank dispute: cannot be shipped, labelled or refunded. */
+  disputed: boolean;
+  /** Total refunded so far. */
+  refunded_total: number;
+  /** Most that can still be refunded. */
+  refundable: number;
   tracking_number: string;
   /** Purchased shipping label, or '' when none was bought. */
   label_url: string;
@@ -706,7 +712,18 @@ export interface ShopRefundResponse {
   success: boolean;
   order_id: number;
   refund_amount: number;
-  reversed: boolean;
+  /** Refundable amount left after this refund. */
+  remaining: number;
+}
+
+/** Extra Chill fee rates shown to sellers. */
+export interface ShopSellerFeeRates {
+  merch_percent: number;
+  ticket_percent: number;
+  ticket_buyer_fee_percent: number;
+  ticket_buyer_fee_flat: number;
+  merch_summary: string;
+  ticket_summary: string;
 }
 
 export interface StripeConnectStatus {
@@ -716,6 +733,7 @@ export interface StripeConnectStatus {
   charges_enabled: boolean;
   payouts_enabled: boolean;
   details_submitted: boolean;
+  fees?: ShopSellerFeeRates;
 }
 
 export interface ShippingAddress {
@@ -732,12 +750,15 @@ export interface ShippingAddressResponse {
   seller: ShopSellerRef;
   address: Required<ShippingAddress>;
   is_set: boolean;
+  /** Seller's shipping times and return policy ('' when unset). */
+  return_policy: string;
 }
 
 export interface ShippingAddressUpdateResponse {
   success: boolean;
   seller: ShopSellerRef;
   address: Required<ShippingAddress>;
+  return_policy: string;
 }
 
 export interface ShippingLabel {

@@ -39,7 +39,50 @@ function extrachill_shop_order_seller_cpt_query( $query, $vars ) {
 			'value' => $vars['extrachill_seller'],
 		);
 	}
+	if ( ! empty( $vars['extrachill_exclude_disputed'] ) ) {
+		$query['meta_query'][] = extrachill_shop_not_disputed_meta_clause();
+	}
 	return $query;
+}
+
+/**
+ * Meta query clause matching orders with no open dispute.
+ *
+ * @return array
+ */
+function extrachill_shop_not_disputed_meta_clause(): array {
+	return array(
+		'relation' => 'OR',
+		array(
+			'key'     => '_extrachill_dispute',
+			'compare' => 'NOT EXISTS',
+		),
+		array(
+			'key'   => '_extrachill_dispute',
+			'value' => '',
+		),
+	);
+}
+
+/**
+ * Leave disputed orders out of a `wc_get_orders()` query.
+ *
+ * Disputed orders are on hold but must not be fulfilled, so Needs
+ * Fulfillment leaves them out. Same HPOS/CPT split as
+ * extrachill_shop_scope_order_query_to_seller().
+ *
+ * @param array $args Order query args.
+ * @return array
+ */
+function extrachill_shop_exclude_disputed_orders( array $args ): array {
+	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
+		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$args['meta_query']   = isset( $args['meta_query'] ) && is_array( $args['meta_query'] ) ? $args['meta_query'] : array(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- The dispute flag is order meta.
+		$args['meta_query'][] = extrachill_shop_not_disputed_meta_clause();
+	} else {
+		$args['extrachill_exclude_disputed'] = true;
+	}
+	return $args;
 }
 
 /**
@@ -202,4 +245,31 @@ function extrachill_shop_update_order_shipment( $order, array $fields ): void {
 	$stored = $order->get_meta( '_extrachill_shipment' );
 	$stored = is_array( $stored ) ? $stored : array();
 	$order->update_meta_data( '_extrachill_shipment', array_merge( $stored, $fields ) );
+}
+
+/**
+ * Whether an order is on hold for a buyer's bank dispute.
+ *
+ * The dispute webhook (`extrachill_shop_merch_charge_disputed()`) records
+ * `_extrachill_dispute` and puts the order on hold. An operator who settles
+ * the dispute moves the order off hold, which releases it again.
+ *
+ * @param WC_Order $order Order.
+ * @return bool
+ */
+function extrachill_shop_order_is_disputed( $order ): bool {
+	return '' !== (string) $order->get_meta( '_extrachill_dispute' ) && 'on-hold' === $order->get_status();
+}
+
+/**
+ * The error a seller gets when they try to ship, label or refund a disputed order.
+ *
+ * @return WP_Error
+ */
+function extrachill_shop_order_disputed_error(): WP_Error {
+	return new WP_Error(
+		'order_disputed',
+		__( 'The buyer disputed this payment with their bank. Do not ship this order until the dispute is settled. Respond to the dispute in your payout dashboard before the deadline.', 'extrachill-shop' ),
+		array( 'status' => 409 )
+	);
 }

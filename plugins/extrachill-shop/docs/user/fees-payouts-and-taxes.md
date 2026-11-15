@@ -8,7 +8,7 @@ Selling on Extra Chill works like a merch table at a festival. We bring the boot
 - **Tickets:** nothing right now. No fee for you, and no service fee for your buyers.
 - **Opening a shop, listing products, and printing labels:** free.
 
-The fee is taken automatically when the buyer pays. You never get a bill. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
+The fee is taken automatically when the buyer pays. You never get a bill. The current rates are always shown on the **Payments** tab of the shop manager, and the merch rate is shown under **Price** when you add a product. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
 
 ## Payment Processing Fees
 
@@ -39,11 +39,11 @@ Payment processing fees come out of these amounts.
 
 - Every sale is paid straight into your payout account. Extra Chill never holds your money.
 - Money moves from your payout account to your bank on its regular schedule.
-- Select the dashboard button on the **Payments** tab of the [shop manager](https://shop.extrachill.com/manage/) to see your balance, each payment, and upcoming payouts.
+- Select **Open payout dashboard** on the **Payments** tab of the [shop manager](https://shop.extrachill.com/manage/) to see your balance, each payment, and upcoming payouts.
 
 ## Refunds and Disputes
 
-When you refund an order, Extra Chill's fee on it is returned to you. Payment processing fees on the original sale may not come back.
+When you refund an order, Extra Chill's fee on it is returned to you. A partial refund returns the same share of the fee: refund $10 of a $25 order and $10/$25 of the fee comes back. This also applies to refunds you make from your payout dashboard. Payment processing fees on the original sale may not come back.
 
 If a buyer disputes a payment with their bank, the disputed amount and any dispute fee come out of your balance. See [Managing Orders and Refunds](managing-orders-and-refunds.md).
 

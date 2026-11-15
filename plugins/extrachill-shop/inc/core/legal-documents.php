@@ -157,7 +157,7 @@ function extrachill_shop_seller_agreement_required_error(): WP_Error {
 		'seller_agreement_required',
 		sprintf(
 			/* translators: %s: Seller Agreement URL. */
-			__( 'Please accept the Seller Agreement (%s) before connecting Stripe.', 'extrachill-shop' ),
+			__( 'Please accept the Seller Agreement (%s) before connecting payouts.', 'extrachill-shop' ),
 			$url
 		),
 		array(

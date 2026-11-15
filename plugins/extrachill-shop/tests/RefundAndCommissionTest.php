@@ -96,6 +96,7 @@ final class RefundAndCommissionTest extends TestCase {
 				'success'       => true,
 				'order_id'      => 42,
 				'refund_amount' => 25.0,
+				'remaining'     => 0.0,
 			),
 			$result
 		);

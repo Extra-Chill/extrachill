@@ -10,9 +10,9 @@
 	const settings = wc.wcSettings.getSetting( 'extrachill_stripe_checkout_data', {} );
 	const decode = wp.htmlEntities.decodeEntities;
 	const el = wp.element.createElement;
-	const label = decode( settings.title || 'Pay securely with Stripe' );
+	const label = decode( settings.title || 'Pay securely' );
 	const description = decode(
-		settings.description || "You'll be redirected to Stripe to pay securely."
+		settings.description || "You'll be redirected to our secure checkout to pay."
 	);
 
 	function Content() {

@@ -2,7 +2,8 @@
 /**
  * Ability: extrachill/shop-stripe-status
  *
- * Get the Stripe Connect account status for an artist.
+ * Get the Stripe Connect account status for a seller, plus the current fee
+ * rates the Seller Agreement promises to show before listing.
  * Canonical implementation — the REST route in extrachill-api refactors
  * to a thin shim that delegates here.
  *
@@ -47,6 +48,10 @@ function extrachill_shop_register_stripe_status_ability(): void {
 					'charges_enabled'      => array( 'type' => 'boolean' ),
 					'payouts_enabled'      => array( 'type' => 'boolean' ),
 					'details_submitted'    => array( 'type' => 'boolean' ),
+					'fees'                 => array(
+						'type'        => 'object',
+						'description' => 'Current Extra Chill fee rates and their seller-facing summaries.',
+					),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_status',
@@ -87,11 +92,12 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 			'charges_enabled'      => false,
 			'payouts_enabled'      => false,
 			'details_submitted'    => false,
+			'fees'                 => extrachill_shop_seller_fee_rates(),
 		);
 	}
 
 	if ( ! function_exists( 'extrachill_shop_get_account_status' ) ) {
-		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
+		return new WP_Error( 'stripe_not_available', 'Payouts are not available right now.', array( 'status' => 500 ) );
 	}
 
 	$status = extrachill_shop_get_account_status( $account_id );
@@ -118,5 +124,6 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 		'charges_enabled'      => ! empty( $status['charges_enabled'] ),
 		'payouts_enabled'      => ! empty( $status['payouts_enabled'] ),
 		'details_submitted'    => ! empty( $status['details_submitted'] ),
+		'fees'                 => extrachill_shop_seller_fee_rates(),
 	);
 }

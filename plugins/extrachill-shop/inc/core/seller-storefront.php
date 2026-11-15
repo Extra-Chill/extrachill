@@ -21,6 +21,7 @@ add_action( 'template_redirect', 'extrachill_shop_storefront_template_redirect',
 add_filter( 'pre_handle_404', 'extrachill_shop_storefront_pre_handle_404', 10, 2 );
 add_filter( 'document_title_parts', 'extrachill_shop_storefront_title', 1000 );
 add_filter( 'extrachill_seo_canonical_url', 'extrachill_shop_storefront_canonical' );
+add_filter( 'woocommerce_product_tabs', 'extrachill_shop_product_return_policy_tab' );
 
 /**
  * Register storefront routes. They take precedence over the network
@@ -192,6 +193,64 @@ function extrachill_shop_render_storefront_header( array $seller ): void {
 				<a class="button-1 button-small" href="<?php echo esc_url( $manage_url ); ?>"><?php esc_html_e( 'Manage Shop', 'extrachill-shop' ); ?></a>
 			<?php endif; ?>
 		</p>
+		<?php
+		$policy = extrachill_shop_get_seller_return_policy( $seller );
+		if ( '' !== $policy ) :
+			?>
+			<details>
+				<summary><?php esc_html_e( 'Shipping & returns', 'extrachill-shop' ); ?></summary>
+				<?php echo extrachill_shop_return_policy_html( $policy ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in extrachill_shop_return_policy_html(). ?>
+			</details>
+		<?php endif; ?>
 	</header>
 	<?php
+}
+
+/**
+ * A seller's return policy as safe paragraphs.
+ *
+ * The policy is plain text; it is escaped before line breaks become markup.
+ *
+ * @param string $policy Plain-text policy.
+ * @return string HTML.
+ */
+function extrachill_shop_return_policy_html( string $policy ): string {
+	return '' === trim( $policy ) ? '' : wpautop( esc_html( $policy ) );
+}
+
+/**
+ * Add a Shipping & Returns tab to products whose seller published a policy.
+ *
+ * @param array $tabs WooCommerce product tabs.
+ * @return array
+ */
+function extrachill_shop_product_return_policy_tab( $tabs ) {
+	global $product;
+	if ( ! is_object( $product ) || ! method_exists( $product, 'get_id' ) ) {
+		return $tabs;
+	}
+	$seller = extrachill_shop_get_product_seller( (int) $product->get_id() );
+	if ( ! $seller || '' === extrachill_shop_get_seller_return_policy( $seller ) ) {
+		return $tabs;
+	}
+	$tabs = is_array( $tabs ) ? $tabs : array();
+
+	$tabs['extrachill_shipping_returns'] = array(
+		'title'    => __( 'Shipping & Returns', 'extrachill-shop' ),
+		'priority' => 25,
+		'callback' => 'extrachill_shop_render_product_return_policy_tab',
+	);
+	return $tabs;
+}
+
+/**
+ * Render the Shipping & Returns product tab.
+ */
+function extrachill_shop_render_product_return_policy_tab(): void {
+	global $product;
+	$seller = is_object( $product ) ? extrachill_shop_get_product_seller( (int) $product->get_id() ) : null;
+	if ( ! $seller ) {
+		return;
+	}
+	echo extrachill_shop_return_policy_html( extrachill_shop_get_seller_return_policy( $seller ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped in extrachill_shop_return_policy_html().
 }

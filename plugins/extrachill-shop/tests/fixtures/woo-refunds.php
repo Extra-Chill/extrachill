@@ -47,6 +47,10 @@ trait WooRefundTracking {
 	public function get_remaining_refund_amount() {
 		return round( (float) $this->get_total() - $this->get_total_refunded(), 2 );
 	}
+
+	public function get_refunds() {
+		return $GLOBALS['test_wc_refund_objects'][ $this->get_id() ] ?? array();
+	}
 }
 
 if ( ! function_exists( 'wc_create_refund' ) ) {
@@ -71,6 +75,24 @@ if ( ! function_exists( 'wc_create_refund' ) ) {
 				return new WP_Error( 'error', is_wp_error( $result ) ? $result->get_error_message() : 'Gateway refund failed.' );
 			}
 		}
-		return (object) array( 'id' => 900 + $index );
+		$refund = new TestWcRefund( 900 + $index, $amount );
+		// Saved WooCommerce refunds, as WC_Order::get_refunds() returns them.
+		$GLOBALS['test_wc_refund_objects'][ $order->get_id() ][] = $refund;
+		$GLOBALS['test_orders'][ $refund->get_id() ]              = $refund;
+		// do_action( 'woocommerce_refund_created' ).
+		extrachill_shop_tag_refund_with_stripe_id( $refund->get_id() );
+		return $refund;
 	}
+}
+
+/** A saved WooCommerce refund row. */
+final class TestWcRefund {
+	public $meta  = array();
+	public $saves = 0;
+	public function __construct( private int $id, public float $amount ) {}
+	public function get_id() { return $this->id; }
+	public function get_amount() { return $this->amount; }
+	public function get_meta( $key ) { return $this->meta[ $key ] ?? ''; }
+	public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
+	public function save() { ++$this->saves; return $this->id; }
 }

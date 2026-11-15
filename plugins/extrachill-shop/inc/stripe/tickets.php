@@ -274,7 +274,7 @@ function extrachill_shop_refund_ticket_order( array $input ) {
 		return array( 'refunded' => true ); }
 	// Stripe refuses refunds on a disputed charge; the bank decides it now.
 	if ( 'disputed' === $order['status'] ) {
-		return new WP_Error( 'ticket_disputed', 'This payment is disputed, so it can only be settled in Stripe.', array( 'status' => 409 ) ); }
+		return new WP_Error( 'ticket_disputed', 'This payment is disputed, so it can only be settled in your payout dashboard.', array( 'status' => 409 ) ); }
 	if ( ! empty( $status['any_redeemed'] ) || ( empty( $status['refundable'] ) && 'refund_pending' !== $order['status'] ) ) {
 		return new WP_Error( 'ticket_already_redeemed', 'This ticket order is not refundable.', array( 'status' => 409 ) ); }
 	if ( ! extrachill_shop_stripe_init() || empty( $order['payment_intent'] ) ) {
