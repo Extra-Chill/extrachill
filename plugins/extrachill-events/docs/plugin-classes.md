@@ -6,188 +6,26 @@ Object-oriented classes provided by the ExtraChill Events plugin.
 
 **Namespace:** Global
 
-**File:** `extrachill-events.php`
+**File:** `inc/Core/Plugin.php`
 
-**Purpose:** Main singleton class managing plugin initialization, template overrides, and integration loading
+**Purpose:** Singleton composition facade. Its private constructor registers
+each domain provider (`CliProvider`, `IngestionProvider`,
+`AdministrationProvider`, `LifecycleProvider`, `CoreRuntimeProvider`,
+`ArtistUrlImportProvider`, `PromoterAuthorityProvider`, `VenueProvider`,
+`LinkPagesProvider`, `PublicExperienceProvider`, `AbilitiesProvider`,
+`DataMachineEventsProvider`) in order. A provider that throws is logged and
+reported through `extrachill_events_provider_failed` without suppressing the
+providers after it.
 
-### Class Properties
-
-#### $instance (static)
-**Type:** ExtraChillEvents|null
-
-**Visibility:** private static
-
-**Purpose:** Singleton instance storage
-
----
-
-#### $integrations
-**Type:** array
-
-**Visibility:** private
-
-**Purpose:** Stores loaded integration class instances
-
-**Structure:**
-```php
-array(
-    'data_machine_events' => DataMachineEventsIntegration instance
-)
-```
-
-### Class Methods
+Lifecycle hooks (activation, deactivation, schema install, feature ceilings,
+textdomain) are owned by `ExtraChillEvents\Providers\LifecycleProvider`.
 
 #### get_instance() (static)
-**Visibility:** public static
-
-**Parameters:** None
 
 **Return Value:** ExtraChillEvents instance
 
-**Purpose:** Get or create singleton instance
-
-**Usage:**
 ```php
 $plugin = ExtraChillEvents::get_instance();
-```
-
----
-
-#### __construct()
-**Visibility:** private
-
-**Purpose:** Initialize plugin hooks, dependencies, and integrations
-
-**Called By:** `get_instance()` when creating first instance
-
-**Actions:**
-1. `init_hooks()` - Register WordPress hooks
-2. `load_dependencies()` - Load integration files
-3. `init_integrations()` - Initialize integration classes
-
----
-
-#### init_hooks()
-**Visibility:** private
-
-**Purpose:** Register WordPress plugin hooks
-
-**Hooks Registered:**
-- `init` → `load_textdomain()`
-- `init` → `init_datamachine_handlers()` (priority 20)
-- `register_activation_hook()` → `activate()`
-- `register_deactivation_hook()` → `deactivate()`
-
----
-
-#### load_textdomain()
-**Visibility:** public
-
-**Purpose:** Load plugin translation files
-
-**Text Domain:** `extrachill-events`
-
-**Hook:** `init`
-
-**Implementation:** Uses `load_plugin_textdomain()` with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
-
----
-
-#### load_dependencies()
-**Visibility:** private
-
-**Purpose:** Load integration class files via direct includes
-
-**Files Loaded:**
-1. `vendor/autoload.php` (if exists, for development dependencies)
-2. `inc/core/data-machine-events-integration.php`
-3. `inc/core/nav.php`
-4. `inc/single-event/breadcrumbs.php`
-5. `inc/single-event/related-events.php`
-6. `inc/single-event/share-button.php`
-
-**Note:** Composer autoloader exists for development dependencies only (PHPUnit, PHPCS). All plugin code uses direct `require_once` includes.
-
----
-
-#### init_datamachine_handlers()
-**Visibility:** public
-
-**Purpose:** Initialize Data Machine event handlers conditionally
-
-**Hook:** `init` (priority 20)
-
-**Condition:** Only initializes if `DataMachine\Core\Steps\Fetch\Handlers\FetchHandler` class exists
-
-**Actions:**
-1. Requires `SlideGenerator.php`
-2. Requires `WeeklyRoundupSettings.php`
-3. Requires `WeeklyRoundupHandler.php`
-4. Requires `RoundupPublishSettings.php`
-5. Requires `RoundupPublishHandler.php`
-6. Instantiates `WeeklyRoundupHandler` and `RoundupPublishHandler`
-
-**Usage:** Called during WordPress initialization to set up weekly roundup handlers when Data Machine is active
-
-**Extensibility:** Can be called from external code to manually trigger handler initialization
-
----
-
-#### init_integrations()
-**Visibility:** private
-
-**Purpose:** Initialize event plugin integrations conditionally
-
-**Detection Logic:**
-```php
-if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
-    $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
-}
-```
-
-Detection uses data-machine-events' public integration API constant rather
-than `class_exists()` against an internal class name. See data-machine-events
-`docs/integration-api.md`.
-
-**Extensible:** Additional event plugin integrations can be added here
-
----
-
-#### activate()
-**Visibility:** public
-
-**Purpose:** Plugin activation hook
-
-**Actions:**
-- Flush rewrite rules to ensure custom URLs work
-
----
-
-#### deactivate()
-**Visibility:** public
-
-**Purpose:** Plugin deactivation hook
-
-**Actions:**
-- Flush rewrite rules to clean up custom URLs
-
----
-
-#### get_integrations()
-**Visibility:** public
-
-**Parameters:** None
-
-**Return Value:** array of integration instances
-
-**Purpose:** Access loaded integration instances
-
-**Usage:**
-```php
-$integrations = extrachill_events()->get_integrations();
-if (isset($integrations['data_machine_events'])) {
-    // Integration loaded
-}
 ```
 
 ---

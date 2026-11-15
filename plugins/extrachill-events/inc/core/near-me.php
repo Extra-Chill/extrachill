@@ -332,29 +332,3 @@ function extrachill_events_near_me_header_item( array $items ): array {
 	return $items;
 }
 add_filter( 'extrachill_secondary_header_items', 'extrachill_events_near_me_header_item' );
-
-// --- Utility ---
-
-/**
- * Calculate distance between two points using the Haversine formula.
- *
- * @param float $lat1 Latitude of point 1.
- * @param float $lon1 Longitude of point 1.
- * @param float $lat2 Latitude of point 2.
- * @param float $lon2 Longitude of point 2.
- * @return float Distance in miles.
- */
-function extrachill_events_haversine_distance( float $lat1, float $lon1, float $lat2, float $lon2 ): float {
-	$earth_radius = 3959; // miles
-
-	$d_lat = deg2rad( $lat2 - $lat1 );
-	$d_lon = deg2rad( $lon2 - $lon1 );
-
-	$a = sin( $d_lat / 2 ) * sin( $d_lat / 2 )
-		+ cos( deg2rad( $lat1 ) ) * cos( deg2rad( $lat2 ) )
-		* sin( $d_lon / 2 ) * sin( $d_lon / 2 );
-
-	$c = 2 * atan2( sqrt( $a ), sqrt( 1 - $a ) );
-
-	return $earth_radius * $c;
-}

@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-/** Composes domain-local providers while preserving the historical plugin facade. */
+/** Composes domain-local providers. */
 final class ExtraChillEvents {
 
 	/**
@@ -16,13 +16,6 @@ final class ExtraChillEvents {
 	 * @var self|null
 	 */
 	private static $instance = null;
-
-	/**
-	 * Registered integrations retained for the historical inspection contract.
-	 *
-	 * @var array
-	 */
-	private $integrations = array();
 
 	/** Return the singleton plugin facade. */
 	public static function get_instance(): self {
@@ -119,50 +112,5 @@ final class ExtraChillEvents {
 		if ( function_exists( 'do_action' ) ) {
 			do_action( 'extrachill_events_provider_failed', $provider, $error );
 		}
-	}
-
-	/** Preserve the historical integrations inspection contract. */
-	public function get_integrations(): array {
-		return $this->integrations;
-	}
-
-	/** Preserve the historical lifecycle facade. */
-	public function activate(): void {
-		\ExtraChillEvents\Providers\LifecycleProvider::activate();
-	}
-
-	/** Preserve the historical lifecycle facade. */
-	public function deactivate(): void {
-		\ExtraChillEvents\Providers\LifecycleProvider::deactivate();
-	}
-
-	/** Preserve the historical schema facade. */
-	public function maybe_install_schema(): void {
-		\ExtraChillEvents\Providers\LifecycleProvider::maybe_install_schema();
-	}
-
-	/**
-	 * Preserve the historical feature-ceiling facade.
-	 *
-	 * @param array $ceilings Existing feature ceilings.
-	 * @return array
-	 */
-	public function register_feature_ceilings( array $ceilings ): array {
-		return \ExtraChillEvents\Providers\LifecycleProvider::register_feature_ceilings( $ceilings );
-	}
-
-	/** Preserve the historical localization facade. */
-	public function load_textdomain(): void {
-		\ExtraChillEvents\Providers\LifecycleProvider::load_textdomain();
-	}
-
-	/** Preserve the historical moderation-admin facade. */
-	public function init_artist_url_admin(): void {
-		\ExtraChillEvents\Providers\AdministrationProvider::register_artist_url_admin();
-	}
-
-	/** Preserve the historical ability facade. */
-	public function init_abilities(): void {
-		\ExtraChillEvents\Providers\AbilitiesProvider::initialize();
 	}
 }

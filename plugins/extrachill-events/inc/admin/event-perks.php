@@ -388,20 +388,6 @@ function extrachill_events_get_perk_image_url( int $post_id, string $size = 'lar
 }
 
 /**
- * Alt text for the event's pass artwork: the attachment's own alt text,
- * falling back to a generic description.
- *
- * @param int $post_id Event post ID.
- * @return string
- */
-function extrachill_events_get_perk_image_alt( int $post_id ): string {
-	$image_id = extrachill_events_get_perk_image_id( $post_id );
-	$alt      = $image_id ? trim( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '';
-
-	return '' !== $alt ? $alt : __( 'Guest list pass artwork', 'extrachill-events' );
-}
-
-/**
  * Where the pass artwork comes from: the custom pass image, the event's
  * poster (featured image) as the default, or — when the event has neither —
  * a calendar-style event card (extrachill#1127).
