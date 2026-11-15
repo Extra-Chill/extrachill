@@ -99,6 +99,9 @@ function extrachill_shop_order_default_parcel( $order ) {
 	$dims        = null;
 
 	foreach ( $order->get_items( 'line_item' ) as $item ) {
+		if ( ! method_exists( $item, 'get_product_id' ) ) {
+			continue;
+		}
 		$product_id = method_exists( $item, 'get_variation_id' ) && $item->get_variation_id() ? (int) $item->get_variation_id() : (int) $item->get_product_id();
 		$product    = $product_id && function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
 		if ( ! $product ) {
