@@ -25,7 +25,7 @@ class TicketSettlementService {
 	private $bookings;
 	/** @var BookingActivityRepository */
 	private $activity;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var VenueBookingConfig */
 	private $config;
@@ -34,10 +34,10 @@ class TicketSettlementService {
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?VenueBookingConfig $config = null, ?TicketReconciliationService $reconciliation = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null, ?VenueBookingConfig $config = null, ?TicketReconciliationService $reconciliation = null ) {
 		$this->bookings       = $bookings ? $bookings : new BookingRepository();
 		$this->activity       = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization  = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization  = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->config         = $config ? $config : new VenueBookingConfig();
 		$this->reconciliation = $reconciliation ? $reconciliation : new TicketReconciliationService( $this->bookings, $this->activity, $this->authorization );
 	}
@@ -120,7 +120,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $checkout ? true : $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = $checkout ? true : ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -128,7 +128,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $normalized ) ) {
 			return $normalized;
 		}
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE, $checkout );
+		$started = $this->begin_authorized( $booking, $actor_id, 'ec_access_venue', $checkout );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -221,7 +221,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -252,7 +252,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -266,7 +266,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$allowed = ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -308,7 +308,7 @@ class TicketSettlementService {
 			$authenticated_provenance = $preflight['_provenance_evidence'];
 		}
 		$this->after_settlement_provenance_authenticated( $booking );
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$started = $this->begin_authorized( $booking, $actor_id, 'ec_manage_venue_finances' );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -450,7 +450,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		return true === $allowed ? $this->get_settlement( $booking['id'] ) : $this->denied( $allowed );
 	}
 
@@ -497,7 +497,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $expected_booking ) || is_wp_error( $expected_settlement ) ) {
 			return is_wp_error( $expected_booking ) ? $expected_booking : $expected_settlement;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$allowed = ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -514,7 +514,7 @@ class TicketSettlementService {
 				}
 			}
 		}
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$started = $this->begin_authorized( $booking, $actor_id, 'ec_manage_venue_finances' );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -870,7 +870,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $members ) ) {
 			return $this->rollback( new \WP_Error( 'settlement_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
 		}
-		$allowed = $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], $action, (array) $members );
+		$allowed = ( $this->authorization )( $action, $booking['venue_term_id'], $actor_id, (array) $members );
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
 	}
 

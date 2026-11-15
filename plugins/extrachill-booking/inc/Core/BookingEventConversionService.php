@@ -21,15 +21,15 @@ class BookingEventConversionService {
 	private $holds;
 	/** @var BookingActivityRepository */
 	private $activity;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingHoldRepository $holds = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingHoldRepository $holds = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->holds         = $holds ? $holds : new BookingHoldRepository( $this->bookings, $this->activity, $this->authorization );
 	}
 
@@ -580,7 +580,7 @@ class BookingEventConversionService {
 	}
 
 	private function authorize( int $actor_id, int $venue_id ) {
-		$allowed = $this->authorization->authorize( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id );
 		return true === $allowed ? true : ( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
 	}
 

@@ -7,7 +7,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\BookingAttachmentPolicy;
 
@@ -20,14 +20,14 @@ class VenueBookingConfigAbilities {
 
 	private static bool $registered = false;
 
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 
 	/** @var VenueBookingConfig */
 	private $config;
 
-	public function __construct( ?VenueBookingConfig $config = null, ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?VenueBookingConfig $config = null, ?callable $authorization = null ) {
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->config        = $config ? $config : new VenueBookingConfig( $this->authorization );
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
@@ -152,10 +152,10 @@ class VenueBookingConfigAbilities {
 
 	/** Authorize the WordPress feature gate and exact active venue scope. */
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize(
-			get_current_user_id(),
+		return ( $this->authorization )(
+			'ec_access_venue',
 			absint( $input['venue_term_id'] ?? 0 ),
-			VenueAuthorization::ACTION_ACCESS_VENUE
+			get_current_user_id()
 		);
 	}
 

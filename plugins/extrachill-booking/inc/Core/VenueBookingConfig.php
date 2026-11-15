@@ -50,7 +50,7 @@ class VenueBookingConfig {
 	/**
 	 * Venue authorization owner.
 	 *
-	 * @var VenueAuthorization|null
+	 * @var callable|null
 	 */
 	private $authorization;
 	/**
@@ -63,10 +63,10 @@ class VenueBookingConfig {
 	/**
 	 * Build the config owner with shared authorization and readiness contracts.
 	 *
-	 * @param VenueAuthorization|null         $authorization        Venue authorization owner.
+	 * @param callable|null                   $authorization        Venue authorization owner.
 	 * @param BookingAttachmentReadiness|null $attachment_readiness Attachment readiness gates.
 	 */
-	public function __construct( ?VenueAuthorization $authorization = null, ?BookingAttachmentReadiness $attachment_readiness = null ) {
+	public function __construct( ?callable $authorization = null, ?BookingAttachmentReadiness $attachment_readiness = null ) {
 		$this->authorization        = $authorization;
 		$this->attachment_readiness = $attachment_readiness ? $attachment_readiness : new BookingAttachmentReadiness();
 	}
@@ -199,8 +199,8 @@ class VenueBookingConfig {
 		if ( is_wp_error( $locked ) ) {
 			return $this->rollback_error( 'booking_config_authorization_lock_failed', __( 'Venue configuration authority could not be locked.', 'extrachill-events' ) );
 		}
-		$authorization = $this->authorization ? $this->authorization : new VenueAuthorization();
-		$allowed       = $authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$authorization = $this->authorization ? $this->authorization : array( TeamCapabilities::class, 'authorize' );
+		$allowed       = $authorization( 'ec_access_venue', $venue_term_id, $actor_user_id );
 		if ( is_wp_error( $allowed ) ) {
 			$this->rollback();
 			return $allowed;

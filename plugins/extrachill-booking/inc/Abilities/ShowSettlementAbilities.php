@@ -13,7 +13,7 @@ namespace ExtraChillEvents\Abilities;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\ArtistAuthorization;
 use ExtraChillEvents\Core\ShowSettlementService;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,14 +26,14 @@ class ShowSettlementAbilities {
 	private $service;
 	/** @var BookingRepository */
 	private $bookings;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var ArtistAuthorization */
 	private $artist_authorization;
 
-	public function __construct( ?ShowSettlementService $service = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?ArtistAuthorization $artist_authorization = null ) {
+	public function __construct( ?ShowSettlementService $service = null, ?BookingRepository $bookings = null, ?callable $authorization = null, ?ArtistAuthorization $artist_authorization = null ) {
 		$this->bookings             = $bookings ? $bookings : new BookingRepository();
-		$this->authorization        = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization        = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->artist_authorization = $artist_authorization ? $artist_authorization : new ArtistAuthorization();
 		$this->service              = $service;
 		if ( ! self::$registered ) {
@@ -126,7 +126,7 @@ class ShowSettlementAbilities {
 	public function can_manage( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
-			? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES )
+			? ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], get_current_user_id() )
 			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage this venue settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
@@ -139,7 +139,7 @@ class ShowSettlementAbilities {
 			return $this->artist_authorization->authorize_artist( $booking['artist_term_id'], get_current_user_id() );
 		}
 		return 'venue_recorded' === ( $input['acknowledgement_type'] ?? '' )
-			? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES )
+			? ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], get_current_user_id() )
 			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to acknowledge this settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 

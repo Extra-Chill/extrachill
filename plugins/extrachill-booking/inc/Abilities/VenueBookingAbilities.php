@@ -12,7 +12,7 @@ use ExtraChillEvents\Core\BookingInquiryAdmissionService;
 use ExtraChillEvents\Core\BookingAttachmentPolicy;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -48,7 +48,7 @@ class VenueBookingAbilities {
 	/**
 	 * Exact venue authorization policy.
 	 *
-	 * @var VenueAuthorization
+	 * @var callable
 	 */
 	private $authorization;
 	/** @var BookingHoldRepository */
@@ -91,13 +91,13 @@ class VenueBookingAbilities {
 	 *
 	 * @param BookingRepository|null              $bookings      Booking reads.
 	 * @param BookingLifecycle|null               $lifecycle     Booking mutations.
-	 * @param VenueAuthorization|null             $authorization Venue authorization.
+	 * @param callable|null                       $authorization Venue authorization.
 	 * @param BookingHoldRepository|null          $holds             Hold reconciliation.
 	 * @param BookingInquiryAdmissionService|null $inquiry_admission Inquiry admission.
 	 */
-	public function __construct( ?BookingRepository $bookings = null, ?BookingLifecycle $lifecycle = null, ?VenueAuthorization $authorization = null, ?BookingHoldRepository $holds = null, ?BookingInquiryAdmissionService $inquiry_admission = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingLifecycle $lifecycle = null, ?callable $authorization = null, ?BookingHoldRepository $holds = null, ?BookingInquiryAdmissionService $inquiry_admission = null ) {
 		$this->bookings          = $bookings ? $bookings : new BookingRepository();
-		$this->authorization     = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization     = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->holds             = $holds ? $holds : new BookingHoldRepository( $this->bookings, null, $this->authorization );
 		$this->lifecycle         = $lifecycle ? $lifecycle : new BookingLifecycle( $this->bookings, null, $this->authorization, null, $this->holds );
 		$this->inquiry_admission = $inquiry_admission;
@@ -468,7 +468,7 @@ class VenueBookingAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), VenueAuthorization::ACTION_ACCESS_VENUE );
+		return ( $this->authorization )( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ), get_current_user_id() );
 	}
 
 	/**
@@ -481,7 +481,7 @@ class VenueBookingAbilities {
 		if ( ! is_array( $booking ) ) {
 			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
-		return $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		return ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() );
 	}
 
 	/** Return the strict public inquiry input schema. */

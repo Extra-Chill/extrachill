@@ -11,7 +11,7 @@ use ExtraChillEvents\Core\BookingAttachmentPolicy;
 use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,7 +37,7 @@ class BookingAttachmentAbilities {
 	private $service;
 	/** Venue authorization policy.
 	 *
-	 * @var VenueAuthorization
+	 * @var callable
 	 */
 	private $authorization;
 
@@ -47,12 +47,12 @@ class BookingAttachmentAbilities {
 	 * @param BookingAttachmentRepository|null $attachments   Attachment repository.
 	 * @param BookingRepository|null           $bookings      Booking repository.
 	 * @param BookingAttachmentService|null    $service       Attachment service.
-	 * @param VenueAuthorization|null          $authorization Venue policy.
+	 * @param callable|null                    $authorization Venue policy.
 	 */
-	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingAttachmentService $service = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingAttachmentService $service = null, ?callable $authorization = null ) {
 		$this->attachments   = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->service       = $service;
 		// @phpstan-ignore arguments.count
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
@@ -205,7 +205,7 @@ class BookingAttachmentAbilities {
 		if ( ! is_array( $booking ) ) {
 			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
-		return $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		return ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() );
 	}
 
 	/**

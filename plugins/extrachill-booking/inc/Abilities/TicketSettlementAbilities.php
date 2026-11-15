@@ -13,7 +13,7 @@ namespace ExtraChillEvents\Abilities;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\TicketSettlementService;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -26,14 +26,14 @@ class TicketSettlementAbilities {
 	private $service;
 	/** @var BookingRepository */
 	private $bookings;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var TicketReconciliationService|null */
 	private $reconciliation;
 
-	public function __construct( ?TicketSettlementService $service = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?TicketReconciliationService $reconciliation = null ) {
+	public function __construct( ?TicketSettlementService $service = null, ?BookingRepository $bookings = null, ?callable $authorization = null, ?TicketReconciliationService $reconciliation = null ) {
 		$this->bookings       = $bookings ? $bookings : new BookingRepository();
-		$this->authorization  = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization  = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->reconciliation = $reconciliation;
 		$this->service        = $service;
 		if ( ! self::$registered ) {
@@ -224,17 +224,17 @@ class TicketSettlementAbilities {
 	}
 
 	public function can_access_booking( array $input ) {
-		return $this->authorize_booking( $input, VenueAuthorization::ACTION_ACCESS_VENUE );
+		return $this->authorize_booking( $input, 'ec_access_venue' );
 	}
 
 	public function can_manage_booking_finances( array $input ) {
-		return $this->authorize_booking( $input, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		return $this->authorize_booking( $input, 'ec_manage_venue_finances' );
 	}
 
 	private function authorize_booking( array $input, string $action ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
-			? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], $action )
+			? ( $this->authorization )( $action, $booking['venue_term_id'], get_current_user_id() )
 			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 

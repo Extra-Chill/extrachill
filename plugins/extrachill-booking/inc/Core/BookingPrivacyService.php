@@ -19,7 +19,7 @@ class BookingPrivacyService {
 	public const BATCH_SIZE = 25;
 	public const MAX_LIMIT  = 100;
 
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var callable|null */
 	private $identity_resolver;
@@ -30,8 +30,8 @@ class BookingPrivacyService {
 	/** @var callable|null */
 	private $diagnostics_reader;
 
-	public function __construct( ?VenueAuthorization $authorization = null, ?callable $identity_resolver = null, ?callable $reader = null, ?callable $redactor = null, ?callable $diagnostics_reader = null ) {
-		$this->authorization      = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?callable $authorization = null, ?callable $identity_resolver = null, ?callable $reader = null, ?callable $redactor = null, ?callable $diagnostics_reader = null ) {
+		$this->authorization      = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->identity_resolver  = $identity_resolver;
 		$this->reader             = $reader;
 		$this->redactor           = $redactor;
@@ -251,7 +251,7 @@ class BookingPrivacyService {
 		if ( $request instanceof \WP_Error ) {
 			return $request;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $request['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $request['venue_term_id'], $actor_id );
 		return true === $allowed ? $request : ( $allowed instanceof \WP_Error ? $allowed : $this->forbidden() );
 	}
 

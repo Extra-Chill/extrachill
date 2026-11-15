@@ -41,7 +41,7 @@ class BookingReportingService {
 		'marketing_operation_denied',
 	);
 
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var TicketSettlementService */
 	private $commissions;
@@ -50,8 +50,8 @@ class BookingReportingService {
 	/** @var callable|null */
 	private $snapshot_reader;
 
-	public function __construct( ?VenueAuthorization $authorization = null, ?TicketSettlementService $commissions = null, ?ShowSettlementService $shows = null, ?callable $snapshot_reader = null ) {
-		$this->authorization   = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?callable $authorization = null, ?TicketSettlementService $commissions = null, ?ShowSettlementService $shows = null, ?callable $snapshot_reader = null ) {
+		$this->authorization   = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->commissions     = $commissions ? $commissions : new TicketSettlementService();
 		$this->shows           = $shows ? $shows : new ShowSettlementService();
 		$this->snapshot_reader = $snapshot_reader;
@@ -59,12 +59,12 @@ class BookingReportingService {
 
 	/** Authorize and normalize an operations-report request. */
 	public function authorize_operations( array $input, int $actor_id ) {
-		return $this->authorize( $input, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		return $this->authorize( $input, $actor_id, 'ec_access_venue' );
 	}
 
 	/** Authorize and normalize a finance-report request. */
 	public function authorize_finance( array $input, int $actor_id ) {
-		return $this->authorize( $input, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		return $this->authorize( $input, $actor_id, 'ec_manage_venue_finances' );
 	}
 
 	/** Return the canonical booking funnel and operational projection. */
@@ -99,14 +99,14 @@ class BookingReportingService {
 		if ( $request instanceof \WP_Error ) {
 			return $request;
 		}
-		if ( count( $request['venue_term_ids'] ) > 1 && ! $this->authorization->is_administrator( $actor_id ) ) {
+		if ( count( $request['venue_term_ids'] ) > 1 && ! ( new TeamAuthorization() )->is_administrator( $actor_id ) ) {
 			return $this->denied();
 		}
-		if ( VenueAuthorization::ACTION_MANAGE_FINANCES === $action ) {
+		if ( 'ec_manage_venue_finances' === $action ) {
 			$request['limit'] = min( $request['limit'], self::MAX_FINANCE_BOOKINGS );
 		}
 		foreach ( $request['venue_term_ids'] as $venue_term_id ) {
-			$allowed = $this->authorization->authorize( $actor_id, $venue_term_id, $action );
+			$allowed = ( $this->authorization )( $action, $venue_term_id, $actor_id );
 			if ( true !== $allowed ) {
 				return $this->denied();
 			}
