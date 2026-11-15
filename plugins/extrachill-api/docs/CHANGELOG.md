@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.53.4] - 2026-11-15
+
+### Fixed
+- require Terms at ticket checkout; show tickets in My Account
+
 ## [0.53.3] - 2026-11-15
 
 ### Changed
