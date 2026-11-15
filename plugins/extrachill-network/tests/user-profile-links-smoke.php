@@ -13,17 +13,17 @@ define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['upl_blog_id']        = 1;
 $GLOBALS['upl_blog_stack']     = array();
+$GLOBALS['upl_switches']       = 0;
 $GLOBALS['upl_bbp_calls']      = array();
 $GLOBALS['upl_bbp_return_url'] = true;
 $GLOBALS['upl_escaped_urls']   = array();
-$GLOBALS['upl_users']          = array(
-	2 => array(
-		44 => (object) array(
-			'ID'            => 44,
-			'user_email'    => 'chris@example.com',
-			'user_nicename' => 'chris-huber',
-			'display_name'  => 'Chris Huber',
-		),
+// Users are network-global: the same table answers from every blog.
+$GLOBALS['upl_users'] = array(
+	44 => (object) array(
+		'ID'            => 44,
+		'user_email'    => 'chris@example.com',
+		'user_nicename' => 'chris-huber',
+		'display_name'  => 'Chris Huber',
 	),
 );
 
@@ -37,7 +37,12 @@ function absint( $value ): int {
 
 require_once __DIR__ . '/support/network-contract.php';
 
+function get_current_blog_id(): int {
+	return (int) $GLOBALS['upl_blog_id'];
+}
+
 function switch_to_blog( $blog_id ): bool {
+	++$GLOBALS['upl_switches'];
 	$GLOBALS['upl_blog_stack'][] = $GLOBALS['upl_blog_id'];
 	$GLOBALS['upl_blog_id']      = (int) $blog_id;
 	return true;
@@ -49,11 +54,11 @@ function restore_current_blog(): bool {
 }
 
 function get_userdata( $user_id ) {
-	return $GLOBALS['upl_users'][ $GLOBALS['upl_blog_id'] ][ (int) $user_id ] ?? false;
+	return $GLOBALS['upl_users'][ (int) $user_id ] ?? false;
 }
 
 function get_user_by( string $field, string $value ) {
-	foreach ( $GLOBALS['upl_users'][ $GLOBALS['upl_blog_id'] ] ?? array() as $user ) {
+	foreach ( $GLOBALS['upl_users'] as $user ) {
 		if ( 'email' === $field && $user->user_email === $value ) {
 			return $user;
 		}
@@ -67,7 +72,7 @@ function trailingslashit( string $value ): string {
 }
 
 function user_trailingslashit( string $value ): string {
-	return 2 === $GLOBALS['upl_blog_id'] ? trailingslashit( $value ) : untrailingslashit( $value );
+	return trailingslashit( $value );
 }
 
 function untrailingslashit( string $value ): string {
@@ -95,7 +100,7 @@ function is_user_logged_in(): bool {
 }
 
 function wp_get_current_user(): object {
-	return $GLOBALS['upl_users'][2][44];
+	return $GLOBALS['upl_users'][44];
 }
 
 function wp_logout_url( string $redirect ): string {
@@ -126,13 +131,26 @@ function upl_assert( bool $condition, string $message ): void {
 }
 
 $public_url = extrachill_get_user_community_profile_url( 44 );
-$edit_url   = extrachill_get_user_community_profile_edit_url( 44 );
+upl_assert_same( 0, $GLOBALS['upl_switches'], 'Public profile lookup reads global users without switching blogs.' );
+upl_assert_same( '', extrachill_get_user_community_profile_url( 999 ), 'An unknown user has no public profile URL.' );
+upl_assert_same( 0, $GLOBALS['upl_switches'], 'Unknown-user lookup never switches blogs.' );
+
+$edit_url = extrachill_get_user_community_profile_edit_url( 44 );
 
 upl_assert_same( 'https://community.extrachill.com/u/chris-huber', $public_url, 'The existing public profile contract remains unchanged.' );
 upl_assert_same( 'https://community.extrachill.com/u/chris-huber/edit/', $edit_url, 'A valid user resolves to the canonical Community editor.' );
 upl_assert_same( trailingslashit( $public_url ) . 'edit/', $edit_url, 'The edit URL extends the canonical public profile URL.' );
 upl_assert_same( 2, $GLOBALS['upl_bbp_calls'][0]['blog_id'], 'The bbPress URL API runs in Community blog context.' );
 upl_assert_same( 1, $GLOBALS['upl_blog_id'], 'Profile resolution restores the caller blog.' );
+upl_assert_same( 1, $GLOBALS['upl_switches'], 'Only the bbPress URL call switches, and only from a non-Community blog.' );
+
+$GLOBALS['upl_blog_id'] = 2;
+$community_edit_url     = extrachill_get_user_community_profile_edit_url( 44 );
+upl_assert_same( 'https://community.extrachill.com/u/chris-huber/edit/', $community_edit_url, 'On Community the editor URL is unchanged.' );
+upl_assert_same( 1, $GLOBALS['upl_switches'], 'On Community no blog switch happens at all.' );
+upl_assert_same( 2, $GLOBALS['upl_bbp_calls'][1]['blog_id'], 'The bbPress URL API still runs in Community context.' );
+array_pop( $GLOBALS['upl_bbp_calls'] );
+$GLOBALS['upl_blog_id'] = 1;
 
 upl_assert_same( '', extrachill_get_user_community_profile_edit_url( 999 ), 'An invalid user returns an empty URL.' );
 upl_assert_same( 1, count( $GLOBALS['upl_bbp_calls'] ), 'Invalid users never reach bbPress URL generation.' );
