@@ -28,6 +28,8 @@
   ],
   "self_checks": {
     "test": [
+      "node tests/app-prompt-gating.js",
+      "php tests/app-prompt.php",
       "php tests/comments-section-hook.php",
       "php tests/comments-template-filters.php",
       "php tests/header-search-icon-color.php",
