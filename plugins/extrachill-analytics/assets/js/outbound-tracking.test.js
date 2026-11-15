@@ -419,6 +419,14 @@ describe( 'content_link_click', () => {
 			'<div class="entry-content"><a href="https://tickets.example/show/">Tickets</a></div>',
 		],
 		[
+			'a same-host REST redirect (ticket button)',
+			'<div class="entry-content"><a class="button-1" href="/wp-json/extrachill/v1/events/tickets/5/go">Get Tickets</a></div>',
+		],
+		[
+			'a rest_route query destination',
+			'<div class="entry-content"><a href="/?rest_route=/extrachill/v1/events/tickets/5/go">Get Tickets</a></div>',
+		],
+		[
 			'same-page fragment',
 			'<div class="entry-content"><a href="#section-2">Jump</a></div>',
 		],

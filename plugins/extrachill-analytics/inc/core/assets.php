@@ -561,6 +561,7 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		: '';
 	if ( $post_id > 0 && is_string( $request_host ) && '' !== $request_host ) {
 		$config['contentEndpoint'] = rest_url( 'wp-abilities/v1/abilities/extrachill/track-content-link-click/run' );
+		$config['restPrefix']      = '/' . trim( rest_get_url_prefix(), '/' ) . '/';
 		$config['postId']          = $post_id;
 		$config['proof']           = extrachill_analytics_pageview_proof( $post_id, $source_path, 'singular', $request_host );
 	}
