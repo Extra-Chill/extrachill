@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.11] - 2026-11-15
+
+### Changed
+- one cached artist identity read instead of cross-blog lookups
+
 ## [2.39.10] - 2026-11-15
 
 ### Changed
