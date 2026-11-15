@@ -15,17 +15,8 @@ Global functions provided by the ExtraChill Events plugin.
 $plugin = extrachill_events();
 ```
 
-**Access Integrations:**
-```php
-$integrations = extrachill_events()->get_integrations();
-
-if (isset($integrations['data_machine_events'])) {
-    // data-machine-events integration is active
-}
-```
-
 **Description:**
-Convenience function providing global access to the plugin's singleton instance. Useful for accessing plugin properties and methods from outside the plugin.
+Convenience function providing global access to the plugin's singleton instance. Constructing it registers the plugin's domain providers.
 
 ---
 

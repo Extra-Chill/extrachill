@@ -457,10 +457,9 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
-	public function test_newly_bound_artist_maps_lazily_after_completed_backfill(): void {
+	public function test_newly_bound_artist_maps_lazily(): void {
 		$this->addTerm( 1, 101, 'new-band' );
 		$this->addTerm( 7, 501, 'new-band' );
-		$GLOBALS['ec_artist_test']['options'][7][ EXTRACHILL_EVENTS_ARTIST_BACKFILL_OPTION ] = array( 'complete' => true );
 		$this->bindProfile( 101 );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
@@ -628,123 +627,6 @@ final class EventsByArtistAbilityTest extends TestCase {
 
 		$this->assertSame( 'missing_artist_identity', $result->get_error_code() );
 		$this->assertArrayNotHasKey( 'delegated', $GLOBALS['ec_artist_test'] );
-	}
-
-	public function test_backfill_maps_only_bound_exact_unclaimed_pairs_and_reports_failures(): void {
-		$this->addTerm( 1, 101, 'mapped' );
-		$this->addTerm( 1, 102, 'missing' );
-		$this->addTerm( 1, 103, 'stale' );
-		$this->addTerm( 1, 104, 'collision' );
-		$this->addTerm( 1, 105, 'collision-two' );
-		foreach ( range( 101, 105 ) as $canonical_id ) {
-			$this->bindProfile( $canonical_id, $canonical_id + 1000 );
-		}
-		$this->addTerm( 7, 501, 'mapped' );
-		$this->addTerm( 7, 504, 'collision' );
-		$this->addTerm( 7, 599, 'local-only' );
-		$this->setMeta( 103, EXTRACHILL_EVENTS_ARTIST_TERM_META, 999 );
-		$this->setMeta( 104, EXTRACHILL_EVENTS_ARTIST_TERM_META, 504 );
-		$this->setMeta( 105, EXTRACHILL_EVENTS_ARTIST_TERM_META, 504 );
-		$events_before = $GLOBALS['ec_artist_test']['events'];
-
-		$report = extrachill_events_backfill_artist_identity();
-
-		$this->assertSame( 501, (int) $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
-		$this->assertCount( 1, $report['mapped'] );
-		$this->assertCount( 1, $report['missing'] );
-		$this->assertCount( 1, $report['stale'] );
-		$this->assertCount( 1, $report['collisions'] );
-		$this->assertCount( 1, $report['unmatched_local'] );
-		$this->assertSame( $events_before, $GLOBALS['ec_artist_test']['events'] );
-		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
-	}
-
-	public function test_backfill_reports_ambiguous_slugs_without_mapping_them(): void {
-		$this->addTerm( 1, 101, 'duplicate' );
-		$this->addTerm( 1, 102, 'duplicate' );
-		$this->bindProfile( 101, 1101 );
-		$this->bindProfile( 102, 1102 );
-		$this->addTerm( 7, 501, 'duplicate' );
-
-		$report = extrachill_events_backfill_artist_identity();
-
-		$this->assertCount( 0, $report['mapped'] );
-		$this->assertCount( 3, $report['ambiguous'] );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][102] );
-		$this->assertSame( 4, get_current_blog_id() );
-	}
-
-	public function test_backfill_counts_unbound_artist_mappings_as_claims(): void {
-		$this->addTerm( 1, 101, 'candidate' );
-		$this->addTerm( 1, 102, 'unbound-owner' );
-		$this->bindProfile( 101, 1101 );
-		$this->addTerm( 7, 501, 'candidate' );
-		$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
-
-		$report = extrachill_events_backfill_artist_identity();
-
-		$this->assertCount( 0, $report['mapped'] );
-		$this->assertCount( 1, $report['collisions'] );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
-	}
-
-	public function test_failed_mapping_write_is_reported_and_remains_retryable(): void {
-		$this->addTerm( 1, 101, 'candidate' );
-		$this->bindProfile( 101, 1101 );
-		$this->addTerm( 7, 501, 'candidate' );
-		$GLOBALS['ec_artist_test']['fail_updates'][101] = true;
-		$fail_update = static function ( $check, $object_id ) {
-			return 101 === (int) $object_id ? false : $check;
-		};
-		if ( class_exists( 'WP_UnitTestCase' ) ) {
-			add_filter( 'update_term_metadata', $fail_update, 10, 2 );
-		}
-
-		$report = extrachill_events_backfill_artist_identity();
-		if ( class_exists( 'WP_UnitTestCase' ) ) {
-			remove_filter( 'update_term_metadata', $fail_update, 10 );
-		}
-
-		$this->assertFalse( $report['complete'] );
-		$this->assertCount( 0, $report['mapped'] );
-		$this->assertCount( 1, $report['write_failures'] );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
-	}
-
-	public function test_backfill_rechecks_reverse_claims_after_mapping_lock(): void {
-		$this->addTerm( 1, 101, 'candidate' );
-		$this->addTerm( 1, 102, 'racer' );
-		$this->bindProfile( 101, 1101 );
-		$this->addTerm( 7, 501, 'candidate' );
-		$GLOBALS['wpdb']->after_mapping_lock = static function (): void {
-			$GLOBALS['ec_artist_test']['meta'][1][102][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
-		};
-
-		$report = extrachill_events_backfill_artist_identity();
-
-		$this->assertCount( 0, $report['mapped'] );
-		$this->assertCount( 1, $report['collisions'] );
-		$this->assertSame( array( 102, 101 ), $report['collisions'][0]['artist_term_ids'] );
-		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
-		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
-	}
-
-	public function test_backfill_reports_mapping_lock_release_failure_and_retains_lock(): void {
-		$this->addTerm( 1, 101, 'candidate' );
-		$this->bindProfile( 101, 1101 );
-		$this->addTerm( 7, 501, 'candidate' );
-		$GLOBALS['wpdb']->release_result = 0;
-
-		$report = extrachill_events_backfill_artist_identity();
-
-		$this->assertFalse( $report['complete'] );
-		$this->assertCount( 0, $report['mapped'] );
-		$this->assertCount( 1, $report['write_failures'] );
-		$this->assertSame( 501, (int) $GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] );
-		$this->assertSame( 'events_artist_mapping_lock_busy', \ExtraChillEvents\Core\ArtistMappingLock::acquire( 501 )->get_error_code() );
-		$GLOBALS['wpdb']->release_result = 1;
-		$this->assertTrue( \ExtraChillEvents\Core\ArtistMappingLock::release( 'ec_events_artist_mapping_501' ) );
 	}
 
 	public function test_input_schema_requires_only_a_canonical_id(): void {

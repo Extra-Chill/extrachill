@@ -16,7 +16,7 @@
  * Why a CLI in this repo (not extrachill-cli or a one-off script): the
  * command operates on events + wire authorship data, the events repo already
  * owns the `wp extrachill events ...` operator CLI surface and its dry-run /
- * --commit conventions (BackfillVenueMetaCommand, RepairFlowLocationsCommand),
+ * --commit conventions (RepairFlowLocationsCommand),
  * and shipping it here keeps the honest-authorship work in one reviewable
  * place alongside the Phase 1 submission changes. The bot id is resolved via
  * `ec_get_network_bot_user_id()` (extrachill-users), so the command is

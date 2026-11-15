@@ -317,9 +317,9 @@ final class EventSourceAbilityDouble {
 class TestableEventSourceIntake extends ArtistUrlImportAbilities {
 	public array $qualifications = array();
 
-	protected function qualifyForAdmission( string $url, bool $legacy_artist = false ) {
+	protected function qualifyForAdmission( string $url ) {
 		$result = array_shift( $this->qualifications );
-		return is_callable( $result ) ? $result( $url, $legacy_artist ) : $result;
+		return is_callable( $result ) ? $result( $url ) : $result;
 	}
 }
 
@@ -351,7 +351,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->intake = ( new ReflectionClass( ArtistUrlImportAbilities::class ) )->newInstanceWithoutConstructor();
 	}
 
-	private function classification( array $events, string $url = 'https://venue.test/events', bool $compatibility_artist = false, string $html = '', string $format = '' ): array {
+	private function classification( array $events, string $url = 'https://venue.test/events', string $html = '', string $format = '' ): array {
 		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'classifySource' );
 		$method->setAccessible( true );
 		return $method->invoke(
@@ -364,8 +364,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 				'raw_first_event' => $events[0] ?? array(),
 				'page_html'       => $html,
 			),
-			array( 'fingerprint' => array( 'structured_data' => array( 'event_page_shape' => 'recurring' ) ) ),
-			$compatibility_artist
+			array( 'fingerprint' => array( 'structured_data' => array( 'event_page_shape' => 'recurring' ) ) )
 		);
 	}
 
@@ -404,35 +403,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			'status'                   => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
 			'events_found_count'       => 3,
 		);
-	}
-
-	private function legacy_submission(): array {
-		return array(
-			'id'                       => 1,
-			'user_id'                  => 0,
-			'url'                      => 'https://source.test/events?view=calendar&utm_source=legacy',
-			'url_hash'                 => ArtistUrlSubmissionsTable::url_hash( 'https://source.test/events?view=calendar&utm_source=legacy' ),
-			'canonical_url'            => '',
-			'source_kind'              => '',
-			'entity_taxonomy'          => '',
-			'entity_term_id'           => null,
-			'entity_name'              => '',
-			'suggested_artist_name'    => 'The Band',
-			'suggested_artist_term_id' => null,
-			'detected_format'           => 'json_ld',
-			'events_found_count'       => 1,
-			'status'                   => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
-		);
-	}
-
-	private function safe_legacy_qualification( int $events_found = 1 ): array {
-		$fresh                          = $this->qualification( 'unknown', false, 'https://source.test/events?view=calendar&utm_source=legacy' );
-		$fresh['success']               = true;
-		$fresh['events_found']          = $events_found;
-		$fresh['verdict']               = 'extraction_gap';
-		$fresh['extraction_method']     = 'json_ld';
-		$fresh['recommended_binding']   = array( 'taxonomy' => '', 'term_id' => null, 'name' => '' );
-		return $fresh;
 	}
 
 	private function artist_flow_abilities( EventSourceAbilityDouble $create_flow ): array {
@@ -507,7 +477,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 				array( 'venue' => 'Room B', 'artists' => array( array( 'title' => 'Tounds' ) ) ),
 			),
 			'https://tounds.com/',
-			false,
 			'<title>TOUNDS, a band</title>'
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
@@ -550,7 +519,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 
 	public function test_site_title_decorations_are_removed_without_performers(): void {
 		foreach ( array( 'TOUNDS, a band', 'TOUNDS, band', 'TOUNDS | Official Site', 'TOUNDS - Home', 'TOUNDS — Official Website', 'TOUNDS, a band | Official Site' ) as $title ) {
-			$result = $this->classification( $this->performerless_tour(), 'https://tounds.com/', false, '<title>' . $title . '</title>' );
+			$result = $this->classification( $this->performerless_tour(), 'https://tounds.com/', '<title>' . $title . '</title>' );
 			$this->assertSame( 'artist', $result['source_kind'], $title );
 			$this->assertSame( 'TOUNDS', $result['binding']['name'], $title );
 		}
@@ -563,7 +532,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 				array( 'venue' => 'Room B', 'artists' => array( array( 'title' => 'Other Artist' ) ) ),
 			),
 			'https://tounds.com/',
-			false,
 			'<title>TOUNDS, a band</title>'
 		);
 		$this->assertSame( 'unknown', $result['source_kind'] );
@@ -585,7 +553,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			foreach ( range( 1, 8 ) as $number ) {
 				$events[] = array( 'title' => $artist, 'venue' => 'Room ' . $number );
 			}
-			$result = $this->classification( $events, 'https://ridethemoontaxi.com/', false, '<title>' . $label . '</title>', 'seated' );
+			$result = $this->classification( $events, 'https://ridethemoontaxi.com/', '<title>' . $label . '</title>', 'seated' );
 			$this->assertSame( 'artist', $result['source_kind'] );
 			$this->assertSame( $artist, $result['binding']['name'] );
 			$this->assertSame( 80, $result['binding']['term_id'] );
@@ -618,7 +586,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			$this->assertTrue( $generic->invoke( $this->intake, strtoupper( $label ) ), $label );
 			$this->assertSame( '', $strip->invoke( $this->intake, $label . ' | Home' ), $label );
 			$this->assertSame( 'The Band', $strip->invoke( $this->intake, 'The Band | ' . $label ), $label );
-			$result = $this->classification( $this->performerless_tour(), 'https://the-band.test', false, '<title>' . $label . '</title>' );
+			$result = $this->classification( $this->performerless_tour(), 'https://the-band.test', '<title>' . $label . '</title>' );
 			$this->assertSame( 72, $result['binding']['term_id'], $label );
 		}
 	}
@@ -641,7 +609,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			$this->performerless_tour(),
 			'https://www.the-band.test/tour',
-			false,
 			'<html><head><title>Tour &mdash; The Band</title></head></html>'
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
@@ -657,7 +624,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			$this->performerless_tour(),
 			'https://nightmoves.test/tour',
-			false,
 			'<html><head><title>Night Moves | Tour</title></head></html>'
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
@@ -670,7 +636,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			$this->performerless_tour(),
 			'https://www.the-band.test/tour',
-			false,
 			'<html><head><title>Tour Dates</title></head><body><h1>Upcoming Shows</h1></body></html>'
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
@@ -682,7 +647,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			$this->performerless_tour(),
 			'https://www.somesite.test/tour',
-			false,
 			'<html><head><title>Tour Dates</title></head></html>'
 		);
 		$this->assertSame( 'unknown', $result['source_kind'] );
@@ -693,7 +657,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			array( array( 'venue' => 'Room A' ) ),
 			'https://www.the-band.test/tour',
-			false,
 			'<html><head><title>The Band</title></head></html>'
 		);
 		$this->assertSame( 'unknown', $result['source_kind'] );
@@ -703,7 +666,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$result = $this->classification(
 			$this->performerless_tour(),
 			'https://www.eventbrite.com/o/the-band/events',
-			false,
 			'<html><head><title>The Band</title></head></html>'
 		);
 		$this->assertSame( 'unknown', $result['source_kind'] );
@@ -777,7 +739,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 				array( 'title' => 'Karaoke', 'venue' => 'The Hong Kong' ),
 			),
 			'https://mosplaceradio.com/bandschedules',
-			false,
 			'<html><head><title>Live Music &amp; Band Schedule | Merrimack Valley, Boston &amp; NH</title></head></html>',
 			'jsonld'
 		);
@@ -800,29 +761,11 @@ final class EventSourceIntakeTest extends BookingTestCase {
 				array( 'venue' => 'Room E' ),
 			),
 			'https://nightmoves.test/tour',
-			false,
 			'<html><head><title>Night Moves | Tour</title></head></html>'
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
 		$this->assertSame( 'Night Moves', $result['binding']['name'] );
 		$this->assertSame( 'site_artist_multiple_venues', $result['scope_evidence']['type'] );
-	}
-
-	public function test_submit_passes_legacy_artist_flag_to_qualification(): void {
-		foreach ( array( true, false ) as $legacy_artist ) {
-			$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
-			$intake->qualifications[] = function ( $url, $actual_flag ) use ( $legacy_artist ) {
-				$this->assertSame( 'https://source.test/events', $url );
-				$this->assertSame( $legacy_artist, $actual_flag );
-				return $this->qualification( 'unknown', false );
-			};
-			$input = array( 'url' => 'https://source.test/events' );
-			if ( $legacy_artist ) {
-				$input['legacy_artist'] = true;
-			}
-			$result = $intake->executeSubmit( $input );
-			$this->assertSame( 'source_not_admissible', $result->get_error_code() );
-		}
 	}
 
 	public function test_submission_rejects_ineligible_source_without_queueing(): void {
@@ -966,51 +909,17 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertSame( array(), $this->wpdb->updates );
 	}
 
-	public function test_legacy_one_event_submission_allows_matching_explicit_artist(): void {
-		$this->wpdb->submissions[1] = $this->legacy_submission();
-		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
-		$intake->qualifications[] = $this->safe_legacy_qualification( 1 );
-		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
-		$abilities   = $this->artist_flow_abilities( $create_flow );
-		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+	public function test_artist_row_no_longer_recurring_eligible_is_rejected_without_writes(): void {
+		$this->wpdb->submissions[1] = $this->pending_submission( 'artist' );
+		$intake                     = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[]   = $this->qualification( 'artist', false );
 
 		$result = $intake->executeApprove( array( 'submission_id' => 1, 'artist_term_id' => 72 ) );
 
-		$this->assertSame( 'artist', $result['source_kind'] );
-		$this->assertSame( 72, $result['artist_term_id'] );
-	}
-
-	public function test_legacy_multiple_same_venue_evidence_remains_approvable(): void {
-		$row                             = $this->legacy_submission();
-		$row['events_found_count']       = 2;
-		$this->wpdb->submissions[1]     = $row;
-		$intake                          = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
-		$intake->qualifications[]        = $this->safe_legacy_qualification( 2 );
-		$create_flow                     = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
-		$abilities                       = $this->artist_flow_abilities( $create_flow );
-		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
-
-		$result = $intake->executeApprove( array( 'submission_id' => 1, 'artist_name' => 'The Band' ) );
-
-		$this->assertSame( 'artist', $result['source_kind'] );
-	}
-
-	public function test_failed_legacy_identity_can_retry_without_losing_compatibility(): void {
-		$this->wpdb->submissions[1] = $this->legacy_submission();
-		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
-		$intake->qualifications[] = $this->safe_legacy_qualification( 1 );
-		$intake->qualifications[] = $this->safe_legacy_qualification( 1 );
-		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
-		$abilities   = $this->artist_flow_abilities( $create_flow );
-		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
-
-		$failed = $intake->executeApprove( array( 'submission_id' => 1, 'artist_term_id' => 73 ) );
-		$this->assertInstanceOf( WP_Error::class, $failed );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'source_no_longer_admissible', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
 		$this->assertSame( array(), $this->wpdb->updates );
-		$this->assertSame( '', $this->wpdb->submissions[1]['source_kind'] );
-
-		$retried = $intake->executeApprove( array( 'submission_id' => 1, 'artist_term_id' => 72 ) );
-		$this->assertSame( 'artist', $retried['source_kind'] );
 	}
 
 	public function test_venue_approval_validates_pipeline_and_dispatches_owner(): void {

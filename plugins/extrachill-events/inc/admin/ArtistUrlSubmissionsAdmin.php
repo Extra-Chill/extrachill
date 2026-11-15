@@ -178,7 +178,7 @@ class ArtistUrlSubmissionsAdmin {
 			}
 		}
 
-		$source_kind = (string) ( $row['source_kind'] ?? 'artist' );
+		$source_kind = (string) $row['source_kind'];
 		$suggested   = (string) ( $row['entity_name'] ?? $row['suggested_artist_name'] ?? '' );
 		if ( ! empty( $row['entity_term_id'] ) ) {
 			$term = get_term( (int) $row['entity_term_id'], (string) ( $row['entity_taxonomy'] ?? $source_kind ) );
@@ -226,7 +226,7 @@ class ArtistUrlSubmissionsAdmin {
 		$action_url        = admin_url( 'admin-post.php' );
 		$suggested_term_id = (int) ( $row['suggested_artist_term_id'] ?? 0 );
 		$suggested_name    = (string) ( $row['suggested_artist_name'] ?? '' );
-		$source_kind       = (string) ( $row['source_kind'] ?? 'artist' );
+		$source_kind       = (string) $row['source_kind'];
 		$entity_term_id    = (int) ( $row['entity_term_id'] ?? $suggested_term_id );
 		$entity_name       = (string) ( $row['entity_name'] ?? $suggested_name );
 		?>

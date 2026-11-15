@@ -77,30 +77,6 @@ class VenueMembershipRepository {
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : array_map( static fn( $row ) => array_intersect_key( $row, $keep ), $rows );
 	}
 
-	/** Insert an onboarding relationship after the caller has locked and validated venue authority. */
-	public function insert_onboarding_member( array $row ) {
-		return ( new TeamMembershipRepository() )->insert( 'venue', $row );
-	}
-
-	/** Transition a validated onboarding relationship at its locked version. */
-	public function update_onboarding_member( int $venue_term_id, int $user_id, int $version, array $data ) {
-		return ( new TeamMembershipRepository() )->update( 'venue', $venue_term_id, $user_id, $version, $data );
-	}
-
-	/** Lock every relationship and insertion gap for account-compensation checks. */
-	public function lock_for_user( int $user_id ): array|\WP_Error {
-		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->select( 'venue', array( 'user_id' => $user_id ), 'team_id ASC, id ASC', null, true );
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
-	}
-
-	/** Lock a bounded venue set for promoter grant authority checks. */
-	public function lock_for_grant( int $venue_term_id, int $limit ): array|\WP_Error {
-		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->lock_team( 'venue', $venue_term_id, $limit );
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
-	}
-
 	/** Get one relationship by its venue/user natural key. */
 	public function get( int $venue_term_id, int $user_id ) {
 		return ( new TeamMembershipRepository() )->get( 'venue', $venue_term_id, $user_id );

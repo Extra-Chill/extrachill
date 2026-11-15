@@ -35,7 +35,11 @@ require_once dirname( __DIR__, 3 ) . '/inc/Providers/LifecycleProvider.php';
  * the cache entry is deleted.
  */
 if ( ! function_exists( 'get_option' ) ) {
-	function delete_option( $name ) { unset( $GLOBALS['schema_lock_test']['options'][ $name ] ); return true; }
+	function delete_option( $name ) {
+		$GLOBALS['schema_lock_test']['deletes'][] = $name;
+		unset( $GLOBALS['schema_lock_test']['db'][ $name ], $GLOBALS['schema_lock_test']['cache'][ $name ] );
+		return true;
+	}
 	function get_option( $name, $default_value = false ) {
 		$state = &$GLOBALS['schema_lock_test'];
 		if ( ! array_key_exists( $name, $state['cache'] ) ) {
@@ -162,9 +166,10 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 		$this->wpdb                         = new SchemaLockTestFakeWpdb();
 		$GLOBALS['wpdb']                    = $this->wpdb;
 		$GLOBALS['schema_lock_test']        = array(
-			'db'     => array(),
-			'cache'  => array(),
-			'writes' => array(),
+			'db'      => array(),
+			'cache'   => array(),
+			'writes'  => array(),
+			'deletes' => array(),
 		);
 		$GLOBALS['ec_artist_test']          = array( 'dbdelta' => array() );
 		$GLOBALS['ec_test_filters']         = array();
@@ -192,6 +197,7 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 
 		$this->assertSame( array(), $this->wpdb->lock_log, 'Steady-state requests must not touch the advisory lock.' );
 		$this->assertSame( 0, $this->dbdelta_calls() );
+		$this->assertSame( array(), $GLOBALS['schema_lock_test']['deletes'], 'Steady-state requests must not delete options.' );
 	}
 
 	public function test_acquired_lock_installs_once_and_releases(): void {
