@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.0] - 2026-11-15
+
+### Added
+- push delivery channel for notifications
+
+### Changed
+- serve avatar URLs from a global ec_avatar_urls snapshot
+
 ## [0.64.2] - 2026-11-15
 
 ### Changed
