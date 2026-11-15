@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.1] - 2026-11-15
+
+### Fixed
+- label parcel sizes and keep spent shipping on refunds
+
 ## [0.11.0] - 2026-11-14
 
 ### Added
