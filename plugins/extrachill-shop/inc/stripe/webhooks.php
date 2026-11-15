@@ -68,7 +68,8 @@ function extrachill_shop_handle_webhook( $request ) {
  *
  * Platform destination: `checkout.session.*` for platform-owned products.
  * Connect destination: `checkout.session.*` for seller merch and tickets,
- * `charge.refunded` and `charge.dispute.created` for tickets and merch,
+ * `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`
+ * for tickets and merch,
  * and `account.updated` for seller payability.
  *
  * @param \Stripe\Event $event Stripe event object.
@@ -86,7 +87,7 @@ function extrachill_shop_route_webhook_event( $event ) {
 	if ( 'account.updated' === $event_type && '' !== $account ) {
 		return extrachill_shop_handle_account_updated( $data );
 	}
-	if ( '' !== $account && in_array( $event_type, array( 'charge.refunded', 'charge.dispute.created' ), true ) ) {
+	if ( '' !== $account && in_array( $event_type, array( 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed' ), true ) ) {
 		// Charges and disputes do not inherit PaymentIntent metadata, so ticket
 		// payments are recognised by the index written at fulfilment.
 		$is_ticket = ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $account . '_' . $data->payment_intent );
@@ -94,6 +95,9 @@ function extrachill_shop_route_webhook_event( $event ) {
 			// Merch refunds made outside Extra Chill (the seller's payout
 			// dashboard) are recorded on the WooCommerce order.
 			return $is_ticket ? extrachill_shop_ticket_charge_refunded( $data, $account ) : extrachill_shop_merch_charge_refunded( $data, $account );
+		}
+		if ( 'charge.dispute.closed' === $event_type ) {
+			return $is_ticket ? extrachill_shop_ticket_dispute_closed( $data, $account ) : extrachill_shop_merch_dispute_closed( $data, $account );
 		}
 		return $is_ticket ? extrachill_shop_ticket_charge_disputed( $data, $account ) : extrachill_shop_merch_charge_disputed( $data, $account );
 	}

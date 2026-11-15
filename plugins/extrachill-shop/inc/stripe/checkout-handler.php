@@ -341,11 +341,14 @@ function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
 		return true;
 	}
 	$dispute_id = (string) ( $dispute->id ?? '' );
-	if ( $dispute_id === (string) $order->get_meta( '_extrachill_dispute' ) ) {
+	// A replay, or a `created` event that arrives after the dispute closed.
+	if ( $dispute_id === (string) $order->get_meta( '_extrachill_dispute' ) || extrachill_shop_dispute_settled_on( $order, $dispute_id ) ) {
 		return true;
 	}
 	$amount = number_format( ( (int) ( $dispute->amount ?? 0 ) ) / 100, 2 );
 	$reason = str_replace( '_', ' ', (string) ( $dispute->reason ?? 'unknown' ) );
+	// Remembered so a won dispute puts the order back where it was.
+	$order->update_meta_data( EXTRACHILL_SHOP_DISPUTE_PRIOR_STATUS_META, (string) $order->get_status() );
 	$order->update_meta_data( '_extrachill_dispute', $dispute_id );
 	$order->update_status( 'on-hold', sprintf( 'The buyer disputed $%1$s with their bank (reason: %2$s, Stripe dispute %3$s). Respond in Stripe before the deadline. Do not ship until it is settled.', $amount, $reason, $dispute_id ) );
 	$order->save();
@@ -381,5 +384,139 @@ function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
 			)
 		);
 	}
+	return true;
+}
+
+/**
+ * Order meta: the status an order had before a dispute put it on hold.
+ */
+const EXTRACHILL_SHOP_DISPUTE_PRIOR_STATUS_META = '_extrachill_dispute_prior_status';
+
+/**
+ * Order meta: `{dispute ID}:{won|lost}` once a dispute has closed.
+ */
+const EXTRACHILL_SHOP_DISPUTE_OUTCOME_META = '_extrachill_dispute_outcome';
+
+/**
+ * Whether this dispute has already closed on the order.
+ *
+ * @param WC_Order $order      Order.
+ * @param string   $dispute_id Stripe dispute ID.
+ * @return bool
+ */
+function extrachill_shop_dispute_settled_on( $order, string $dispute_id ): bool {
+	return '' !== $dispute_id && str_starts_with( (string) $order->get_meta( EXTRACHILL_SHOP_DISPUTE_OUTCOME_META ), $dispute_id . ':' );
+}
+
+/**
+ * A dispute on a merch payment closed (`charge.dispute.closed`).
+ *
+ * - Won (`won`, or `warning_closed` for an inquiry that never became a
+ *   chargeback): the dispute flag is cleared and the order goes back to the
+ *   status it had before the hold (`processing` when that is unknown), so it
+ *   returns to Needs Fulfillment and can be shipped, labelled or refunded.
+ * - Lost: the bank returned the disputed amount to the buyer. That amount
+ *   is recorded as a WooCommerce refund without refunding the payment
+ *   again, tagged with the dispute ID. It is capped at what the order has
+ *   left to refund, so a `charge.refunded` for the same money, before or
+ *   after, is not recorded twice. A fully refunded order becomes
+ *   `refunded`; a partial loss puts the order back where it was.
+ *
+ * The seller is emailed and the order gets a note. Replays are no-ops.
+ *
+ * @param object $dispute Stripe dispute.
+ * @param string $account Connected account the charge is on.
+ * @return true|WP_Error WP_Error asks Stripe to retry.
+ */
+function extrachill_shop_merch_dispute_closed( $dispute, $account ) {
+	$order = extrachill_shop_find_merch_order_by_payment_intent( (string) ( $dispute->payment_intent ?? '' ), $account );
+	if ( ! $order ) {
+		error_log( 'Extra Chill closed dispute ' . ( $dispute->id ?? '' ) . ' on ' . $account . ' matches no merch order.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility; a retry would not find it either.
+		return true;
+	}
+	$dispute_id = (string) ( $dispute->id ?? '' );
+	$status     = (string) ( $dispute->status ?? '' );
+	$won        = in_array( $status, array( 'won', 'warning_closed' ), true );
+	if ( '' === $dispute_id || ( ! $won && 'lost' !== $status ) || extrachill_shop_dispute_settled_on( $order, $dispute_id ) ) {
+		return true;
+	}
+	$flag = (string) $order->get_meta( '_extrachill_dispute' );
+	if ( '' !== $flag && $flag !== $dispute_id ) {
+		// Another dispute on the same order is still open; leave the hold.
+		return true;
+	}
+
+	$prior = (string) $order->get_meta( EXTRACHILL_SHOP_DISPUTE_PRIOR_STATUS_META );
+	if ( '' === $prior || in_array( $prior, array( 'on-hold', 'pending', 'failed', 'cancelled' ), true ) ) {
+		$prior = 'processing';
+	}
+	$amount_minor = (int) ( $dispute->amount ?? 0 );
+	$amount       = number_format( $amount_minor / 100, 2 );
+	$number       = $order->get_order_number();
+
+	if ( $won ) {
+		$note = sprintf( 'The dispute was settled in the seller\'s favor (Stripe dispute %1$s, %2$s). The hold is lifted and the order is back to %3$s.', $dispute_id, $status, $prior );
+		$next = $order->has_status( 'on-hold' ) ? $prior : '';
+	} else {
+		if ( ! in_array( $dispute_id, extrachill_shop_recorded_merch_refunds( $order ), true ) ) {
+			$remaining = (int) round( (float) $order->get_remaining_refund_amount() * 100 );
+			$minor     = min( $amount_minor, $remaining );
+			if ( $minor > 0 ) {
+				$wc_refund = wc_create_refund(
+					array(
+						'order_id'       => (int) $order->get_id(),
+						'amount'         => round( $minor / 100, 2 ),
+						'reason'         => 'The buyer\'s bank returned the payment after a lost dispute.',
+						'refund_payment' => false,
+					)
+				);
+				if ( is_wp_error( $wc_refund ) ) {
+					return new WP_Error( 'merch_dispute_record_failed', 'Could not record lost dispute ' . $dispute_id . ': ' . $wc_refund->get_error_message(), array( 'status' => 500 ) );
+				}
+				$wc_refund->update_meta_data( EXTRACHILL_SHOP_REFUND_ID_META, $dispute_id );
+				$wc_refund->save();
+			}
+		}
+		$fresh = wc_get_order( $order->get_id() );
+		$left  = (float) ( $fresh instanceof WC_Order ? $fresh : $order )->get_remaining_refund_amount();
+		$next  = $left <= 0 ? 'refunded' : ( $order->has_status( 'on-hold' ) ? $prior : '' );
+		$note  = sprintf( 'The dispute was lost (Stripe dispute %1$s): the bank returned $%2$s to the buyer. Recorded as a refund; no further payment refund was issued.', $dispute_id, $amount );
+	}
+
+	$order->delete_meta_data( '_extrachill_dispute' );
+	$order->delete_meta_data( EXTRACHILL_SHOP_DISPUTE_PRIOR_STATUS_META );
+	$order->update_meta_data( EXTRACHILL_SHOP_DISPUTE_OUTCOME_META, $dispute_id . ':' . ( $won ? 'won' : 'lost' ) );
+	if ( '' !== $next && ! $order->has_status( $next ) ) {
+		$order->update_status( $next, $note );
+	} else {
+		$order->add_order_note( $note );
+	}
+	$order->save();
+
+	$seller = extrachill_shop_get_order_seller( $order );
+	if ( null === $seller ) {
+		return true;
+	}
+	$manager = extrachill_shop_get_shop_manager_url( $seller );
+	if ( $won ) {
+		$message = array(
+			'subject'   => sprintf( 'Order #%s: dispute settled in your favor', $number ),
+			'body_html' => '<p>' . esc_html( sprintf( 'The bank settled the dispute on order #%1$s in your favor. You keep the $%2$s payment.', $number, $amount ) ) . '</p>'
+				. '<p>' . esc_html( 'The order is no longer on hold. If you have not shipped it yet, it is back in Needs Fulfillment in your shop manager.' ) . '</p>',
+			'preheader' => sprintf( 'Order #%s is off hold. You keep the payment.', $number ),
+			'cta_url'   => $manager,
+			'cta_label' => 'Open shop manager',
+		);
+	} else {
+		$message = array(
+			'subject'   => sprintf( 'Order #%s: dispute lost', $number ),
+			'body_html' => '<p>' . esc_html( sprintf( 'The bank settled the dispute on order #%1$s in the buyer\'s favor and returned $%2$s to them.', $number, $amount ) ) . '</p>'
+				. '<p>' . esc_html( 'We recorded it as a refund on the order. Do not ship it if you have not already. The disputed amount and the dispute fee stay out of your balance.' ) . '</p>',
+			'preheader' => sprintf( 'The buyer on order #%s won the dispute.', $number ),
+			'cta_url'   => $manager,
+			'cta_label' => 'Open shop manager',
+		);
+	}
+	extrachill_shop_notify_seller( $seller, $message );
 	return true;
 }

@@ -370,6 +370,34 @@ function extrachill_shop_ticket_charge_disputed( $dispute, $account ) {
 }
 
 /**
+ * A dispute on a ticket payment closed (`charge.dispute.closed`).
+ *
+ * The outcome is recorded on the order (`dispute_outcome`: `won` or
+ * `lost`) and nothing else changes: the passes were revoked when the
+ * dispute opened and Events has no ability to reissue them, and refunds
+ * stay blocked. A won dispute is logged so an operator can reissue the
+ * buyer's tickets by hand. Replays are no-ops.
+ *
+ * @param object $dispute Stripe dispute.
+ * @param string $account Connected account the charge is on.
+ * @return true
+ */
+function extrachill_shop_ticket_dispute_closed( $dispute, $account ) {
+	$reference = get_option( 'extrachill_ticket_payment_' . $account . '_' . (string) ( $dispute->payment_intent ?? '' ) );
+	$order     = $reference ? get_option( 'extrachill_ticket_order_' . $reference ) : false;
+	$status    = (string) ( $dispute->status ?? '' );
+	$outcome   = in_array( $status, array( 'won', 'warning_closed' ), true ) ? 'won' : ( 'lost' === $status ? 'lost' : '' );
+	if ( ! is_array( $order ) || ( $order['account'] ?? '' ) !== $account || '' === $outcome || ( $order['dispute_outcome'] ?? '' ) === $outcome ) {
+		return true; }
+	$order['dispute_outcome'] = $outcome;
+	update_option( 'extrachill_ticket_order_' . $reference, $order, false );
+	if ( 'won' === $outcome ) {
+		error_log( 'Extra Chill ticket dispute won; passes stay revoked until reissued by hand: ' . $reference ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator alert: the buyer paid but has no working passes.
+	}
+	return true;
+}
+
+/**
  * References of the paid ticket orders for one show.
  *
  * @param int $event_id Event post ID.

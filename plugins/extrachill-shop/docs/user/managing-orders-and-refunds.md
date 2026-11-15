@@ -75,6 +75,11 @@ Sometimes a buyer asks their bank to reverse a charge. When that happens:
 
 Respond from your payout dashboard (the button is on the **Payments** tab), under payments and disputes, before the deadline shown there. If you don't respond in time, the bank usually sides with the buyer. Disputed amounts and dispute fees come out of your balance.
 
+When the bank decides, we update the order and email your shop's managers:
+
+- **You win:** you keep the payment. The hold comes off and the order goes back to the status it had before the dispute. If you haven't shipped it, it's back in **Needs Fulfillment**, and you can ship, buy a label, or refund it again.
+- **The buyer wins:** the bank gives the disputed amount back to the buyer. We record it as a refund on the order and add a note, so nothing is refunded twice. If the whole order went back, it changes to **refunded**. Don't ship it. Extra Chill's fee isn't returned when a dispute is lost.
+
 ## Buyer Questions and Privacy
 
 Answer buyer questions about their orders within 3 business days. Use the buyer's name, address, and email only to fill and support their order. Don't add them to a mailing list unless they signed up for it themselves.

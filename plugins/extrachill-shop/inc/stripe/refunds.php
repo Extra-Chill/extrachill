@@ -329,6 +329,27 @@ function extrachill_shop_recorded_merch_refunds( $order ): array {
 }
 
 /**
+ * Total of the WooCommerce refunds that record a lost dispute.
+ *
+ * @param WC_Order $order Order.
+ * @return float Major units.
+ */
+function extrachill_shop_recorded_dispute_refund_total( $order ): float {
+	$outcome = (string) $order->get_meta( '_extrachill_dispute_outcome' );
+	$dispute = '' === $outcome ? '' : strstr( $outcome, ':', true );
+	$total   = 0.0;
+	if ( '' === (string) $dispute ) {
+		return $total;
+	}
+	foreach ( $order->get_refunds() as $refund ) {
+		if ( (string) $refund->get_meta( EXTRACHILL_SHOP_REFUND_ID_META ) === $dispute ) {
+			$total += (float) $refund->get_amount();
+		}
+	}
+	return $total;
+}
+
+/**
  * Refunds on a charge, from the event or, when it is truncated, from Stripe.
  *
  * @param object $charge  Stripe charge.
@@ -381,7 +402,9 @@ function extrachill_shop_merch_charge_refunded( $charge, $account ) {
 		return true;
 	}
 
-	$recorded_minor = (int) round( (float) $order->get_total_refunded() * 100 );
+	// A lost dispute is recorded as a refund but is not in the charge's
+	// `amount_refunded`; its refund still counts against what is left.
+	$recorded_minor = (int) round( ( (float) $order->get_total_refunded() - extrachill_shop_recorded_dispute_refund_total( $order ) ) * 100 );
 	$unrecorded     = (int) ( $charge->amount_refunded ?? 0 ) - $recorded_minor;
 	if ( $unrecorded <= 0 ) {
 		return true;

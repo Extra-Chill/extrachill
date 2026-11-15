@@ -22,7 +22,7 @@ use a zero application fee.
   Admin → Payments. Ticket Sessions use `checkout.session.completed` and
   `checkout.session.async_payment_succeeded` (issue), `checkout.session.expired`
   and `checkout.session.async_payment_failed` (close the pending Shop order row;
-  Events has recorded nothing yet), `charge.refunded` and `charge.dispute.created`.
+  Events has recorded nothing yet), `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`.
 - Configure `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS` (key-ID map) and
   `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID`. Matching Events target
   grants must allow service `extrachill.events.tickets`, scope
