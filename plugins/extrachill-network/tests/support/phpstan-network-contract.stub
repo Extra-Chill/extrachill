@@ -4,8 +4,9 @@
  *
  * Declarations only — never executed. Mirrors inc/core/blog-ids.php so that
  * components which call ec_get_blog_id() / ec_get_site_url() / EC_BLOG_ID_*
- * can analyse without hand-copying signatures. Keep in lockstep with
- * blog-ids.php; tests/network-contract-support-smoke.php fails when a
+ * can analyse without hand-copying signatures. It also declares the public
+ * artist identity API from inc/core/artist-identity.php. Keep in lockstep with
+ * both files; tests/network-contract-support-smoke.php fails when a
  * function, parameter or constant value drifts.
  *
  * Usage (phpstan.neon in a sibling component):
@@ -48,6 +49,23 @@ function ec_get_blog_id( $key ) {}
  * @return T
  */
 function ec_with_blog( int $blog_id, callable $callback ) {}
+
+/**
+ * Mirrors inc/core/artist-identity.php.
+ *
+ * @param array{profile_id?: int|string, term_id?: int|string, slug?: string} $by Exactly one lookup key.
+ * @return array{profile_id: int, term_id: int, slug: string, name: string, status: string, permalink: string, thumbnail_id: int, thumbnail_url: string, term_slug: string, term_name: string, binding_valid: bool}|null
+ */
+function ec_get_artist_identity( array $by ) {}
+
+/**
+ * Mirrors inc/core/artist-identity.php.
+ *
+ * @param int $profile_id Artist profile post ID, or 0.
+ * @param int $term_id    Main-blog artist term ID, or 0.
+ * @return void
+ */
+function ec_forget_artist_identity( $profile_id = 0, $term_id = 0 ) {}
 
 /**
  * @return array<string, int>

@@ -69,22 +69,18 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		return array();
 	}
 
-	switch_to_blog( $artist_blog_id );
-	try {
-		$published_artists = array();
-		foreach ( $user_artist_ids as $artist_id ) {
-			$artist_id_int = absint( $artist_id );
-			if ( 0 >= $artist_id_int || 'artist_profile' !== get_post_type( $artist_id_int ) || 'publish' !== get_post_status( $artist_id_int ) ) {
-				continue;
-			}
-
-			$published_artists[] = $artist_id_int;
+	$published_artists = array();
+	foreach ( $user_artist_ids as $artist_id ) {
+		$artist_id_int = absint( $artist_id );
+		$identity      = 0 < $artist_id_int ? ec_get_artist_identity( array( 'profile_id' => $artist_id_int ) ) : null;
+		if ( null === $identity || 'publish' !== $identity['status'] ) {
+			continue;
 		}
 
-		return $published_artists;
-	} finally {
-		restore_current_blog();
+		$published_artists[] = $artist_id_int;
 	}
+
+	return $published_artists;
 }
 
 /**
@@ -239,14 +235,9 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		return false;
 	}
 
-	switch_to_blog( $artist_blog_id );
-	try {
-		$post = get_post( $artist_id );
-		if ( ! $post instanceof WP_Post || 'artist_profile' !== $post->post_type || 'publish' !== $post->post_status ) {
-			return false;
-		}
-	} finally {
-		restore_current_blog();
+	$identity = ec_get_artist_identity( array( 'profile_id' => (int) $artist_id ) );
+	if ( null === $identity || 'publish' !== $identity['status'] ) {
+		return false;
 	}
 
 	if ( user_can( $user_id, 'manage_options' ) ) {

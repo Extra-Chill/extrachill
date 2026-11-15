@@ -139,22 +139,10 @@ add_action(
 function ec_artist_coverage_resolve_slug( $artist_id, $artist_term_id = 0 ) {
 	$artist_term_id = (int) $artist_term_id;
 
-	if ( $artist_term_id > 0 ) {
-		$main_blog_id = ec_get_blog_id( 'main' );
-		if ( $main_blog_id ) {
-			$slug = '';
-			switch_to_blog( $main_blog_id );
-			try {
-				$term = get_term( $artist_term_id, 'artist' );
-				if ( $term && ! is_wp_error( $term ) ) {
-					$slug = $term->slug;
-				}
-			} finally {
-				restore_current_blog();
-			}
-			if ( ! empty( $slug ) ) {
-				return $slug;
-			}
+	if ( $artist_term_id > 0 && ec_get_blog_id( 'main' ) ) {
+		$identity = ec_get_artist_identity( array( 'term_id' => $artist_term_id ) );
+		if ( null !== $identity && '' !== $identity['term_slug'] ) {
+			return $identity['term_slug'];
 		}
 	}
 

@@ -12,6 +12,8 @@ declare( strict_types=1 );
 define( 'ABSPATH', __DIR__ . '/' );
 
 class WP_Term {
+	public string $taxonomy = 'artist';
+
 	public function __construct( public int $term_id, public string $slug, public string $name ) {}
 }
 
@@ -93,6 +95,11 @@ function get_term( int $term_id, string $taxonomy ) {
 	};
 }
 
+function get_term_meta( int $term_id, string $key, bool $single ) {
+	unset( $term_id, $key, $single );
+	return '';
+}
+
 function get_term_by( string $field, string $slug, string $taxonomy ) {
 	if ( 2 !== get_current_blog_id() || 'slug' !== $field || 'artist' !== $taxonomy ) {
 		return false;
@@ -129,6 +136,7 @@ function wp_strip_all_tags( string $text ): string { return strip_tags( $text );
 require_once dirname( __DIR__ ) . '/inc/integrations/artist-profile-discussions.php';
 
 require_once __DIR__ . '/support/network-contract.php';
+require_once __DIR__ . '/support/artist-identity-runtime.php';
 
 /** Fail the standalone process with a useful message. */
 function ec_test_assert( bool $condition, string $message ): void {

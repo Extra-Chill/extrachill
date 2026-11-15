@@ -198,6 +198,7 @@ function ec_release_artist_binding_lock( $lock_token ) {
 		return new WP_Error( 'artist_binding_release_failed', __( 'Canonical artist binding lock cleanup failed.', 'extrachill-artist-platform' ), array( 'retryable' => true ) );
 	}
 	unset( $GLOBALS['ec_artist_binding_lock'], $GLOBALS['ec_artist_binding_lock_backend'] );
+	ec_artist_binding_flush_identity_changes();
 	foreach ( (array) ( $GLOBALS['ec_artist_binding_deferred_locks'] ?? array() ) as $key => $deferred_lock ) {
 		if ( $deferred_lock === $lock_token ) {
 			unset( $GLOBALS['ec_artist_binding_deferred_locks'][ $key ] );
@@ -314,6 +315,40 @@ function ec_artist_binding_blog_ids() {
 		'artist' => $artist_blog_id,
 		'main'   => $main_blog_id,
 	);
+}
+
+/**
+ * Record that a binding mutation may have changed an artist identity.
+ *
+ * Forgets the network identity cache right away and again when the binding
+ * lock is released. The second forget retires any record a lock-free reader
+ * cached from an intermediate state during the mutation.
+ *
+ * @param int $profile_id Artist profile post ID, or 0.
+ * @param int $term_id    Main-blog artist term ID, or 0.
+ * @return void
+ */
+function ec_artist_binding_mark_identity_changed( $profile_id, $term_id ) {
+	$GLOBALS['ec_artist_binding_identity_changes'][] = array( (int) $profile_id, (int) $term_id );
+	if ( function_exists( 'ec_forget_artist_identity' ) ) {
+		ec_forget_artist_identity( (int) $profile_id, (int) $term_id );
+	}
+}
+
+/**
+ * Forget identities changed under the binding lock that was just released.
+ *
+ * @return void
+ */
+function ec_artist_binding_flush_identity_changes() {
+	$changes = (array) ( $GLOBALS['ec_artist_binding_identity_changes'] ?? array() );
+	unset( $GLOBALS['ec_artist_binding_identity_changes'] );
+	if ( empty( $changes ) || ! function_exists( 'ec_forget_artist_identity' ) ) {
+		return;
+	}
+	foreach ( $changes as $change ) {
+		ec_forget_artist_identity( (int) $change[0], (int) $change[1] );
+	}
 }
 
 /**
@@ -468,6 +503,7 @@ function ec_artist_binding_delete_profile_meta( $profile_id, $term_id, $artist_b
 	} finally {
 		restore_current_blog();
 	}
+	ec_artist_binding_mark_identity_changed( (int) $profile_id, (int) $term_id );
 }
 
 /**
@@ -485,6 +521,7 @@ function ec_artist_binding_delete_term_meta( $term_id, $profile_id, $main_blog_i
 	} finally {
 		restore_current_blog();
 	}
+	ec_artist_binding_mark_identity_changed( (int) $profile_id, (int) $term_id );
 }
 
 /**
@@ -550,6 +587,9 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 
 	$wrote_profile = false;
 	$wrote_term    = false;
+	if ( 0 === $profile['term_id'] || 0 === $term['profile_id'] ) {
+		ec_artist_binding_mark_identity_changed( (int) $profile_id, (int) $term_id );
+	}
 	if ( 0 === $profile['term_id'] ) {
 		switch_to_blog( $blog_ids['artist'] );
 		try {
@@ -769,6 +809,13 @@ function ec_bind_artist_profile_to_term_locked( $profile_id, $term_id, $main_blo
 	$term    = ec_artist_binding_read_term( $term_id, $main_blog_id );
 	if ( empty( $profile ) || empty( $term ) ) {
 		return false;
+	}
+
+	if ( $profile['term_id'] !== $term_id || $term['profile_id'] !== $profile_id ) {
+		ec_artist_binding_mark_identity_changed( $profile_id, $term_id );
+		if ( $profile['term_id'] > 0 && $profile['term_id'] !== $term_id ) {
+			ec_artist_binding_mark_identity_changed( 0, $profile['term_id'] );
+		}
 	}
 
 	if ( $term['profile_id'] > 0 && $term['profile_id'] !== $profile_id ) {
@@ -1144,6 +1191,7 @@ function ec_sync_artist_profile_term_binding_locked( $profile_id ) {
 
 	$new_term_id  = 0;
 	$term_created = false;
+	ec_artist_binding_mark_identity_changed( $profile_id, 0 );
 	ec_artist_binding_invalidate_slug_caches();
 	switch_to_blog( $blog_ids['main'] );
 	try {
@@ -1422,6 +1470,7 @@ function ec_delete_artist_profile_term_binding_locked( $profile_id ) {
 
 	$failure = null;
 	$journal = array();
+	ec_artist_binding_mark_identity_changed( (int) $profile_id, (int) $profile['term_id'] );
 	switch_to_blog( $blog_ids['main'] );
 	try {
 		$batch_size        = 100;

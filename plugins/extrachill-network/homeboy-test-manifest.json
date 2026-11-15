@@ -22,6 +22,12 @@
     "tests/ad-policy-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/artist-identity-consumers-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/artist-identity-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/artist-profile-discussions-smoke.php": {
       "environment": "standalone-php"
     },

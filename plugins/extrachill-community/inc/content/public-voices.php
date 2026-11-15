@@ -36,42 +36,31 @@ function extrachill_community_get_managed_artist_voices( $user_id ) {
 		return array();
 	}
 
-	$voices   = array();
-	$switched = get_current_blog_id() !== $artist_blog_id;
-	if ( $switched ) {
-		switch_to_blog( $artist_blog_id );
-	}
-
-	try {
-		foreach ( $artist_ids as $artist_id ) {
-			if ( ! $artist_id || ! ec_user_can(
-				'manage_artist',
-				array(
-					'artist_id' => $artist_id,
-					'user_id'   => $user_id,
-				)
-			) ) {
-				continue;
-			}
-
-			$post = get_post( $artist_id );
-			if ( ! $post instanceof WP_Post || 'artist_profile' !== $post->post_type || 'publish' !== $post->post_status ) {
-				continue;
-			}
-
-			$reference            = 'artist:' . $artist_id;
-			$voices[ $reference ] = array(
-				'reference' => $reference,
-				'type'      => 'artist',
-				'id'        => $artist_id,
-				'name'      => sanitize_text_field( $post->post_title ),
-				'url'       => esc_url_raw( get_permalink( $post ) ),
-			);
+	$voices = array();
+	foreach ( $artist_ids as $artist_id ) {
+		if ( ! $artist_id || ! ec_user_can(
+			'manage_artist',
+			array(
+				'artist_id' => $artist_id,
+				'user_id'   => $user_id,
+			)
+		) ) {
+			continue;
 		}
-	} finally {
-		if ( $switched ) {
-			restore_current_blog();
+
+		$artist = ec_get_artist_identity( array( 'profile_id' => $artist_id ) );
+		if ( null === $artist || 'publish' !== $artist['status'] ) {
+			continue;
 		}
+
+		$reference            = 'artist:' . $artist_id;
+		$voices[ $reference ] = array(
+			'reference' => $reference,
+			'type'      => 'artist',
+			'id'        => $artist_id,
+			'name'      => sanitize_text_field( $artist['name'] ),
+			'url'       => esc_url_raw( $artist['permalink'] ),
+		);
 	}
 
 	return $voices;
@@ -251,28 +240,16 @@ function extrachill_community_resolve_public_voice( $reference ) {
 	$identity              = null;
 
 	if ( 'artist' === $type ) {
-		$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
-		$switched       = $artist_blog_id && get_current_blog_id() !== $artist_blog_id;
-		if ( $switched ) {
-			switch_to_blog( $artist_blog_id );
-		}
-		try {
-			$post = $artist_blog_id ? get_post( $id ) : null;
-			if ( $post instanceof WP_Post && 'artist_profile' === $post->post_type && 'publish' === $post->post_status ) {
-				$avatar_url = function_exists( 'get_the_post_thumbnail_url' ) ? get_the_post_thumbnail_url( $post, 'thumbnail' ) : '';
-				$identity   = array(
-					'reference'  => $reference,
-					'type'       => 'artist',
-					'id'         => $id,
-					'name'       => sanitize_text_field( $post->post_title ),
-					'url'        => esc_url_raw( get_permalink( $post ) ),
-					'avatar_url' => esc_url_raw( (string) $avatar_url ),
-				);
-			}
-		} finally {
-			if ( $switched ) {
-				restore_current_blog();
-			}
+		$artist = absint( ec_get_blog_id( 'artist' ) ) ? ec_get_artist_identity( array( 'profile_id' => $id ) ) : null;
+		if ( null !== $artist && 'publish' === $artist['status'] ) {
+			$identity = array(
+				'reference'  => $reference,
+				'type'       => 'artist',
+				'id'         => $id,
+				'name'       => sanitize_text_field( $artist['name'] ),
+				'url'        => esc_url_raw( $artist['permalink'] ),
+				'avatar_url' => esc_url_raw( $artist['thumbnail_url'] ),
+			);
 		}
 	} elseif ( 'venue' === $type && function_exists( 'ec_cross_site_rest_request' ) ) {
 		$response = ec_cross_site_rest_request( 'events', 'GET', '/wp/v2/venue/' . $id );

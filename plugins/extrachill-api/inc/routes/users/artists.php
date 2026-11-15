@@ -154,33 +154,23 @@ function extrachill_api_user_artists_get_handler( WP_REST_Request $request ) {
 	$artist_ids = ec_get_artists_for_user( $user_id );
 	$artists    = array();
 
-	if ( ! empty( $artist_ids ) ) {
-		$artist_blog_id = ec_get_blog_id( 'artist' );
-		if ( $artist_blog_id ) {
-			switch_to_blog( $artist_blog_id );
+	foreach ( $artist_ids as $artist_id ) {
+		$identity = ec_get_artist_identity( array( 'profile_id' => (int) $artist_id ) );
+		if ( null === $identity ) {
+			continue;
 		}
-		try {
-			foreach ( $artist_ids as $artist_id ) {
-				$artist = get_post( $artist_id );
-				if ( ! $artist ) {
-					continue;
-				}
 
-				$profile_image_id  = get_post_thumbnail_id( $artist_id );
-				$profile_image_url = $profile_image_id
-					? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' )
-					: null;
+		// Null without a featured image; false when the image no longer resolves.
+		$profile_image_url = 0 < $identity['thumbnail_id']
+			? ( '' !== $identity['thumbnail_url'] ? $identity['thumbnail_url'] : false )
+			: null;
 
-				$artists[] = array(
-					'id'                => (int) $artist_id,
-					'name'              => $artist->post_title,
-					'slug'              => $artist->post_name,
-					'profile_image_url' => $profile_image_url,
-				);
-			}
-		} finally {
-			restore_current_blog();
-		}
+		$artists[] = array(
+			'id'                => (int) $artist_id,
+			'name'              => $identity['name'],
+			'slug'              => $identity['slug'],
+			'profile_image_url' => $profile_image_url,
+		);
 	}
 
 	return rest_ensure_response( $artists );
@@ -201,17 +191,8 @@ function extrachill_api_user_artists_post_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	// Verify artist exists
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	$artist_exists  = false;
-	if ( $artist_blog_id ) {
-		switch_to_blog( $artist_blog_id );
-		try {
-			$artist_exists = get_post_type( $artist_id ) === 'artist_profile';
-		} finally {
-			restore_current_blog();
-		}
-	}
+	// Verify artist exists, in any post status.
+	$artist_exists = null !== ec_get_artist_identity( array( 'profile_id' => (int) $artist_id ) );
 
 	if ( ! $artist_exists ) {
 		return new WP_Error(

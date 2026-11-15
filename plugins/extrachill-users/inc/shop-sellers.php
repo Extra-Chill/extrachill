@@ -39,22 +39,17 @@ function ec_get_manageable_shop_artist_sellers( $user_id ) {
 
 	$manage_url = ec_get_artist_manage_url();
 	$sellers    = array();
-	switch_to_blog( $artist_blog_id );
-	try {
-		foreach ( $artist_ids as $artist_id ) {
-			$post = get_post( $artist_id );
-			if ( ! $post instanceof WP_Post || 'artist_profile' !== $post->post_type || 'publish' !== $post->post_status ) {
-				continue;
-			}
-			$sellers[] = array(
-				'type'       => 'artist',
-				'id'         => $artist_id,
-				'name'       => $post->post_title,
-				'manage_url' => $manage_url,
-			);
+	foreach ( $artist_ids as $artist_id ) {
+		$identity = 0 < $artist_id ? ec_get_artist_identity( array( 'profile_id' => $artist_id ) ) : null;
+		if ( null === $identity || 'publish' !== $identity['status'] ) {
+			continue;
 		}
-	} finally {
-		restore_current_blog();
+		$sellers[] = array(
+			'type'       => 'artist',
+			'id'         => $artist_id,
+			'name'       => $identity['name'],
+			'manage_url' => $manage_url,
+		);
 	}
 
 	return $sellers;

@@ -50,12 +50,8 @@ function extrachill_events_resolve_upcoming_shows( $context ) {
 	if ( ! function_exists( 'extrachill_events_ability_events_by_artist' ) ) {
 		return new WP_Error( 'upcoming_shows_unavailable', 'The artist events adapter is unavailable.' );
 	}
-	switch_to_blog( (int) $owner['blog_id'] );
-	try {
-		$term_id = (int) get_post_meta( (int) $owner['object_id'], '_artist_term_id', true );
-	} finally {
-		restore_current_blog();
-	}
+	$identity = ec_get_artist_identity( array( 'profile_id' => (int) $owner['object_id'] ) );
+	$term_id  = null === $identity ? 0 : $identity['term_id'];
 	if ( $term_id < 1 ) {
 		return new WP_Error( 'upcoming_shows_artist_unbound', 'The artist profile has no canonical artist binding.' );
 	}
