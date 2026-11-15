@@ -390,7 +390,21 @@ function extrachill_analytics_enqueue_view_tracking() {
 	// Existing custom-domain singular views remain anonymous and post-backed;
 	// route-level collection is first-party only.
 	if ( $post_id <= 0 && ! extrachill_analytics_request_host_is_first_party() ) {
-		return;
+		/**
+		 * Filters whether a route view (no post) on a custom public host is tracked.
+		 *
+		 * Route-level collection stays first-party by default. The runtime that
+		 * owns a custom host may opt in one of its own server-rendered routes
+		 * (for example an authenticated tool screen). The pageview is still
+		 * anonymous: no visitor cookie is minted on a custom host.
+		 *
+		 * @param bool   $allowed      Whether to track this route view.
+		 * @param string $source_path  Normalized request path.
+		 * @param string $route_family Classified route family.
+		 */
+		if ( ! apply_filters( 'extrachill_analytics_custom_host_route_view_allowed', false, $source_path, $route_family ) ) {
+			return;
+		}
 	}
 
 	$request_host = isset( $_SERVER['HTTP_HOST'] )

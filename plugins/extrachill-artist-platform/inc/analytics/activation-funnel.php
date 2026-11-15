@@ -106,3 +106,38 @@ function ec_artist_platform_emit_first_publish( $link_page_id, $artist_id, $forc
 	);
 }
 add_action( 'ec_link_page_created', 'ec_artist_platform_emit_first_publish', 10, 3 );
+
+/**
+ * Emit artist_link_page_saved when an owner's editor save is persisted.
+ *
+ * Hooks the storage-level `ec_link_page_persistence_saved` action, so it
+ * fires only after the write actually landed. Only signed-in saves count
+ * (editor traffic, not system writes), once per Link Page per request.
+ *
+ * @param int      $link_page_id Saved Link Page ID.
+ * @param string[] $fields       Persisted meta keys.
+ * @return void
+ */
+function ec_artist_platform_emit_link_page_saved( $link_page_id, $fields = array() ) {
+	static $emitted = array();
+
+	$link_page_id = (int) $link_page_id;
+	$user_id      = get_current_user_id();
+	if ( $link_page_id <= 0 || $user_id <= 0 || isset( $emitted[ $link_page_id ] ) ) {
+		return;
+	}
+	if ( ! defined( 'EC_ANALYTICS_EVENT_ARTIST_LINK_PAGE_SAVED' ) ) {
+		return;
+	}
+	$emitted[ $link_page_id ] = true;
+
+	ec_artist_platform_emit_funnel_event(
+		EC_ANALYTICS_EVENT_ARTIST_LINK_PAGE_SAVED,
+		array(
+			'user_id'      => $user_id,
+			'link_page_id' => $link_page_id,
+			'fields'       => array_values( array_map( 'sanitize_key', (array) $fields ) ),
+		)
+	);
+}
+add_action( 'ec_link_page_persistence_saved', 'ec_artist_platform_emit_link_page_saved', 10, 2 );

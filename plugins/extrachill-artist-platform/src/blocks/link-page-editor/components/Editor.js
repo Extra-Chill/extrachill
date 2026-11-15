@@ -42,6 +42,7 @@ export default function Editor() {
 		switchArtist,
 		socialIconsCssUrl,
 		fontAwesomeUrl,
+		previewData,
 	} = useEditor();
 
 	const [ saveSuccess, setSaveSuccess ] = useState( false );
@@ -50,6 +51,18 @@ export default function Editor() {
 	const currentArtist = useMemo( () => {
 		return userArtists.find( ( a ) => a.id === artistId );
 	}, [ userArtists, artistId ] );
+
+	// An untouched new page has nothing on it yet. Showing "Saved" there reads
+	// as if something already happened, so a blank page gets a first-step
+	// prompt instead and "Saved" only follows a real save (#1446).
+	const isBlankPage = useMemo(
+		() =>
+			! ( previewData?.links || [] ).some( ( section ) => ( section?.links || [] ).length > 0 ) &&
+			! previewData?.bio &&
+			! previewData?.profileImageUrl &&
+			! ( previewData?.socials || [] ).length,
+		[ previewData ]
+	);
 
 	const publicUrl = useMemo( () => {
 		const slug = artist?.slug || currentArtist?.slug;
@@ -154,7 +167,7 @@ export default function Editor() {
 							>
 								{ isSaving
 									? __( 'Saving...', 'extrachill-artist-platform' )
-									: hasUnsavedChanges
+									: hasUnsavedChanges || isBlankPage
 										? __( 'Save changes', 'extrachill-artist-platform' )
 										: __( 'Saved', 'extrachill-artist-platform' ) }
 							</button>
@@ -179,6 +192,15 @@ export default function Editor() {
 						<p>{ error }</p>
 					</div>
 				) : (
+					<>
+					{ isBlankPage && ! hasUnsavedChanges && (
+						<div className="notice notice-info ec-editor__first-steps">
+							<p>
+								<strong>{ __( 'Your Link Page is live but empty.', 'extrachill-artist-platform' ) }</strong>{ ' ' }
+								{ __( 'Start by adding a link on the Links tab, then a short bio and a photo on the Info tab. Press Save changes when you\'re done.', 'extrachill-artist-platform' ) }
+							</p>
+						</div>
+					) }
 					<div className="ec-editor__body">
 						<div className="ec-editor__sidebar">
 							<ResponsiveTabs
@@ -210,6 +232,7 @@ export default function Editor() {
 							</div>
 						</div>
 					</div>
+					</>
 				) }
 			</BlockShellInner>
 		</BlockShell>

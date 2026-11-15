@@ -151,7 +151,21 @@ function ec_link_page_edit_robots( $robots ) {
 	return $robots;
 }
 
+/**
+ * Let analytics record pageviews of the /edit shell on the public host.
+ *
+ * The host is a custom domain, where route views are off by default; without
+ * this the editor screen is invisible in analytics (#1445).
+ *
+ * @param bool $allowed Whether the route view is tracked.
+ * @return bool
+ */
+function ec_link_page_edit_allow_route_view( $allowed ) {
+	return ec_is_link_page_edit_request() ? true : (bool) $allowed;
+}
+
 if ( function_exists( 'add_filter' ) ) {
+	add_filter( 'extrachill_analytics_custom_host_route_view_allowed', 'ec_link_page_edit_allow_route_view' );
 	add_filter( 'pre_get_document_title', 'ec_link_page_edit_document_title', 20 );
 	add_filter( 'wp_robots', 'ec_link_page_edit_robots' );
 }

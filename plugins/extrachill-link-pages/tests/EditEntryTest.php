@@ -29,6 +29,12 @@ final class EditEntryTest extends TestCase {
 		$this->assertTrue( ec_link_page_edit_robots( array() )['noindex'] );
 	}
 
+	public function test_edit_shell_opts_into_custom_host_route_views(): void {
+		$this->assertFalse( ec_link_page_edit_allow_route_view( false ) );
+		$GLOBALS['ec_link_page_edit_request'] = true;
+		$this->assertTrue( ec_link_page_edit_allow_route_view( false ) );
+	}
+
 	public function test_other_paths_are_not_the_edit_shell(): void {
 		$_SERVER['HTTP_HOST']   = 'extrachill.link';
 		$_SERVER['REQUEST_URI'] = '/editor-fan/';

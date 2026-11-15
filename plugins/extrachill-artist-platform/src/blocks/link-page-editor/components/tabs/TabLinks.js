@@ -47,6 +47,24 @@ export default function TabLinks() {
 		updateLinks( [ ...links, newSection ] );
 	}, [ links, updateLinks ] );
 
+	// A new page has no sections yet. "Add Link" there creates the untitled
+	// section implicitly, so a first link never needs a section first (#1447).
+	const addFirstLink = useCallback( () => {
+		const newSection = {
+			id: createTempId( 'section' ),
+			section_title: '',
+			links: [
+				{
+					id: createTempId( 'link' ),
+					link_text: '',
+					link_url: '',
+					expires_at: '',
+				},
+			],
+		};
+		updateLinks( [ newSection ] );
+	}, [ updateLinks ] );
+
 	const removeSection = useCallback(
 		( sectionIndex ) => {
 			const updated = links.filter( ( _, i ) => i !== sectionIndex );
@@ -261,6 +279,21 @@ export default function TabLinks() {
 				onReorder={ handleSectionReorder }
 				renderItem={ renderSection }
 			/>
+
+			{ links.length === 0 && (
+				<div className="ec-lpe-links-empty">
+					<p>
+						{ __( 'Add the links you want fans to find: your music, shows, merch and more.', 'extrachill-artist-platform' ) }
+					</p>
+					<button
+						type="button"
+						className="button-1 button-medium ec-lpe-links-empty__add-link"
+						onClick={ addFirstLink }
+					>
+						{ __( 'Add Link', 'extrachill-artist-platform' ) }
+					</button>
+				</div>
+			) }
 
 			<button type="button" className="ec-add-section" onClick={ addSection }>
 				<span className="dashicons dashicons-plus"></span>
