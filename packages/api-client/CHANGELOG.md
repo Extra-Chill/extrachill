@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.0] - 2026-11-15
+
+### Added
+- seller fee rates, dispute holds, refund reconciliation, partial refunds, return policy
+
 ## [0.11.2] - 2026-11-15
 
 ### Fixed
