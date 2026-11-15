@@ -89,7 +89,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 			'social_links' => self::identity_social_links( $social_links ),
 			'source_url'   => get_permalink( $artist_id ),
 			'status'       => (string) $owner->post_status,
-			'genres'       => is_array( $genres ) ? array_values( $genres ) : array(),
+			'genres'       => array_values( $genres ),
 		);
 	}
 
@@ -162,7 +162,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	 *
 	 * @param array  $snapshot  Validated snapshot.
 	 * @param string $canonical Canonical Link Page URL.
-	 * @return array{@id: string, url: string}
+	 * @return array<string, string> The `@id` and `url` keys.
 	 */
 	protected static function schema_entity_node( array $snapshot, string $canonical ): array {
 		$profile_url = (string) ( $snapshot['source']['public_url'] ?? '' );

@@ -105,7 +105,7 @@ abstract class Owned_Link_Pages {
 	 *
 	 * @param array  $snapshot  Validated snapshot.
 	 * @param string $canonical Canonical Link Page URL.
-	 * @return array{@id: string, url: string}
+	 * @return array<string, string> The `@id` and `url` keys.
 	 */
 	protected static function schema_entity_node( array $snapshot, string $canonical ): array {
 		unset( $snapshot );

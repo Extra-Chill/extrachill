@@ -108,11 +108,11 @@ final class Artist_Link_Page_Snapshot_Migration {
 			}
 		);
 		if ( is_wp_error( $owner ) ) {
-			return $owner->get_error_code();
+			return (string) $owner->get_error_code();
 		}
 		$result = Artist_Link_Pages::refresh_snapshot( (int) $owner['object_id'] );
 		if ( is_wp_error( $result ) ) {
-			return $result->get_error_code();
+			return (string) $result->get_error_code();
 		}
 		return is_array( $result ) ? true : 'artist_link_page_snapshot_refresh_failed';
 	}
