@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.12] - 2026-11-15
+
+### Changed
+- one verified service-request grant check
+
 ## [2.39.11] - 2026-11-15
 
 ### Changed
