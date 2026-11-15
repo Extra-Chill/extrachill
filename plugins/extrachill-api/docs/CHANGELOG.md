@@ -2,6 +2,12 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.53.3] - 2026-11-15
+
+### Changed
+- artist link pages become an owner definition on the shared engine
+- one ec_with_blog helper and restore-safe switches
+
 ## [0.53.2] - 2026-11-15
 
 ### Fixed
