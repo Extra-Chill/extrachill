@@ -142,7 +142,7 @@ class TicketAbilities {
 				return new \WP_Error( 'ticket_seller_forbidden', 'Event management is required.', array( 'status' => 403 ) );
 			}
 
-			$seller = ( new CommerceSellerAbilities( null, null, false ) )->execute( $input['ticket_seller'] );
+			$seller = ( new CommerceSellerAbilities( null, false ) )->execute( $input['ticket_seller'] );
 			if ( is_wp_error( $seller ) ) {
 				return $seller;
 			}

@@ -36,7 +36,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 * @param int $term_id Promoter term ID.
 	 */
 	protected static function authorize_owner( int $term_id ) {
-		return ( new PromoterAuthorization() )->authorize( PromoterAuthorization::effective_user_id(), $term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
+		return TeamCapabilities::authorize( 'ec_access_promoter', $term_id, TeamAuthorization::effective_user_id() );
 	}
 
 	/**
@@ -110,12 +110,12 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 				if ( $trusted ) {
 					return $repository->with_active_organization_lock( $term_id, $callback );
 				}
-				$user_id = PromoterAuthorization::effective_user_id();
+				$user_id = TeamAuthorization::effective_user_id();
 				return $repository->with_active_membership_lock(
 					$term_id,
 					$user_id,
-					static function () use ( $repository, $user_id, $term_id, $callback ) {
-						$allowed = ( new PromoterAuthorization( $repository ) )->authorize( $user_id, $term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
+					static function () use ( $user_id, $term_id, $callback ) {
+						$allowed = TeamCapabilities::authorize( 'ec_access_promoter', $term_id, $user_id );
 						return true === $allowed ? $callback() : $allowed;
 					}
 				);

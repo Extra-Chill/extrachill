@@ -7,7 +7,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 use ExtraChillEvents\Core\VenueProfile;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -25,13 +25,6 @@ class VenueProfileAbilities {
 	private static bool $registered = false;
 
 	/**
-	 * Exact venue membership authorization service.
-	 *
-	 * @var VenueAuthorization
-	 */
-	private $authorization;
-
-	/**
 	 * Canonical profile service.
 	 *
 	 * @var VenueProfile
@@ -41,12 +34,10 @@ class VenueProfileAbilities {
 	/**
 	 * Construct the ability registrar.
 	 *
-	 * @param VenueProfile|null       $profiles      Optional profile service.
-	 * @param VenueAuthorization|null $authorization Optional authorization service.
+	 * @param VenueProfile|null $profiles Optional profile service.
 	 */
-	public function __construct( ?VenueProfile $profiles = null, ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->profiles      = $profiles ? $profiles : new VenueProfile( $this->authorization );
+	public function __construct( ?VenueProfile $profiles = null ) {
+		$this->profiles = $profiles ? $profiles : new VenueProfile();
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -130,11 +121,7 @@ class VenueProfileAbilities {
 	 * @return true|\WP_Error Authorization result.
 	 */
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			VenueAuthorization::ACTION_ACCESS_VENUE
-		);
+		return TeamCapabilities::authorize( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/**
@@ -145,7 +132,7 @@ class VenueProfileAbilities {
 	 */
 	public function get_profile( array $input ) {
 		$venue_term_id = absint( $input['venue_term_id'] ?? 0 );
-		$allowed       = $this->authorization->authorize( get_current_user_id(), $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed       = TeamCapabilities::authorize( 'ec_access_venue', $venue_term_id );
 		return is_wp_error( $allowed ) ? $allowed : $this->profiles->get( $venue_term_id, get_current_user_id() );
 	}
 

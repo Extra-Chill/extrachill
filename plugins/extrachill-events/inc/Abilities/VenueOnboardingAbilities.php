@@ -7,9 +7,10 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
-use ExtraChillEvents\Core\VenueOnboardingRepository;
-use ExtraChillEvents\Core\VenueOnboardingService;
+use ExtraChill\Users\Teams\TeamOnboardingRepository;
+use ExtraChill\Users\Teams\TeamOnboardingService;
+use ExtraChillEvents\Core\TeamCapabilities;
+use ExtraChillEvents\Core\VenueOnboardingAdapter;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,13 +25,9 @@ class VenueOnboardingAbilities {
 	/** Venue onboarding policy service. */
 	private $service;
 
-	/** Venue authorization service. */
-	private $authorization;
-
 	/** Build and hook the onboarding abilities. */
-	public function __construct( ?VenueOnboardingService $service = null, ?VenueAuthorization $authorization = null ) {
-		$this->service       = $service ? $service : new VenueOnboardingService();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?TeamOnboardingService $service = null ) {
+		$this->service = $service ? $service : new TeamOnboardingService( new VenueOnboardingAdapter() );
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -51,7 +48,7 @@ class VenueOnboardingAbilities {
 				'claim_id'         => $id,
 				'decision'         => array(
 					'type' => 'string',
-					'enum' => array( VenueOnboardingRepository::CLAIM_APPROVED, VenueOnboardingRepository::CLAIM_REJECTED ),
+					'enum' => array( TeamOnboardingRepository::CLAIM_APPROVED, TeamOnboardingRepository::CLAIM_REJECTED ),
 				),
 				'expected_version' => $id,
 			),
@@ -80,7 +77,7 @@ class VenueOnboardingAbilities {
 			array(
 				'status' => array(
 					'type' => 'string',
-					'enum' => VenueOnboardingRepository::claim_statuses(),
+					'enum' => TeamOnboardingRepository::claim_statuses(),
 				),
 			),
 			array(),
@@ -147,7 +144,7 @@ class VenueOnboardingAbilities {
 				'expected_version' => $id,
 				'decision'         => array(
 					'type' => 'string',
-					'enum' => array( VenueOnboardingRepository::INVITE_ACCEPTED, VenueOnboardingRepository::INVITE_REJECTED ),
+					'enum' => array( TeamOnboardingRepository::INVITE_ACCEPTED, TeamOnboardingRepository::INVITE_REJECTED ),
 				),
 			),
 			array( 'invitation_id', 'token', 'venue_term_id', 'is_owner', 'expected_version', 'decision' ),
@@ -170,7 +167,7 @@ class VenueOnboardingAbilities {
 
 	/** Authorize current venue membership management. */
 	public function can_manage_venue( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		return TeamCapabilities::authorize( 'ec_manage_venue_members', absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/** Execute claim submission. */

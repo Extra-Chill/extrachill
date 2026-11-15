@@ -1,6 +1,10 @@
 <?php
 /**
- * Venue-scoped membership and booking authorization.
+ * Deprecated venue authorization facade kept only for extrachill-booking.
+ *
+ * Events code authorizes through `current_user_can( 'ec_*', $term_id )` or
+ * TeamCapabilities::authorize(). This facade is removed in #1425 PR 2, once
+ * extrachill-booking migrates to the same capabilities.
  *
  * @package ExtraChillEvents\Core
  */
@@ -13,19 +17,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once __DIR__ . '/TeamAuthorization.php';
 
-/** Composes WordPress feature access with an exact venue relationship. */
+/**
+ * Compatibility facade over TeamAuthorization for extrachill-booking only.
+ *
+ * Removed in #1425 PR 2; Events code uses TeamCapabilities and TeamAuthorization.
+ */
 class VenueAuthorization {
 
-	public const STATUS_ACTIVE  = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_ACTIVE;
-	public const STATUS_INVITED = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_INVITED;
-	public const STATUS_REVOKED = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_REVOKED;
+	public const STATUS_ACTIVE  = TeamAuthorization::STATUS_ACTIVE;
+	public const STATUS_INVITED = TeamAuthorization::STATUS_INVITED;
+	public const STATUS_REVOKED = TeamAuthorization::STATUS_REVOKED;
 
-	public const ACTION_ACCESS_VENUE    = 'access_venue';
-	public const ACTION_MANAGE_MEMBERS  = 'manage_members';
-	public const ACTION_MANAGE_FINANCES = 'manage_finances';
+	public const ACTION_ACCESS_VENUE    = TeamAuthorization::ACTION_ACCESS_VENUE;
+	public const ACTION_MANAGE_MEMBERS  = TeamAuthorization::ACTION_MANAGE_MEMBERS;
+	public const ACTION_MANAGE_FINANCES = TeamAuthorization::ACTION_MANAGE_FINANCES;
 
-	public const ACCESS_CAPABILITY = 'access_events_admin';
-	public const FEATURE           = 'venue_booking';
+	public const ACCESS_CAPABILITY = TeamAuthorization::ACCESS_CAPABILITY;
+	public const FEATURE           = TeamAuthorization::FEATURE;
 
 	/** @var TeamAuthorization */
 	private $policy;

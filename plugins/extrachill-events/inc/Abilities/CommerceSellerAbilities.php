@@ -11,7 +11,6 @@
 namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,13 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Registers the current-user commerce seller resolver. */
 class CommerceSellerAbilities {
-
-	/**
-	 * Venue authorization policy.
-	 *
-	 * @var VenueAuthorization
-	 */
-	private $venues;
 
 	/**
 	 * Promoter authority reader, or null when promoter schema is unavailable.
@@ -38,12 +30,10 @@ class CommerceSellerAbilities {
 	/**
 	 * Construct the ability registrar.
 	 *
-	 * @param VenueAuthorization|null          $venues    Optional venue policy.
 	 * @param PromoterAuthorityRepository|null $promoters Optional promoter reader.
 	 * @param bool                             $register  Hook registration (false in tests).
 	 */
-	public function __construct( ?VenueAuthorization $venues = null, ?PromoterAuthorityRepository $promoters = null, bool $register = true ) {
-		$this->venues    = $venues ? $venues : new VenueAuthorization();
+	public function __construct( ?PromoterAuthorityRepository $promoters = null, bool $register = true ) {
 		$this->promoters = $promoters;
 		if ( ! $this->promoters ) {
 			$this->promoters = new PromoterAuthorityRepository();
@@ -333,7 +323,7 @@ class CommerceSellerAbilities {
 		}
 
 		if ( 'venue' === $type ) {
-			$can = $user_id > 0 && $this->venues->can( $user_id, $id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+			$can = $user_id > 0 && user_can( $user_id, 'ec_manage_venue_finances', $id ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta capability mapped by TeamCapabilities.
 		} else {
 			if ( ! $this->promoters ) {
 				return $not_found;

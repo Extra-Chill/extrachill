@@ -26,15 +26,15 @@ final class PromoterWorkspace {
 	 */
 	private $venues;
 	/**
-	 * Promoter organization policy.
+	 * Promoter organization policy, honoring the execution-principal mode.
 	 *
-	 * @var PromoterAuthorization
+	 * @var TeamAuthorization
 	 */
 	private $promoter_authorization;
 	/**
 	 * Direct venue policy.
 	 *
-	 * @var VenueAuthorization
+	 * @var TeamAuthorization
 	 */
 	private $venue_authorization;
 
@@ -60,13 +60,13 @@ final class PromoterWorkspace {
 		$this->promoters               = $promoters ? $promoters : new PromoterAuthorityRepository();
 		$this->venues                  = $venues ? $venues : new VenueMembershipRepository();
 		$this->use_execution_principal = $use_execution_principal;
-		$this->promoter_authorization  = new PromoterAuthorization( $this->promoters, $use_execution_principal );
-		$this->venue_authorization     = new VenueAuthorization( $this->venues );
+		$this->promoter_authorization  = new TeamAuthorization( null, $this->promoters, $use_execution_principal );
+		$this->venue_authorization     = new TeamAuthorization( $this->venues );
 	}
 
 	/** List only identities currently manageable by the effective actor. */
 	public function identities() {
-		return $this->identities_for_user( PromoterAuthorization::effective_user_id() );
+		return $this->identities_for_user( TeamAuthorization::effective_user_id() );
 	}
 
 	/**
@@ -83,7 +83,7 @@ final class PromoterWorkspace {
 		if ( is_wp_error( $venue_ids ) ) {
 			return $venue_ids;
 		}
-		$is_admin = PromoterAuthorization::user_can( $user_id, 'manage_options', $this->use_execution_principal );
+		$is_admin = TeamAuthorization::user_can( $user_id, 'manage_options', $this->use_execution_principal );
 		if ( $is_admin ) {
 			$administrator_venue_ids = $this->venues->list_active_venue_ids();
 			if ( is_wp_error( $administrator_venue_ids ) ) {
@@ -102,11 +102,11 @@ final class PromoterWorkspace {
 				continue;
 			}
 			$permissions = array();
-			foreach ( VenueAuthorization::actions() as $action ) {
-				$allowed = true === $this->venue_authorization->authorize( $user_id, $venue_term_id, $action );
-				if ( in_array( $action, array( VenueAuthorization::ACTION_ACCESS_VENUE, VenueAuthorization::ACTION_MANAGE_FINANCES ), true ) ) {
-					$allowed = $allowed && is_array( $membership ) && PromoterAuthorization::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY, $this->use_execution_principal );
-				} elseif ( VenueAuthorization::ACTION_MANAGE_MEMBERS === $action && ! is_array( $membership ) ) {
+			foreach ( TeamAuthorization::actions( 'venue' ) as $action ) {
+				$allowed = true === $this->venue_authorization->authorize( $user_id, 'venue', $venue_term_id, $action );
+				if ( in_array( $action, array( TeamAuthorization::ACTION_ACCESS_VENUE, TeamAuthorization::ACTION_MANAGE_FINANCES ), true ) ) {
+					$allowed = $allowed && is_array( $membership ) && TeamAuthorization::user_can( $user_id, TeamAuthorization::ACCESS_CAPABILITY, $this->use_execution_principal );
+				} elseif ( TeamAuthorization::ACTION_MANAGE_MEMBERS === $action && ! is_array( $membership ) ) {
 					$allowed = $allowed && $is_admin;
 				}
 				if ( $allowed ) {
@@ -129,7 +129,7 @@ final class PromoterWorkspace {
 		}
 		foreach ( $memberships as $membership ) {
 			$promoter_term_id = (int) $membership['promoter_term_id'];
-			if ( true !== $this->promoter_authorization->authorize( $user_id, $promoter_term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) ) {
+			if ( true !== $this->promoter_authorization->authorize( $user_id, 'promoter', $promoter_term_id, TeamAuthorization::ACTION_ACCESS_PROMOTER ) ) {
 				continue;
 			}
 			$term = get_term( $promoter_term_id, 'promoter' );
@@ -142,7 +142,7 @@ final class PromoterWorkspace {
 				'id'          => $promoter_term_id,
 				'name'        => (string) $term->name,
 				'is_owner'    => (bool) $membership['is_owner'],
-				'permissions' => array( PromoterAuthorization::ACTION_ACCESS_PROMOTER ),
+				'permissions' => array( TeamAuthorization::ACTION_ACCESS_PROMOTER ),
 			);
 		}
 		if ( count( $identities ) > self::MAX_IDENTITIES ) {
@@ -171,7 +171,7 @@ final class PromoterWorkspace {
 	 * @param string $selected_reference Typed venue or promoter reference.
 	 */
 	public function resolve( string $selected_reference ) {
-		return $this->resolve_for_user( PromoterAuthorization::effective_user_id(), $selected_reference );
+		return $this->resolve_for_user( TeamAuthorization::effective_user_id(), $selected_reference );
 	}
 
 	/**
@@ -225,7 +225,7 @@ final class PromoterWorkspace {
 		}
 
 		$user_id = (int) $listed['actor']['id'];
-		if ( true !== $this->promoter_authorization->authorize( $user_id, $term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) ) {
+		if ( true !== $this->promoter_authorization->authorize( $user_id, 'promoter', $term_id, TeamAuthorization::ACTION_ACCESS_PROMOTER ) ) {
 			$result['selection']['state'] = 'denied';
 			return $result;
 		}
@@ -250,7 +250,7 @@ final class PromoterWorkspace {
 			return false;
 		}
 		if ( 'venue' === $type ) {
-			return VenueAuthorization::STATUS_ACTIVE !== $membership['status'];
+			return TeamAuthorization::STATUS_ACTIVE !== $membership['status'];
 		}
 		$organization = $this->promoters->get_organization( $term_id );
 		return PromoterAuthorityRepository::STATUS_ACTIVE !== $membership['status'] || ! is_array( $organization ) || PromoterAuthorityRepository::STATUS_ACTIVE !== $organization['status'];

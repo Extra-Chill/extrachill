@@ -9,7 +9,7 @@
  * and the person joins the team as a non-owner active member.
  *
  * Ownership is structural authority and stays with the owner-only
- * membership services (VenueMembershipService, PromoterAuthorityService).
+ * membership abilities (VenueMembershipAbilities, PromoterAuthorityAbilities).
  * This service never creates an owner, and never changes the ownership or
  * status of an existing membership.
  *
