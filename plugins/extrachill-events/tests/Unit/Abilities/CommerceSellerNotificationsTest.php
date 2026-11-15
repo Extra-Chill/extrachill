@@ -14,13 +14,6 @@ namespace ExtraChillEvents\Core {
 				return array_slice( $GLOBALS['csn_members'], $filters['offset'], $filters['limit'] );
 			}
 		}
-		class VenueAuthorization {
-			const ACTION_MANAGE_FINANCES = 'manage_finances';
-			public function __construct( $repository = null ) {}
-			public function can( $user, $venue, $action ) {
-				return 1 === $user && 9 === $venue && self::ACTION_MANAGE_FINANCES === $action;
-			}
-		}
 		class PromoterAuthorityRepository {
 			public function get_organization( $id ) { return array( 'status' => $GLOBALS['csn_org_status'] ); }
 			public function list_memberships( $id ) { return $GLOBALS['csn_members']; }
@@ -36,6 +29,7 @@ namespace {
 		'restore_current_blog' => static function () { array_pop( $GLOBALS['csn_blogs'] ); },
 		'get_term'             => static fn( $id, $type ) => (object) array( 'taxonomy' => $type, 'name' => ucfirst( $type ) ),
 		'get_userdata'         => static fn( $id ) => (object) array( 'user_email' => "user$id@example.com" ),
+		'user_can'             => static fn( $user, $cap, $venue ) => 1 === $user && 9 === $venue && 'ec_manage_venue_finances' === $cap,
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['csn_impl'][ $name ] = $impl;

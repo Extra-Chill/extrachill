@@ -49,7 +49,7 @@ if ( ! function_exists( 'home_url' ) ) {
 require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueAuthorization.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/TeamAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/owner-guest-list.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/RsvpPassAbilities.php';

@@ -9,7 +9,6 @@ declare( strict_types=1 );
 
 use ExtraChillEvents\Abilities\EventRoundupAbilities;
 use ExtraChillEvents\Abilities\VenueGraphicsAbilities;
-use ExtraChillEvents\Core\VenueAuthorization;
 
 /**
  * extrachill/venue-graphics-build makes the internal roundup self-serve for
@@ -62,33 +61,17 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 			eval( 'function wp_register_ability( $name, $args ) { $GLOBALS["venue_graphics_test"]["registered"][ $name ] = $args; }' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Test-only shim.
 		}
 
-		require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueAuthorization.php';
+		if ( ! class_exists( '\\ExtraChillEvents\\Core\\TeamCapabilities' ) ) {
+			// Capability double backed by an in-memory "user:venue" membership list.
+			eval( 'namespace ExtraChillEvents\\Core; final class TeamCapabilities { public static function authorize( string $cap, int $term_id, ?int $user_id = null ) { $user_id = null === $user_id ? get_current_user_id() : $user_id; return "ec_access_venue" === $cap && in_array( $user_id . ":" . $term_id, $GLOBALS["venue_graphics_test"]["memberships"] ?? array(), true ) ? true : new \\WP_Error( "venue_action_forbidden", "You are not authorized to perform this venue action.", array( "status" => 403 ) ); } }' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Test-only double.
+		}
 		require_once dirname( __DIR__, 3 ) . '/inc/Abilities/EventRoundupAbilities.php';
 		require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueGraphicsAbilities.php';
 	}
 
-	/** Authorization double backed by an in-memory "user:venue" membership list. */
-	private function authorization( array $memberships ): VenueAuthorization {
-		return new class( $memberships ) extends VenueAuthorization {
-			/** @var array */
-			public $calls = array();
-
-			/** @var array */
-			private $memberships;
-
-			// phpcs:ignore Generic.CodeAnalysis.UselessOverridingMethod.Found
-			public function __construct( array $memberships ) {
-				// Deliberately skip the parent constructor: no repository.
-				$this->memberships = $memberships;
-			}
-
-			public function authorize( int $user_id, int $venue_term_id, string $action ) {
-				$this->calls[] = array( $user_id, $venue_term_id, $action );
-				return in_array( $user_id . ':' . $venue_term_id, $this->memberships, true )
-					? true
-					: new \WP_Error( 'venue_action_forbidden', 'You are not authorized to perform this venue action.', array( 'status' => 403 ) );
-			}
-		};
+	/** Grant venue access to an in-memory "user:venue" membership list. */
+	private function memberships( array $memberships ): void {
+		$GLOBALS['venue_graphics_test']['memberships'] = $memberships;
 	}
 
 	/** Roundup double that records build inputs and returns a canned result. */
@@ -131,7 +114,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 5,
 			)
 		);
-		$ability  = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$this->assertTrue( $ability->can_access_venue( array( 'venue_term_id' => 100 ) ) );
 
@@ -161,7 +145,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 		$this->install_shims();
 
 		$roundup = $this->roundup( array( 'success' => true ) );
-		$ability = new VenueGraphicsAbilities( $this->authorization( array() ), $roundup );
+		$this->memberships( array() );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$gate = $ability->can_access_venue( array( 'venue_term_id' => 100 ) );
 		$this->assertInstanceOf( WP_Error::class, $gate );
@@ -183,7 +168,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 		$this->install_shims();
 
 		$roundup = $this->roundup( array( 'success' => true ) );
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$gate = $ability->can_access_venue( array( 'venue_term_id' => 200 ) );
 		$this->assertInstanceOf( WP_Error::class, $gate );
@@ -210,7 +196,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 1,
 			)
 		);
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		// A hostile caller smuggles widening filters; the ability must build
 		// its own from the authorized venue_term_id alone.
@@ -234,7 +221,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 	public function test_input_schema_is_closed_and_offers_no_filter_inputs(): void {
 		$this->install_shims();
 
-		$ability = new VenueGraphicsAbilities( $this->authorization( array() ), $this->roundup( array() ) );
+		$this->memberships( array() );
+		$ability = new VenueGraphicsAbilities( $this->roundup( array() ) );
 		$ability->register();
 
 		$args = $GLOBALS['venue_graphics_test']['registered']['extrachill/venue-graphics-build'];
@@ -257,7 +245,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 1,
 			)
 		);
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$result = $ability->execute(
 			array(
@@ -293,7 +282,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 0,
 			)
 		);
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$result = $ability->execute(
 			array(
@@ -320,7 +310,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 1,
 			)
 		);
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		// A week or less: "This Week at <Venue>", daily layout.
 		$ability->execute(
@@ -380,7 +371,8 @@ final class VenueGraphicsAbilityTest extends BookingTestCase {
 				'total_events' => 1,
 			)
 		);
-		$ability = new VenueGraphicsAbilities( $this->authorization( array( '7:100' ) ), $roundup );
+		$this->memberships( array( '7:100' ) );
+		$ability = new VenueGraphicsAbilities( $roundup );
 
 		$ability->execute(
 			array(

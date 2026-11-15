@@ -5,8 +5,8 @@
  * @package ExtraChillEvents\Tests
  */
 
+use ExtraChillEvents\Core\TeamAuthorization;
 use ExtraChillEvents\Core\TeamCapabilities;
-use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 require_once __DIR__ . '/VenueMembershipAuthorizationTest.php';
@@ -92,15 +92,15 @@ final class TeamAuthorizationTest extends \PHPUnit\Framework\TestCase {
 
 	/** Venue owner actions enforce the same ceiling for ordinary and locked reads. */
 	public function test_venue_owner_actions_enforce_principal_ceiling(): void {
-		$authorization = new VenueAuthorization();
+		$authorization = new TeamAuthorization();
 		$locked        = array_values( $GLOBALS['wpdb']->rows['wp_7_ec_venue_members'] );
 		$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = 2;
-		foreach ( array( array(), array( VenueAuthorization::ACCESS_CAPABILITY ) ) as $ceiling ) {
+		foreach ( array( array(), array( TeamAuthorization::ACCESS_CAPABILITY ) ) as $ceiling ) {
 			$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = $ceiling;
-			foreach ( VenueAuthorization::actions() as $action ) {
+			foreach ( TeamAuthorization::actions( 'venue' ) as $action ) {
 				$results = array(
-					$authorization->authorize( 2, 55, $action ),
-					$authorization->authorize_locked( 2, 55, $action, $locked ),
+					$authorization->authorize( 2, 'venue', 55, $action ),
+					$authorization->authorize_locked( 2, 'venue', 55, $action, $locked ),
 				);
 				foreach ( $results as $result ) {
 					if ( $ceiling ) {
@@ -117,28 +117,28 @@ final class TeamAuthorizationTest extends \PHPUnit\Framework\TestCase {
 
 	/** An administrator override requires manage_options in the active ceiling. */
 	public function test_venue_admin_override_enforces_principal_ceiling(): void {
-		$authorization = new VenueAuthorization();
+		$authorization = new TeamAuthorization();
 		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 1;
-		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( VenueAuthorization::ACCESS_CAPABILITY );
-		$this->assertSame( 'venue_action_forbidden', $authorization->authorize( 1, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( TeamAuthorization::ACCESS_CAPABILITY );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize( 1, 'venue', 55, TeamAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
 		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( 'manage_options' );
-		$this->assertTrue( $authorization->authorize( 1, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( $authorization->authorize( 1, 'venue', 55, TeamAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
 	/** Web requests retain domain authority without adding an owner capability gate. */
 	public function test_web_venue_authority_is_unchanged(): void {
-		$authorization = new VenueAuthorization();
-		foreach ( VenueAuthorization::actions() as $action ) {
-			$this->assertTrue( $authorization->authorize( 2, 55, $action ) );
-			$this->assertSame( VenueAuthorization::ACTION_ACCESS_VENUE === $action, $authorization->can( 3, 55, $action ) );
-			$this->assertSame( VenueAuthorization::ACTION_MANAGE_MEMBERS === $action, $authorization->can( 1, 55, $action ) );
+		$authorization = new TeamAuthorization();
+		foreach ( TeamAuthorization::actions( 'venue' ) as $action ) {
+			$this->assertTrue( $authorization->authorize( 2, 'venue', 55, $action ) );
+			$this->assertSame( TeamAuthorization::ACTION_ACCESS_VENUE === $action, $authorization->can( 3, 'venue', 55, $action ) );
+			$this->assertSame( TeamAuthorization::ACTION_MANAGE_MEMBERS === $action, $authorization->can( 1, 'venue', 55, $action ) );
 		}
 		$GLOBALS['venue_membership_test']['team_access'][2]    = false;
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
-		$this->assertTrue( $authorization->authorize( 2, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
-		$this->assertFalse( $authorization->can( 2, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
-		$this->assertFalse( $authorization->can( 3, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) );
-		$this->assertTrue( $authorization->authorize( 1, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( $authorization->authorize( 2, 'venue', 55, TeamAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertFalse( $authorization->can( 2, 'venue', 55, TeamAuthorization::ACTION_MANAGE_FINANCES ) );
+		$this->assertFalse( $authorization->can( 3, 'venue', 55, TeamAuthorization::ACTION_ACCESS_VENUE ) );
+		$this->assertTrue( $authorization->authorize( 1, 'venue', 55, TeamAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
 	public function test_promoter_capabilities_do_not_inherit_venue_membership(): void {

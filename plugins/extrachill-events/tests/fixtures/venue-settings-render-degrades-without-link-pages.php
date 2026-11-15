@@ -21,18 +21,10 @@ namespace ExtraChillEvents\Core {
 			return array( 30 );
 		}
 	}
-	final class VenueAuthorization {
-		public const ACTION_ACCESS_VENUE   = 'access_venue';
-		public const ACTION_MANAGE_MEMBERS = 'manage_members';
-		public function is_administrator( int $user_id ): bool {
+	final class TeamAuthorization {
+		public static function is_site_admin( int $user_id ): bool {
 			unset( $user_id );
 			return true;
-		}
-		public function authorize( int $user_id, int $venue_term_id, string $action ) {
-			unset( $user_id, $venue_term_id, $action );
-			// Denied is sufficient: the fix under test is whether the render
-			// completes at all, not the access-gated booking URL branch.
-			return new \WP_Error( 'venue_action_forbidden' );
 		}
 	}
 	final class PromoterWorkspace {

@@ -10,7 +10,6 @@
 use ExtraChillEvents\Abilities\DoorAccessAbilities;
 use ExtraChillEvents\Core\DoorAccessService;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 require_once __DIR__ . '/VenueMembershipAuthorizationTest.php';

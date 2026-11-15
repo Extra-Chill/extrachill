@@ -7,10 +7,14 @@
 
 namespace ExtraChillEvents\Core {
 	final class VenueMembershipRepository {}
-	final class VenueAuthorization {
-		public function is_administrator( int $user_id ): bool {
+	final class TeamAuthorization {
+		public static function is_site_admin( int $user_id ): bool {
 			unset( $user_id );
 			return true;
+		}
+
+		public static function effective_user_id(): int {
+			return 99;
 		}
 	}
 	final class PromoterWorkspace {
@@ -38,11 +42,6 @@ namespace ExtraChillEvents\Core {
 				'promoter'   => null,
 				'venue'      => null,
 			);
-		}
-	}
-	final class PromoterAuthorization {
-		public static function effective_user_id(): int {
-			return 99;
 		}
 	}
 }
