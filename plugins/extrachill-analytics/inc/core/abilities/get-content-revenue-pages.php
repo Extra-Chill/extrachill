@@ -695,47 +695,6 @@ function extrachill_analytics_revenue_authorize_blog_read( $blog_id ) {
 }
 
 /**
- * Switch to the target blog unless it is already current.
- *
- * @param int $blog_id Target blog ID.
- * @return bool True if switched (caller must restore).
- */
-function extrachill_analytics_revenue_maybe_switch_to_blog( $blog_id ) {
-	if ( function_exists( 'switch_to_blog' ) && (int) $blog_id > 0 && get_current_blog_id() !== (int) $blog_id ) {
-		return (bool) switch_to_blog( $blog_id );
-	}
-	return false;
-}
-
-/**
- * Restore the current blog only when a switch happened.
- *
- * @param bool $switched Whether switch_to_blog was called.
- */
-function extrachill_analytics_revenue_maybe_restore_blog( $switched ) {
-	if ( $switched && function_exists( 'restore_current_blog' ) ) {
-		restore_current_blog();
-	}
-}
-
-/**
- * Run a callback in the target blog and always restore the original context.
- *
- * @param int      $blog_id Target blog ID.
- * @param callable $callback Callback to run in the target blog.
- * @return mixed Callback result.
- */
-function extrachill_analytics_revenue_run_in_blog( $blog_id, $callback ) {
-	$switched = extrachill_analytics_revenue_maybe_switch_to_blog( $blog_id );
-
-	try {
-		return call_user_func( $callback );
-	} finally {
-		extrachill_analytics_revenue_maybe_restore_blog( $switched );
-	}
-}
-
-/**
  * Get the hostname used to resolve a relative Mediavine path.
  *
  * This runs inside the target blog context. An explicit hostname remains an

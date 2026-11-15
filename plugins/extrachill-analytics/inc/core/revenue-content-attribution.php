@@ -234,27 +234,6 @@ function extrachill_analytics_revenue_validate_network_scan( $scan, array $paths
 }
 
 /**
- * Read persisted content metadata in its owning site context.
- *
- * @param int      $blog_id Owning content blog.
- * @param callable $callback Metadata reader.
- * @return mixed Callback result.
- */
-function extrachill_analytics_revenue_with_content_blog( $blog_id, $callback ) {
-	$switched = false;
-	if ( $blog_id > 0 && function_exists( 'switch_to_blog' ) && get_current_blog_id() !== (int) $blog_id ) {
-		$switched = (bool) switch_to_blog( $blog_id );
-	}
-	try {
-		return call_user_func( $callback );
-	} finally {
-		if ( $switched && function_exists( 'restore_current_blog' ) ) {
-			restore_current_blog();
-		}
-	}
-}
-
-/**
  * Read persisted content metadata under its authoritative owning blog.
  *
  * @param int $blog_id Owning content blog.
@@ -262,8 +241,8 @@ function extrachill_analytics_revenue_with_content_blog( $blog_id, $callback ) {
  * @return array|null Published metadata, or null.
  */
 function extrachill_analytics_revenue_content_metadata( $blog_id, $post_id ) {
-	return extrachill_analytics_revenue_with_content_blog(
-		$blog_id,
+	return ec_with_blog(
+		(int) $blog_id,
 		static function () use ( $post_id ) {
 			if ( $post_id <= 0 || 'publish' !== get_post_status( $post_id ) ) {
 				return null;
