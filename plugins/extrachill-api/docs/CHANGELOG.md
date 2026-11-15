@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.53.2] - 2026-11-15
+
+### Fixed
+- label parcel sizes and keep spent shipping on refunds
+
 ## [0.53.1] - 2026-11-14
 
 ### Fixed
