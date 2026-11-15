@@ -16,7 +16,7 @@
 
 use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 /** Base fixture: one venue, one authorized owner, the installed booking schema. */
@@ -56,7 +56,7 @@ abstract class BookingMySQLIntegrationTestCase extends WP_UnitTestCase {
 		$this->assertNotWPError( $venue );
 		$this->venue_id = (int) $venue->term_id;
 		$this->actor_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
+		get_user_by( 'id', $this->actor_id )->add_cap( TeamAuthorization::ACCESS_CAPABILITY );
 
 		$this->assertTrue( BookingSchema::install() );
 		$membership = ( new VenueMembershipRepository() )->create(
@@ -64,7 +64,7 @@ abstract class BookingMySQLIntegrationTestCase extends WP_UnitTestCase {
 				'venue_term_id'      => $this->venue_id,
 				'user_id'            => $this->actor_id,
 				'is_owner'           => true,
-				'status'             => VenueAuthorization::STATUS_ACTIVE,
+				'status'             => TeamAuthorization::STATUS_ACTIVE,
 				'created_by_user_id' => $this->actor_id,
 			)
 		);

@@ -11,7 +11,8 @@ use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -568,7 +569,8 @@ final class TicketSettlementTest extends BookingTestCase {
 	}
 
 	public function test_finance_authority_and_ability_contracts_are_explicit(): void {
-		$this->assertContains( VenueAuthorization::ACTION_MANAGE_FINANCES, VenueAuthorization::actions() );
+		$this->assertContains( TeamAuthorization::ACTION_MANAGE_FINANCES, TeamAuthorization::actions( 'venue' ) );
+		$this->assertSame( array( 'venue', TeamAuthorization::ACTION_MANAGE_FINANCES ), TeamCapabilities::CAPABILITIES['ec_manage_venue_finances'] );
 		$abilities = new TicketSettlementAbilities( $this->service, $this->bookings, $this->authorization );
 		$abilities->register();
 		$names = array(
@@ -656,7 +658,7 @@ final class TicketSettlementTest extends BookingTestCase {
 			'manage_options'      => true,
 			'access_events_admin' => true,
 		);
-		$canonical_abilities = new TicketSettlementAbilities( $this->service, $this->bookings, new VenueAuthorization() );
+		$canonical_abilities = new TicketSettlementAbilities( $this->service, $this->bookings );
 		foreach ( array(
 			12 => true,
 			13 => false,
@@ -749,7 +751,7 @@ final class TicketSettlementTest extends BookingTestCase {
 			'venue_term_id'      => $venue_id,
 			'user_id'            => $user_id,
 			'is_owner'           => $is_owner ? 1 : 0,
-			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'status'             => TeamAuthorization::STATUS_ACTIVE,
 			'version'            => 1,
 			'created_by_user_id' => 12,
 			'created_at'         => $now,

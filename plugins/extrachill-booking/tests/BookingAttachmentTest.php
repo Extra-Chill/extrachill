@@ -11,7 +11,7 @@ use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -92,7 +92,7 @@ final class BookingAttachmentTest extends BookingTestCase {
 		);
 	}
 
-	private function service( ?VenueAuthorization $authorization = null ): BookingAttachmentService {
+	private function service( ?callable $authorization = null ): BookingAttachmentService {
 		return new BookingAttachmentService( null, null, null, null, $this->provider, $authorization ? $authorization : new BookingTestAuthorization() );
 	}
 
@@ -289,7 +289,7 @@ final class BookingAttachmentTest extends BookingTestCase {
 			'venue_term_id'      => 55,
 			'user_id'            => 12,
 			'is_owner'           => 0,
-			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'status'             => TeamAuthorization::STATUS_ACTIVE,
 			'version'            => 1,
 			'created_by_user_id' => 12,
 			'created_at'         => '2026-07-23 00:00:00',

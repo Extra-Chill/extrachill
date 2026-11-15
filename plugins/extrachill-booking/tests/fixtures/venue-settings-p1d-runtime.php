@@ -31,17 +31,9 @@ namespace ExtraChillEvents\Tests\VenueSettingsP1d {
 			return array( 30 );
 		}
 	}
-	final class VenueAuthorizationDouble {
-		public const ACTION_ACCESS_VENUE   = 'access_venue';
-		public const ACTION_MANAGE_MEMBERS = 'manage_members';
-		public function is_administrator( int $user_id ): bool {
+	final class TeamAuthorizationDouble {
+		public static function is_site_admin( int $user_id ): bool {
 			unset( $user_id );
-			return true;
-		}
-		public function authorize( int $user_id, int $venue_term_id, string $action ) {
-			unset( $user_id, $venue_term_id, $action );
-			// Denied is sufficient: the fix under test is whether the render
-			// completes at all, not the access-gated booking URL branch.
 			return true;
 		}
 	}
@@ -60,7 +52,7 @@ namespace ExtraChillEvents\Tests\VenueSettingsP1d {
 	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
 	class_alias( VenueBookingEmbedDouble::class, 'ExtraChillEvents\\Core\\VenueBookingEmbed' );
 	class_alias( VenueMembershipRepositoryDouble::class, 'ExtraChillEvents\\Core\\VenueMembershipRepository' );
-	class_alias( VenueAuthorizationDouble::class, 'ExtraChillEvents\\Core\\VenueAuthorization' );
+	class_alias( TeamAuthorizationDouble::class, 'ExtraChillEvents\\Core\\TeamAuthorization' );
 	class_alias( PromoterWorkspaceDouble::class, 'ExtraChillEvents\\Core\\PromoterWorkspace' );
 }
 
@@ -87,6 +79,12 @@ namespace {
 
 	function get_block_wrapper_attributes(): string {
 		return ''; }
+	function user_can( $user_id, $capability, ...$args ): bool {
+		unset( $user_id, $capability, $args );
+		// Allowed is sufficient: the fix under test is whether the render
+		// completes at all, not the access-gated booking URL branch.
+		return true;
+	}
 	function is_user_logged_in(): bool {
 		return $GLOBALS['logged_in']; }
 	function get_current_user_id(): int {

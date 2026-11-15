@@ -15,7 +15,7 @@ use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
@@ -43,7 +43,7 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		$this->old_venue_id = $this->create_venue( 'Old Sync Room' );
 		$this->new_venue_id = $this->create_venue( 'New Sync Room' );
 		$this->actor_id     = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
+		get_user_by( 'id', $this->actor_id )->add_cap( TeamAuthorization::ACCESS_CAPABILITY );
 		wp_set_current_user( $this->actor_id );
 		$this->assertTrue( BookingSchema::install() );
 		foreach ( array( $this->old_venue_id, $this->new_venue_id ) as $venue_id ) {
@@ -53,7 +53,7 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 						'venue_term_id'      => $venue_id,
 						'user_id'            => $this->actor_id,
 						'is_owner'           => true,
-						'status'             => VenueAuthorization::STATUS_ACTIVE,
+						'status'             => TeamAuthorization::STATUS_ACTIVE,
 						'created_by_user_id' => $this->actor_id,
 					)
 				)

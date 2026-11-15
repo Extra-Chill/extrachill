@@ -16,7 +16,6 @@ use ExtraChillEvents\Abilities\VenueBookingHoldAbilities;
 use ExtraChillEvents\Abilities\VenueMembershipAbilities;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
-require_once __DIR__ . '/../../extrachill-events/inc/Core/VenueMembershipService.php';
 require_once __DIR__ . '/../../extrachill-events/inc/Abilities/VenueMembershipAbilities.php';
 require_once __DIR__ . '/../../extrachill-events/inc/Abilities/PriorityTermAbilities.php';
 
