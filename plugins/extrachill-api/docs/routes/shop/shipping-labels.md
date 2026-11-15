@@ -18,7 +18,20 @@ Every route is a thin adapter over an `extrachill-shop` ability. The route maps 
 
 ## POST
 
-Body: `order_id`, `seller_type`, `seller_id`. Requires a saved ship-from address and an order containing the seller's items. A portion that only contains ships-free items is refused (`400 ships_free_order`); an order without the seller's items returns `400 invalid_seller`. If the seller already has a label for the order, that label is returned with `reprint: true` and no new purchase is made.
+Body: `order_id`, `seller_type`, `seller_id`, plus optional:
+
+- `parcel`: `{ weight, mass_unit: "oz"|"lb", length, width, height }` (inches). Defaults to the order's product weights (summed by quantity) and largest dimensions from WooCommerce, else 10×8×4 in, 1 lb. Each order in the list response carries this default as `label_parcel`, next to `shipping_held`. Invalid parcels return `400 invalid_parcel` (weight up to 70 lb, sides up to 108 in).
+- `quote: true`: price the cheapest USPS rate for the parcel without buying. Returns `{ quote: true, parcel, carrier, service, cost, shipping_held, exceeds_shipping, can_purchase, requires_confirmation }`.
+- `confirm_overage: true`: see below.
+
+The buyer's shipping charge (`shipping_held`, held in the application fee) pays for the label. When the cheapest rate costs more:
+
+- A seller cannot buy it: `409 label_exceeds_shipping`. They ship the order themselves and the hold is paid out to them when they mark it shipped.
+- A shop manager (`manage_woocommerce`) gets `409 label_overage_unconfirmed` until they resend with `confirm_overage: true`; Extra Chill then pays the difference, recorded as `overage` on the shipment.
+
+The shipment record stores the label `cost`, `shipping_held`, `overage` and the `parcel`.
+
+Requires a saved ship-from address and an order containing the seller's items. A portion that only contains ships-free items is refused (`400 ships_free_order`); an order without the seller's items returns `400 invalid_seller`. If the seller already has a label for the order, that label is returned with `reprint: true` and no new purchase is made.
 
 ```json
 {
@@ -30,7 +43,9 @@ Body: `order_id`, `seller_type`, `seller_id`. Requires a saved ship-from address
   "tracking_url": "https://tools.usps.com/...",
   "carrier": "USPS",
   "service": "Priority Mail",
-  "cost": 7.5
+  "cost": 4.8,
+  "shipping_held": 5,
+  "parcel": { "weight": 12, "mass_unit": "oz", "length": 10, "width": 8, "height": 4, "distance_unit": "in" }
 }
 ```
 

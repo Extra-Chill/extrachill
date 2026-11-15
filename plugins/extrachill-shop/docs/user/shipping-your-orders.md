@@ -21,8 +21,9 @@ Only US addresses are allowed.
 ## Option 1: Print a Label Through Extra Chill
 
 1. Go to the **Orders** tab and open the order.
-2. Select **Print Shipping Label**.
-3. Print the label, tape it to your package, and drop it at the post office or hand it to your mail carrier.
+2. Check the package weight and box size, then select **Check Label Price**.
+3. Select **Buy Label**.
+4. Print the label, tape it to your package, and drop it at the post office or hand it to your mail carrier.
 
 Extra Chill buys the cheapest mail service available for the package. The buyer's $5 shipping charge pays for it, so the label costs you nothing extra.
 
@@ -33,7 +34,7 @@ When the label is ready:
 - We email you the label, the tracking number, and the ship-to address.
 - You can select **Reprint Label** any time if you lose it.
 
-**Package size:** labels are made for a small package up to 1 pound and about 10 × 8 × 4 inches, which fits most shirts and small merch. If your package is bigger or heavier, ship it yourself (option 2) so it doesn't get held for extra postage.
+**Package size:** before buying, enter your package's weight and box size. They're filled in from your products' weights and sizes, or a small package (1 pound, 10 × 8 × 4 inches) if your products don't have them. Select **Check Label Price** to see the label price next to the shipping the buyer paid. If the label costs more than the buyer's shipping, you can't buy it through Extra Chill: ship it yourself (option 2) and the shipping is paid out to you.
 
 ## Option 2: Ship It Yourself
 

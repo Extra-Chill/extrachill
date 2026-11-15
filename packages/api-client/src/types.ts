@@ -656,7 +656,13 @@ export interface ShopOrder {
   tracking_number: string;
   /** Purchased shipping label, or '' when none was bought. */
   label_url: string;
+  /** Postage paid for the purchased label (0 when none). */
+  label_cost: number;
   ships_free_only: boolean;
+  /** Buyer shipping held in the application fee that a label can spend. */
+  shipping_held: number;
+  /** Label form prefill from product weights and dimensions. */
+  label_parcel: ShippingParcel;
 }
 
 export type ShopOrderStatusFilter = 'all' | 'needs_fulfillment' | 'completed';
@@ -725,9 +731,43 @@ export interface ShippingLabel {
   cost: number;
 }
 
+export interface ShippingParcel {
+  weight: number;
+  mass_unit: 'oz' | 'lb';
+  length: number;
+  width: number;
+  height: number;
+  distance_unit?: 'in';
+}
+
+export interface ShippingLabelPurchaseOptions {
+  parcel?: ShippingParcel;
+  /** Price the label without buying it. */
+  quote?: boolean;
+  /** Shop managers: buy above the shipping held; Extra Chill pays the difference. */
+  confirm_overage?: boolean;
+}
+
 export interface ShippingLabelPurchase extends ShippingLabel {
   success: boolean;
   reprint?: boolean;
+  shipping_held?: number;
+  parcel?: ShippingParcel;
+}
+
+export interface ShippingLabelQuote {
+  success: boolean;
+  quote: true;
+  order_id: number;
+  seller: ShopSellerRef;
+  parcel: ShippingParcel;
+  carrier: string;
+  service: string;
+  cost: number;
+  shipping_held: number;
+  exceeds_shipping: boolean;
+  can_purchase: boolean;
+  requires_confirmation: boolean;
 }
 
 export interface ShippingLabelLookup extends ShippingLabel {

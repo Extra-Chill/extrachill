@@ -180,6 +180,7 @@ function get_blog_option( $blog_id, $key, $default_value = false ) {
 require_once dirname( __DIR__, 2 ) . '/extrachill-network/inc/commerce/fee-settings.php';
 require_once dirname( __DIR__ ) . '/inc/core/commerce-fees.php';
 require_once dirname( __DIR__ ) . '/inc/shipping/shipping-recovery.php';
+require_once dirname( __DIR__ ) . '/inc/shipping/label-parcel.php';
 function extrachill_shop_get_priority_boost_product_id() {
 	return 99;
 }

@@ -2,7 +2,8 @@
 /**
  * Shipping Settings
  *
- * Default parcel configuration and Shippo API key retrieval.
+ * Shippo API key retrieval and shipping constants. Label parcels live in
+ * label-parcel.php.
  *
  * @package ExtraChill\Shop
  */
@@ -27,24 +28,6 @@ function extrachill_shop_get_shippo_api_key() {
  */
 function extrachill_shop_is_shippo_configured() {
 	return ! empty( extrachill_shop_get_shippo_api_key() );
-}
-
-/**
- * Get default parcel dimensions for shipping.
- *
- * Standard size for most merch items (t-shirts, small goods).
- *
- * @return array Parcel dimensions in Shippo format.
- */
-function extrachill_shop_get_default_parcel() {
-	return array(
-		'length'        => '10',
-		'width'         => '8',
-		'height'        => '4',
-		'distance_unit' => 'in',
-		'weight'        => '1',
-		'mass_unit'     => 'lb',
-	);
 }
 
 /**

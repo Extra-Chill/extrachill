@@ -52,6 +52,10 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['stripe_session_retrieve_fail'] = false;
 		$GLOBALS['ticket_refund_fail']   = false;
 		$GLOBALS['ticket_refunds']       = array();
+		$GLOBALS['stripe_fee']             = array( 'id' => 'fee_merch', 'amount' => 700, 'amount_refunded' => 0 );
+		$GLOBALS['stripe_fee_calls']       = array();
+		$GLOBALS['stripe_fee_fail']        = false;
+		$GLOBALS['stripe_fee_refund_fail'] = false;
 		$GLOBALS['test_wc_refunds']      = array();
 		$GLOBALS['test_orders']          = array();
 		$GLOBALS['test_owner_callback']  = static fn() => array(
@@ -112,7 +116,7 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		list( $params, $options ) = $GLOBALS['ticket_refunds'][0];
 		$this->assertSame( 'pi_merch', $params['payment_intent'] );
 		$this->assertSame( 2500, $params['amount'] );
-		$this->assertTrue( $params['refund_application_fee'] );
+		$this->assertFalse( $params['refund_application_fee'] );
 		$this->assertSame( 'acct_merch', $options['stripe_account'] );
 		$this->assertSame( 'Return', $params['metadata']['reason'] );
 	}
@@ -133,7 +137,7 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		$keys = array_map( static fn( $r ) => $r[1]['idempotency_key'], $GLOBALS['ticket_refunds'] );
 		$this->assertCount( 3, array_unique( $keys ) );
 		foreach ( $GLOBALS['ticket_refunds'] as list( $params, $options ) ) {
-			$this->assertTrue( $params['refund_application_fee'] );
+			$this->assertFalse( $params['refund_application_fee'] );
 			$this->assertSame( 'acct_merch', $options['stripe_account'] );
 		}
 	}

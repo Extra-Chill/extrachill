@@ -46,7 +46,8 @@ Automated shipping fulfillment using Shippo API for domestic USPS shipments.
 ### 2. Label Fulfillment Flow
 - When an order is "Processing", artists can purchase labels in the **Shop Manager**
 - System fetches the artist's address (From) and customer's address (To)
-- Automatically selects the **cheapest USPS rate** available via Shippo integration ($5 flat-rate label model)
+- The seller confirms the parcel weight and dimensions (prefilled from product weights and dimensions, else 10×8×4 in, 1 lb), checks the price, then buys the **cheapest USPS rate** via Shippo
+- The buyer's shipping charge (held in the application fee) pays for the label. If the label costs more, sellers must ship the order themselves; shop managers can buy it after confirming, and Extra Chill pays the difference
 - **Ships Free Exception**: If an order consists only of "Ships Free" items, the system blocks platform label purchases. Artists must ship these manually (e.g., via stamped envelope) and mark the order as shipped.
 - Purchases label and retrieves tracking number + PDF URL
 - Updates WooCommerce order status to "Completed" and adds tracking info

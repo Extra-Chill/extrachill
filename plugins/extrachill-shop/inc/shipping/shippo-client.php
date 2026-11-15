@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param array $from_address From address array (name, street1, street2, city, state, zip, country).
  * @param array $to_address   To address array (same format).
- * @param array $parcel       Optional. Parcel dimensions. Uses default if not provided.
+ * @param array $parcel       Optional. Parcel in Shippo format. Uses the default parcel if not provided.
  * @return array|WP_Error Shipment data with rates or error.
  */
 function extrachill_shop_shippo_create_shipment( $from_address, $to_address, $parcel = null ) {
@@ -24,7 +24,7 @@ function extrachill_shop_shippo_create_shipment( $from_address, $to_address, $pa
 	}
 
 	if ( null === $parcel ) {
-		$parcel = extrachill_shop_get_default_parcel();
+		$parcel = extrachill_shop_shippo_parcel( extrachill_shop_get_default_parcel() );
 	}
 
 	$body = array(
@@ -161,14 +161,14 @@ function extrachill_shop_shippo_purchase_label( $rate_id ) {
 }
 
 /**
- * Create a shipment and purchase the cheapest USPS label in one call.
+ * Quote the cheapest USPS label for a parcel without buying it.
  *
- * @param array $from_address Artist's shipping address.
- * @param array $to_address   Customer's shipping address.
- * @param array $parcel       Optional. Parcel dimensions.
- * @return array|WP_Error Label data or error.
+ * @param array      $from_address Seller's shipping address.
+ * @param array      $to_address   Customer's shipping address.
+ * @param array|null $parcel       Parcel in Shippo format (`extrachill_shop_shippo_parcel()`).
+ * @return array|WP_Error { rate_id, cost, carrier, service } or error.
  */
-function extrachill_shop_shippo_create_label( $from_address, $to_address, $parcel = null ) {
+function extrachill_shop_shippo_quote_label( $from_address, $to_address, $parcel = null ) {
 	$shipment = extrachill_shop_shippo_create_shipment( $from_address, $to_address, $parcel );
 	if ( is_wp_error( $shipment ) ) {
 		return $shipment;
@@ -179,7 +179,22 @@ function extrachill_shop_shippo_create_label( $from_address, $to_address, $parce
 		return new WP_Error( 'no_usps_rates', 'No USPS shipping rates available for this destination.' );
 	}
 
-	$transaction = extrachill_shop_shippo_purchase_label( $rate['object_id'] );
+	return array(
+		'rate_id' => (string) ( $rate['object_id'] ?? '' ),
+		'cost'    => floatval( $rate['amount'] ?? 0 ),
+		'carrier' => (string) ( $rate['provider'] ?? 'USPS' ),
+		'service' => (string) ( $rate['servicelevel']['name'] ?? $rate['servicelevel_name'] ?? '' ),
+	);
+}
+
+/**
+ * Buy the label for a quoted rate.
+ *
+ * @param array $quote Quote from `extrachill_shop_shippo_quote_label()`.
+ * @return array|WP_Error Label data or error.
+ */
+function extrachill_shop_shippo_buy_label( array $quote ) {
+	$transaction = extrachill_shop_shippo_purchase_label( $quote['rate_id'] );
 	if ( is_wp_error( $transaction ) ) {
 		return $transaction;
 	}
@@ -188,10 +203,10 @@ function extrachill_shop_shippo_create_label( $from_address, $to_address, $parce
 		'tracking_number' => $transaction['tracking_number'] ?? '',
 		'label_url'       => $transaction['label_url'] ?? '',
 		'tracking_url'    => $transaction['tracking_url_provider'] ?? '',
-		'carrier'         => $rate['provider'] ?? 'USPS',
-		'service'         => $rate['servicelevel']['name'] ?? $rate['servicelevel_name'] ?? '',
-		'cost'            => floatval( $rate['amount'] ?? 0 ),
-		'rate_id'         => $rate['object_id'] ?? '',
+		'carrier'         => $quote['carrier'],
+		'service'         => $quote['service'],
+		'cost'            => (float) $quote['cost'],
+		'rate_id'         => $quote['rate_id'],
 		'transaction_id'  => $transaction['object_id'] ?? '',
 	);
 }

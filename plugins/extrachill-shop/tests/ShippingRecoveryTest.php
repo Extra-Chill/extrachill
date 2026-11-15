@@ -5,28 +5,10 @@
  * fee and pays for an Extra Chill label, or goes back to a seller who ships
  * the order themselves.
  */
-namespace Stripe {
-	class PaymentIntent {
-		public static function retrieve( $params, $options = null ) {
-			if ( ! empty( $GLOBALS['stripe_fee_fail'] ) ) { throw new \RuntimeException( 'Stripe unavailable' ); }
-			$GLOBALS['stripe_fee_calls'][] = array( 'pi.retrieve', $params, $options );
-			return (object) array( 'id' => $params['id'], 'latest_charge' => (object) array( 'id' => 'ch_merch', 'application_fee' => $GLOBALS['stripe_fee']['id'] ?? null ) );
-		}
-	}
-	class ApplicationFee {
-		public static function retrieve( $id, $options = null ) {
-			$GLOBALS['stripe_fee_calls'][] = array( 'fee.retrieve', $id, $options );
-			return (object) $GLOBALS['stripe_fee'];
-		}
-		public static function createRefund( $id, $params = null, $options = null ) {
-			$GLOBALS['stripe_fee_calls'][] = array( 'fee.refund', $id, $params, $options );
-			return (object) array( 'id' => 'fr_1', 'amount' => $params['amount'] );
-		}
-	}
-}
 namespace {
 	use PHPUnit\Framework\TestCase;
 
+	require_once __DIR__ . '/fixtures/class-stripe-application-fee.php';
 	require_once __DIR__ . '/MerchCheckoutTest.php';
 	require_once __DIR__ . '/SellerOrderNotificationsTest.php';
 	require_once __DIR__ . '/SellerListingTest.php';
