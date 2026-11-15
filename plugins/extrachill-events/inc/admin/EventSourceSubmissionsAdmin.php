@@ -107,7 +107,7 @@ class EventSourceSubmissionsAdmin {
 
 		echo '<div class="wrap">';
 		echo '<h1>' . esc_html__( 'Event Source Imports', 'extrachill-events' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Moderation queue for recurring artist tour pages and venue calendars. Ambiguous sources require an explicit source kind and entity before approval.', 'extrachill-events' ) . '</p>';
+		echo '<p>' . esc_html__( 'Moderation queue for recurring artist tour pages, venue calendars, and regional listings. Ambiguous sources require an explicit source kind and entity before approval.', 'extrachill-events' ) . '</p>';
 
 		if ( 'approved' === $flash ) {
 			echo '<div class="notice notice-success"><p>' . esc_html__( 'Submission approved and pipeline created.', 'extrachill-events' ) . '</p></div>';
@@ -237,7 +237,10 @@ class EventSourceSubmissionsAdmin {
 			<?php
 			// One-click approve (#988): the row already knows its kind and
 			// entity; venue rows resolve their city pipeline automatically.
-			$one_click = in_array( $source_kind, array( 'artist', 'venue' ), true ) && ( $entity_term_id > 0 || '' !== $entity_name );
+			// Listings sources need no entity: they import into the shared
+			// Regional Listings Import pipeline (#1515).
+			$one_click = 'listing' === $source_kind
+				|| ( in_array( $source_kind, array( 'artist', 'venue' ), true ) && ( $entity_term_id > 0 || '' !== $entity_name ) );
 			$pipeline  = 'venue' === $source_kind ? ( new \ExtraChillEvents\Abilities\VenueAddAbilities() )->findCityPipelineForVenue( $entity_term_id ) : null;
 			if ( is_wp_error( $pipeline ) ) {
 				$one_click = false;
@@ -249,6 +252,8 @@ class EventSourceSubmissionsAdmin {
 					/* translators: %s: pipeline name. */
 					echo esc_html( sprintf( __( 'Imports into %s.', 'extrachill-events' ), $pipeline['pipeline_name'] ) );
 					?>
+				<?php elseif ( 'listing' === $source_kind ) : ?>
+					<?php esc_html_e( 'Imports into the shared Regional Listings Import pipeline (venue, city, and artists decided per event).', 'extrachill-events' ); ?>
 				<?php elseif ( is_wp_error( $pipeline ) ) : ?>
 					<strong><?php echo esc_html( $pipeline->get_error_message() ); ?></strong>
 				<?php elseif ( ! $one_click ) : ?>
@@ -264,6 +269,7 @@ class EventSourceSubmissionsAdmin {
 					<option value="unknown" <?php selected( $source_kind, 'unknown' ); ?>><?php esc_html_e( 'Unknown (cannot approve)', 'extrachill-events' ); ?></option>
 					<option value="artist" <?php selected( $source_kind, 'artist' ); ?>><?php esc_html_e( 'Artist', 'extrachill-events' ); ?></option>
 					<option value="venue" <?php selected( $source_kind, 'venue' ); ?>><?php esc_html_e( 'Venue', 'extrachill-events' ); ?></option>
+					<option value="listing" <?php selected( $source_kind, 'listing' ); ?>><?php esc_html_e( 'Listings (multi-venue gig list)', 'extrachill-events' ); ?></option>
 				</select>
 			</label>
 
@@ -274,6 +280,7 @@ class EventSourceSubmissionsAdmin {
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Entity name:', 'extrachill-events' ); ?>
 				<input type="text" name="entity_name" value="<?php echo esc_attr( $entity_name ); ?>" style="width: 200px;" />
+				<span class="description"><?php esc_html_e( 'For listings, the source name used in the flow name.', 'extrachill-events' ); ?></span>
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'City pipeline ID (venue only):', 'extrachill-events' ); ?>
@@ -283,8 +290,8 @@ class EventSourceSubmissionsAdmin {
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Schedule:', 'extrachill-events' ); ?>
 				<select name="schedule_interval">
-					<option value="weekly" selected><?php esc_html_e( 'Weekly', 'extrachill-events' ); ?></option>
-					<option value="daily"><?php esc_html_e( 'Daily', 'extrachill-events' ); ?></option>
+					<option value="weekly" <?php selected( 'listing' !== $source_kind ); ?>><?php esc_html_e( 'Weekly', 'extrachill-events' ); ?></option>
+					<option value="daily" <?php selected( 'listing' === $source_kind ); ?>><?php esc_html_e( 'Daily', 'extrachill-events' ); ?></option>
 					<option value="monthly"><?php esc_html_e( 'Monthly', 'extrachill-events' ); ?></option>
 				</select>
 			</label>
