@@ -2,7 +2,7 @@
 /**
  * Network-Wide Online Users Tracking
  *
- * Records per-user activity on community.extrachill.com (the centralized store)
+ * Records per-user activity in the network-global `last_active` user meta
  * that feeds the network-wide "online now" count.
  *
  * The COUNT itself is owned by the NetworkStats `online_users` metric provider
@@ -21,10 +21,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Record user activity network-wide with centralized storage.
  *
- * Writes `last_active` user meta (throttled to once per 15 minutes per user via
- * the `user_activity_<id>` transient) on community.extrachill.com regardless of
- * the active site, then invalidates the NetworkStats online_users metric cache
- * so the next read reflects the new activity.
+ * Writes the network-global `last_active` user meta at most once per
+ * 15 minutes per user. The throttle compares against that same meta, so no
+ * blog switch is needed on the per-request hot path (usermeta is shared by
+ * every site). When a write happens, the NetworkStats online_users metric
+ * cache on the community blog is invalidated so the next read reflects the
+ * new activity.
  */
 function ec_record_user_activity() {
 	$user_id = get_current_user_id();
@@ -32,10 +34,7 @@ function ec_record_user_activity() {
 		return;
 	}
 
-	$current_time            = time();
-	$user_activity_cache_key = 'user_activity_' . $user_id;
-
-	$community_blog_id = ec_get_blog_id( 'community' );
+	$community_blog_id = (int) ec_get_blog_id( 'community' );
 
 	if ( ! $community_blog_id || ! function_exists( 'switch_to_blog' ) ) {
 		return;
@@ -47,24 +46,36 @@ function ec_record_user_activity() {
 		return;
 	}
 
-	switch_to_blog( $community_blog_id );
+	$current_time = time();
+	$last_update  = ec_get_last_active( $user_id );
+
+	if ( null !== $last_update && ( $current_time - $last_update ) <= 900 ) {
+		return;
+	}
+
+	update_user_meta( $user_id, 'last_active', $current_time );
+
+	// The online-users count is owned + cached by the NetworkStats primitive
+	// (extrachill-network) in the community blog's transients. Bust just that
+	// metric so the next read reflects this activity. Guarded so a version
+	// skew during deploy (network plugin a version behind) never fatals. This
+	// runs at most once per user per throttle window, never per request.
+	if ( ! function_exists( 'ec_network_stats_forget' ) ) {
+		return;
+	}
+
+	$switched = false;
+	if ( (int) get_current_blog_id() !== $community_blog_id ) {
+		switch_to_blog( $community_blog_id );
+		$switched = true;
+	}
+
 	try {
-		$last_update = get_transient( $user_activity_cache_key );
-
-		if ( false === $last_update || ( $current_time - intval( $last_update ) ) > 900 ) {
-			update_user_meta( $user_id, 'last_active', $current_time );
-			set_transient( $user_activity_cache_key, $current_time, 900 );
-
-			// The online-users count is owned + cached by the NetworkStats
-			// primitive (extrachill-network). Bust just that metric so the
-			// next read reflects this activity. Guarded so a version skew
-			// during deploy (network plugin a version behind) never fatals.
-			if ( function_exists( 'ec_network_stats_forget' ) ) {
-				ec_network_stats_forget( 'online_users' );
-			}
-		}
+		ec_network_stats_forget( 'online_users' );
 	} finally {
-		restore_current_blog();
+		if ( $switched ) {
+			restore_current_blog();
+		}
 	}
 }
 add_action( 'wp', 'ec_record_user_activity' );
@@ -72,9 +83,8 @@ add_action( 'wp', 'ec_record_user_activity' );
 /**
  * Get a user's raw `last_active` timestamp.
  *
- * Reads the centralized `last_active` user meta from community.extrachill.com
- * (where ec_record_user_activity() writes it) regardless of the active site,
- * so callers on any site get a correct value.
+ * `last_active` lives in the network-global usermeta table, so the value is
+ * the same from every site and is read without switching blogs.
  *
  * @param int $user_id User ID.
  * @return int|null Unix timestamp of last page activity, or null if never active.
@@ -85,18 +95,7 @@ function ec_get_last_active( $user_id ) {
 		return null;
 	}
 
-	$community_blog_id = ec_get_blog_id( 'community' );
-
-	if ( $community_blog_id && function_exists( 'switch_to_blog' ) ) {
-		switch_to_blog( $community_blog_id );
-		try {
-			$last_active = get_user_meta( $user_id, 'last_active', true );
-		} finally {
-			restore_current_blog();
-		}
-	} else {
-		$last_active = get_user_meta( $user_id, 'last_active', true );
-	}
+	$last_active = get_user_meta( $user_id, 'last_active', true );
 
 	return $last_active ? (int) $last_active : null;
 }

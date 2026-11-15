@@ -72,13 +72,10 @@ function ec_has_main_site_account( $user_id ) {
 	if ( function_exists( 'switch_to_blog' ) ) {
 		global $current_user;
 
+		// is_user_member_of_blog() takes the blog ID and reads network-global
+		// usermeta, so no blog switch is needed.
 		if ( isset( $current_user ) && $current_user instanceof WP_User ) {
-			try {
-				switch_to_blog( $main_blog_id );
-				$has_account = is_user_member_of_blog( $user_id, $main_blog_id );
-			} finally {
-				restore_current_blog();
-			}
+			$has_account = is_user_member_of_blog( $user_id, $main_blog_id );
 		}
 	}
 

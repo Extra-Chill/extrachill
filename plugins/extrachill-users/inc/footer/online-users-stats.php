@@ -4,10 +4,9 @@
  *
  * Displays the network-wide "online now" count plus total members in the footer.
  *
- * The online count is read directly from the NetworkStats `online_users` metric
- * provider (extrachill-network) via ec_get_network_stats() — the single source
- * and single cache for that number. Total members is counted from the community
- * blog and cached locally for a day.
+ * Both numbers are read directly from the NetworkStats `online_users` and
+ * `total_members` metric providers (extrachill-network) via
+ * ec_get_network_stats() — the single source and single cache for each.
  *
  * @package ExtraChill\Users
  */
@@ -25,29 +24,16 @@ function extrachill_users_display_online_stats() {
 		return;
 	}
 
-	// Online-now count: read straight from the NetworkStats primitive (single
-	// source, single cache). When the primitive is unavailable (e.g. multisite
-	// a version behind during deploy) fall back to 0.
+	// Online-now and total-members counts: read straight from the NetworkStats
+	// primitive (single source, single cache per metric). When the primitive
+	// is unavailable (e.g. multisite a version behind during deploy) or a
+	// metric cannot resolve, fall back to 0.
 	$online_users_count = 0;
+	$total_members      = 0;
 	if ( function_exists( 'ec_get_network_stats' ) ) {
-		$stats              = ec_get_network_stats( array( 'online_users' ) );
+		$stats              = ec_get_network_stats( array( 'online_users', 'total_members' ) );
 		$online_users_count = (int) ( $stats['online_users']['value'] ?? 0 );
-	}
-
-	$total_members = 0;
-	if ( function_exists( 'switch_to_blog' ) ) {
-		global $current_user;
-
-		if ( isset( $current_user ) && $current_user instanceof WP_User ) {
-			switch_to_blog( $community_blog_id );
-			$total_members = get_transient( 'total_members_count' );
-			if ( false === $total_members ) {
-				$user_count_data = count_users();
-				$total_members   = $user_count_data['total_users'];
-				set_transient( 'total_members_count', $total_members, DAY_IN_SECONDS );
-			}
-			restore_current_blog();
-		}
+		$total_members      = (int) ( $stats['total_members']['value'] ?? 0 );
 	}
 	?>
 	<div class="online-stats-card">

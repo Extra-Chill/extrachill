@@ -393,17 +393,15 @@ function ec_users_get_team_member_ids() {
 		$main_site_id = 1;
 	}
 
-	try {
-		switch_to_blog( $main_site_id );
-		$user_ids = get_users(
-			array(
-				'role'   => EC_USERS_TEAM_ROLE,
-				'fields' => 'ID',
-			)
-		);
-	} finally {
-		restore_current_blog();
-	}
+	// get_users() scopes the role query to the main site via blog_id; no
+	// blog switch is needed.
+	$user_ids = get_users(
+		array(
+			'blog_id' => $main_site_id,
+			'role'    => EC_USERS_TEAM_ROLE,
+			'fields'  => 'ID',
+		)
+	);
 
 	return array_map( 'intval', (array) $user_ids );
 }
