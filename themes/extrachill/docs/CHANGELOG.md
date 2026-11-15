@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.19.0] - 2026-11-15
+
+### Added
+- smart app banner and Android app prompt gated on store IDs
+
 ## [2.18.1] - 2026-11-15
 
 ### Changed
