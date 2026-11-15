@@ -17,11 +17,10 @@
 namespace ExtraChillEvents\Tests\Unit\Core;
 
 	require_once __DIR__ . '/Stubs/persisted-qualification-stubs.php';
-	require_once __DIR__ . '/Stubs/wp-cli-stubs.php';
 
 	use ExtraChillEvents\Abilities\VenueQualificationAbilities;
-	use ExtraChillEvents\Cli\UnqualifiableFlowsCommand;
 	use ExtraChillEvents\Core\QualifyVerdict;
+	use ExtraChillEvents\Core\VenueRequalifier;
 	use PHPUnit\Framework\TestCase;
 
 class PersistedQualificationContextTest extends TestCase {
@@ -47,12 +46,6 @@ class PersistedQualificationContextTest extends TestCase {
 	 * @var array<int,int>
 	 */
 	private array $seeded_flow_ids = array();
-
-	protected function setUp(): void {
-		parent::setUp();
-		\WP_CLI::$logs      = array();
-		\WP_CLI::$formatted = array();
-	}
 
 	protected function tearDown(): void {
 		foreach ( $this->registered_ability_names as $name ) {
@@ -119,7 +112,7 @@ class PersistedQualificationContextTest extends TestCase {
 	/**
 	 * Seeds a real datamachine_flows row so
 	 * ExtraChillEvents\Core\FlowOps::repair_flow_source_url() — called by the
-	 * real UnqualifiableFlowsCommand apply-repair path — finds a matching
+	 * real VenueRequalifier apply-repair path — finds a matching
 	 * flow_config and genuinely updates it, the same outcome the deleted
 	 * fake FlowOps unconditionally recorded.
 	 */
@@ -358,10 +351,7 @@ class PersistedQualificationContextTest extends TestCase {
 	}
 
 	public function test_all_processed_stable_zero_is_expected_zero(): void {
-		require_once dirname( __DIR__, 2 ) . '/inc/Core/FlowHelpers.php';
-		require_once dirname( __DIR__, 2 ) . '/inc/Cli/UnqualifiableFlowsCommand.php';
-
-		$command = new class() extends UnqualifiableFlowsCommand {
+		$command = new class() extends VenueRequalifier {
 			public function classify( array $production ): string {
 				return $this->classify_qualified_action( $production, null );
 			}
@@ -430,11 +420,11 @@ class PersistedQualificationContextTest extends TestCase {
 			}
 		);
 
-		$this->new_command()->__invoke( array(), array(
+		$rows = $this->audit( array(
 			'dry-run'  => true,
 			'min-runs' => 1,
 		) );
-		$row = \WP_CLI::$formatted[0]['items'][0];
+		$row  = $rows[0];
 
 		$this->assertSame( 42, $calls[0]['flow_id'] );
 		$this->assertFalse( $calls[0]['persist_verdict'] );
@@ -457,11 +447,11 @@ class PersistedQualificationContextTest extends TestCase {
 			}
 		);
 
-		$this->new_command()->__invoke( array(), array(
+		$rows = $this->audit( array(
 			'dry-run'  => true,
 			'min-runs' => 1,
 		) );
-		$row = \WP_CLI::$formatted[0]['items'][0];
+		$row  = $rows[0];
 
 		$this->assertFalse( $row['complete'] );
 		$this->assertNull( $row['processed'] );
@@ -510,7 +500,7 @@ class PersistedQualificationContextTest extends TestCase {
 				);
 			}
 		);
-		// UnqualifiableFlowsCommand's apply-repair path calls the real
+		// VenueRequalifier's apply-repair path calls the real
 		// ExtraChillEvents\Core\FlowOps::repair_flow_source_url(), which reads
 		// and writes a real datamachine_flows row through Data Machine's
 		// get-flows/update-flow-step abilities — seed one whose
@@ -532,23 +522,19 @@ class PersistedQualificationContextTest extends TestCase {
 			}
 		);
 
-		$this->new_command()->__invoke( array(), array(
+		$rows = $this->audit( array(
 			'dry-run'  => true,
 			'min-runs' => 1,
 		) );
-		$this->assertSame( 'repair_proposed', \WP_CLI::$formatted[0]['items'][0]['action'] );
+		$this->assertSame( 'repair_proposed', $rows[0]['action'] );
 		$this->assertSame( 'https://venue.example/stale', $this->stored_flow_source_url( 42 ) );
 
-		\WP_CLI::$formatted = array();
-		$this->new_command()->__invoke(
-			array(),
-			array(
-				'apply-repair' => true,
-				'yes'          => true,
-				'min-runs'     => 1,
-			)
-		);
-		$this->assertSame( 'repaired', \WP_CLI::$formatted[0]['items'][0]['action'] );
+		$rows = $this->audit( array(
+			'apply-repair' => true,
+			'yes'          => true,
+			'min-runs'     => 1,
+		) );
+		$this->assertSame( 'repaired', $rows[0]['action'] );
 		$this->assertSame( 'https://venue.example/events', $this->stored_flow_source_url( 42 ) );
 	}
 
@@ -574,7 +560,7 @@ class PersistedQualificationContextTest extends TestCase {
 	public function test_apply_repair_requires_explicit_confirmation(): void {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( '--apply-repair requires --yes' );
-		$this->new_command()->__invoke( array(), array(
+		$this->audit( array(
 			'apply-repair' => true,
 			'min-runs'     => 1,
 		) );
@@ -674,11 +660,37 @@ class PersistedQualificationContextTest extends TestCase {
 		};
 	}
 
-	private function new_command(): UnqualifiableFlowsCommand {
-		require_once dirname( __DIR__, 2 ) . '/inc/Core/FlowHelpers.php';
-		require_once dirname( __DIR__, 2 ) . '/inc/Cli/UnqualifiableFlowsCommand.php';
+	/**
+	 * Run the zero-yield audit with unqualifiable-flows option semantics.
+	 *
+	 * @param array $assoc_args Named options as an operator would pass them.
+	 * @return array<int,array<string,mixed>> Result rows.
+	 */
+	private function audit( array $assoc_args ): array {
+		$dry_run      = ! empty( $assoc_args['dry-run'] );
+		$apply_repair = ! empty( $assoc_args['apply-repair'] );
+		$valid        = VenueRequalifier::validate_audit_options( $apply_repair, $dry_run, ! empty( $assoc_args['yes'] ) );
+		if ( is_wp_error( $valid ) ) {
+			throw new \RuntimeException( esc_html( $valid->get_error_message() ) );
+		}
 
-		return new class() extends UnqualifiableFlowsCommand {
+		$requalifier = $this->new_requalifier();
+		$candidates  = $requalifier->zero_yield_candidates( max( 1, (int) ( $assoc_args['min-runs'] ?? 14 ) ), false, 200 );
+		$this->assertNotEmpty( $candidates );
+
+		$rows = $requalifier->audit_zero_yield(
+			$candidates,
+			array(
+				'dry_run'      => $dry_run,
+				'apply_repair' => $apply_repair,
+			)
+		);
+		$this->assertIsArray( $rows );
+		return $rows;
+	}
+
+	private function new_requalifier(): VenueRequalifier {
+		return new class() extends VenueRequalifier {
 			protected function load_all_web_scraper_flows(): array {
 				return array(
 					array(

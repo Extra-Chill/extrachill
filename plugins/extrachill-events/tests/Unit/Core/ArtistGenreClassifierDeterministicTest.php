@@ -1,26 +1,28 @@
 <?php
 /**
- * Deterministic-classifier tests for the ClassifyGenreCommand.
+ * Deterministic-classifier tests for the ArtistGenreClassifier.
  *
  * Deterministic() and resolve_text() are pure static methods (no WordPress
  * dependencies; the genre resolver is injected), so the rules behind the
  * deterministic pass of `wp extrachill artists classify-genre` are asserted
  * without a WP test fixture.
  *
- * @package ExtraChillEvents\Tests\Unit\Cli
+ * @package ExtraChillEvents\Tests\Unit\Core
  */
 
-namespace ExtraChillEvents\Tests\Unit\Cli;
+namespace ExtraChillEvents\Tests\Unit\Core;
 
-use ExtraChillEvents\Cli\ClassifyGenreCommand;
+use ExtraChillEvents\Core\ArtistGenreClassifier;
 use PHPUnit\Framework\TestCase;
 
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/ClassifyGenreCommand.php';
+if ( ! class_exists( ArtistGenreClassifier::class ) ) {
+	require_once dirname( __DIR__, 3 ) . '/inc/Core/ArtistGenreClassifier.php';
+}
 
 /**
- * Tests For the ClassifyGenreCommand pure deterministic classifier.
+ * Tests for the ArtistGenreClassifier pure deterministic classifier.
  */
-class ClassifyGenreDeterministicTest extends TestCase {
+class ArtistGenreClassifierDeterministicTest extends TestCase {
 
 	/**
 	 * A fake resolver mirroring extrachill_network_resolve_genres()
@@ -77,7 +79,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	 * Assert nothing fires on neutral signals.
 	 */
 	public function test_nothing_fires_returns_empty(): void {
-		$result = ClassifyGenreCommand::deterministic( $this->neutral_signals(), $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $this->neutral_signals(), $this->fake_resolver() );
 
 		$this->assertSame( array(), $result['genres'] );
 		$this->assertSame( 0.0, $result['confidence'] );
@@ -92,7 +94,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 		$signals['name']            = 'Bluegrass';
 		$signals['performer_texts'] = array( 'The Bluegrass' );
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array( 'bluegrass' ), $result['genres'] );
 		$this->assertSame( 0.75, $result['confidence'] );
@@ -105,7 +107,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 		$signals         = $this->neutral_signals();
 		$signals['name'] = 'The Bluegrass Boys';
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array( 'bluegrass' ), $result['genres'] );
 		$this->assertSame( 0.70, $result['confidence'] );
@@ -121,7 +123,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 		$signals                    = $this->neutral_signals();
 		$signals['performer_texts'] = array( 'Sebastian (Space Punk Discoteca)', 'an indie rock trio from Charleston' );
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array(), $result['genres'] );
 		$this->assertSame( 0.0, $result['confidence'] );
@@ -135,7 +137,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 		$signals['name']            = 'Bluegrass';
 		$signals['performer_texts'] = array( 'bluegrass and rock' );
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array( 'bluegrass', 'rock' ), $result['genres'] );
 		$this->assertSame( 0.80, $result['confidence'] );
@@ -152,7 +154,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			array( 'rock' ),
 		);
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array( 'rock' ), $result['genres'] );
 		$this->assertSame( 0.75, $result['confidence'] );
@@ -173,7 +175,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			array( 'rock' ),
 		);
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array( 'rock' ), $result['genres'] );
 		$this->assertLessThanOrEqual( 0.85, $result['confidence'] );
@@ -191,7 +193,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			array(),
 		);
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array(), $result['genres'] );
 	}
@@ -207,7 +209,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			array( 'bluegrass' ),
 		);
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array(), $result['genres'] );
 	}
@@ -224,7 +226,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			array( 'bluegrass' ),
 		);
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $this->fake_resolver() );
+		$result = ArtistGenreClassifier::deterministic( $signals, $this->fake_resolver() );
 
 		$this->assertSame( array(), $result['genres'] );
 	}
@@ -243,7 +245,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 			return array();
 		};
 
-		$result = ClassifyGenreCommand::deterministic( $signals, $resolver );
+		$result = ArtistGenreClassifier::deterministic( $signals, $resolver );
 
 		$this->assertCount( 3, $result['genres'] );
 	}
@@ -252,7 +254,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	 * Assert whole-string resolution is flagged whole.
 	 */
 	public function test_resolve_text_whole_match_flagged_whole(): void {
-		$resolved = ClassifyGenreCommand::resolve_text( 'Bluegrass', $this->fake_resolver() );
+		$resolved = ArtistGenreClassifier::resolve_text( 'Bluegrass', $this->fake_resolver() );
 
 		$this->assertSame( array( 'bluegrass' ), $resolved['genres'] );
 		$this->assertTrue( $resolved['whole'] );
@@ -262,7 +264,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	 * Assert window resolution is not flagged whole.
 	 */
 	public function test_resolve_text_window_match_not_flagged_whole(): void {
-		$resolved = ClassifyGenreCommand::resolve_text( 'The Bluegrass Boys', $this->fake_resolver() );
+		$resolved = ArtistGenreClassifier::resolve_text( 'The Bluegrass Boys', $this->fake_resolver() );
 
 		$this->assertSame( array( 'bluegrass' ), $resolved['genres'] );
 		$this->assertFalse( $resolved['whole'] );
@@ -272,7 +274,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	 * Assert the longest matching window wins.
 	 */
 	public function test_resolve_text_longest_window_wins(): void {
-		$resolved = ClassifyGenreCommand::resolve_text( 'an indie rock trio', $this->fake_resolver() );
+		$resolved = ArtistGenreClassifier::resolve_text( 'an indie rock trio', $this->fake_resolver() );
 
 		$this->assertSame( array( 'indie' ), $resolved['genres'] );
 		$this->assertFalse( $resolved['whole'] );
@@ -282,7 +284,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	 * Assert empty input resolves to nothing.
 	 */
 	public function test_resolve_text_empty_input(): void {
-		$resolved = ClassifyGenreCommand::resolve_text( '', $this->fake_resolver() );
+		$resolved = ArtistGenreClassifier::resolve_text( '', $this->fake_resolver() );
 
 		$this->assertSame( array(), $resolved['genres'] );
 		$this->assertFalse( $resolved['whole'] );
@@ -294,7 +296,7 @@ class ClassifyGenreDeterministicTest extends TestCase {
 	public function test_resolve_text_stop_word_only_windows_skipped(): void {
 		// "The Band" contains no vocabulary match; stop-word windows must not
 		// rescue it (and there is no "band" genre anyway).
-		$resolved = ClassifyGenreCommand::resolve_text( 'The Band', $this->fake_resolver() );
+		$resolved = ArtistGenreClassifier::resolve_text( 'The Band', $this->fake_resolver() );
 
 		$this->assertSame( array(), $resolved['genres'] );
 	}

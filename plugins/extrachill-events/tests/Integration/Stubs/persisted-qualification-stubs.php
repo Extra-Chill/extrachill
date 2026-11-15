@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests\Unit\Core
  */
 
-// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.OneDeclarationPerFile -- Same convention as tests/bootstrap.php: this fixture intentionally mixes WP function shims across several real-code namespaces (ExtraChillEvents\Core, ExtraChillEvents\Abilities, ExtraChillEvents\Cli) in one file so each stub resolves via PHP's namespace-fallback rules for the production code that calls it.
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.OneDeclarationPerFile -- Same convention as tests/bootstrap.php: this fixture intentionally mixes WP function shims across several real-code namespaces (ExtraChillEvents\Core, ExtraChillEvents\Abilities) in one file so each stub resolves via PHP's namespace-fallback rules for the production code that calls it.
 
 namespace ExtraChillEvents\Core;
 
@@ -47,7 +47,7 @@ function wp_remote_retrieve_header(): string {
 
 // QualifyVerdictsTable is intentionally NOT stubbed here. The real class
 // (inc/Core/QualifyVerdictsTable.php, same namespace) is already loaded in
-// this sandbox runtime — UnqualifiableFlowsCommand instantiates it directly.
+// this sandbox runtime — VenueRequalifier instantiates it directly.
 // meets_pause_confirmation() only consults verdict history via a real,
 // already-activated table that has no rows for this test's made-up URLs, so
 // it returns false exactly like the old stub did, without needing any
@@ -93,20 +93,10 @@ function untrailingslashit( string $value ): string {
 // processed" outcome the old fake unconditionally returned. See
 // https://github.com/Extra-Chill/extrachill-events/issues/846.
 
-namespace ExtraChillEvents\Cli;
-
-/**
- * @phpstan-assert-if-true \WP_Error $thing
- */
-function is_wp_error( $thing ): bool {
-	return $thing instanceof \WP_Error;
-}
-
-// FlowOps is intentionally NOT stubbed here. The real class
-// (inc/Core/FlowOps.php) is already loaded in this sandbox
-// runtime — UnqualifiableFlowsCommand's apply-repair path calls
-// FlowOps::repair_flow_source_url() directly, which reads and writes a real
-// datamachine_flows row through Data Machine abilities. The test seeds that row (see
-// PersistedQualificationContextTest::seed_flow_row()) so the real repair
-// genuinely succeeds instead of being recorded by a fake. See
-// https://github.com/Extra-Chill/extrachill-events/issues/846.
+// FlowOps is intentionally NOT stubbed. The real class (inc/Core/FlowOps.php)
+// is already loaded in this sandbox runtime — VenueRequalifier's apply-repair
+// path calls FlowOps::repair_flow_source_url() directly, which reads and
+// writes a real datamachine_flows row through Data Machine abilities. The
+// test seeds that row (see PersistedQualificationContextTest::seed_flow_row())
+// so the real repair genuinely succeeds instead of being recorded by a fake.
+// See https://github.com/Extra-Chill/extrachill-events/issues/846.
