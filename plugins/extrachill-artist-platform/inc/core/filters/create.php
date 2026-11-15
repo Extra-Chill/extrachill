@@ -97,9 +97,8 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	// the page lock. The page already exists, so a failed push is logged
 	// rather than undoing the creation; the next artist save retries it.
 	$identity = function_exists( 'ec_artist_push_link_page_identity' ) ? ec_artist_push_link_page_identity( $artist_id ) : true;
-	if ( is_wp_error( $identity ) ) {
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- operator signal for a non-fatal post-create step.
-		error_log( sprintf( 'Link Page %d identity push failed: %s', $new_link_page_id, $identity->get_error_code() ) );
+	if ( function_exists( 'ec_artist_report_link_page_identity_push' ) ) {
+		ec_artist_report_link_page_identity_push( $artist_id, $identity, 'create', $new_link_page_id );
 	}
 	if ( function_exists( 'ec_purge_link_page_after_mutation' ) ) {
 		ec_purge_link_page_after_mutation( $new_link_page_id );
