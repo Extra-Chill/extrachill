@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.6] - 2026-11-15
+
+### Fixed
+- name both checkout legal links in the shop Docs Agent prompt
+
 ## [0.12.5] - 2026-11-15
 
 ### Fixed
