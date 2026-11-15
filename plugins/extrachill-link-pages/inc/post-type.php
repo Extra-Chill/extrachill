@@ -62,7 +62,7 @@ function ec_get_link_page_storage_blog_id() {
  * contract and is ignored.
  *
  * @param int|null $blog_id Unused; kept for the runtime function contract.
- * @return string
+ * @return lowercase-string&non-empty-string
  */
 function ec_link_page_post_type( $blog_id = null ) {
 	unset( $blog_id );
@@ -83,7 +83,8 @@ function ec_with_link_page_storage_blog( $callback ) {
 	$switched      = ! empty( $GLOBALS['switched'] );
 	$result        = null;
 	try {
-		if ( $entry_blog_id !== $storage_blog_id && ( ! switch_to_blog( $storage_blog_id ) || get_current_blog_id() !== $storage_blog_id ) ) {
+		// switch_to_blog() is documented to always return true, but drop-in and test implementations can report failure.
+		if ( $entry_blog_id !== $storage_blog_id && ( ! switch_to_blog( $storage_blog_id ) || get_current_blog_id() !== $storage_blog_id ) ) { // @phpstan-ignore booleanNot.alwaysFalse
 			$result = new WP_Error( 'link_page_storage_switch_failed', 'The canonical Link Page storage blog could not be entered.' );
 		} else {
 			$result = call_user_func( $callback, $storage_blog_id );
@@ -162,7 +163,8 @@ function ec_register_link_page_post_type() {
 			'show_in_rest'        => true,
 		)
 	);
-	if ( ! is_wp_error( $registered ) && post_type_exists( $post_type ) ) {
+	// PHPStan reuses the pre-registration post_type_exists() result, but register_post_type() changes it.
+	if ( ! is_wp_error( $registered ) && post_type_exists( $post_type ) ) { // @phpstan-ignore booleanAnd.rightAlwaysFalse
 		$GLOBALS['ec_link_pages_owns_post_type'] = true;
 	}
 }
@@ -199,7 +201,8 @@ function ec_restore_link_pages_site_context( $blog_id, $stack, $switched ) {
 	$target_depth  = count( $stack );
 	while ( $current_depth > $target_depth && $attempts < 100 ) {
 		restore_current_blog();
-		$current_stack = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array();
+		// restore_current_blog() pops the global switch stack; PHPStan keeps the narrowing from before the call.
+		$current_stack = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array(); // @phpstan-ignore booleanAnd.rightAlwaysTrue
 		$current_depth = count( $current_stack );
 		++$attempts;
 	}
@@ -224,7 +227,8 @@ function ec_invoke_link_pages_site_callback( $site_id, $callback ) {
 	$switched = ! empty( $GLOBALS['switched'] );
 	$result   = null;
 	try {
-		if ( $blog_id !== (int) $site_id && ( ! switch_to_blog( $site_id ) || get_current_blog_id() !== (int) $site_id ) ) {
+		// switch_to_blog() is documented to always return true, but drop-in and test implementations can report failure.
+		if ( $blog_id !== (int) $site_id && ( ! switch_to_blog( $site_id ) || get_current_blog_id() !== (int) $site_id ) ) { // @phpstan-ignore booleanNot.alwaysFalse
 			$result = new WP_Error( 'ec_link_pages_site_switch_failed', 'The Link Pages lifecycle could not enter a site context.', array( 'site_id' => (int) $site_id ) );
 		} else {
 			$result = call_user_func( $callback, (int) $site_id );
@@ -264,7 +268,8 @@ function ec_for_each_link_pages_site( $callback ) {
 		} catch ( Throwable $throwable ) {
 			return new WP_Error( 'ec_link_pages_site_query_failed', 'The Link Pages lifecycle could not enumerate network sites.' );
 		}
-		if ( ! is_array( $site_ids ) ) {
+		// The sites_pre_query filter can short-circuit get_sites() with an arbitrary value.
+		if ( ! is_array( $site_ids ) ) { // @phpstan-ignore function.alreadyNarrowedType
 			return new WP_Error( 'ec_link_pages_site_query_failed', 'The Link Pages lifecycle received an invalid network site query result.' );
 		}
 		foreach ( $site_ids as $site_id ) {
@@ -381,14 +386,15 @@ function ec_unregister_and_flush_link_pages_site() {
 /** Return whether this exact plugin basename is network-active. */
 function ec_link_pages_is_network_active() {
 	$plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
-	return isset( $plugins[ EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME ] );
+	// The basename constant is defined at runtime from plugin_basename(), which static analysis cannot resolve.
+	return isset( $plugins[ (string) constant( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME' ) ] );
 }
 
 /**
  * Establish rewrite rules after WordPress finishes initializing a new site.
  *
- * @param WP_Site $new_site New site.
- * @param array   $args     Initialization arguments.
+ * @param WP_Site|stdClass $new_site New site (or any object exposing `blog_id` or `id`).
+ * @param array            $args     Initialization arguments.
  * @return void
  */
 function ec_initialize_link_pages_site( $new_site, $args = array() ) {

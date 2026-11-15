@@ -24,18 +24,24 @@ function ec_get_link_page_edit_endpoints() {
 	 * Endpoints for the /edit shell. With no configuration_url, /edit
 	 * reports that editing is unavailable.
 	 *
-	 * @param array $endpoints `configuration_url` (GET, bearer token, returns
-	 *                         the editor configuration), `handoff_url` (mints
-	 *                         a token and returns it in the URL fragment),
-	 *                         `login_url` (sign-in page accepting redirect_to).
+	 * Callbacks should return an array; any other value is discarded.
+	 *
+	 * @param array|mixed $endpoints `configuration_url` (GET, bearer token,
+	 *                               returns the editor configuration),
+	 *                               `handoff_url` (mints a token and returns
+	 *                               it in the URL fragment), `login_url`
+	 *                               (sign-in page accepting redirect_to).
 	 */
 	$endpoints = apply_filters( 'ec_link_page_edit_endpoints', array() );
 	$endpoints = is_array( $endpoints ) ? $endpoints : array();
-	$clean     = array();
-	foreach ( array( 'configuration_url', 'handoff_url', 'login_url' ) as $key ) {
-		$clean[ $key ] = esc_url_raw( (string) ( $endpoints[ $key ] ?? '' ), array( 'https', 'http' ) );
-	}
-	return $clean;
+	$clean     = static function ( $key ) use ( $endpoints ) {
+		return esc_url_raw( (string) ( $endpoints[ $key ] ?? '' ), array( 'https', 'http' ) );
+	};
+	return array(
+		'configuration_url' => $clean( 'configuration_url' ),
+		'handoff_url'       => $clean( 'handoff_url' ),
+		'login_url'         => $clean( 'login_url' ),
+	);
 }
 
 /** Whether the current request is the /edit shell. */

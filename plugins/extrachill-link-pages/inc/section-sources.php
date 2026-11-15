@@ -16,6 +16,11 @@ function ec_link_page_section_source_registry() {
 	static $registry = null;
 	if ( null === $registry ) {
 		$registry = new class() {
+			/**
+			 * Registered section sources keyed by id.
+			 *
+			 * @var array<string, array{id: string, label: string, config_schema: array<mixed>, resolve: callable}>
+			 */
 			private $sources = array();
 
 			public function can_register( $id, $args ) {

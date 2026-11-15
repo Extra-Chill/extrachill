@@ -185,8 +185,10 @@ function ec_link_page_local_font_face_url( $font_value ) {
 	 * this filter with where its .woff2/.woff files live. Returning '' means
 	 * "no local face", and the font falls back through its CSS stack.
 	 *
-	 * @param string $url        Base URL without extension, or ''.
-	 * @param string $font_value Normalized font name.
+	 * Callbacks should return a string; any other value means "no local face".
+	 *
+	 * @param string|mixed $url        Base URL without extension, or ''.
+	 * @param string       $font_value Normalized font name.
 	 */
 	$url = apply_filters( 'ec_link_page_local_font_face_url', '', (string) $font_value );
 	return is_string( $url ) ? $url : '';

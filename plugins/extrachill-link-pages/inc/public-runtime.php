@@ -21,7 +21,7 @@ function ec_link_page_public_host() {
 	$default = '';
 	$blog_id = function_exists( 'ec_get_link_page_storage_blog_id' ) ? (int) ec_get_link_page_storage_blog_id() : 0;
 	$home    = $blog_id && function_exists( 'get_home_url' ) ? get_home_url( $blog_id ) : home_url();
-	if ( is_string( $home ) ) {
+	if ( '' !== $home ) {
 		$default = (string) wp_parse_url( $home, PHP_URL_HOST );
 	}
 	/**
@@ -92,7 +92,7 @@ function ec_get_link_page_public_url( $link_page_id ) {
 	if ( ! $storage_blog_id ) {
 		return '';
 	}
-	if ( $storage_blog_id && get_current_blog_id() !== $storage_blog_id ) {
+	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
 			static function () use ( $link_page_id ) {
 				return ec_get_link_page_public_url( $link_page_id );
@@ -103,6 +103,7 @@ function ec_get_link_page_public_url( $link_page_id ) {
 		return '';
 	}
 	$slug = get_post_field( 'post_name', $link_page_id );
+	$slug = is_scalar( $slug ) ? (string) $slug : '';
 	$base = ec_link_page_public_base_url();
 	return $slug && $base ? $base . rawurlencode( $slug ) . '/' : '';
 }
@@ -131,8 +132,8 @@ function ec_get_link_page_public_exclusions() {
  * Its permalinks are internal (/link-page/slug/); the public URLs are
  * listed by ec_link_page_sitemap_urls() in the custom provider instead.
  *
- * @param array $post_types Post types in the core sitemap.
- * @return array
+ * @param array|mixed $post_types Post types in the core sitemap (other filters may pass anything).
+ * @return array|mixed
  */
 function ec_exclude_link_page_from_core_sitemap( $post_types ) {
 	if ( is_array( $post_types ) ) {
@@ -189,6 +190,7 @@ function ec_register_link_page_public_rewrites() {
 		)
 	) as $page_id ) {
 		$slug = get_post_field( 'post_name', $page_id );
+		$slug = is_scalar( $slug ) ? (string) $slug : '';
 		if ( $slug ) {
 			$excluded[] = preg_quote( $slug, '/' );
 		}
@@ -371,7 +373,7 @@ function ec_resolve_link_page_public_query() {
  * half-finished edit, not a server fault: the page must still render. Only a
  * genuinely usable target may short-circuit rendering into a redirect.
  *
- * @param array $data Link Page persistence payload.
+ * @param array|mixed $data Link Page persistence payload; anything else is treated as unconfigured.
  * @return bool
  */
 function ec_link_page_has_configured_redirect( $data ) {
@@ -425,7 +427,11 @@ function ec_redirect_direct_link_page_request() {
 	}
 }
 
-/** Generic public style handles owned by this runtime. */
+/**
+ * Generic public style handles owned by this runtime.
+ *
+ * @return array<string, string> Style handle => plugin-relative path.
+ */
 function ec_link_page_public_style_handles() {
 	return array(
 		'extrch-link-page'           => 'assets/css/extrch-links.css',
@@ -448,8 +454,9 @@ function ec_register_link_page_public_styles() {
 		return;
 	}
 	foreach ( ec_link_page_public_style_handles() as $handle => $path ) {
-		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
-		wp_register_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION );
+		$file  = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
+		$mtime = file_exists( $file ) ? filemtime( $file ) : false;
+		wp_register_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), false !== $mtime ? (string) $mtime : EXTRACHILL_LINK_PAGES_VERSION );
 	}
 	wp_register_style( 'extrch-font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css', array(), '6.7.2' );
 }
@@ -467,8 +474,9 @@ function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
 		'extrch-public-tracking'   => 'assets/js/link-page-public-tracking.js',
 		'extrch-link-page-youtube' => 'assets/js/link-page-youtube-embed.js',
 	) as $handle => $path ) {
-		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
-		wp_enqueue_script( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION, true );
+		$file  = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
+		$mtime = file_exists( $file ) ? filemtime( $file ) : false;
+		wp_enqueue_script( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), false !== $mtime ? (string) $mtime : EXTRACHILL_LINK_PAGES_VERSION, true );
 	}
 	// The runtime owns the font catalog and emits Google Fonts links / local
 	// @font-face rules itself, so typography renders with no owner plugin
@@ -527,10 +535,10 @@ function ec_render_link_page_section_with_featured( $section, $link_page_id, $yo
 		if ( empty( $link['link_url'] ) || empty( $link['link_text'] ) ) {
 			continue;
 		}
-		$featured = ! $featured_seen && ! empty( $link['featured'] );
+		$featured      = ! $featured_seen && ! empty( $link['featured'] );
 		$featured_seen = $featured_seen || $featured;
 		$thumbnail_url = $featured ? ec_link_page_thumbnail_url( $link['thumbnail_url'] ?? '' ) : '';
-		$youtube = $youtube_enabled && ( false !== strpos( $link['link_url'], 'youtube.com' ) || false !== strpos( $link['link_url'], 'youtu.be' ) );
+		$youtube       = $youtube_enabled && ( false !== strpos( $link['link_url'], 'youtube.com' ) || false !== strpos( $link['link_url'], 'youtu.be' ) );
 		require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/components/single-link.php';
 	}
 	echo '</div>';
@@ -604,6 +612,7 @@ function ec_render_link_page_public_head( $link_page_id, $data, $projection ) {
 	wp_print_styles();
 	$meta_id = $data['settings']['meta_pixel_id'];
 	if ( $meta_id && ctype_digit( (string) $meta_id ) ) {
+		$meta_id = (string) $meta_id;
 		// phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Per-page tracking ID must be emitted in the isolated minimal head.
 		echo '<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","' . esc_js( $meta_id ) . '");fbq("track","PageView");</script>';
 		echo '<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=' . esc_attr( $meta_id ) . '&ev=PageView&noscript=1"></noscript>';

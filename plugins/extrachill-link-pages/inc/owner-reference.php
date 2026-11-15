@@ -12,6 +12,11 @@ function ec_link_page_owner_compatibility_registry() {
 	static $registry = null;
 	if ( null === $registry ) {
 		$registry = new class() {
+			/**
+			 * Registered providers keyed by name.
+			 *
+			 * @var array<string, array{name: string, callback: callable, priority: int}>
+			 */
 			private $providers = array();
 
 			public function can_register( $name, $callback, $priority ) {
@@ -182,7 +187,8 @@ function ec_restore_link_page_owner_provider_context( $blog_id, $stack, $switche
 	$target_depth  = count( $stack );
 	while ( $current_depth > $target_depth && $attempts < 100 ) {
 		restore_current_blog();
-		$current_stack = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array();
+		// restore_current_blog() pops the global switch stack; PHPStan keeps the narrowing from before the call.
+		$current_stack = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array(); // @phpstan-ignore booleanAnd.rightAlwaysTrue
 		$current_depth = count( $current_stack );
 		++$attempts;
 	}
@@ -191,7 +197,7 @@ function ec_restore_link_page_owner_provider_context( $blog_id, $stack, $switche
 	}
 	$GLOBALS['_wp_switched_stack'] = $stack;
 	$GLOBALS['switched']           = $switched;
-	return get_current_blog_id() === $blog_id && $GLOBALS['_wp_switched_stack'] === $stack;
+	return get_current_blog_id() === $blog_id;
 }
 
 /** Invoke one provider without allowing context leakage. */
@@ -293,7 +299,7 @@ function ec_get_link_page_owner( $link_page_id ) {
 	if ( ! $storage_blog_id ) {
 		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
 	}
-	if ( $storage_blog_id && get_current_blog_id() !== $storage_blog_id ) {
+	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
 			static function () use ( $link_page_id ) {
 				return ec_get_link_page_owner( $link_page_id );
@@ -339,7 +345,7 @@ function ec_get_link_page_id_for_owner( $owner, $allowed_link_pages = array() ) 
 	if ( ! $storage_blog_id ) {
 		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
 	}
-	if ( $storage_blog_id && get_current_blog_id() !== $storage_blog_id ) {
+	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
 			static function () use ( $owner, $allowed_link_pages ) {
 				return ec_get_link_page_id_for_owner( $owner, $allowed_link_pages );
@@ -409,7 +415,7 @@ function ec_assign_link_page_owner( $link_page_id, $owner, $replace_link_page_id
 	if ( ! $storage_blog_id ) {
 		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
 	}
-	if ( $storage_blog_id && get_current_blog_id() !== $storage_blog_id ) {
+	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
 			static function () use ( $link_page_id, $owner, $replace_link_page_id ) {
 				return ec_assign_link_page_owner( $link_page_id, $owner, $replace_link_page_id );
@@ -469,10 +475,10 @@ function ec_compensate_link_page_owner_assignment( $link_page_id, $reference, $o
 		return new WP_Error( 'link_page_owner_compensation_failed', 'The metadata created by a failed owner assignment changed before compensation. Manual reconciliation is required.', array( 'retryable' => false ) );
 	}
 	delete_metadata_by_mid( 'post', $owner_meta_id );
-	if ( get_metadata_by_mid( 'post', $owner_meta_id ) ) {
-		return new WP_Error( 'link_page_owner_compensation_failed', 'A failed owner assignment could not be compensated. Manual reconciliation is required.', array( 'retryable' => false ) );
-	}
-	return $error;
+	// PHPStan reuses the pre-delete lookup above, but delete_metadata_by_mid() removed the row, so this re-read is a real verification.
+	return get_metadata_by_mid( 'post', $owner_meta_id ) // @phpstan-ignore ternary.alwaysTrue
+		? new WP_Error( 'link_page_owner_compensation_failed', 'A failed owner assignment could not be compensated. Manual reconciliation is required.', array( 'retryable' => false ) )
+		: $error;
 }
 
 /** Return a halted backfill result. */

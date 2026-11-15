@@ -12,6 +12,11 @@ function ec_link_page_operation_provider_registry() {
 	static $registry = null;
 	if ( null === $registry ) {
 		$registry = new class() {
+			/**
+			 * Registered providers keyed by name.
+			 *
+			 * @var array<string, array{name: string, callback: callable, priority: int}>
+			 */
 			private $providers = array();
 
 			public function can_register( $name, $callback, $priority ) {

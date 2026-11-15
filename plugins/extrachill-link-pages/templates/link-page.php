@@ -7,9 +7,17 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/**
+ * Variables provided by templates/single-link-page.php.
+ *
+ * @var array<string, mixed> $data         Link Page persistence payload.
+ * @var array<string, mixed> $projection   Prepared public projection.
+ * @var int                  $link_page_id Link Page ID.
+ */
+
 $shape         = in_array( $data['settings']['profile_image_shape'], array( 'circle', 'rectangle', 'square' ), true ) ? $data['settings']['profile_image_shape'] : 'square';
 $wrapper_class = 'extrch-link-page-content-wrapper' . ( empty( $data['settings']['overlay_enabled'] ) ? ' no-overlay' : '' );
-$image_style = ! empty( $data['background_image_url'] ) ? '--link-page-background-image-url:url("' . esc_url( $data['background_image_url'] ) . '");' : '';
+$image_style   = ! empty( $data['background_image_url'] ) ? '--link-page-background-image-url:url("' . esc_url( $data['background_image_url'] ) . '");' : '';
 ?>
 <div class="extrch-link-page-container" data-button-fill="<?php echo esc_attr( $data['css_vars']['--link-page-button-fill'] ?? 'solid' ); ?>" data-button-shadow="<?php echo esc_attr( $data['css_vars']['--link-page-button-shadow'] ?? 'none' ); ?>" data-bg-type="<?php echo esc_attr( $data['css_vars']['--link-page-background-type'] ?? 'color' ); ?>" style="<?php echo esc_attr( $image_style ); ?>">
 	<div class="<?php echo esc_attr( $wrapper_class ); ?>" style="flex-grow:1;">
