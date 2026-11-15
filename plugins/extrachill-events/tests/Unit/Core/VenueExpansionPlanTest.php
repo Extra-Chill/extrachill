@@ -1,26 +1,17 @@
 <?php
-/** Venue expansion planning, CLI parsing, and reporting tests. */
+/** Venue expansion planning and reporting tests. */
 
 namespace ExtraChillEvents\Tests\Unit\Core;
 
 use ExtraChillEvents\Abilities\VenueExpansionAbilities;
-use ExtraChillEvents\Cli\ExpandVenuesCommand;
 use ExtraChillEvents\Core\VenueExpansionRunner;
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueExpansionRunner.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueExpansionAbilities.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/ExpandVenuesCommand.php';
 require_once __DIR__ . '/Stubs/system-task-base-stub.php';
 
 class VenueExpansionPlanTest extends TestCase {
-	public function test_city_file_parser_ignores_comments_blanks_and_duplicates(): void {
-		$file = tempnam( sys_get_temp_dir(), 'ec-cities-' );
-		file_put_contents( $file, "# rollout\n\n Charleston, SC \nAustin, TX\nCharleston, SC\n  # later\n" );
-		$this->assertSame( array( 'Charleston, SC', 'Austin, TX' ), ExpandVenuesCommand::parseCitiesFile( $file ) );
-		unlink( $file );
-	}
-
 	public function test_plan_enforces_city_venue_and_rate_bounds(): void {
 		$plan = VenueExpansionAbilities::buildPlan(
 			array(

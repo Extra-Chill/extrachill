@@ -62,7 +62,10 @@ class CommandRegistry {
 			'extrachill events artist-coverage'        => Commands\Events\ArtistCoverageCommand::class,
 			'extrachill events guest-list'             => Commands\Events\GuestListCommand::class,
 			'extrachill events door-access'            => Commands\Events\DoorAccessCommand::class,
+			'extrachill events add-city'               => Commands\Events\AddCityCommand::class,
 			'extrachill venues'                        => Commands\Events\VenueDiscoveryCommand::class,
+			'extrachill venues expand'                 => Commands\Events\VenueExpandCommand::class,
+			'extrachill venues expand-report'          => Commands\Events\VenueExpansionReportCommand::class,
 			'extrachill shows'                         => Commands\Events\ConcertTrackingCommand::class,
 
 			// SEO commands.

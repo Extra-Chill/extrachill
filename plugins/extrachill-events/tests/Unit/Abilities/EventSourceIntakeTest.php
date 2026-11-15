@@ -12,13 +12,10 @@ require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueExpansionRunner.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowLocationGuard.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueAddAbilities.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/ArtistUrlImportAbilities.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Api/Controllers/ArtistUrlImport.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Api/ArtistUrlImportRoutes.php';
 
 use ExtraChillEvents\Abilities\ArtistUrlImportAbilities;
 use ExtraChillEvents\Abilities\VenueAddAbilities;
 use ExtraChillEvents\Abilities\VenueQualificationAbilities;
-use ExtraChillEvents\Api\Controllers\ArtistUrlImport;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
 use ExtraChillEvents\Core\VenueExpansionRunner;
 
@@ -46,38 +43,6 @@ if ( ! class_exists( 'DataMachine\Core\Selection\SelectionMode' ) ) {
 		public const SKIP = 'skip';
 	}
 	class_alias( EventSourceSelectionMode::class, 'DataMachine\Core\Selection\SelectionMode' );
-}
-
-if ( ! class_exists( 'WP_REST_Request' ) ) {
-	class WP_REST_Request {
-		private array $params;
-		private array $headers;
-
-		public function __construct( array $params = array(), array $headers = array( 'accept' => 'application/json' ) ) {
-			$this->params  = $params;
-			$this->headers = $headers;
-		}
-
-		public function get_param( string $key ) {
-			return $this->params[ $key ] ?? null;
-		}
-
-		public function get_header( string $key ): string {
-			return (string) ( $this->headers[ $key ] ?? '' );
-		}
-	}
-}
-
-if ( ! class_exists( 'WP_REST_Response' ) ) {
-	class WP_REST_Response {
-		public $data;
-		public int $status;
-
-		public function __construct( $data, int $status = 200 ) {
-			$this->data   = $data;
-			$this->status = $status;
-		}
-	}
 }
 
 if ( ! function_exists( 'taxonomy_exists' ) ) {
@@ -230,12 +195,6 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 	}
 }
 
-if ( ! function_exists( 'register_rest_route' ) ) {
-	function register_rest_route( $namespace, $route, $definition ) {
-		$GLOBALS['event_source_registered_routes'][ $namespace . $route ] = $definition;
-	}
-}
-
 final class EventSourceWpdb {
 	public string $base_prefix = 'wp_';
 	public string $prefix = 'wp_';
@@ -342,7 +301,6 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		);
 		$GLOBALS['event_source_venue_data'] = array( 41 => array( 'website' => 'https://venue.test' ) );
 		$GLOBALS['event_source_registered_abilities'] = array();
-		$GLOBALS['event_source_registered_routes']    = array();
 		$GLOBALS['event_source_current_user']         = (object) array( 'user_email' => 'person@example.test', 'display_name' => 'Person', 'user_login' => 'person' );
 		$GLOBALS['ec_artist_test']['registered']      = array();
 		$GLOBALS['ec_artist_test']['user_caps'][7]    = array( 'manage_options' => false, 'access_events_admin' => false );
@@ -1051,7 +1009,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		);
 	}
 
-	public function test_only_generic_ability_schemas_and_rest_routes_register(): void {
+	public function test_only_generic_ability_schemas_register(): void {
 		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'registerGenericAbilities' );
 		$method->setAccessible( true );
 		$method->invoke( $this->intake );
@@ -1064,24 +1022,9 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			$this->assertArrayNotHasKey( "extrachill-events/{$action}-artist-url" . ( in_array( $action, array( 'approve', 'reject' ), true ) ? '-submission' : '' ), $registered );
 		}
 
-		\ExtraChillEvents\Api\register_event_source_routes_for( 'extrachill/v1' );
-		$this->assertArrayHasKey( 'extrachill/v1/event-source/preview', $GLOBALS['event_source_registered_routes'] );
-		$this->assertCount( 4, $GLOBALS['event_source_registered_routes'] );
-		foreach ( array_keys( $GLOBALS['event_source_registered_routes'] ) as $route ) {
-			$this->assertStringNotContainsString( '/artist-url/', $route );
-		}
 		foreach ( array_keys( $registered ) as $ability_name ) {
 			$this->assertStringNotContainsString( 'artist-url', $ability_name );
 		}
-	}
-
-	public function test_generic_rest_callback_invokes_event_source_ability(): void {
-		$ability = new EventSourceAbilityDouble( array( 'success' => true ) );
-		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'extrachill-events/preview-event-source' === $name ? $ability : null;
-		$response = ( new ArtistUrlImport() )->preview_event_source( new WP_REST_Request( array( 'url' => 'https://artist.test/tour' ) ) );
-
-		$this->assertInstanceOf( WP_REST_Response::class, $response );
-		$this->assertSame( 'https://artist.test/tour', $ability->calls[0]['url'] );
 	}
 
 	public function test_venue_qualifier_discovers_canonical_navigation_candidate(): void {

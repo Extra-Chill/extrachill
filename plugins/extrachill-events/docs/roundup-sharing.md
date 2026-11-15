@@ -1,8 +1,8 @@
 # Shareable roundups
 
-`wp extrachill events roundup --date-start=2026-10-30 --date-end=2026-11-01 --location=charleston --event-type=concert,dj-set,dance-party --cover --closing --background=auto`
+`wp extrachill events roundup --date-start=2026-10-30 --date-end=2026-11-01 --location=charleston --event-type=concert,dj-set,dance-party --cover --closing --background=auto --format=json`
 
-Background accepts `auto`, one blog-1 attachment ID, or comma-separated IDs in rendered slide order (cover, lists, closing). Unavailable photos retain the flat background. No photographer credit is drawn. The `slides` result contains event coordinates, taxonomy IDs, Instagram `user_tags` (maximum 20), and photo credit fields for the caption step.
+Background accepts `auto`, one blog-1 attachment ID, or comma-separated IDs in rendered slide order (cover, lists, closing). Unavailable photos retain the flat background. No photographer credit is drawn. The command is the extrachill-cli adapter over `extrachill/event-roundup-build`. With `--format=json`, the `slides` result contains event coordinates, taxonomy IDs, Instagram `user_tags` (maximum 20), and photo credit fields for the caption step.
 
 ## Editorial safety prerequisite
 

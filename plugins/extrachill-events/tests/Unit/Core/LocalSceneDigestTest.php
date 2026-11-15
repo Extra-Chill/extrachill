@@ -51,17 +51,6 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		}
 	}
 }
-if ( ! class_exists( 'WP_REST_Request' ) ) {
-	class WP_REST_Request {
-		private $params;
-		public function __construct( array $params ) {
-			$this->params = $params;
-		}
-		public function get_param( string $key ) {
-			return $this->params[ $key ] ?? null;
-		}
-	}
-}
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action() {}
 }
@@ -743,20 +732,20 @@ class LocalSceneDigestTest extends TestCase {
 	public function test_unsubscribe_get_is_scanner_safe_and_post_is_location_scoped(): void {
 		$expires = time() + 60;
 		$valid   = $this->unsubscribe_request( 7, 'austin', $expires );
-		$confirmation = extrachill_events_local_scene_digest_unsubscribe_confirmation( $valid, false );
+		$confirmation = extrachill_events_local_scene_digest_unsubscribe_confirmation( $valid );
 		$this->assertSame( false, $confirmation['confirmed'] );
 		$this->assertStringContainsString( 'method="post"', $confirmation['html'] );
 		$this->assertStringContainsString( 'name="location" value="austin"', $confirmation['html'] );
 		$this->assertEmpty( $GLOBALS['local_scene_unsubscribes'], 'Signed GET must never mutate consent.' );
 
-		$result  = extrachill_events_local_scene_digest_unsubscribe( $valid, false );
+		$result  = extrachill_events_local_scene_digest_unsubscribe( $valid );
 		$this->assertSame( array( 'unsubscribed' => true ), $result );
 		$this->assertSame( array( 'user' => 7, 'type' => 'local_scene_digest', 'taxonomy' => 'location', 'slug' => 'austin' ), $GLOBALS['local_scene_unsubscribes'][0] );
 
 		$tampered = $this->unsubscribe_request( 7, 'denver', $expires, hash_hmac( 'sha256', '7|austin|' . $expires, wp_salt( 'auth' ) ) );
-		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe_confirmation( $tampered, false ) );
-		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe( $tampered, false ) );
-		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe( $this->unsubscribe_request( 7, 'austin', time() - 1 ), false ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe_confirmation( $tampered ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe( $tampered ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe( $this->unsubscribe_request( 7, 'austin', time() - 1 ) ) );
 		$page = extrachill_events_build_local_scene_digest_unsubscribe_page( "You're unsubscribed", 'Only this scene changed.' );
 		$this->assertStringContainsString( 'noindex,nofollow', $page );
 		$this->assertStringContainsString( 'Only this scene changed.', $page );
@@ -774,8 +763,7 @@ class LocalSceneDigestTest extends TestCase {
 	public function test_signed_unsubscribe_and_legacy_cutoff(): void {
 		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'austin' ), PHP_URL_QUERY ), $params );
 		$this->assertSame( array( 'token' ), array_keys( $params ) );
-		$request = new WP_REST_Request( $params );
-		$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $request );
+		$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
 		$this->assertSame( 7, $verified['user_id'] );
 		$this->assertSame( 'austin', $verified['slug'] );
 		$this->assertStringContainsString( 'name="token"', extrachill_events_build_local_scene_digest_unsubscribe_form( $verified ) );
@@ -783,13 +771,35 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertIsArray( extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL - 1 ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL + 1 ) );
-		$wrong = new WP_REST_Request( array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 7, 'slug' => 'austin' ), 3600 ) ) );
+		$wrong = array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 7, 'slug' => 'austin' ), 3600 ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $wrong ) );
 	}
 
-	private function unsubscribe_request( int $user, string $slug, int $expires, ?string $signature = null ): WP_REST_Request {
+	public function test_unsubscribe_page_maps_each_outcome_without_get_mutation(): void {
+		$expires = time() + 60;
+		$valid   = $this->unsubscribe_request( 7, 'austin', $expires );
+
+		$confirm = extrachill_events_local_scene_digest_unsubscribe_page( $valid, false );
+		$this->assertSame( 'confirm', $confirm['status'] );
+		$this->assertStringContainsString( 'method="post"', $confirm['action_html'] );
+		$this->assertStringContainsString( $confirm['action_html'], $confirm['html'] );
+		$this->assertStringContainsString( 'noindex,nofollow', $confirm['html'] );
+		$this->assertEmpty( $GLOBALS['local_scene_unsubscribes'], 'The confirmation page must never mutate consent.' );
+
+		$done = extrachill_events_local_scene_digest_unsubscribe_page( $valid, true );
+		$this->assertSame( 'unsubscribed', $done['status'] );
+		$this->assertSame( '', $done['action_html'] );
+		$this->assertCount( 1, $GLOBALS['local_scene_unsubscribes'] );
+
+		$expired = $this->unsubscribe_request( 7, 'austin', time() - 1 );
+		$this->assertSame( 'invalid', extrachill_events_local_scene_digest_unsubscribe_page( $expired, false )['status'] );
+		$this->assertSame( 'invalid', extrachill_events_local_scene_digest_unsubscribe_page( $expired, true )['status'] );
+		$this->assertCount( 1, $GLOBALS['local_scene_unsubscribes'] );
+	}
+
+	private function unsubscribe_request( int $user, string $slug, int $expires, ?string $signature = null ): array {
 		$signature = $signature ?? hash_hmac( 'sha256', $user . '|' . $slug . '|' . $expires, wp_salt( 'auth' ) );
-		return new WP_REST_Request( array( 'user' => $user, 'location' => $slug, 'expires' => $expires, 'signature' => $signature ) );
+		return array( 'user' => $user, 'location' => $slug, 'expires' => $expires, 'signature' => $signature );
 	}
 
 	private function term( int $id, string $slug, string $name ): WP_Term {
