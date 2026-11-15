@@ -29,6 +29,10 @@ class Test_Team_Role extends WP_UnitTestCase {
 	// Capability surface
 	// -----------------------------------------------------------------
 
+	public function test_role_does_not_grant_admin_bar_access(): void {
+		$this->assertArrayNotHasKey( 'access_admin_bar', ec_users_get_team_role_caps() );
+	}
+
 	public function test_role_caps_grant_upload_files(): void {
 		$caps = ec_users_get_team_role_caps();
 		$this->assertArrayHasKey( 'upload_files', $caps );
@@ -42,7 +46,6 @@ class Test_Team_Role extends WP_UnitTestCase {
 				'access_studio',
 				'access_transcribe',
 				'access_events_admin',
-				'access_admin_bar',
 				'submit_for_review',
 			) as $cap
 		) {

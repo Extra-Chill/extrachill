@@ -51,7 +51,7 @@ const EC_USERS_TEAM_ROLE = 'extra_chill_team';
  *   2. Custom EC team-only capabilities. These are the WP-native
  *      replacement for function-based access checks. Each one names a
  *      specific team-only surface (Studio, Roadie chat, Transcribe
- *      tokens, Events admin, the wp-admin admin bar).
+ *      tokens, Events admin).
  *
  * Explicitly NOT granted: manage_options, delete_others_posts,
  * edit_others_posts, edit_users, plugin/theme management. The team role
@@ -79,7 +79,6 @@ function ec_users_get_team_role_caps() {
 		'access_studio'             => true,
 		'access_transcribe'         => true,
 		'access_events_admin'       => true,
-		'access_admin_bar'          => true,
 		'submit_for_review'         => true,
 
 		// Image-template rendering for content work (posters, quote
