@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.3.1] - 2026-11-15
+
+### Fixed
+- register starting rollout tiers so promotion persists on multisite
+
 ## [0.3.0] - 2026-11-10
 
 ### Added
