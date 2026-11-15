@@ -1,6 +1,6 @@
 # Opening Your Shop
 
-If you're an artist, venue, or promoter on Extra Chill, you can sell your merch in the Extra Chill Shop. Fans buy from your own shop page, the money goes straight to you, and you can print shipping labels without leaving Extra Chill.
+If you're an artist, venue, or promoter on Extra Chill, you can open a shop and sell to buyers across Extra Chill. Buyers shop from your own page, the money goes straight to you, and you can print shipping labels without leaving Extra Chill.
 
 ## Who Can Open a Shop
 

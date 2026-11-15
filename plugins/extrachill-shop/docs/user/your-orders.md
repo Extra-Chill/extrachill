@@ -4,7 +4,7 @@ After you check out, here's how to keep track of your order and get help if some
 
 ## Who Handles Your Order
 
-Every order on the shop comes from one seller: an artist, venue, promoter, or Extra Chill itself. That seller packs and ships your order and handles returns, refunds, and questions about it. Extra Chill runs the shop and steps in if you can't sort it out with the seller.
+Every order on the shop comes from one seller: an artist, venue, promoter, or Extra Chill itself. That seller packs and ships your order and handles returns, refunds, and questions about it. Extra Chill runs the shop, but each seller is responsible for its own orders and support. If you can't sort it out with the seller, contact us through the [contact form](https://extrachill.com/contact-us/) and choose **Shop/Store Support**.
 
 ## Order Emails
 

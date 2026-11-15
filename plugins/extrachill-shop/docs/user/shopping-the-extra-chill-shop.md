@@ -1,6 +1,6 @@
 # Shopping the Extra Chill Shop
 
-The [Extra Chill Shop](https://shop.extrachill.com/) is where you buy merch straight from independent artists, venues, and promoters, plus Extra Chill's own merch and extras for your account or your events. When you buy from an artist, your money goes to that artist.
+The [Extra Chill Shop](https://shop.extrachill.com/) is open to everyone. Buy merch straight from independent artists, venues, and promoters, plus Extra Chill's own merch and extras for your account or your events. When you buy from a seller, that seller handles your order and gets paid for it.
 
 ## What You Can Buy
 

@@ -4,11 +4,11 @@ Selling on Extra Chill works like a merch table at a festival. We bring the boot
 
 ## What Extra Chill Charges
 
-- **Merch:** Extra Chill takes a percentage of the item price after discounts. Shipping is not included.
-- **Tickets:** Extra Chill takes a percentage of the ticket price. Buyers may also pay a service fee per order.
+- **Merch:** 10% of the price of the items in each order, after any discount. There's no fee on shipping.
+- **Tickets:** nothing right now. No fee for you, and no service fee for your buyers.
 - **Opening a shop, listing products, and printing labels:** free.
 
-The fee is taken automatically when the buyer pays. You never get a bill. The current fee rates and ticket service fee are shown on the **Payments** tab of the shop manager. Check the rate there before you list or put tickets on sale. Extra Chill gives at least 30 days' notice before a fee increase, and the new rate applies only to sales after it starts.
+The fee is taken automatically when the buyer pays. You never get a bill. The current rates are always shown on the **Payments** tab of the shop manager, and the merch rate is shown under **Price** when you add a product. The rates are set for Extra Chill as a whole, not separately by each shop. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
 
 ## Payment Processing Fees
 
@@ -27,11 +27,11 @@ See [Shipping Your Orders](shipping-your-orders.md).
 
 A fan buys a $25 shirt and pays $5 shipping, $30 in total.
 
-- Extra Chill's merch fee is a percentage of the $25 item price after discounts. Shipping is not included.
+- Extra Chill's fee is 10% of $25: **$2.50**.
 - The $5 shipping is set aside.
-- **Your Payout** is the order total minus the fee and any shipping held for a label. The exact fee appears on the **Payments** tab and in the payout shown for the order.
+- **Your Payout** shows **$22.50**.
 
-If you print the label through Extra Chill, the shipping charge goes toward the label. If you ship it yourself and mark it shipped, the $5 comes back to you. If the label price is more than the shipping charge, you can't buy it for your order through Extra Chill; ship it yourself instead.
+If you print the label through Extra Chill, your payout stays $22.50 and the label is paid for. If you ship it yourself and mark it shipped, the $5 comes back to you and your payout becomes **$27.50**.
 
 Payment processing fees come out of these amounts.
 
