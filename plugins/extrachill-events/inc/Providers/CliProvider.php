@@ -62,15 +62,9 @@ final class CliProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/UnqualifiableFlowsCommand.php';
 		\WP_CLI::add_command( 'extrachill venues unqualifiable-flows', \ExtraChillEvents\Cli\UnqualifiableFlowsCommand::class );
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AuditPipelinesCommand.php';
-		\WP_CLI::add_command( 'extrachill events flows audit-pipelines', \ExtraChillEvents\Cli\AuditPipelinesCommand::class );
-
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/RepairFlowLocationsCommand.php';
 		\WP_CLI::add_command( 'extrachill events flows repair-locations', \ExtraChillEvents\Cli\RepairFlowLocationsCommand::class );
-
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/PruneOrphanLocationsCommand.php';
-		\WP_CLI::add_command( 'extrachill events locations prune-orphans', \ExtraChillEvents\Cli\PruneOrphanLocationsCommand::class );
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocationIntegrityAuditor.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AuditLocationIntegrityCommand.php';
@@ -80,9 +74,6 @@ final class CliProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/RootLocationRepair.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/ReconcileRootLocationsCommand.php';
 		\WP_CLI::add_command( 'extrachill events locations reconcile-roots', \ExtraChillEvents\Cli\ReconcileRootLocationsCommand::class );
-
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/BackfillAuthorshipCommand.php';
-		\WP_CLI::add_command( 'extrachill events backfill-authorship', \ExtraChillEvents\Cli\BackfillAuthorshipCommand::class );
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/SyncGenresCommand.php';
 		\WP_CLI::add_command( 'extrachill events sync-genres', \ExtraChillEvents\Cli\SyncGenresCommand::class );
