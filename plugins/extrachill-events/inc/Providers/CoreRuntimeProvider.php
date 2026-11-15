@@ -44,5 +44,30 @@ final class CoreRuntimeProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/OwnerGuestListTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistCoverageSync.php';
 		\ExtraChillEvents\Core\ArtistCoverageSync::register();
+		self::load_operator_services();
+	}
+
+	/**
+	 * Load the services behind the extrachill-cli operator commands.
+	 *
+	 * The `wp extrachill events|venues|artists` adapters live in
+	 * extrachill-cli; the qualification, flow, location, and classification
+	 * logic they call stays here. Loading declares classes only.
+	 */
+	private static function load_operator_services(): void {
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyCohortDeriver.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyStatsReport.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowOps.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowHelpers.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueRequalifier.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationRepairer.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocationIntegrityAuditor.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifiedRootLocation.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/RootLocationRepair.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/RootLocationReconciler.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/GenreProjectionBackfill.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueTierClassifier.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistGenreClassifier.php';
 	}
 }

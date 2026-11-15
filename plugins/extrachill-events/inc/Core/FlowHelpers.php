@@ -1,11 +1,11 @@
 <?php
 /**
- * Shared flow-access helpers for qualify v2 commands.
+ * Shared flow-access helpers for qualify v2 operator services.
  *
  * Single-flow reads and every write go through
  * {@see \ExtraChillEvents\Core\FlowOps}, which talks to Data Machine through
  * its abilities. The bulk scraper-flow scan and run counts remain narrow,
- * read-only queries for the CLI reports.
+ * read-only queries for the operator reports.
  *
  * The pause mechanism deliberately uses `scheduling_config.interval = "manual"`
  * + a `paused_reason` field in the same JSON blob, matching the design in
