@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.54.2] - 2026-11-15
+
+### Changed
+- serve avatar URLs from a global ec_avatar_urls snapshot
+
 ## [0.54.1] - 2026-11-15
 
 ### Changed
