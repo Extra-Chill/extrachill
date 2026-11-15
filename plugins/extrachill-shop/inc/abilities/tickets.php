@@ -11,23 +11,29 @@ function extrachill_shop_register_ticket_abilities() {
 			'type'                 => 'object',
 			'required'             => array( 'event', 'quantity', 'name', 'email' ),
 			'properties'           => array(
-				'event'    => array(
+				'event'          => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'quantity' => array(
+				'quantity'       => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 					'maximum' => 10,
 				),
-				'name'     => array(
+				'name'           => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 200,
 				),
-				'email'    => array(
+				'email'          => array(
 					'type'   => 'string',
 					'format' => 'email',
+				),
+				// Optional in the schema so a missing answer returns the
+				// dedicated terms_required error instead of a schema failure.
+				'terms_accepted' => array(
+					'type'        => 'boolean',
+					'description' => 'The buyer agreed to the Terms of Service. Must be true.',
 				),
 			),
 			'additionalProperties' => false,
@@ -92,5 +98,55 @@ function extrachill_shop_register_ticket_abilities() {
 		'permission_callback' => 'extrachill_shop_event_ticket_refund_permission',
 		'execute_callback'    => 'extrachill_shop_refund_event_ticket_orders',
 		'meta'                => array( 'show_in_rest' => true ),
+	) );
+	wp_register_ability( 'extrachill/list-my-ticket-orders', array(
+		'label'               => 'List my ticket orders',
+		'description'         => 'List the current user\'s ticket orders and their passes.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'properties'           => array(),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'properties' => array(
+				'orders' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'reference'   => array( 'type' => 'string' ),
+							'event_id'    => array( 'type' => 'integer' ),
+							'event_title' => array( 'type' => 'string' ),
+							'event_url'   => array( 'type' => 'string' ),
+							'quantity'    => array( 'type' => 'integer' ),
+							'status'      => array( 'type' => 'string' ),
+							'created_at'  => array( 'type' => 'string' ),
+							'passes'      => array(
+								'type'  => 'array',
+								'items' => array(
+									'type'       => 'object',
+									'properties' => array(
+										'code'   => array( 'type' => 'string' ),
+										'status' => array( 'type' => 'string' ),
+										'url'    => array( 'type' => 'string' ),
+									),
+								),
+							),
+						),
+					),
+				),
+			),
+		),
+		'permission_callback' => 'is_user_logged_in',
+		'execute_callback'    => 'extrachill_shop_list_my_ticket_orders',
+		'meta'                => array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'   => true,
+				'idempotent' => true,
+			),
+		),
 	) );
 }

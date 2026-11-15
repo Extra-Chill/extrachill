@@ -305,6 +305,8 @@ class TicketAbilities {
 								'type' => 'string',
 								'enum' => array( 'active', 'redeemed', 'revoked' ),
 							),
+							// The buyer's pass link, shown in Shop's My Account > Tickets.
+							'url'    => array( 'type' => 'string' ),
 						),
 						'required'   => array( 'code', 'status' ),
 					),
@@ -578,6 +580,7 @@ class TicketAbilities {
 				return array(
 					'code'   => $row['code'],
 					'status' => $row['status'],
+					'url'    => extrachill_events_guest_list_pass_link( (int) $row['event_id'], (string) $row['code'], (string) ( $row['guest_name'] ?? '' ) ),
 				);
 			},
 			$rows

@@ -4,7 +4,7 @@
 namespace {
 	function get_userdata( $id ) { return (object) array( 'user_email' => "user$id@example.com" ); }
 	function ec_get_linked_members( $id ) { return array( get_userdata( 4 ), get_userdata( 4 ), get_userdata( 5 ) ); }
-	function esc_html( $text ) { return htmlspecialchars( (string) $text ); }
+	if ( ! function_exists( 'esc_html' ) ) { function esc_html( $text ) { return htmlspecialchars( (string) $text ); } }
 	function ec_send_email( $data ) { $GLOBALS['notification_mail'][] = $data; }
 	function wc_get_product( $id ) { return new class( $id ) {
 		private $id;

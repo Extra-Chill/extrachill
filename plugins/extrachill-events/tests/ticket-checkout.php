@@ -19,6 +19,11 @@ function esc_html_e( $value, $domain = '' ) { echo esc_html__( $value ); }
 function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
 function esc_attr( $value ) { return esc_html( $value ); }
 function wp_kses_post( $value ) { return $value; }
+function wp_kses( $value, $allowed ) { check( isset( $allowed['a']['href'] ), 'Terms link allowed through kses' ); return $value; }
+function esc_url( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
+function apply_filters( $hook, $value ) { return $value; }
+function trailingslashit( $value ) { return rtrim( $value, '/' ) . '/'; }
+function ec_get_site_url( $key ) { return 'main' === $key ? 'https://extrachill.com' : null; }
 function number_format_i18n( $value, $decimals = 0 ) { return number_format( $value, $decimals ); }
 function ec_render_turnstile_widget( $args ) { return '<div class="cf-turnstile"></div>'; }
 function wp_get_ability( $name ) {
@@ -46,7 +51,7 @@ $GLOBALS['singular'] = true;
 $_GET = array();
 $GLOBALS['offer'] = array( 'enabled' => true, 'sale_open' => true, 'price_minor' => 2500, 'currency' => 'usd', 'remaining' => 3 );
 $html = render_checkout();
-foreach ( array( 'Buy tickets', 'USD 25.00', '3 remaining', 'max="3"', 'name="quantity"', 'name="name"', 'name="email"', 'cf-turnstile', 'class="button-1"' ) as $expected ) {
+foreach ( array( 'Buy tickets', 'USD 25.00', '3 remaining', 'max="3"', 'name="quantity"', 'name="name"', 'name="email"', 'cf-turnstile', 'class="button-1"', 'class="ec-checkbox-row"', 'name="terms_accepted" type="checkbox" value="1" required', 'I agree to the <a href="https://extrachill.com/terms-of-service/"', 'Terms of Service</a>' ) as $expected ) {
 	check( str_contains( $html, $expected ), 'Open offer: ' . $expected );
 }
 check( ! extrachill_events_is_ad_free_page(), 'Ordinary ticket page is not ad-free' );

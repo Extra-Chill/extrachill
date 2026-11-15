@@ -447,6 +447,26 @@ export interface EventSubmissionRequest {
   turnstile_token: string;
 }
 
+/**
+ * Paid ticket checkout (`POST extrachill/v1/events/tickets/checkout`, served
+ * by the Shop site). Shop answers 400 `terms_required` unless
+ * `terms_accepted` is `true`, and records the accepted Terms version.
+ */
+export interface TicketCheckoutRequest {
+  event: number;
+  quantity: number;
+  name: string;
+  email: string;
+  /** The buyer agreed to the Terms of Service. Must be `true`. */
+  terms_accepted: true;
+  turnstile_response?: string;
+}
+
+export interface TicketCheckoutResponse {
+  checkout_url: string;
+  session_id: string;
+}
+
 export interface UpcomingCountsResponse {
   counts: Record<string, number>;
 }

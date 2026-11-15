@@ -212,6 +212,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$status = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
 		$this->assertSame( 10, $status['event_id'] );
 		$this->assertTrue( $status['refundable'] );
+		$this->assertSame( 'https://events.test/10/guest-list/?pass=' . $status['passes'][0]['code'], $status['passes'][0]['url'], 'Order status carries the buyer pass link for My Account.' );
 		$GLOBALS['wpdb']->rows[0]['status'] = 'redeemed';
 		$status = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
 		$this->assertTrue( $status['any_redeemed'] );
