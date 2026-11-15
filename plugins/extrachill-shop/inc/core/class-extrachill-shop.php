@@ -90,6 +90,7 @@ class ExtraChillShop {
 
 		// Artist notifications
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-order-notifications.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/product-approval.php';
 
 		// Templates
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/templates/cart-icon.php';

@@ -30,8 +30,12 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Set product status with publish validation.
  *
+ * A `publish` request is validated, then resolved through
+ * `extrachill_shop_resolve_product_status()`: when product approval is
+ * required, sellers who cannot publish directly get `pending` instead.
+ *
  * @param int    $product_id Product ID.
- * @param string $status     Product status (draft|publish).
+ * @param string $status     Requested product status (draft|publish).
  * @return true|WP_Error
  */
 function extrachill_shop_product_set_status( $product_id, $status ) {
@@ -45,6 +49,11 @@ function extrachill_shop_product_set_status( $product_id, $status ) {
 		if ( is_wp_error( $can_publish ) ) {
 			return $can_publish;
 		}
+		$status = extrachill_shop_resolve_product_status( $product_id, $status, get_current_user_id() );
+	}
+
+	if ( get_post_status( $product_id ) === $status ) {
+		return true;
 	}
 
 	wp_update_post(

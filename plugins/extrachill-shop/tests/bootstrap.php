@@ -230,6 +230,9 @@ function get_post( $id ) {
 	);
 }
 function user_can( $user_id, $capability ) {
+	if ( in_array( $capability, $GLOBALS['test_user_caps'][ (int) $user_id ] ?? array(), true ) ) {
+		return true;
+	}
 	return in_array( (int) $user_id, $GLOBALS['test_admins'] ?? array(), true ) && 'manage_options' === $capability;
 }
 function ec_feature_available( $feature, $user_id = null ) {

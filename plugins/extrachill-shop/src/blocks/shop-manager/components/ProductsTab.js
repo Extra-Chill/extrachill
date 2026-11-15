@@ -39,6 +39,15 @@ import {
 
 const STANDARD_SIZES = [ 'XS', 'S', 'M', 'L', 'XL', 'XXL' ];
 
+const STATUS_LABELS = {
+	publish: 'Published',
+	pending: 'Pending review',
+	draft: 'Draft',
+};
+
+const PENDING_NOTICE =
+	'Thanks! Your product is pending review and will appear in the shop once it is approved.';
+
 const emptyDraft = () => ( {
 	status: 'draft',
 	name: '',
@@ -65,6 +74,7 @@ const ProductsTab = ( {
 	const [ initialHasSizes, setInitialHasSizes ] = useState( false );
 	const [ saving, setSaving ] = useState( false );
 	const [ localError, setLocalError ] = useState( '' );
+	const [ savedNotice, setSavedNotice ] = useState( '' );
 	const [ showForm, setShowForm ] = useState( false );
 	const panelRef = useRef( null );
 	const [ imagesDraft, setImagesDraft ] = useState( [] );
@@ -76,6 +86,7 @@ const ProductsTab = ( {
 		setEditingId( 0 );
 		setInitialHasSizes( false );
 		setLocalError( '' );
+		setSavedNotice( '' );
 		setShowForm( false );
 		setImagesDraft( [] );
 		setPendingImageFiles( [] );
@@ -99,10 +110,15 @@ const ProductsTab = ( {
 
 	const canReceivePayments = !! stripeStatus?.can_receive_payments;
 
-	const getProductStatusTone = ( status ) =>
-		status === 'publish' ? 'success' : 'muted';
+	const getProductStatusTone = ( status ) => {
+		if ( status === 'publish' ) {
+			return 'success';
+		}
+		return status === 'pending' ? 'warning' : 'muted';
+	};
 
 	const startEdit = ( product ) => {
+		setSavedNotice( '' );
 		setEditingId( product.id );
 		setInitialHasSizes(
 			Array.isArray( product.sizes ) && product.sizes.length > 0
@@ -202,11 +218,11 @@ const ProductsTab = ( {
 
 		setSaving( true );
 		setLocalError( '' );
+		setSavedNotice( '' );
 		try {
 			const hasStockValue =
 				draft.stock_quantity !== '' && draft.stock_quantity !== null;
 			const payload = {
-				status: draft.status,
 				name: draft.name,
 				price: priceNumber,
 				sale_price: draft.sale_price
@@ -220,6 +236,12 @@ const ProductsTab = ( {
 				ships_free: draft.ships_free,
 			};
 
+			// A product pending review keeps its status until an admin acts.
+			if ( draft.status !== 'pending' ) {
+				payload.status = draft.status;
+			}
+
+			let savedStatus = '';
 			if ( draft.has_sizes ) {
 				payload.sizes = draft.sizes.map( ( s ) => ( {
 					name: s.name,
@@ -230,7 +252,8 @@ const ProductsTab = ( {
 			}
 
 			if ( editingId ) {
-				await updateShopProduct( editingId, payload );
+				const updated = await updateShopProduct( editingId, payload );
+				savedStatus = updated?.status || '';
 				if ( pendingImageFiles.length > 0 ) {
 					await uploadShopProductImages(
 						editingId,
@@ -252,14 +275,22 @@ const ProductsTab = ( {
 						pendingImageFiles
 					);
 				}
+				savedStatus = created?.status || '';
 				if ( createdId && wantsPublish ) {
-					await updateShopProduct( createdId, { status: 'publish' } );
+					const published = await updateShopProduct( createdId, {
+						status: 'publish',
+					} );
+					savedStatus = published?.status || '';
 				}
 			}
 
 			cleanupPreviews();
 			await onRefresh();
 			reset();
+			// The server decides: sellers who request publish may land in review.
+			if ( savedStatus === 'pending' ) {
+				setSavedNotice( PENDING_NOTICE );
+			}
 		} catch ( err ) {
 			setLocalError( err?.message || 'Save failed.' );
 		} finally {
@@ -394,6 +425,7 @@ const ProductsTab = ( {
 
 	const startNew = () => {
 		cleanupPreviews();
+		setSavedNotice( '' );
 		setShowForm( true );
 		setEditingId( 0 );
 		setDraft( emptyDraft() );
@@ -448,6 +480,11 @@ const ProductsTab = ( {
 				{ localError && (
 					<InlineStatus tone="error">{ localError }</InlineStatus>
 				) }
+				{ savedNotice && (
+					<div className="notice notice-info" role="status">
+						<p>{ savedNotice }</p>
+					</div>
+				) }
 				{ stripeNote && (
 					<div>
 						<InlineStatus tone="warning">
@@ -487,7 +524,8 @@ const ProductsTab = ( {
 										) }
 										variant="solid"
 									>
-										{ product.status }
+										{ STATUS_LABELS[ product.status ] ||
+											product.status }
 									</Badge>
 								</div>
 								{ Array.isArray( product.sizes ) &&
@@ -567,6 +605,11 @@ const ProductsTab = ( {
 									disabled={ saving }
 								>
 									<option value="draft">Draft</option>
+									{ draft.status === 'pending' && (
+										<option value="pending">
+											Pending review
+										</option>
+									) }
 									<option value="publish">Published</option>
 								</select>
 							}
