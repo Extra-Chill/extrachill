@@ -39,7 +39,7 @@ class TicketSalesAbilities {
 	 * @param bool                         $register Hook registration (false in tests).
 	 */
 	public function __construct( ?CommerceSellerAbilities $sellers = null, bool $register = true ) {
-		$this->sellers = $sellers ? $sellers : new CommerceSellerAbilities( null, null, false );
+		$this->sellers = $sellers ? $sellers : new CommerceSellerAbilities( null, false );
 		if ( $register ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 		}

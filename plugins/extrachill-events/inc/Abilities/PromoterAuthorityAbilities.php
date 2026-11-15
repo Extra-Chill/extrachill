@@ -7,9 +7,11 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use ExtraChill\Users\Teams\TeamOnboardingService;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthorization;
-use ExtraChillEvents\Core\PromoterAuthorityService;
+use ExtraChillEvents\Core\TeamAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
+use ExtraChillEvents\Core\VenueOnboardingAdapter;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,28 +25,19 @@ final class PromoterAuthorityAbilities {
 	private static bool $registered = false;
 
 	/**
-	 * Promoter authorization policy.
+	 * Promoter authority persistence.
 	 *
-	 * @var PromoterAuthorization
+	 * @var PromoterAuthorityRepository
 	 */
-	private $authorization;
-
-	/**
-	 * Promoter authority service.
-	 *
-	 * @var PromoterAuthorityService
-	 */
-	private $service;
+	private $repository;
 
 	/**
 	 * Construct the ability adapter.
 	 *
-	 * @param PromoterAuthorityService|null $service       Service override.
-	 * @param PromoterAuthorization|null    $authorization Authorization override.
+	 * @param PromoterAuthorityRepository|null $repository Repository override.
 	 */
-	public function __construct( ?PromoterAuthorityService $service = null, ?PromoterAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new PromoterAuthorization();
-		$this->service       = $service ? $service : new PromoterAuthorityService( null, $this->authorization );
+	public function __construct( ?PromoterAuthorityRepository $repository = null ) {
+		$this->repository = $repository ? $repository : new PromoterAuthorityRepository();
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -182,15 +175,15 @@ final class PromoterAuthorityAbilities {
 
 	/** Register email onboarding through the shared team service. */
 	private function register_invitations( array $term, array $version ): void {
-		$id                = array(
+		$id     = array(
 			'type'    => 'integer',
 			'minimum' => 1,
 		);
-		$text              = array(
+		$text   = array(
 			'type'      => 'string',
 			'minLength' => 1,
 		);
-		$inputs            = array(
+		$inputs = array(
 			'invite'  => array(
 				'promoter_term_id' => $term,
 				'email'            => $text,
@@ -217,8 +210,7 @@ final class PromoterAuthorityAbilities {
 				),
 			),
 		);
-		$authority_service = $this->service;
-		$output            = array(
+		$output = array(
 			'type'                 => 'object',
 			'properties'           => array(),
 			'additionalProperties' => false,
@@ -243,9 +235,9 @@ final class PromoterAuthorityAbilities {
 				__( 'Manage email invitations for a promoter team.', 'extrachill-events' ),
 				$properties,
 				array_keys( $properties ),
-				static function ( array $input ) use ( $operation, $authority_service ) {
-					$service = $authority_service->onboarding();
-					$actor   = PromoterAuthorization::effective_user_id();
+				static function ( array $input ) use ( $operation ) {
+					$service = new TeamOnboardingService( new VenueOnboardingAdapter( 'promoter' ) );
+					$actor   = TeamAuthorization::effective_user_id();
 					switch ( $operation ) {
 						case 'invite':
 							return $service->invite( $actor, $input['promoter_term_id'], $input['email'], $input['is_owner'] );
@@ -259,7 +251,7 @@ final class PromoterAuthorityAbilities {
 							return $service->respond( $actor, $input['public_id'], $input['token'], $input['promoter_term_id'], $input['is_owner'], $input['expected_version'], $input['decision'] );
 					}
 				},
-				static function () { return PromoterAuthorization::effective_user_id() > 0; },
+				static function () { return TeamAuthorization::effective_user_id() > 0; },
 				'list' === $operation,
 				false,
 				'cancel' === $operation,
@@ -277,7 +269,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_verify( array $input ) {
-		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_VERIFY_ORGANIZATION );
+		return TeamCapabilities::authorize( 'ec_verify_promoter', absint( $input['promoter_term_id'] ?? 0 ), TeamAuthorization::effective_user_id() );
 	}
 
 	/**
@@ -286,7 +278,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_revoke_organization( array $input ) {
-		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_REVOKE_ORGANIZATION );
+		return TeamCapabilities::authorize( 'ec_revoke_promoter', absint( $input['promoter_term_id'] ?? 0 ), TeamAuthorization::effective_user_id() );
 	}
 
 	/**
@@ -295,7 +287,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_manage_members( array $input ) {
-		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_MANAGE_MEMBERS );
+		return TeamCapabilities::authorize( 'ec_manage_promoter_members', absint( $input['promoter_term_id'] ?? 0 ), TeamAuthorization::effective_user_id() );
 	}
 
 	/**
@@ -305,7 +297,11 @@ final class PromoterAuthorityAbilities {
 	 */
 	public function verify( array $input ) {
 		$owner_user_id = isset( $input['owner_user_id'] ) ? absint( $input['owner_user_id'] ) : null;
-		return $this->service->verify( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), $owner_user_id );
+		return $this->reauthorized(
+			'ec_verify_promoter',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->verify( $term_id, $owner_user_id, $actor )
+		);
 	}
 
 	/**
@@ -314,7 +310,11 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function revoke_organization( array $input ) {
-		return $this->service->revoke_organization( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->reauthorized(
+			'ec_revoke_promoter',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->revoke_organization( $term_id, absint( $input['expected_version'] ?? 0 ), $actor )
+		);
 	}
 
 	/**
@@ -323,7 +323,11 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function create_membership( array $input ) {
-		return $this->service->create_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ) );
+		return $this->reauthorized(
+			'ec_manage_promoter_members',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->create_membership( $term_id, absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ), $actor )
+		);
 	}
 
 	/**
@@ -332,7 +336,11 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function update_membership( array $input ) {
-		return $this->service->update_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->reauthorized(
+			'ec_manage_promoter_members',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->update_owner( $term_id, absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ), absint( $input['expected_version'] ?? 0 ), $actor )
+		);
 	}
 
 	/**
@@ -341,7 +349,11 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function revoke_membership( array $input ) {
-		return $this->service->revoke_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->reauthorized(
+			'ec_manage_promoter_members',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->revoke_membership( $term_id, absint( $input['user_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ), $actor )
+		);
 	}
 
 	/**
@@ -350,7 +362,26 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function list_memberships( array $input ) {
-		return $this->service->list_memberships( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ) );
+		return $this->reauthorized(
+			'ec_manage_promoter_members',
+			$input,
+			fn( int $actor, int $term_id ) => $this->repository->list_memberships( $term_id )
+		);
+	}
+
+	/**
+	 * Reauthorize the effective actor for one exact promoter, then run the operation.
+	 *
+	 * @param string   $cap       Promoter team capability.
+	 * @param array    $input     Ability input.
+	 * @param callable $operation Receives the actor and promoter term IDs.
+	 * @return mixed|\WP_Error
+	 */
+	private function reauthorized( string $cap, array $input, callable $operation ) {
+		$actor   = TeamAuthorization::effective_user_id();
+		$term_id = absint( $input['promoter_term_id'] ?? 0 );
+		$allowed = TeamCapabilities::authorize( $cap, $term_id, $actor );
+		return is_wp_error( $allowed ) ? $allowed : $operation( $actor, $term_id );
 	}
 
 	/**

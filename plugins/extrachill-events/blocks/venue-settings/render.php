@@ -10,9 +10,8 @@
  */
 
 use ExtraChillEvents\Abilities\CommerceSellerAbilities;
-use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 $wrapper_attributes = get_block_wrapper_attributes(
@@ -51,8 +50,7 @@ if ( ! is_user_logged_in() ) {
 }
 
 $user_id       = get_current_user_id();
-$authorization = new VenueAuthorization();
-$is_admin      = $authorization->is_administrator( $user_id );
+$is_admin      = $user_id > 0 && TeamAuthorization::is_site_admin( $user_id );
 $promoter_mode = '' !== $requested_identity && 0 === strpos( $requested_identity, 'promoter' );
 $all_terms     = $promoter_mode
 	? array()
@@ -169,7 +167,7 @@ if ( $promoter_mode && 'active' === ( $workspace['selection']['state'] ?? '' ) &
 } elseif ( ! $promoter_mode && $selected ) {
 	$shop_seller = array( 'venue', (int) $selected['id'] );
 }
-$shop_manager_url = $shop_seller ? ( new CommerceSellerAbilities( null, null, false ) )->shop_manager_url( $shop_seller[0], $shop_seller[1] ) : '';
+$shop_manager_url = $shop_seller ? ( new CommerceSellerAbilities( null, false ) )->shop_manager_url( $shop_seller[0], $shop_seller[1] ) : '';
 
 $context = array(
 	'shop_manager_url' => $shop_manager_url,

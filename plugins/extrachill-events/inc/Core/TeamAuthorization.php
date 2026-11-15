@@ -314,12 +314,12 @@ final class TeamAuthorization {
 			return $this->denied( 'promoter' );
 		}
 		if ( self::ACTION_ACCESS_PROMOTER === $action ) {
-			$has_feature = self::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY, $this->use_execution_principal ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
+			$has_feature = self::user_can( $user_id, self::ACCESS_CAPABILITY, $this->use_execution_principal ) && function_exists( 'ec_feature_available' ) && ec_feature_available( self::FEATURE, $user_id );
 			return $has_feature ? true : $this->denied( 'promoter' );
 		}
 		if ( ! $membership['is_owner'] ) {
 			return $this->denied( 'promoter' );
 		}
-		return ! $this->use_execution_principal || self::principal_allows( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) ? true : $this->denied( 'promoter' );
+		return ! $this->use_execution_principal || self::principal_allows( $user_id, self::ACCESS_CAPABILITY ) ? true : $this->denied( 'promoter' );
 	}
 }

@@ -4,7 +4,7 @@
  *
  * Bind, read, and remove the public calendar feed attached to one venue.
  *
- * Every operation is authorized with VenueAuthorization::ACTION_ACCESS_VENUE,
+ * Every operation is authorized with the `ec_access_venue` capability,
  * so an active venue member may manage the binding. Ownership is deliberately
  * not required: binding a public feed is routine calendar upkeep, not a
  * structural change to the venue like membership or finances.
@@ -20,7 +20,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 use ExtraChillEvents\Core\VenueCalendarFeed;
 use ExtraChillEvents\Core\VenueCalendarFeedSync;
 
@@ -32,12 +32,7 @@ class VenueCalendarFeedAbilities {
 
 	private static bool $registered = false;
 
-	/** @var VenueAuthorization */
-	private $authorization;
-
-	public function __construct( ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-
+	public function __construct() {
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -118,11 +113,7 @@ class VenueCalendarFeedAbilities {
 	 * @return true|\WP_Error
 	 */
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			VenueAuthorization::ACTION_ACCESS_VENUE
-		);
+		return TeamCapabilities::authorize( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	public function get_feed( array $input ) {

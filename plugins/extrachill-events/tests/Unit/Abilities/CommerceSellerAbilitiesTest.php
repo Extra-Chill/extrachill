@@ -40,6 +40,11 @@ namespace {
 			eval( "function {$name}( ...\$a ) { return ( \$GLOBALS['cs_impl']['{$name}'] )( ...\$a ); }" ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Define only missing doubles.
 		}
 	}
+	if ( ! function_exists( 'user_can' ) ) {
+		function user_can( $user_id, $cap, $term_id = 0 ) {
+			return 'ec_manage_venue_finances' === $cap && in_array( array( $user_id, $term_id ), $GLOBALS['cs_venue_grants'], true );
+		}
+	}
 }
 
 namespace ExtraChillEvents\Core {
@@ -47,14 +52,6 @@ namespace ExtraChillEvents\Core {
 		public function list_active_venue_ids_for_user( int $user_id ) {
 			$GLOBALS['cs_read_blog'] = get_current_blog_id();
 			return $GLOBALS['cs_venue_ids'];
-		}
-	}
-	if ( ! class_exists( VenueAuthorization::class, false ) ) {
-		class VenueAuthorization {
-			public const ACTION_MANAGE_FINANCES = 'manage_finances';
-			public function can( int $user_id, int $venue_term_id, string $action ): bool {
-				return in_array( array( $user_id, $venue_term_id, $action ), $GLOBALS['cs_venue_grants'], true );
-			}
 		}
 	}
 	if ( ! class_exists( PromoterAuthorityRepository::class, false ) ) {
@@ -76,7 +73,6 @@ namespace ExtraChillEvents\Core {
 namespace ExtraChillEvents\Tests\Unit\Abilities {
 	use ExtraChillEvents\Abilities\CommerceSellerAbilities;
 	use ExtraChillEvents\Core\PromoterAuthorityRepository;
-	use ExtraChillEvents\Core\VenueAuthorization;
 	use PHPUnit\Framework\TestCase;
 
 	require_once dirname( __DIR__, 3 ) . '/inc/Abilities/CommerceSellerAbilities.php';
@@ -107,7 +103,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					),
 				),
 			);
-			$GLOBALS['cs_venue_grants'] = array( array( 5, 1524, 'manage_finances' ) );
+			$GLOBALS['cs_venue_grants'] = array( array( 5, 1524 ) );
 			$GLOBALS['cs_orgs']         = array( 88 => array( 'status' => 'active' ) );
 			$GLOBALS['cs_members']      = array(
 				88 => array(
@@ -115,7 +111,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					6 => array( 'is_owner' => false ),
 				),
 			);
-			$this->ability              = new CommerceSellerAbilities( new VenueAuthorization(), new PromoterAuthorityRepository(), false );
+			$this->ability              = new CommerceSellerAbilities( new PromoterAuthorityRepository(), false );
 		}
 
 		public function test_lists_only_finance_authorized_sellers_sorted_by_name(): void {

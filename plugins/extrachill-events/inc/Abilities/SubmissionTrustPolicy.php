@@ -6,7 +6,7 @@
  * the role owner (extrachill-users) decides who holds them:
  *
  * - `manage_options`: site administrators (and network super admins).
- * - `access_events_admin` (VenueAuthorization::ACCESS_CAPABILITY): the
+ * - `access_events_admin` (TeamAuthorization::ACCESS_CAPABILITY): the
  *   events staff capability, granted today by the Extra Chill Team role.
  *
  * @package ExtraChillEvents

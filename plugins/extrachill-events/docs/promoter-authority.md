@@ -24,7 +24,7 @@ by either:
 Active non-owner members cannot manage memberships. Every path, including the
 administrator path, is reauthorized against lock-current rows at write time.
 The administrator check is the same one used for verify and revoke
-(`PromoterAuthorization::is_site_admin()`), so it composes the active
+(`TeamAuthorization::is_site_admin()`), so it composes the active
 execution-principal ceiling: an agent acting for an administrator whose
 ceiling lacks `manage_options` is denied. Revoked organizations accept no
 membership changes from anyone.

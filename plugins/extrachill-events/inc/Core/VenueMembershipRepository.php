@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use ExtraChill\Users\Teams\TeamMembershipRepository;
 
+require_once __DIR__ . '/TeamAuthorization.php';
+
 /** Provides bounded persistence for venue/user relationships. */
 class VenueMembershipRepository {
 	public const MAX_USER_VENUES = 500;
@@ -37,8 +39,8 @@ class VenueMembershipRepository {
 		}
 
 		$is_owner = ! empty( $data['is_owner'] );
-		$status   = sanitize_key( (string) ( $data['status'] ?? VenueAuthorization::STATUS_ACTIVE ) );
-		if ( ! in_array( $status, VenueAuthorization::statuses(), true ) ) {
+		$status   = sanitize_key( (string) ( $data['status'] ?? TeamAuthorization::STATUS_ACTIVE ) );
+		if ( ! in_array( $status, TeamAuthorization::statuses(), true ) ) {
 			return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership status is not supported.', 'extrachill-events' ) );
 		}
 
@@ -64,7 +66,7 @@ class VenueMembershipRepository {
 		global $wpdb;
 		$found = ( new TeamMembershipRepository() )->select( 'venue', array(
 			'user_id' => $user_id,
-			'status'  => VenueAuthorization::STATUS_ACTIVE,
+			'status'  => TeamAuthorization::STATUS_ACTIVE,
 		), 'id ASC', 1 );
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (bool) $found;
 	}
@@ -88,7 +90,7 @@ class VenueMembershipRepository {
 		if ( is_wp_error( $membership ) || ! is_array( $membership ) ) {
 			return $membership;
 		}
-		return VenueAuthorization::STATUS_ACTIVE === $membership['status'] ? $membership : null;
+		return TeamAuthorization::STATUS_ACTIVE === $membership['status'] ? $membership : null;
 	}
 
 	/**
@@ -124,7 +126,7 @@ class VenueMembershipRepository {
 
 		$ids = ( new TeamMembershipRepository() )->term_ids( 'venue', array(
 			'user_id' => $user_id,
-			'status'  => VenueAuthorization::STATUS_ACTIVE,
+			'status'  => TeamAuthorization::STATUS_ACTIVE,
 		), self::MAX_USER_VENUES + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -151,7 +153,7 @@ class VenueMembershipRepository {
 	public function list_active_venue_ids() {
 		global $wpdb;
 
-		$ids = ( new TeamMembershipRepository() )->term_ids( 'venue', array( 'status' => VenueAuthorization::STATUS_ACTIVE ) );
+		$ids = ( new TeamMembershipRepository() )->term_ids( 'venue', array( 'status' => TeamAuthorization::STATUS_ACTIVE ) );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
@@ -166,7 +168,7 @@ class VenueMembershipRepository {
 		$criteria = array_intersect_key( $filters, array( 'is_owner' => true ) );
 		if ( ! empty( $filters['status'] ) ) {
 			$criteria['status'] = sanitize_key( (string) $filters['status'] );
-			if ( ! in_array( $criteria['status'], VenueAuthorization::statuses(), true ) ) {
+			if ( ! in_array( $criteria['status'], TeamAuthorization::statuses(), true ) ) {
 				return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership filter is not supported.', 'extrachill-events' ) );
 			}
 		}
@@ -178,16 +180,6 @@ class VenueMembershipRepository {
 		}
 
 		return ( new TeamMembershipRepository() )->hydrate_rows( 'venue', (array) $rows );
-	}
-
-	/** Change structural ownership at an expected version. */
-	public function update_owner( int $venue_term_id, int $user_id, bool $is_owner, int $expected_version, int $actor_user_id ) {
-		return ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'venue' ), $venue_term_id, $user_id, $expected_version, $is_owner, false, $actor_user_id );
-	}
-
-	/** Revoke one relationship at an expected version while preserving an active owner. */
-	public function revoke( int $venue_term_id, int $user_id, int $expected_version, int $actor_user_id ) {
-		return ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'venue' ), $venue_term_id, $user_id, $expected_version, null, true, $actor_user_id );
 	}
 
 	/** Hydrate scalar fields and fail closed on corrupt status values. */

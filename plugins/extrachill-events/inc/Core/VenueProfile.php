@@ -17,22 +17,6 @@ class VenueProfile {
 	public const HISTORY_META_KEY = '_extrachill_venue_profile_history';
 
 	/**
-	 * Exact venue-membership authorization service.
-	 *
-	 * @var VenueAuthorization
-	 */
-	private $authorization;
-
-	/**
-	 * Construct the profile composition service.
-	 *
-	 * @param VenueAuthorization|null $authorization Optional authorization service.
-	 */
-	public function __construct( ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-	}
-
-	/**
 	 * Read one canonical profile after exact active-membership authorization.
 	 *
 	 * @param int $venue_term_id Canonical venue term ID.
@@ -124,7 +108,7 @@ class VenueProfile {
 			return new \WP_Error( 'canonical_events_site_required', __( 'Venue profiles must be managed on the canonical Events site.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
-		return $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		return TeamCapabilities::authorize( 'ec_access_venue', $venue_term_id, $actor_user_id );
 	}
 
 	/** Return a stable error when the canonical owner contract is unavailable. */

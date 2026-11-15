@@ -132,12 +132,7 @@ function extrachill_events_can_run_calendar( array $input ): bool|\WP_Error {
 		return true;
 	}
 
-	$authorization = new \ExtraChillEvents\Core\VenueAuthorization();
-	return $authorization->authorize(
-		get_current_user_id(),
-		absint( $input['venue_id'] ),
-		\ExtraChillEvents\Core\VenueAuthorization::ACTION_ACCESS_VENUE
-	);
+	return \ExtraChillEvents\Core\TeamCapabilities::authorize( 'ec_access_venue', absint( $input['venue_id'] ) );
 }
 
 /**

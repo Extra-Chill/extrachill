@@ -11,11 +11,9 @@ use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-
-use ExtraChillEvents\Core\PromoterAuthorityService;
-use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 use PHPUnit\Framework\TestCase;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -96,11 +94,11 @@ if ( ! function_exists( 'user_can' ) ) {
 		if ( 'manage_options' === $capability ) {
 			return ! empty( $GLOBALS['promoter_test']['administrators'][ $user_id ] );
 		}
-		return VenueAuthorization::ACCESS_CAPABILITY === $capability && ! empty( $GLOBALS['promoter_test']['team_access'][ $user_id ] ); }
+		return TeamAuthorization::ACCESS_CAPABILITY === $capability && ! empty( $GLOBALS['promoter_test']['team_access'][ $user_id ] ); }
 }
 if ( ! function_exists( 'ec_feature_available' ) ) {
 	function ec_feature_available( $feature, $user_id = null ) {
-		return VenueAuthorization::FEATURE === $feature && ! empty( $GLOBALS['promoter_test']['feature_access'][ $user_id ] );
+		return TeamAuthorization::FEATURE === $feature && ! empty( $GLOBALS['promoter_test']['feature_access'][ $user_id ] );
 	}
 }
 if ( ! function_exists( 'get_current_user_id' ) ) {
@@ -131,12 +129,10 @@ require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
+require_once dirname( __DIR__ ) . '/inc/Core/TeamAuthorization.php';
 require_once __DIR__ . '/Support/promoter-term-meta-fake.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingAdapter.php';
-require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterWorkspace.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterAuthorityAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterWorkspaceAbilities.php';
@@ -146,6 +142,104 @@ require_once dirname( __DIR__ ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-management-authority.php';
 require_once dirname( __DIR__ ) . '/inc/core/owner-guest-list.php';
 require_once dirname( __DIR__ ) . '/inc/core/guest-list-requests.php';
+
+/** Drives the promoter authority abilities as an explicit acting user. */
+final class PromoterAuthorityActor {
+	/** @var PromoterAuthorityAbilities */
+	private $abilities;
+
+	public function __construct() {
+		$this->abilities = new PromoterAuthorityAbilities();
+	}
+
+	public function verify( int $actor_user_id, int $promoter_term_id, ?int $owner_user_id = null ) {
+		$input = array( 'promoter_term_id' => $promoter_term_id );
+		if ( null !== $owner_user_id ) {
+			$input['owner_user_id'] = $owner_user_id;
+		}
+		return $this->run( $actor_user_id, 'verify', $input );
+	}
+
+	public function revoke_organization( int $actor_user_id, int $promoter_term_id, int $expected_version ) {
+		return $this->run(
+			$actor_user_id,
+			'revoke_organization',
+			array(
+				'promoter_term_id' => $promoter_term_id,
+				'expected_version' => $expected_version,
+			)
+		);
+	}
+
+	public function create_membership( int $actor_user_id, int $promoter_term_id, int $user_id, bool $is_owner ) {
+		return $this->run(
+			$actor_user_id,
+			'create_membership',
+			array(
+				'promoter_term_id' => $promoter_term_id,
+				'user_id'          => $user_id,
+				'is_owner'         => $is_owner,
+			)
+		);
+	}
+
+	public function update_membership( int $actor_user_id, int $promoter_term_id, int $user_id, bool $is_owner, int $expected_version ) {
+		return $this->run(
+			$actor_user_id,
+			'update_membership',
+			array(
+				'promoter_term_id' => $promoter_term_id,
+				'user_id'          => $user_id,
+				'is_owner'         => $is_owner,
+				'expected_version' => $expected_version,
+			)
+		);
+	}
+
+	public function revoke_membership( int $actor_user_id, int $promoter_term_id, int $user_id, int $expected_version ) {
+		return $this->run(
+			$actor_user_id,
+			'revoke_membership',
+			array(
+				'promoter_term_id' => $promoter_term_id,
+				'user_id'          => $user_id,
+				'expected_version' => $expected_version,
+			)
+		);
+	}
+
+	public function list_memberships( int $actor_user_id, int $promoter_term_id ) {
+		return $this->run( $actor_user_id, 'list_memberships', array( 'promoter_term_id' => $promoter_term_id ) );
+	}
+
+	/** Execute one ability as the actor, keeping any active principal on that same user. */
+	private function run( int $actor_user_id, string $operation, array $input ) {
+		$previous_user  = $GLOBALS['promoter_test']['current_user_id'];
+		$has_venue_user = isset( $GLOBALS['venue_membership_test'] );
+		$previous_venue = $has_venue_user ? ( $GLOBALS['venue_membership_test']['current_user_id'] ?? 0 ) : 0;
+		$has_principal  = array_key_exists( 'principal_user_id', $GLOBALS['promoter_link_page_fixture'] ?? array() );
+		$previous_agent = $has_principal ? $GLOBALS['promoter_link_page_fixture']['principal_user_id'] : null;
+
+		$GLOBALS['promoter_test']['current_user_id'] = $actor_user_id;
+		if ( $has_venue_user ) {
+			$GLOBALS['venue_membership_test']['current_user_id'] = $actor_user_id;
+		}
+		if ( $has_principal ) {
+			$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = $actor_user_id;
+		}
+		try {
+			return $this->abilities->$operation( $input );
+		} finally {
+			$GLOBALS['promoter_test']['current_user_id'] = $previous_user;
+			if ( $has_venue_user ) {
+				$GLOBALS['venue_membership_test']['current_user_id'] = $previous_venue;
+			}
+			if ( $has_principal ) {
+				$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = $previous_agent;
+			}
+		}
+	}
+}
 
 /** Minimal transaction-aware database double for promoter authority. */
 final class PromoterAuthorityWpdb {
@@ -600,7 +694,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Revocation retains members but removes all promoter-derived event authority. */
 	public function test_organization_revocation_removes_event_and_guest_list_authority(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$this->assertIsArray( $service->verify( 1, 100, 2 ) );
 		$this->assertIsArray( $service->create_membership( 2, 100, 3, false ) );
 		$GLOBALS['promoter_test']['posts'][900] = (object) array(
@@ -633,7 +727,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** The bounded promoter predicate requires active membership, organization, and taxonomy identity. */
 	public function test_active_promoter_existence_predicate_uses_canonical_authority_state(): void {
-		$service    = new PromoterAuthorityService();
+		$service    = new PromoterAuthorityActor();
 		$repository = new PromoterAuthorityRepository();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 2, 100, 3, false );
@@ -660,7 +754,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_verification_requires_exact_term_and_users_and_does_not_enroll_admin(): void {
-		$service      = new PromoterAuthorityService();
+		$service      = new PromoterAuthorityActor();
 		$invalid_term = $service->verify( 1, 101, 2 );
 		$this->assertSame( 'invalid_promoter_authority_term', $invalid_term->get_error_code() );
 		$invalid_user = $service->verify( 1, 100, 99 );
@@ -677,7 +771,7 @@ final class PromoterAuthorityTest extends TestCase {
 	public function test_concurrent_verification_loser_returns_exact_winner_conflict(): void {
 		$GLOBALS['wpdb']->race_organization_insert = true;
 
-		$error = ( new PromoterAuthorityService() )->verify( 1, 100, 2 );
+		$error = ( new PromoterAuthorityActor() )->verify( 1, 100, 2 );
 		$this->assertSame( 'promoter_organization_exists', $error->get_error_code() );
 		$this->assertSame(
 			array(
@@ -693,7 +787,7 @@ final class PromoterAuthorityTest extends TestCase {
 	public function test_unrelated_organization_insert_failure_remains_safe_500(): void {
 		$GLOBALS['wpdb']->fail_organization_insert = true;
 
-		$error = ( new PromoterAuthorityService() )->verify( 1, 100, 2 );
+		$error = ( new PromoterAuthorityActor() )->verify( 1, 100, 2 );
 		$this->assertSame( 'promoter_organization_create_failed', $error->get_error_code() );
 		$this->assertSame( array( 'status' => 500 ), $error->get_error_data() );
 		$this->assertStringNotContainsString( 'Storage engine unavailable', wp_json_encode( $error->get_error_data() ) );
@@ -701,7 +795,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_only_owner_manages_members_with_versions_and_final_owner_protection(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$created = $service->create_membership( 2, 100, 3, false );
 		$this->assertFalse( $created['is_owner'] );
@@ -722,20 +816,19 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Active non-owner members may manage promoter product surfaces only with current access. */
 	public function test_promoter_product_access_requires_exact_active_member_and_current_feature_access(): void {
-		$service       = new PromoterAuthorityService();
-		$authorization = new PromoterAuthorization();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 2, 100, 3, false );
 
-		$this->assertTrue( $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) );
-		$this->assertTrue( $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) );
-		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 1, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
-		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 4, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_access_promoter', 100, 2 ) );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_access_promoter', 100, 3 ) );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_access_promoter', 100, 1 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_access_promoter', 100, 4 )->get_error_code() );
 
 		unset( $GLOBALS['promoter_test']['feature_access'][3] );
 		$venue_feature_available                               = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
-		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_access_promoter', 100, 3 )->get_error_code() );
 		if ( null === $venue_feature_available ) {
 			unset( $GLOBALS['venue_membership_test']['feature_available'] );
 		} else {
@@ -743,19 +836,18 @@ final class PromoterAuthorityTest extends TestCase {
 		}
 		$GLOBALS['promoter_test']['feature_access'][3] = true;
 		$service->revoke_membership( 2, 100, 3, 1 );
-		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_access_promoter', 100, 3 )->get_error_code() );
 	}
 
 	public function test_normal_owner_membership_management_survives_feature_rollout_loss(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		unset( $GLOBALS['promoter_test']['feature_access'][2] );
 		$venue_feature_available                               = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
 
-		$authorization = new PromoterAuthorization();
-		$this->assertTrue( $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
-		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 2 ) );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_access_promoter', 100, 2 )->get_error_code() );
 		if ( null === $venue_feature_available ) {
 			unset( $GLOBALS['venue_membership_test']['feature_available'] );
 		} else {
@@ -768,7 +860,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Approved discovery is active-only, bounded, deterministic, and fails closed. */
 	public function test_approved_organization_listing_fails_closed_on_database_error_and_overflow(): void {
-		$service    = new PromoterAuthorityService();
+		$service    = new PromoterAuthorityActor();
 		$repository = new PromoterAuthorityRepository();
 		$service->verify( 1, 100, 2 );
 		$service->verify( 1, 102, 3 );
@@ -812,7 +904,7 @@ final class PromoterAuthorityTest extends TestCase {
 			10,
 			2
 		);
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 2, 100, 3, false );
 		$service->revoke_membership( 2, 100, 3, 1 );
@@ -831,7 +923,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Revocation rolls authority and its domain withdrawal back together. */
 	public function test_revocation_precommit_failure_rolls_back_authority_and_public_state(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$GLOBALS['promoter_test']['page_status'] = 'publish';
 		$withdraw                                = static function ( $allowed, $promoter_term_id, $change ) {
@@ -854,7 +946,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Successful revocation invokes the public withdrawal callback. */
 	public function test_revocation_invokes_public_withdrawal(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$GLOBALS['promoter_test']['page_status'] = 'publish';
 		$withdrawals                             = 0;
@@ -890,7 +982,7 @@ final class PromoterAuthorityTest extends TestCase {
 		};
 		add_action( 'extrachill_events_promoter_authority_changed', $thrower, 1, 2 );
 		add_action( 'extrachill_events_promoter_authority_notification_failed', $observer, 10, 3 );
-		$result = ( new PromoterAuthorityService() )->verify( 1, 100, 2 );
+		$result = ( new PromoterAuthorityActor() )->verify( 1, 100, 2 );
 		remove_action( 'extrachill_events_promoter_authority_changed', $thrower, 1 );
 		remove_action( 'extrachill_events_promoter_authority_notification_failed', $observer, 10 );
 
@@ -901,7 +993,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Lock-current mutation callbacks reject authority revoked before acquisition. */
 	public function test_locked_promoter_mutation_revalidates_current_authority(): void {
-		$service    = new PromoterAuthorityService();
+		$service    = new PromoterAuthorityActor();
 		$repository = new PromoterAuthorityRepository();
 		$service->verify( 1, 100, 2 );
 		$calls  = 0;
@@ -930,7 +1022,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_revocation_is_preserved_and_corrupt_values_fail_closed(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 2, 100, 4, false );
 		$revoked = $service->revoke_membership( 2, 100, 4, 1 );
@@ -958,7 +1050,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_membership_listing_fails_when_hard_organization_cap_is_exceeded(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$table = ec_team_fake_partition( 'promoter' );
 		for ( $user_id = 10; $user_id < 110; ++$user_id ) {
@@ -981,7 +1073,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_administrator_revokes_organization_and_loses_member_management_after_revocation(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$organization = $service->revoke_organization( 1, 100, 1 );
 		$this->assertSame( PromoterAuthorityRepository::STATUS_REVOKED, $organization['status'] );
@@ -993,10 +1085,10 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Issue #1181: a site administrator adds members without being a member or owner. */
 	public function test_site_administrator_can_add_member_without_membership(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 
-		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 1 ) );
 		$created = $service->create_membership( 1, 100, 3, false );
 		$this->assertIsArray( $created );
 		$this->assertSame( 3, $created['user_id'] );
@@ -1017,7 +1109,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Site administrators may grant and remove ownership, including the final owner. */
 	public function test_site_administrator_can_change_ownership_and_leave_organization_ownerless(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 1, 100, 3, false );
 
@@ -1041,26 +1133,26 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Owner promotion remains the only member path; non-owner members are still denied. */
 	public function test_non_owner_member_still_cannot_manage_members(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$service->create_membership( 1, 100, 3, false );
 
-		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 3, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 3 )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 3, 100, 4, false )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $service->update_membership( 3, 100, 3, true, 1 )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $service->revoke_membership( 3, 100, 2, 1 )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $service->list_memberships( 3, 100 )->get_error_code() );
-		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 2 ) );
 	}
 
 	/** The admin member-management branch honors the execution-principal ceiling like verify/revoke. */
 	public function test_site_administrator_under_restricted_principal_cannot_manage_members(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$service->verify( 1, 100, 2 );
 		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 1;
-		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( VenueAuthorization::ACCESS_CAPABILITY );
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( TeamAuthorization::ACCESS_CAPABILITY );
 
-		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 1 )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 1, 100, 3, false )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorityRepository() )->create_membership( 100, 3, false, 1 )->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorityRepository() )->update_owner( 100, 2, false, 1, 1 )->get_error_code() );
@@ -1072,12 +1164,12 @@ final class PromoterAuthorityTest extends TestCase {
 
 	/** Verification without an owner creates a verified organization with no memberships. */
 	public function test_verify_without_owner_creates_ownerless_organization(): void {
-		$service = new PromoterAuthorityService();
+		$service = new PromoterAuthorityActor();
 		$result  = $service->verify( 1, 100 );
 		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $result['organization']['status'] );
 		$this->assertNull( $result['membership'] );
 		$this->assertSame( array(), $service->list_memberships( 1, 100 ) );
-		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 2 )->get_error_code() );
 		$this->assertSame( 'promoter_membership_owner_required', $service->create_membership( 1, 100, 2, false )->get_error_code() );
 		$this->assertSame( 2, $service->create_membership( 1, 100, 2, true )['user_id'] );
 
@@ -1103,7 +1195,7 @@ final class PromoterAuthorityTest extends TestCase {
 		);
 		$this->assertTrue( $result['membership']['is_owner'] );
 		$this->assertSame( 2, $result['membership']['user_id'] );
-		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertTrue( TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 2 ) );
 	}
 
 	public function test_ability_object_schemas_are_closed(): void {
@@ -1142,18 +1234,18 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->bootstrap_promoter_workspace_fixtures();
 		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 1;
 		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array();
-		$admin = ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_REVOKE_ORGANIZATION );
+		$admin = TeamCapabilities::authorize( 'ec_revoke_promoter', 100, 1 );
 		$this->assertSame( 'promoter_authority_forbidden', $admin->get_error_code() );
 		$admin_write = ( new PromoterAuthorityRepository() )->revoke_organization( 100, 1, 1 );
 		$this->assertSame( 'promoter_authority_forbidden', $admin_write->get_error_code() );
 		$this->assertSame( array(), ( new PromoterWorkspace() )->identities()['identities'] );
 
 		$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = 2;
-		$promoter_access = ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
-		$promoter_manage = ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS );
+		$promoter_access = TeamCapabilities::authorize( 'ec_access_promoter', 100, 2 );
+		$promoter_manage = TeamCapabilities::authorize( 'ec_manage_promoter_members', 100, 2 );
 		$this->assertSame( 'promoter_authority_forbidden', $promoter_access->get_error_code() );
 		$this->assertSame( 'promoter_authority_forbidden', $promoter_manage->get_error_code() );
-		$membership_write = ( new PromoterAuthorityService() )->create_membership( 2, 100, 5, false );
+		$membership_write = ( new PromoterAuthorityActor() )->create_membership( 2, 100, 5, false );
 		$this->assertSame( 'promoter_authority_forbidden', $membership_write->get_error_code() );
 
 	}
@@ -1180,7 +1272,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( array( 'venue:200', 'venue:201' ), array_column( $venues, 'reference' ) );
 		foreach ( $venues as $venue ) {
 			$this->assertFalse( $venue['is_owner'] );
-			$this->assertSame( array( VenueAuthorization::ACTION_MANAGE_MEMBERS ), $venue['permissions'] );
+			$this->assertSame( array( TeamAuthorization::ACTION_MANAGE_MEMBERS ), $venue['permissions'] );
 		}
 		$selected = $workspace->resolve( 'venue:200' );
 		$this->assertSame( array(), $selected['promoter_relationships'] );
@@ -1310,7 +1402,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	private function bootstrap_promoter_workspace_fixtures(): void {
-		$promoters = new PromoterAuthorityService();
+		$promoters = new PromoterAuthorityActor();
 		$promoters->verify( 1, 100, 2 );
 		$promoters->create_membership( 2, 100, 3, false );
 		$promoters->verify( 1, 102, 6 );
@@ -1334,7 +1426,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'venue_term_id'      => $venue_term_id,
 			'user_id'            => $user_id,
 			'is_owner'           => 1,
-			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'status'             => TeamAuthorization::STATUS_ACTIVE,
 			'version'            => 1,
 			'created_by_user_id' => $user_id,
 			'created_at'         => '2026-01-01 00:00:00',

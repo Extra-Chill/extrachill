@@ -30,7 +30,7 @@ final class VenueLinkPages extends TeamTermLinkPages {
 	 * @param int $term_id Venue term ID.
 	 */
 	protected static function authorize_owner( int $term_id ) {
-		return ( new VenueAuthorization() )->authorize( get_current_user_id(), $term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		return TeamCapabilities::authorize( 'ec_access_venue', $term_id );
 	}
 
 	/**

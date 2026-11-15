@@ -41,8 +41,8 @@ final class LifecycleProvider {
 	 * @return array
 	 */
 	public static function register_feature_ceilings( array $ceilings ): array {
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueAuthorization' ) ) {
-			$ceilings[ \ExtraChillEvents\Core\VenueAuthorization::FEATURE ] = 'team';
+		if ( class_exists( '\\ExtraChillEvents\\Core\\TeamAuthorization' ) ) {
+			$ceilings[ \ExtraChillEvents\Core\TeamAuthorization::FEATURE ] = 'team';
 		}
 		return $ceilings;
 	}

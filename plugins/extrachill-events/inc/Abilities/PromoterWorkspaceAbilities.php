@@ -7,8 +7,8 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
+use ExtraChillEvents\Core\TeamAuthorization;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -68,7 +68,7 @@ final class PromoterWorkspaceAbilities {
 
 	/** Require only an effective authenticated WordPress actor. */
 	public function can_read(): bool {
-		$user_id = PromoterAuthorization::effective_user_id();
+		$user_id = TeamAuthorization::effective_user_id();
 		return $user_id > 0 && (bool) get_userdata( $user_id );
 	}
 

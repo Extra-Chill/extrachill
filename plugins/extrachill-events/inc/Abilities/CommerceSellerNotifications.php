@@ -7,7 +7,6 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 
@@ -18,7 +17,7 @@ class CommerceSellerNotifications {
 	 *
 	 * @return array{name: string, recipients: string[]}
 	 */
-	public static function get_data( string $type, int $id, ?VenueMembershipRepository $memberships = null, ?VenueAuthorization $venues = null, ?PromoterAuthorityRepository $promoters = null ): array {
+	public static function get_data( string $type, int $id, ?VenueMembershipRepository $memberships = null, ?PromoterAuthorityRepository $promoters = null ): array {
 		$result  = array(
 			'name'       => '',
 			'recipients' => array(),
@@ -40,7 +39,6 @@ class CommerceSellerNotifications {
 			$rows           = array();
 			if ( 'venue' === $type ) {
 				$memberships = $memberships ?? new VenueMembershipRepository();
-				$venues      = $venues ?? new VenueAuthorization( $memberships );
 				// Enumerate only explicit members, never global administrators. Read every page.
 				for ( $offset = 0; ; $offset += 100 ) {
 					$page = $memberships->list_for_venue( $id, array(
@@ -73,7 +71,7 @@ class CommerceSellerNotifications {
 					continue;
 				}
 				$user_id = (int) $row['user_id'];
-				if ( 'venue' === $type && ! $venues->can( $user_id, $id, VenueAuthorization::ACTION_MANAGE_FINANCES ) ) {
+				if ( 'venue' === $type && ! user_can( $user_id, 'ec_manage_venue_finances', $id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta capability mapped by TeamCapabilities.
 					continue;
 				}
 				$user = get_userdata( $user_id );

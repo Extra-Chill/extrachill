@@ -19,14 +19,12 @@ $owned   = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-pa
 
 $required_venue = array(
 	'VenueMembershipRepository',
+	'TeamAuthorization',
+	'TeamCapabilities',
 	'VenueAuthorization',
-	'VenueMembershipService',
 	'VenueOnboardingAdapter',
-	'VenueOnboardingRepository',
-	'VenueOnboardingService',
 	'VenueCalendarFeed',
 	'VenueCalendarFeedSync',
-	'VenueInvitationDeliveryWorker',
 	'VenueLock',
 	'VenueProfile',
 	'CanonicalEventPublicationGuard',

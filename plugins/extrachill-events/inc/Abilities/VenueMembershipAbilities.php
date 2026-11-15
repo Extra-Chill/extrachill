@@ -7,8 +7,11 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
-use ExtraChillEvents\Core\VenueMembershipService;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamOnboardingAdapters;
+use ExtraChillEvents\Core\TeamAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
+use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -19,15 +22,7 @@ class VenueMembershipAbilities {
 
 	private static bool $registered = false;
 
-	/** @var VenueAuthorization */
-	private $authorization;
-
-	/** @var VenueMembershipService */
-	private $service;
-
-	public function __construct( ?VenueMembershipService $service = null, ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->service       = $service ? $service : new VenueMembershipService( null, $this->authorization );
+	public function __construct() {
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
@@ -108,7 +103,7 @@ class VenueMembershipAbilities {
 				'is_owner'      => $owner_schema,
 				'status'        => array(
 					'type' => 'string',
-					'enum' => VenueAuthorization::statuses(),
+					'enum' => TeamAuthorization::statuses(),
 				),
 				'limit'         => array(
 					'type'    => 'integer',
@@ -136,38 +131,78 @@ class VenueMembershipAbilities {
 
 	/** Canonical permission callback shared by every operation. */
 	public function can_manage_members( array $input ) {
-		return $this->authorization->authorize(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			VenueAuthorization::ACTION_MANAGE_MEMBERS
-		);
+		return TeamCapabilities::authorize( 'ec_manage_venue_members', absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
+	/** Add an active membership for an existing network user. */
 	public function create_membership( array $input ) {
-		return $this->service->create( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ) );
+		$actor_user_id = get_current_user_id();
+		$venue_term_id = absint( $input['venue_term_id'] ?? 0 );
+		$allowed       = TeamCapabilities::authorize( 'ec_manage_venue_members', $venue_term_id, $actor_user_id );
+		if ( true !== $allowed ) {
+			return $allowed;
+		}
+		return ( new VenueMembershipRepository() )->create(
+			array(
+				'venue_term_id'      => $venue_term_id,
+				'user_id'            => absint( $input['user_id'] ?? 0 ),
+				'is_owner'           => (bool) ( $input['is_owner'] ?? false ),
+				'status'             => TeamAuthorization::STATUS_ACTIVE,
+				'created_by_user_id' => $actor_user_id,
+			)
+		);
 	}
 
+	/** Change structural membership ownership at an expected version. */
 	public function update_membership( array $input ) {
-		return $this->service->update_owner(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			absint( $input['user_id'] ?? 0 ),
-			(bool) ( $input['is_owner'] ?? false ),
-			absint( $input['expected_version'] ?? 0 )
-		);
+		return self::change_membership( $input, (bool) ( $input['is_owner'] ?? false ), false );
 	}
 
+	/** Revoke one membership without deleting its audit identity. */
 	public function revoke_membership( array $input ) {
-		return $this->service->revoke(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			absint( $input['user_id'] ?? 0 ),
-			absint( $input['expected_version'] ?? 0 )
+		return self::change_membership( $input, null, true );
+	}
+
+	/** List memberships for one authorized venue. */
+	public function list_memberships( array $input ) {
+		$actor_user_id = get_current_user_id();
+		$venue_term_id = absint( $input['venue_term_id'] ?? 0 );
+		$allowed       = TeamCapabilities::authorize( 'ec_manage_venue_members', $venue_term_id, $actor_user_id );
+		if ( true !== $allowed ) {
+			return $allowed;
+		}
+		$memberships = ( new VenueMembershipRepository() )->list_for_venue( $venue_term_id, $input, $actor_user_id );
+		if ( ! is_array( $memberships ) ) {
+			return $memberships;
+		}
+		return array_map(
+			static function ( array $membership ): array {
+				$user                       = get_userdata( $membership['user_id'] );
+				$membership['display_name'] = $user instanceof \WP_User ? (string) $user->display_name : '';
+				$membership['email']        = $user instanceof \WP_User ? (string) $user->user_email : '';
+				return $membership;
+			},
+			$memberships
 		);
 	}
 
-	public function list_memberships( array $input ) {
-		return $this->service->list( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), $input );
+	/** Reauthorize, then apply one guarded owner change or revocation through the team store. */
+	private static function change_membership( array $input, ?bool $is_owner, bool $revoke ) {
+		$actor_user_id = get_current_user_id();
+		$venue_term_id = absint( $input['venue_term_id'] ?? 0 );
+		$allowed       = TeamCapabilities::authorize( 'ec_manage_venue_members', $venue_term_id, $actor_user_id );
+		if ( true !== $allowed ) {
+			return $allowed;
+		}
+		return ( new TeamMembershipRepository() )->change_member(
+			TeamOnboardingAdapters::get( 'venue' ),
+			$venue_term_id,
+			absint( $input['user_id'] ?? 0 ),
+			absint( $input['expected_version'] ?? 0 ),
+			$is_owner,
+			$revoke,
+			$actor_user_id
+		);
 	}
 
 	/** Register one operation with shared authorization and metadata. */
@@ -212,7 +247,7 @@ class VenueMembershipAbilities {
 				'is_owner'           => array( 'type' => 'boolean' ),
 				'status'             => array(
 					'type' => 'string',
-					'enum' => VenueAuthorization::statuses(),
+					'enum' => TeamAuthorization::statuses(),
 				),
 				'version'            => array( 'type' => 'integer' ),
 				'created_by_user_id' => array( 'type' => 'integer' ),

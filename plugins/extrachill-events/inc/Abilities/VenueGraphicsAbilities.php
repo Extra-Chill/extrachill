@@ -7,7 +7,7 @@
  * event roundup builder (EventRoundupAbilities::executeBuild) but with a
  * venue-member permission model instead of the staff `upload_files` gate:
  *
- *   - Permission is VenueAuthorization::ACTION_ACCESS_VENUE on the requested
+ *   - Permission is the `ec_access_venue` capability on the requested
  *     venue, the same gate as the profile and calendar-feed workspace tabs.
  *   - The venue taxonomy filter is forced to that one term inside the
  *     execute callback. The input schema accepts no tax_filters or location,
@@ -29,7 +29,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -47,13 +47,6 @@ class VenueGraphicsAbilities {
 	private static bool $registered = false;
 
 	/**
-	 * Exact venue membership authorization service.
-	 *
-	 * @var VenueAuthorization
-	 */
-	private $authorization;
-
-	/**
 	 * Roundup builder, lazily constructed unless injected for tests.
 	 *
 	 * @var EventRoundupAbilities|null
@@ -63,12 +56,10 @@ class VenueGraphicsAbilities {
 	/**
 	 * Construct the ability registrar.
 	 *
-	 * @param VenueAuthorization|null    $authorization Optional authorization service.
-	 * @param EventRoundupAbilities|null $roundup       Optional roundup builder.
+	 * @param EventRoundupAbilities|null $roundup Optional roundup builder.
 	 */
-	public function __construct( ?VenueAuthorization $authorization = null, ?EventRoundupAbilities $roundup = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->roundup       = $roundup;
+	public function __construct( ?EventRoundupAbilities $roundup = null ) {
+		$this->roundup = $roundup;
 
 		if ( ! self::$registered ) {
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
@@ -158,11 +149,7 @@ class VenueGraphicsAbilities {
 	 * @return true|\WP_Error
 	 */
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize(
-			get_current_user_id(),
-			absint( $input['venue_term_id'] ?? 0 ),
-			VenueAuthorization::ACTION_ACCESS_VENUE
-		);
+		return TeamCapabilities::authorize( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/**
@@ -176,7 +163,7 @@ class VenueGraphicsAbilities {
 
 		// Re-authorize inside execute so direct ability consumers (CLI,
 		// agents) get the same gate as the REST runner.
-		$allowed = $this->authorization->authorize( get_current_user_id(), $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = TeamCapabilities::authorize( 'ec_access_venue', $venue_term_id );
 		if ( is_wp_error( $allowed ) ) {
 			return $allowed;
 		}

@@ -34,7 +34,6 @@ final class VenueOnboardingTest extends TestCase {
 
 	/** The extracted store delegates the anchor lock and rolls back adapter failures. */
 	public function test_generic_repository_uses_adapter_lock_and_error_namespace(): void {
-		require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
 		$adapter = new class implements \ExtraChill\Users\Teams\TeamOnboardingAdapter {
 			public $checks = array();
 			public function team_type(): string { return 'artist'; }
