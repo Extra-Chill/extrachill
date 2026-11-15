@@ -335,9 +335,9 @@ public function remove_social_link($artist_id, $link_id) {
 
 ## Block-Based Social Management
 
-The Gutenberg block provides social platform management through the **TabSocials** component:
+The portable Link Page editor provides social platform management through its **Socials** tab:
 
-**Location**: `src/blocks/link-page-editor/components/tabs/TabSocials.js`
+**Location**: `extrachill-link-pages/src/editor/index.js`
 
 **Features**:
 - Add/remove social platform links

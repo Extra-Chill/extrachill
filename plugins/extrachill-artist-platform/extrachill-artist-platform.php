@@ -192,9 +192,6 @@ extrachill_artist_platform();
  * Register Gutenberg blocks from build directory.
  */
 function extrachill_artist_platform_register_blocks() {
-	if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'extrachill/link-page-editor' ) ) {
-		register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
-	}
 	register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
 	register_block_type( __DIR__ . '/build/blocks/artist-manager' );
 	register_block_type( __DIR__ . '/build/blocks/artist-creator' );

@@ -6,7 +6,7 @@ Comprehensive advanced functionality for link pages including expiration, redire
 
 ### Time-Based Link Management
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
+Location: `extrachill-link-pages/src/editor/index.js` (editor UI)
 
 Features:
 - Schedule link activation/deactivation
@@ -34,7 +34,7 @@ $expiration_settings = [
 
 ### Temporary Redirects
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Configuration via Gutenberg block editor for 302 redirects to external URLs. When enabled, a redirect target URL sends visitors to an external site instead of displaying the link page.
 
@@ -42,7 +42,7 @@ Configuration via Gutenberg block editor for 302 redirects to external URLs. Whe
 
 ### Inline Video Embedding
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
+Location: `extrachill-link-pages/src/editor/index.js` (editor UI)
 
 Configuration via Gutenberg block editor to enable YouTube video embedding with automatic detection. Public rendering handled by `inc/link-pages/live/assets/js/link-page-youtube-embed.js`.
 
@@ -60,7 +60,7 @@ Analytics integration configured via Gutenberg block editor with support for:
 
 ### Email Collection Configuration
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Configuration via Gutenberg block editor for:
 - Subscription display modes (icon modal, inline form, button modal, disabled)
@@ -70,9 +70,9 @@ Configuration via Gutenberg block editor for:
 
 ## QR Code Generation
 
-QR code generation is handled via REST API in the Gutenberg block editor with the `QRCodeModal` component.
+QR code generation is handled via REST API in the portable Link Page editor's QR code modal.
 
-Location: `src/blocks/link-page-editor/components/shared/QRCodeModal.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Features:
 - High-resolution QR code output (1000px)

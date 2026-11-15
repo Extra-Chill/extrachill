@@ -1,7 +1,7 @@
 /**
  * Shared Artist Platform API Client
  *
- * Delegates all calls to @extrachill/api-client via WpApiFetchTransport.
+ * Delegates all calls to `@extrachill/api-client` via WpApiFetchTransport.
  * Exports match the original function names so all consuming components
  * need zero changes.
  */
@@ -20,10 +20,7 @@ import { WpApiFetchTransport } from '@extrachill/api-client/wordpress';
 const transport = new WpApiFetchTransport( apiFetch );
 const client = new ExtraChillClient( transport );
 
-const getConfig = () =>
-	window.ecArtistPlatformConfig ||
-	window.ecLinkPageEditorConfig ||
-	{};
+const getConfig = () => window.ecArtistPlatformConfig || {};
 
 export { getConfig };
 
