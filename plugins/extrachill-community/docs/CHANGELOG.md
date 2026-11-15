@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.30.5] - 2026-11-15
+
+### Changed
+- one ec_with_blog helper and restore-safe switches
+
 ## [1.30.4] - 2026-11-14
 
 ### Changed
