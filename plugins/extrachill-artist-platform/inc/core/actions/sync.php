@@ -161,6 +161,51 @@ function ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id ) {
 }
 
 /**
+ * Report a failed identity push so it is never dropped silently.
+ *
+ * Hook-driven callers cannot surface an error to anyone, so a failed push
+ * used to vanish (that is how new Link Pages went without the artist photo
+ * for months before #1465). Success and no-op results, including an artist
+ * that has no Link Page yet, return true from the push and stay silent here.
+ *
+ * @param int    $artist_id    Artist profile ID.
+ * @param mixed  $result       Result of ec_artist_push_link_page_identity().
+ * @param string $context      Caller label, e.g. `save` or `thumbnail_change`.
+ * @param int    $link_page_id Optional Link Page ID when the caller knows it.
+ * @return bool True when a failure was reported.
+ */
+function ec_artist_report_link_page_identity_push( $artist_id, $result, $context, $link_page_id = 0 ) {
+	if ( ! is_wp_error( $result ) ) {
+		return false;
+	}
+	$artist_id    = absint( $artist_id );
+	$link_page_id = absint( $link_page_id );
+	$context      = (string) $context;
+
+	/**
+	 * Fires when pushing an artist's identity onto its Link Page failed.
+	 *
+	 * @param int      $artist_id Artist profile ID.
+	 * @param WP_Error $error     Push error.
+	 * @param string   $context   Caller label.
+	 */
+	do_action( 'ec_artist_link_page_identity_push_failed', $artist_id, $result, $context );
+
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- operator signal for a non-fatal identity push.
+	error_log(
+		sprintf(
+			'Artist %d Link Page%s identity push failed (%s): %s: %s',
+			$artist_id,
+			$link_page_id ? ' ' . $link_page_id : '',
+			$context,
+			$result->get_error_code(),
+			$result->get_error_message()
+		)
+	);
+	return true;
+}
+
+/**
  * Historical entry point: sync now means "push identity to the page".
  *
  * @param int $artist_id Artist profile ID.
@@ -186,7 +231,7 @@ function ec_sync_artist_platform( $artist_id ) {
  * @param int $artist_id Artist profile ID.
  */
 function ec_handle_sync_action( $artist_id ) {
-	ec_artist_push_link_page_identity( $artist_id );
+	ec_artist_report_link_page_identity_push( $artist_id, ec_artist_push_link_page_identity( $artist_id ), 'sync_action' );
 }
 add_action( 'ec_artist_platform_sync', 'ec_handle_sync_action', 10, 1 );
 
@@ -200,7 +245,7 @@ function ec_artist_push_identity_on_save( $post_id, $post ) {
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) || 'artist_profile' !== $post->post_type ) {
 		return;
 	}
-	ec_artist_push_link_page_identity( $post_id );
+	ec_artist_report_link_page_identity_push( $post_id, ec_artist_push_link_page_identity( $post_id ), 'save' );
 }
 add_action( 'save_post_artist_profile', 'ec_artist_push_identity_on_save', 20, 2 );
 
@@ -216,7 +261,7 @@ function ec_artist_push_identity_on_thumbnail_change( $meta_id, $object_id, $met
 	if ( '_thumbnail_id' !== $meta_key || 'artist_profile' !== get_post_type( $object_id ) ) {
 		return;
 	}
-	ec_artist_push_link_page_identity( $object_id );
+	ec_artist_report_link_page_identity_push( $object_id, ec_artist_push_link_page_identity( $object_id ), 'thumbnail_change' );
 }
 add_action( 'added_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
 add_action( 'updated_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
