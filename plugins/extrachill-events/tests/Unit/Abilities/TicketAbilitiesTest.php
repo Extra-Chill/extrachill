@@ -9,7 +9,20 @@ require_once dirname( __DIR__, 3 ) . '/inc/core/priority-boost-service-authority
 require_once dirname( __DIR__, 3 ) . '/inc/core/ticket-service-authority.php';
 
 if ( ! defined( 'ARRAY_A' ) ) { define( 'ARRAY_A', 'ARRAY_A' ); }
-function ec_cross_site_verified_service_context( $request ) { return $GLOBALS['ticket_claims'] ?? array(); }
+// Network contract double: verified claims on the active request must match a registered target grant.
+function ec_cross_site_request_has_service_grant( string $service_id, string $scope ): bool {
+	$request = $GLOBALS['ticket_request'] ?? null;
+	$claims  = $GLOBALS['ticket_claims'] ?? array();
+	if ( ! $request || $service_id !== ( $claims['service_id'] ?? '' ) || $scope !== ( $claims['scope'] ?? '' ) ) { return false; }
+	foreach ( extrachill_events_ticket_target_grants() as $grant ) {
+		$matches = $grant['method'] === $request['method'] && $grant['route'] === $request['route'];
+		foreach ( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) as $field ) {
+			$matches = $matches && (string) $grant[ $field ] === (string) ( $claims[ $field ] ?? '' );
+		}
+		if ( $matches ) { return true; }
+	}
+	return false;
+}
 function extrachill_events_guest_list_pass_link( $id, $code, $name = '' ) { return 'https://events.test/' . $id . '/guest-list/?pass=' . $code; }
 function extrachill_events_send_guest_list_pass_email( $id, $email, $code, $name = '' ) { $GLOBALS['ticket_emails'][] = $code; return true; }
 function datamachine_get_event_timing( int $id ): string { return $GLOBALS['ticket_timing'][ $id ] ?? 'past'; }
@@ -78,7 +91,8 @@ final class TicketWpdb {
 
 final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
-		extrachill_events_ticket_active_request( null, true );
+		$GLOBALS['ticket_request'] = null;
+		$GLOBALS['ticket_claims'] = array();
 		$GLOBALS['ticket_emails'] = array();
 		$GLOBALS['dispute_mail'] = array();
 		$GLOBALS['wpdb'] = new TicketWpdb();
@@ -195,10 +209,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	private function service_context(): void {
 		$GLOBALS['ticket_claims'] = array( 'service_id' => 'extrachill.events.tickets', 'scope' => 'extrachill/events:tickets', 'source_site_id' => 8, 'target_site_id' => 7, 'target_host' => 'events.test' );
 		add_filter( 'extrachill_events_ticket_service_assertion_keys', static function () { return array( 'test-key' => 'test-secret' ); } );
-		extrachill_events_ticket_active_request( new class {
-			public function get_method() { return 'POST'; }
-			public function get_route() { return '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run'; }
-		}, true );
+		$GLOBALS['ticket_request'] = array( 'method' => 'POST', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
 	}
 	public function test_ability_issuance_email_replay_and_order_status(): void {
 		$this->service_context();
@@ -225,6 +236,20 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( ( new TicketAbilities() )->authorize() );
 		$GLOBALS['ticket_claims']['scope'] = 'extrachill/events:priority-boost';
 		$this->assertSame( 'ticket_service_required', ( new TicketAbilities() )->authorize()->get_error_code() );
+	}
+	public function test_service_grant_covers_every_ticket_route_and_nothing_else(): void {
+		$this->service_context();
+		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) as $ability ) {
+			$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/' . $ability . '/run';
+			$this->assertTrue( extrachill_events_ticket_has_service_authority(), $ability );
+		}
+		$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/grant-event-priority-boost/run';
+		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'priority route' );
+		$GLOBALS['ticket_request'] = array( 'method' => 'GET', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
+		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'GET method' );
+		$GLOBALS['ticket_request']           = array( 'method' => 'POST', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
+		$GLOBALS['ticket_claims']['source_site_id'] = 3;
+		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'wrong source site' );
 	}
 	public function test_normal_users_cannot_fulfill_or_read_orders(): void {
 		$abilities = new TicketAbilities();
