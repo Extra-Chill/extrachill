@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.54.1] - 2026-11-15
+
+### Changed
+- one cached artist identity read instead of cross-blog lookups
+
 ## [0.54.0] - 2026-11-15
 
 ### Added
