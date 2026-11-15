@@ -89,6 +89,16 @@ function wp_enqueue_style( $handle ) {
 	$GLOBALS['ec_enqueued'][] = $handle;
 }
 
+final class WP_Post { // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Test double for core.
+	public $ID        = 0;
+	public $post_type = 'post';
+
+	public function __construct( array $fields ) {
+		$this->ID        = (int) $fields['ID'];
+		$this->post_type = (string) $fields['post_type'];
+	}
+}
+
 class WP_Query { // phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- Test double for core.
 	public $posts = array();
 
@@ -174,7 +184,7 @@ check( 'warm render does not query', array(), $GLOBALS['ec_queries'] );
 // 3. Publishing a newsletter on the newsletter blog refreshes the snapshot in place.
 switch_to_blog( 9 );
 array_unshift( $GLOBALS['ec_newsletters'][9], array( 'ID' => 44, 'title' => 'Issue Four', 'permalink' => 'https://newsletter.extrachill.com/issue-4/', 'date' => 'June 4, 2026' ) );
-do_action( 'transition_post_status', 'publish', 'draft', (object) array( 'ID' => 44, 'post_type' => 'newsletter' ) );
+do_action( 'transition_post_status', 'publish', 'draft', new WP_Post( array( 'ID' => 44, 'post_type' => 'newsletter' ) ) );
 restore_current_blog();
 $snapshot = $GLOBALS['ec_site_options']['extrachill_newsletter_recent_snapshot'];
 check( 'publish refresh puts the new issue first', 'Issue Four', $snapshot[0]['title'] );
@@ -189,19 +199,19 @@ check( 'refreshed snapshot drops the oldest issue', false, strpos( $html, 'Issue
 // 4. Unrelated transitions do not rebuild.
 $GLOBALS['ec_queries'] = array();
 switch_to_blog( 9 );
-do_action( 'transition_post_status', 'publish', 'draft', (object) array( 'ID' => 5, 'post_type' => 'post' ) );
-do_action( 'transition_post_status', 'pending', 'draft', (object) array( 'ID' => 6, 'post_type' => 'newsletter' ) );
+do_action( 'transition_post_status', 'publish', 'draft', new WP_Post( array( 'ID' => 5, 'post_type' => 'post' ) ) );
+do_action( 'transition_post_status', 'pending', 'draft', new WP_Post( array( 'ID' => 6, 'post_type' => 'newsletter' ) ) );
 restore_current_blog();
-do_action( 'transition_post_status', 'publish', 'draft', (object) array( 'ID' => 7, 'post_type' => 'newsletter' ) );
+do_action( 'transition_post_status', 'publish', 'draft', new WP_Post( array( 'ID' => 7, 'post_type' => 'newsletter' ) ) );
 check( 'non-newsletter, unpublished, and off-blog transitions skip rebuild', array(), $GLOBALS['ec_queries'] );
 
 // 5. Unpublishing and permanent deletion refresh too.
 switch_to_blog( 9 );
 array_shift( $GLOBALS['ec_newsletters'][9] );
-do_action( 'transition_post_status', 'trash', 'publish', (object) array( 'ID' => 44, 'post_type' => 'newsletter' ) );
+do_action( 'transition_post_status', 'trash', 'publish', new WP_Post( array( 'ID' => 44, 'post_type' => 'newsletter' ) ) );
 check( 'unpublish refresh removes the issue', 'Issue <3> & More', $GLOBALS['ec_site_options']['extrachill_newsletter_recent_snapshot'][0]['title'] );
 array_shift( $GLOBALS['ec_newsletters'][9] );
-do_action( 'deleted_post', 31, (object) array( 'ID' => 31, 'post_type' => 'newsletter' ) );
+do_action( 'deleted_post', 31, new WP_Post( array( 'ID' => 31, 'post_type' => 'newsletter' ) ) );
 check( 'delete refresh removes the issue', 'Issue "Two"', $GLOBALS['ec_site_options']['extrachill_newsletter_recent_snapshot'][0]['title'] );
 restore_current_blog();
 
