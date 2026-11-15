@@ -11,6 +11,7 @@
  */
 
 require_once __DIR__ . '/rate-limit-fixture.php';
+require_once __DIR__ . '/blog-context-fixture.php';
 
 /**
  * Base test case for analytics tests that exercise real WordPress state.

@@ -468,7 +468,7 @@ final class GetContentRevenuePagesTest extends Extrachill_Analytics_TestCase {
 		);
 		restore_current_blog();
 
-		$post_id = extrachill_analytics_revenue_run_in_blog(
+		$post_id = ec_with_blog(
 			$target_blog,
 			static function () {
 				return extrachill_analytics_revenue_resolve_post_id(

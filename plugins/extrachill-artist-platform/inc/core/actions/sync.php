@@ -110,7 +110,7 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	$artist_blog = get_current_blog_id();
 	return ec_with_link_page_storage_blog( static function () use ( $artist_id, $link_page_id, $artist_blog ) {
 		return ec_with_link_page_lock_scope( $link_page_id, static function () use ( $artist_id, $link_page_id, $artist_blog ) {
-			return ec_artist_with_image_blog( $artist_blog, static function () use ( $artist_id, $link_page_id ) {
+			return ec_with_blog( $artist_blog, static function () use ( $artist_id, $link_page_id ) {
 				return ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id );
 			} );
 		}, 'separate' );

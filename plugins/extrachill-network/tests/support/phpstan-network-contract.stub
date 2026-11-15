@@ -42,6 +42,14 @@ function ec_get_blog_ids() {}
 function ec_get_blog_id( $key ) {}
 
 /**
+ * @template T
+ * @param int           $blog_id  Target blog ID.
+ * @param callable(): T $callback Callable executed inside the target blog.
+ * @return T
+ */
+function ec_with_blog( int $blog_id, callable $callback ) {}
+
+/**
  * @return array<string, int>
  */
 function ec_get_domain_map() {}

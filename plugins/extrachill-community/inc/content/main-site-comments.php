@@ -30,34 +30,36 @@ function display_main_site_comments_for_user($community_user_id) {
 
 	switch_to_blog( $main_blog_id );
 
-	$user_comments = get_comments(array(
-		'user_id' => $community_user_id,
-		'status'  => 'approve',
-		'order'   => 'DESC',
-		'orderby' => 'comment_date_gmt',
-	));
+	try {
+		$user_comments = get_comments(array(
+			'user_id' => $community_user_id,
+			'status'  => 'approve',
+			'order'   => 'DESC',
+			'orderby' => 'comment_date_gmt',
+		));
 
-	$comments = array();
-	if ( ! empty($user_comments) ) {
-		foreach ( $user_comments as $comment ) {
-			$post = get_post($comment->comment_post_ID);
-			if ( $post ) {
-				$comments[] = array(
-					'comment_ID'       => $comment->comment_ID,
-					'post_permalink'   => get_permalink($post->ID),
-					'post_title'       => $post->post_title,
-					'comment_date_gmt' => $comment->comment_date_gmt,
-					'comment_content'  => $comment->comment_content,
-					'author_id'        => $comment->user_id,
-					'author_name'      => get_the_author_meta('display_name', $comment->user_id),
-					'author_avatar'    => get_avatar_url($comment->user_id, array( 'size' => 80 )),
-					'upvote_count'     => 0,
-				);
+		$comments = array();
+		if ( ! empty($user_comments) ) {
+			foreach ( $user_comments as $comment ) {
+				$post = get_post($comment->comment_post_ID);
+				if ( $post ) {
+					$comments[] = array(
+						'comment_ID'       => $comment->comment_ID,
+						'post_permalink'   => get_permalink($post->ID),
+						'post_title'       => $post->post_title,
+						'comment_date_gmt' => $comment->comment_date_gmt,
+						'comment_content'  => $comment->comment_content,
+						'author_id'        => $comment->user_id,
+						'author_name'      => get_the_author_meta('display_name', $comment->user_id),
+						'author_avatar'    => get_avatar_url($comment->user_id, array( 'size' => 80 )),
+						'upvote_count'     => 0,
+					);
+				}
 			}
 		}
+	} finally {
+		restore_current_blog();
 	}
-
-	restore_current_blog();
 
 	if ( empty($comments) ) {
 		return '<div class="bbpress-comments-list"><h3>Comments Feed for <span class="comments-feed-user">' . esc_html($user_nicename) . '</span></h3><p>No comments found for this user.</p></div>';
@@ -97,12 +99,15 @@ function get_user_main_site_comment_count($user_id) {
 	}
 
 	switch_to_blog( $main_blog_id );
-	$count = get_comments(array(
-		'user_id' => $user_id,
-		'count'   => true,
-		'status'  => 'approve',
-	));
-	restore_current_blog();
+	try {
+		$count = get_comments(array(
+			'user_id' => $user_id,
+			'count'   => true,
+			'status'  => 'approve',
+		));
+	} finally {
+		restore_current_blog();
+	}
 
 	return intval($count);
 }

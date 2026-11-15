@@ -109,7 +109,7 @@ function extrachill_events_ability_events_by_artist( array $input ) {
 		$delegate_input['limit'] = absint( $input['limit'] );
 	}
 
-	$events_blog_id = extrachill_events_artist_blog_id( 'events' );
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( $events_blog_id < 1 ) {
 		return new WP_Error( 'events_site_unresolved', __( 'Could not resolve the Events site.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
@@ -129,8 +129,8 @@ function extrachill_events_ability_events_by_artist( array $input ) {
  * @return array{term_id:int,term_slug:string}|WP_Error
  */
 function extrachill_events_resolve_artist_term( int $artist_term_id ) {
-	$main_blog_id   = extrachill_events_artist_blog_id( 'main' );
-	$events_blog_id = extrachill_events_artist_blog_id( 'events' );
+	$main_blog_id   = (int) ec_get_blog_id( 'main' );
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( $main_blog_id < 1 || $events_blog_id < 1 ) {
 		return new WP_Error( 'artist_sites_unresolved', __( 'Could not resolve the main and Events sites.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
@@ -386,20 +386,10 @@ function extrachill_events_read_artist_term( int $artist_term_id ) {
 }
 
 /**
- * Resolve one of the network's known blog IDs.
- *
- * @param string $site Site key.
- * @return int Blog ID, or zero.
- */
-function extrachill_events_artist_blog_id( string $site ): int {
-	return (int) ec_get_blog_id( $site );
-}
-
-/**
  * Run the bounded one-time exact-slug artist mapping backfill.
  */
 function extrachill_events_maybe_backfill_artist_identity(): void {
-	$events_blog_id = extrachill_events_artist_blog_id( 'events' );
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( $events_blog_id < 1 ) {
 		return;
 	}
@@ -433,8 +423,8 @@ function extrachill_events_maybe_backfill_artist_identity(): void {
  * @return array|WP_Error Audit report.
  */
 function extrachill_events_backfill_artist_identity() {
-	$main_blog_id   = extrachill_events_artist_blog_id( 'main' );
-	$events_blog_id = extrachill_events_artist_blog_id( 'events' );
+	$main_blog_id   = (int) ec_get_blog_id( 'main' );
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( $main_blog_id < 1 || $events_blog_id < 1 ) {
 		return new WP_Error( 'artist_sites_unresolved', __( 'Could not resolve the main and Events sites.', 'extrachill-events' ) );
 	}

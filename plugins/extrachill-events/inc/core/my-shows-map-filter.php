@@ -271,16 +271,18 @@ function ec_events_my_shows_get_tracked_venue_term_ids( int $user_id ): array {
 		$switched = true;
 	}
 
-	$venue_term_ids = array();
-	foreach ( $event_ids as $event_id ) {
-		$terms = wp_get_post_terms( (int) $event_id, 'venue', array( 'fields' => 'ids' ) );
-		if ( ! is_wp_error( $terms ) && is_array( $terms ) ) {
-			$venue_term_ids = array_merge( $venue_term_ids, $terms );
+	try {
+		$venue_term_ids = array();
+		foreach ( $event_ids as $event_id ) {
+			$terms = wp_get_post_terms( (int) $event_id, 'venue', array( 'fields' => 'ids' ) );
+			if ( ! is_wp_error( $terms ) && is_array( $terms ) ) {
+				$venue_term_ids = array_merge( $venue_term_ids, $terms );
+			}
 		}
-	}
-
-	if ( $switched ) {
-		restore_current_blog();
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
 	}
 
 	return array_values( array_unique( array_map( 'intval', $venue_term_ids ) ) );
@@ -318,57 +320,59 @@ function ec_events_my_shows_get_tracked_events_for_venues( int $user_id, array $
 		$switched = true;
 	}
 
-	$tracking_table = $wpdb->base_prefix . 'ec_concert_tracking';
-	$placeholders   = implode( ',', array_fill( 0, count( $venue_ids ), '%d' ) );
+	try {
+		$tracking_table = $wpdb->base_prefix . 'ec_concert_tracking';
+		$placeholders   = implode( ',', array_fill( 0, count( $venue_ids ), '%d' ) );
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-	$query = $wpdb->prepare(
-		"SELECT
-			tt.term_id AS venue_term_id,
-			p.ID AS post_id,
-			p.post_title AS title,
-			ed.start_date AS start_date,
-			ed.start_time AS start_time
-		FROM {$tracking_table} t
-		INNER JOIN {$wpdb->posts} p
-			ON t.event_id = p.ID
-		INNER JOIN {$wpdb->term_relationships} tr
-			ON tr.object_id = p.ID
-		INNER JOIN {$wpdb->term_taxonomy} tt
-			ON tr.term_taxonomy_id = tt.term_taxonomy_id
-		LEFT JOIN {$wpdb->prefix}datamachine_event_dates ed
-			ON ed.post_id = p.ID
-		WHERE t.user_id = %d
-			AND t.blog_id = %d
-			AND tt.taxonomy = 'venue'
-			AND tt.term_id IN ($placeholders)
-			AND p.post_status = 'publish'
-		ORDER BY tt.term_id ASC, ed.start_date ASC, ed.start_time ASC",
-		array_merge( array( $user_id, $events_blog_id ), $venue_ids )
-	);
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$query = $wpdb->prepare(
+			"SELECT
+				tt.term_id AS venue_term_id,
+				p.ID AS post_id,
+				p.post_title AS title,
+				ed.start_date AS start_date,
+				ed.start_time AS start_time
+			FROM {$tracking_table} t
+			INNER JOIN {$wpdb->posts} p
+				ON t.event_id = p.ID
+			INNER JOIN {$wpdb->term_relationships} tr
+				ON tr.object_id = p.ID
+			INNER JOIN {$wpdb->term_taxonomy} tt
+				ON tr.term_taxonomy_id = tt.term_taxonomy_id
+			LEFT JOIN {$wpdb->prefix}datamachine_event_dates ed
+				ON ed.post_id = p.ID
+			WHERE t.user_id = %d
+				AND t.blog_id = %d
+				AND tt.taxonomy = 'venue'
+				AND tt.term_id IN ($placeholders)
+				AND p.post_status = 'publish'
+			ORDER BY tt.term_id ASC, ed.start_date ASC, ed.start_time ASC",
+			array_merge( array( $user_id, $events_blog_id ), $venue_ids )
+		);
 
-	$rows = $wpdb->get_results( $query );
-	// phpcs:enable
+		$rows = $wpdb->get_results( $query );
+		// phpcs:enable
 
-	$by_venue = array();
-	if ( is_array( $rows ) ) {
-		foreach ( $rows as $row ) {
-			$venue_term_id = (int) $row->venue_term_id;
-			$post_id       = (int) $row->post_id;
-			$permalink     = get_permalink( $post_id );
+		$by_venue = array();
+		if ( is_array( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$venue_term_id = (int) $row->venue_term_id;
+				$post_id       = (int) $row->post_id;
+				$permalink     = get_permalink( $post_id );
 
-			$by_venue[ $venue_term_id ][] = array(
-				'post_id'    => $post_id,
-				'start_date' => (string) ( $row->start_date ?? '' ),
-				'start_time' => (string) ( $row->start_time ?? '' ),
-				'title'      => (string) ( $row->title ?? '' ),
-				'permalink'  => is_string( $permalink ) ? $permalink : '',
-			);
+				$by_venue[ $venue_term_id ][] = array(
+					'post_id'    => $post_id,
+					'start_date' => (string) ( $row->start_date ?? '' ),
+					'start_time' => (string) ( $row->start_time ?? '' ),
+					'title'      => (string) ( $row->title ?? '' ),
+					'permalink'  => is_string( $permalink ) ? $permalink : '',
+				);
+			}
 		}
-	}
-
-	if ( $switched ) {
-		restore_current_blog();
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
 	}
 
 	return $by_venue;

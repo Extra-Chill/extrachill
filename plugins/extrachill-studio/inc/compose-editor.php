@@ -35,8 +35,11 @@ function extrachill_studio_compose_main_max_upload_size(): int {
 	}
 
 	switch_to_blog( $main_blog_id );
-	$max = (int) wp_max_upload_size();
-	restore_current_blog();
+	try {
+		$max = (int) wp_max_upload_size();
+	} finally {
+		restore_current_blog();
+	}
 
 	return $max;
 }

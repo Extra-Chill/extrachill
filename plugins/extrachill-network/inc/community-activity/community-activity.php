@@ -40,67 +40,69 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 				$switched = true;
 			}
 
-			$args = array(
-				'post_type'      => array( 'topic', 'reply' ),
-				'post_status'    => 'publish',
-				'posts_per_page' => $query_limit,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-			);
+			try {
+				$args = array(
+					'post_type'      => array( 'topic', 'reply' ),
+					'post_status'    => 'publish',
+					'posts_per_page' => $query_limit,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+				);
 
-			$query = new WP_Query( $args );
+				$query = new WP_Query( $args );
 
-			if ( $query->have_posts() ) {
-				while ( $query->have_posts() ) {
-					$query->the_post();
-					$post_id   = get_the_ID();
-					$post_type = get_post_type( $post_id );
-					$author_id = get_the_author_meta( 'ID' );
-					$date_time = get_the_date( 'c' );
+				if ( $query->have_posts() ) {
+					while ( $query->have_posts() ) {
+						$query->the_post();
+						$post_id   = get_the_ID();
+						$post_type = get_post_type( $post_id );
+						$author_id = get_the_author_meta( 'ID' );
+						$date_time = get_the_date( 'c' );
 
-					$forum_id = absint( get_post_meta( $post_id, '_bbp_forum_id', true ) );
-					$topic_id = ( 'reply' === $post_type )
-						? absint( get_post_meta( $post_id, '_bbp_topic_id', true ) )
-						: $post_id;
+						$forum_id = absint( get_post_meta( $post_id, '_bbp_forum_id', true ) );
+						$topic_id = ( 'reply' === $post_type )
+							? absint( get_post_meta( $post_id, '_bbp_topic_id', true ) )
+							: $post_id;
 
-					if ( 'reply' === $post_type && ! $topic_id ) {
-						$topic_id = absint( get_post_field( 'post_parent', $post_id ) );
+						if ( 'reply' === $post_type && ! $topic_id ) {
+							$topic_id = absint( get_post_field( 'post_parent', $post_id ) );
+						}
+
+						if ( ! $forum_id && $topic_id ) {
+							$forum_id = absint( get_post_meta( $topic_id, '_bbp_forum_id', true ) );
+						}
+
+						$forum_title      = $forum_id ? get_the_title( $forum_id ) : '';
+						$topic_title      = $topic_id ? get_the_title( $topic_id ) : '';
+						$forum_url        = $forum_id ? get_permalink( $forum_id ) : '';
+						$topic_url        = $topic_id ? get_permalink( $topic_id ) : '';
+						$username         = get_the_author();
+						$user_profile_url = ( $author_id && function_exists( 'extrachill_get_user_profile_url' ) )
+							? extrachill_get_user_profile_url( $author_id )
+							: '';
+
+						if ( ! $topic_url || ! $forum_url ) {
+							continue;
+						}
+
+						$activities[] = array(
+							'id'               => $post_id,
+							'type'             => ( 'reply' === $post_type ) ? 'Reply' : 'Topic',
+							'username'         => $username,
+							'user_profile_url' => $user_profile_url,
+							'topic_title'      => $topic_title,
+							'forum_title'      => $forum_title,
+							'date_time'        => $date_time,
+							'forum_url'        => $forum_url,
+							'topic_url'        => $topic_url,
+						);
 					}
-
-					if ( ! $forum_id && $topic_id ) {
-						$forum_id = absint( get_post_meta( $topic_id, '_bbp_forum_id', true ) );
-					}
-
-					$forum_title      = $forum_id ? get_the_title( $forum_id ) : '';
-					$topic_title      = $topic_id ? get_the_title( $topic_id ) : '';
-					$forum_url        = $forum_id ? get_permalink( $forum_id ) : '';
-					$topic_url        = $topic_id ? get_permalink( $topic_id ) : '';
-					$username         = get_the_author();
-					$user_profile_url = ( $author_id && function_exists( 'extrachill_get_user_profile_url' ) )
-						? extrachill_get_user_profile_url( $author_id )
-						: '';
-
-					if ( ! $topic_url || ! $forum_url ) {
-						continue;
-					}
-
-					$activities[] = array(
-						'id'               => $post_id,
-						'type'             => ( 'reply' === $post_type ) ? 'Reply' : 'Topic',
-						'username'         => $username,
-						'user_profile_url' => $user_profile_url,
-						'topic_title'      => $topic_title,
-						'forum_title'      => $forum_title,
-						'date_time'        => $date_time,
-						'forum_url'        => $forum_url,
-						'topic_url'        => $topic_url,
-					);
+					wp_reset_postdata();
 				}
-				wp_reset_postdata();
-			}
-
-			if ( $switched ) {
-				restore_current_blog();
+			} finally {
+				if ( $switched ) {
+					restore_current_blog();
+				}
 			}
 
 			wp_cache_set( $cache_key, $activities, '', 10 * MINUTE_IN_SECONDS );

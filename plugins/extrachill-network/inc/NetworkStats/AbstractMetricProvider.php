@@ -87,18 +87,6 @@ abstract class AbstractMetricProvider implements MetricProvider {
 	}
 
 	/**
-	 * Resolve a logical site key to a blog ID, or null if unknown.
-	 *
-	 * @param string $site_key Logical site key (e.g. "events").
-	 * @return int|null Blog ID, or null when the site is unavailable.
-	 */
-	protected function resolve_blog_id( string $site_key ): ?int {
-		$blog_id = ec_get_blog_id( $site_key );
-
-		return $blog_id ? (int) $blog_id : null;
-	}
-
-	/**
 	 * Count published posts of a post type on another site.
 	 *
 	 * Returns null (NOT 0) when the site cannot be resolved, so the engine
@@ -110,7 +98,7 @@ abstract class AbstractMetricProvider implements MetricProvider {
 	 * @return int|null Published count, or null if the site is unavailable.
 	 */
 	protected function count_published_posts( string $site_key, string $post_type ): ?int {
-		$blog_id = $this->resolve_blog_id( $site_key );
+		$blog_id = ec_get_blog_id( $site_key );
 		if ( null === $blog_id ) {
 			return null;
 		}
@@ -166,7 +154,7 @@ abstract class AbstractMetricProvider implements MetricProvider {
 	 * @return int|null Upcoming published event count, or null if unavailable.
 	 */
 	protected function count_upcoming_events( string $site_key ): ?int {
-		$blog_id = $this->resolve_blog_id( $site_key );
+		$blog_id = ec_get_blog_id( $site_key );
 		if ( null === $blog_id ) {
 			return null;
 		}
@@ -223,7 +211,7 @@ abstract class AbstractMetricProvider implements MetricProvider {
 	 * @return int|null Non-empty term count, or null if the site is unavailable.
 	 */
 	protected function count_nonempty_terms( string $site_key, string $taxonomy ): ?int {
-		$blog_id = $this->resolve_blog_id( $site_key );
+		$blog_id = ec_get_blog_id( $site_key );
 		if ( null === $blog_id ) {
 			return null;
 		}

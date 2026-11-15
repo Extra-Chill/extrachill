@@ -69,30 +69,32 @@ function extrachill_site_has_smtp( $blog_id ) {
 		$switched = true;
 	}
 
-	$configured = false;
-	$cfg        = get_option( EXTRACHILL_EASY_WP_SMTP_OPTION );
+	try {
+		$configured = false;
+		$cfg        = get_option( EXTRACHILL_EASY_WP_SMTP_OPTION );
 
-	if ( is_array( $cfg ) ) {
-		$mail   = isset( $cfg['mail'] ) && is_array( $cfg['mail'] ) ? $cfg['mail'] : array();
-		$mailer = isset( $mail['mailer'] ) ? (string) $mail['mailer'] : '';
+		if ( is_array( $cfg ) ) {
+			$mail   = isset( $cfg['mail'] ) && is_array( $cfg['mail'] ) ? $cfg['mail'] : array();
+			$mailer = isset( $mail['mailer'] ) ? (string) $mail['mailer'] : '';
 
-		// Default PHP `mail()` is the fall-through state; we only treat
-		// the site as "SMTP configured" when a real provider was picked.
-		if ( '' !== $mailer && 'mail' !== $mailer ) {
-			// Provider block lives at `$cfg[ $mailer ]` (e.g. `$cfg['smtp']`).
-			$provider = isset( $cfg[ $mailer ] ) && is_array( $cfg[ $mailer ] ) ? $cfg[ $mailer ] : array();
-			// Any non-empty provider block counts — Easy WP SMTP itself
-			// has no single canonical "is_complete" flag, so we trust
-			// admin intent: if they picked a mailer and saved any keys
-			// for it, the site is configured.
-			$configured = ! empty( array_filter( $provider, static function ( $v ) {
-				return null !== $v && '' !== $v && array() !== $v;
-			} ) );
+			// Default PHP `mail()` is the fall-through state; we only treat
+			// the site as "SMTP configured" when a real provider was picked.
+			if ( '' !== $mailer && 'mail' !== $mailer ) {
+				// Provider block lives at `$cfg[ $mailer ]` (e.g. `$cfg['smtp']`).
+				$provider = isset( $cfg[ $mailer ] ) && is_array( $cfg[ $mailer ] ) ? $cfg[ $mailer ] : array();
+				// Any non-empty provider block counts — Easy WP SMTP itself
+				// has no single canonical "is_complete" flag, so we trust
+				// admin intent: if they picked a mailer and saved any keys
+				// for it, the site is configured.
+				$configured = ! empty( array_filter( $provider, static function ( $v ) {
+					return null !== $v && '' !== $v && array() !== $v;
+				} ) );
+			}
 		}
-	}
-
-	if ( $switched ) {
-		restore_current_blog();
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
 	}
 
 	set_site_transient( $cache_key, $configured ? 1 : 0, EXTRACHILL_SMTP_PROBE_TTL );

@@ -32,19 +32,18 @@ function extrachill_artist_platform_ability_artist_get( array $input ) {
 		$did_switch = true;
 	}
 
-	$artist = get_post( $artist_id );
+	try {
+		$artist = get_post( $artist_id );
 
-	if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
+		if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
+			return new WP_Error( 'invalid_artist', 'Artist not found.' );
+		}
+
+		$data = ec_get_artist_profile_data( $artist_id );
+	} finally {
 		if ( $did_switch ) {
 			restore_current_blog();
 		}
-		return new WP_Error( 'invalid_artist', 'Artist not found.' );
-	}
-
-	$data = ec_get_artist_profile_data( $artist_id );
-
-	if ( $did_switch ) {
-		restore_current_blog();
 	}
 
 	return array(

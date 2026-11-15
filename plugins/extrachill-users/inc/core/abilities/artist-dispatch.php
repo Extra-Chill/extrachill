@@ -258,7 +258,7 @@ function extrachill_users_ability_list_artist_dispatch_access_requests( $input )
 			'artist_label'    => ec_users_get_artist_dispatch_artist_label( $state['artist_id'] ?? 0 ),
 			'eligibility'     => ec_users_get_artist_dispatch_eligibility( $user->ID ),
 			'moderation'      => extrachill_users_get_moderation_status( (int) $user->ID ),
-			'main_membership' => is_user_member_of_blog( (int) $user->ID, ec_users_get_artist_dispatch_blog_id() ),
+			'main_membership' => is_user_member_of_blog( (int) $user->ID, (int) ec_get_blog_id( 'main' ) ),
 		);
 	}
 

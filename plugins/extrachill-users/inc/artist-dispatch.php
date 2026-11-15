@@ -239,7 +239,7 @@ function ec_users_write_artist_dispatch_state( $user_id, array $next, array $cur
 function ec_users_acquire_artist_dispatch_lock( $user_id, $request_id ) {
 	$user_id = absint( $user_id );
 	$key     = EC_USERS_ARTIST_DISPATCH_LOCK_META . '_' . $user_id;
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	for ( $attempt = 0; 5 > $attempt; ++$attempt ) {
 		$now  = time();
 		$lock = array(
@@ -248,15 +248,21 @@ function ec_users_acquire_artist_dispatch_lock( $user_id, $request_id ) {
 			'expires_at'  => $now + EC_USERS_ARTIST_DISPATCH_LOCK_TTL,
 		);
 		switch_to_blog( $blog_id );
-		$acquired = ec_users_add_artist_dispatch_option_once( $key, $lock );
-		restore_current_blog();
+		try {
+			$acquired = ec_users_add_artist_dispatch_option_once( $key, $lock );
+		} finally {
+			restore_current_blog();
+		}
 		if ( $acquired ) {
 			return $lock;
 		}
 
 		switch_to_blog( $blog_id );
-		$current = get_option( $key, array() );
-		restore_current_blog();
+		try {
+			$current = get_option( $key, array() );
+		} finally {
+			restore_current_blog();
+		}
 		if ( is_array( $current ) && $now >= (int) ( $current['expires_at'] ?? 0 ) ) {
 			return new WP_Error( 'artist_dispatch_lock_reconciliation_required', __( 'A prior Artist Dispatch update exceeded its lock window and requires reconciliation.', 'extrachill-users' ), array( 'status' => 409 ) );
 		}
@@ -274,7 +280,7 @@ function ec_users_acquire_artist_dispatch_lock( $user_id, $request_id ) {
  * @return bool
  */
 function ec_users_release_artist_dispatch_lock( $user_id, array $lock ) {
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	$key     = EC_USERS_ARTIST_DISPATCH_LOCK_META . '_' . absint( $user_id );
 	switch_to_blog( $blog_id );
 	try {
@@ -448,7 +454,7 @@ function ec_users_get_artist_dispatch_delivery_meta_key( $user_id, $channel, $ev
  * @return array
  */
 function ec_users_get_artist_dispatch_delivery_receipt( $user_id, $channel, $event_type, $request_id ) {
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	switch_to_blog( $blog_id );
 	try {
 		$receipt = get_option( ec_users_get_artist_dispatch_delivery_meta_key( $user_id, $channel, $event_type, $request_id ), array() );
@@ -468,7 +474,7 @@ function ec_users_get_artist_dispatch_delivery_receipt( $user_id, $channel, $eve
  * @return bool
  */
 function ec_users_add_artist_dispatch_delivery_receipt( $user_id, $channel, $event_type, $request_id ) {
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	switch_to_blog( $blog_id );
 	try {
 		return ec_users_add_artist_dispatch_option_once(
@@ -506,7 +512,7 @@ function ec_users_mark_artist_dispatch_delivery_receipt( $user_id, $channel, $ev
 	$delivered                 = $receipt;
 	$delivered['status']       = 'delivered';
 	$delivered['delivered_at'] = time();
-	$blog_id                   = ec_users_get_artist_dispatch_blog_id();
+	$blog_id                   = (int) ec_get_blog_id( 'main' );
 	switch_to_blog( $blog_id );
 	try {
 		return update_option( ec_users_get_artist_dispatch_delivery_meta_key( $user_id, $channel, $event_type, $request_id ), $delivered, false );
@@ -529,7 +535,7 @@ function ec_users_remove_artist_dispatch_delivery_receipt( $user_id, $channel, $
 	if ( empty( $receipt ) ) {
 		return true;
 	}
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	switch_to_blog( $blog_id );
 	try {
 		return ec_users_delete_artist_dispatch_option_if_value( ec_users_get_artist_dispatch_delivery_meta_key( $user_id, $channel, $event_type, $request_id ), $receipt );
@@ -685,7 +691,7 @@ function ec_users_maybe_notify_artist_dispatch_transition( $user_id, $event_type
 		return new WP_Error( 'artist_dispatch_notification_actor_missing', __( 'A valid Artist Dispatch notification actor is unavailable.', 'extrachill-users' ) );
 	}
 
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	switch_to_blog( $blog_id );
 	try {
 		$link = home_url( '/submit/' );
@@ -761,7 +767,7 @@ function ec_users_finalize_artist_dispatch_transition( $user_id, $event_type, $a
  */
 function ec_users_grant_artist_dispatch_role( $user_id ) {
 	$user_id = absint( $user_id );
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	if ( ! $user_id || ! get_userdata( $user_id ) || ! $blog_id ) {
 		return new WP_Error( 'invalid_artist_dispatch_user', __( 'A valid user and main site are required.', 'extrachill-users' ) );
 	}
@@ -820,7 +826,7 @@ function ec_users_grant_artist_dispatch_role( $user_id ) {
  */
 function ec_users_revoke_artist_dispatch_role( $user_id, $membership_preexisted ) {
 	$user_id = absint( $user_id );
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	$removed = false;
 	$cleaned = false;
 

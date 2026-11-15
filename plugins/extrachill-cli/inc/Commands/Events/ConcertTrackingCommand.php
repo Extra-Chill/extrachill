@@ -646,12 +646,8 @@ class ConcertTrackingCommand {
 
 	// ─── Helpers ──────────────────────────────────────────────────────────────
 
-	private function get_events_blog_id() {
-		return ec_get_blog_id( 'events' );
-	}
-
 	private function validate_event( $event_id ) {
-		$events_blog_id = $this->get_events_blog_id();
+		$events_blog_id = ec_get_blog_id( 'events' );
 
 		if ( $events_blog_id <= 0 || ! get_site( $events_blog_id ) ) {
 			return new \WP_Error( 'events_site_unavailable', 'The canonical Events site is unavailable.' );

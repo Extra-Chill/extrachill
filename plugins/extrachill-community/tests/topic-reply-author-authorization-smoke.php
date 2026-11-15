@@ -110,6 +110,18 @@ namespace {
 		$GLOBALS['_test_blog_id']    = 1;
 	}
 
+	function ec_with_blog( $blog_id, $callback ) {
+		if ( (int) get_current_blog_id() === (int) $blog_id ) {
+			return $callback();
+		}
+		switch_to_blog( $blog_id );
+		try {
+			return $callback();
+		} finally {
+			restore_current_blog();
+		}
+	}
+
 	function sanitize_text_field( $value ) {
 		return trim( $value );
 	}

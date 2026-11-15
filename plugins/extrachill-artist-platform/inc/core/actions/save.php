@@ -141,7 +141,7 @@ function ec_handle_link_page_save_completion( $link_page_id ) {
 	$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 	if ( $artist_id ) {
 		$blog = (int) ec_get_blog_id( 'artist' );
-		ec_artist_with_image_blog( $blog, static function () use ( $artist_id ) {
+		ec_with_blog( $blog, static function () use ( $artist_id ) {
 			if ( 'artist_profile' === get_post_type( $artist_id ) ) {
 				do_action( 'ec_artist_platform_sync', $artist_id );
 			}

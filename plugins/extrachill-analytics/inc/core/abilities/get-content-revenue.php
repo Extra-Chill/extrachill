@@ -197,7 +197,7 @@ function extrachill_analytics_ability_get_content_revenue( $input ) {
 
 		$content_blog_id = ! empty( $row->content_blog_id ) ? (int) $row->content_blog_id : $blog_id;
 		// Content remains eligible only when 'publish' === get_post_status( $post_id ).
-		$content = $post_id > 0 ? extrachill_analytics_revenue_with_content_blog(
+		$content = $post_id > 0 ? ec_with_blog(
 			$content_blog_id,
 			static function () use ( $post_id ) {
 				if ( 'publish' !== get_post_status( $post_id ) ) {

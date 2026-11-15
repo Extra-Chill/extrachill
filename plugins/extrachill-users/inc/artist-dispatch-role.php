@@ -24,19 +24,10 @@ function ec_users_get_artist_dispatch_role_caps() {
 }
 
 /**
- * Resolve the publication blog.
- *
- * @return int
- */
-function ec_users_get_artist_dispatch_blog_id() {
-	return (int) ec_get_blog_id( 'main' );
-}
-
-/**
  * Register the role only when operating on the main publication site.
  */
 function ec_users_register_artist_dispatch_role() {
-	if ( get_current_blog_id() !== ec_users_get_artist_dispatch_blog_id() ) {
+	if ( get_current_blog_id() !== (int) ec_get_blog_id( 'main' ) ) {
 		return;
 	}
 
@@ -64,7 +55,7 @@ function ec_users_register_artist_dispatch_role() {
  * Ensure the role exists on blog 1 without leaking the role to other sites.
  */
 function ec_users_register_artist_dispatch_role_on_main() {
-	$blog_id = ec_users_get_artist_dispatch_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $blog_id <= 0 ) {
 		return;
 	}

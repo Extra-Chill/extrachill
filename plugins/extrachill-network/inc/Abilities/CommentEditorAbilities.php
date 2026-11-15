@@ -173,7 +173,7 @@ class CommentEditorAbilities {
 		}
 
 		$blog_id = BlogResolver::resolve( $input );
-		return (bool) BlogResolver::withBlog(
+		return (bool) ec_with_blog(
 			$blog_id,
 			static function () use ( $comment_id ) {
 				$comment = get_comment( $comment_id );
@@ -205,7 +205,7 @@ class CommentEditorAbilities {
 		}
 
 		$blog_id = BlogResolver::resolve( $input );
-		return (bool) BlogResolver::withBlog(
+		return (bool) ec_with_blog(
 			$blog_id,
 			static function () use ( $comment_id ) {
 				return current_user_can( 'edit_comment', $comment_id );
@@ -229,7 +229,7 @@ class CommentEditorAbilities {
 
 		$blog_id = BlogResolver::resolve( $input );
 
-		return BlogResolver::withBlog(
+		return ec_with_blog(
 			$blog_id,
 			static function () use ( $comment_id, $blog_id ) {
 				$comment = get_comment( $comment_id );
@@ -293,7 +293,7 @@ class CommentEditorAbilities {
 
 		$blog_id = BlogResolver::resolve( $input );
 
-		return BlogResolver::withBlog(
+		return ec_with_blog(
 			$blog_id,
 			static function () use ( $comment_id, $content, $blog_id ) {
 				$comment = get_comment( $comment_id );

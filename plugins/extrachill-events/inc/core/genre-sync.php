@@ -128,21 +128,7 @@ function extrachill_events_skip_network_genre_classification( $should_classify, 
 function extrachill_events_genre_sync_supported(): bool {
 	return taxonomy_exists( 'genre' )
 		&& function_exists( 'extrachill_network_resolve_term_identity' )
-		&& extrachill_events_main_blog_id() > 0;
-}
-
-/**
- * Return the main (canonical) site blog ID.
- *
- * @return int 0 when the multisite blog map cannot resolve it.
- */
-function extrachill_events_main_blog_id(): int {
-	$main_blog_id = (int) ec_get_blog_id( 'main' );
-	if ( ! $main_blog_id && defined( 'EC_BLOG_ID_MAIN' ) ) {
-		$main_blog_id = (int) EC_BLOG_ID_MAIN;
-	}
-
-	return $main_blog_id;
+		&& (int) ec_get_blog_id( 'main' ) > 0;
 }
 
 /**
@@ -233,7 +219,7 @@ function extrachill_events_bridge_artist_genres( array $term_ids ): array {
 		return array();
 	}
 
-	$main_blog_id = extrachill_events_main_blog_id();
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id || get_current_blog_id() === $main_blog_id ) {
 		// The canonical terms are already current; resolve in place.
 		return extrachill_events_read_main_artist_genres( $term_ids );
