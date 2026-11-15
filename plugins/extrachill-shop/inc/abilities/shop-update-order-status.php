@@ -110,6 +110,13 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 		}
 	}
 
+	// Moving to completed sends WooCommerce's Completed order email, which
+	// carries the tracking (buyer-order-details.php). An order that is
+	// already completed gets no new status email, so new tracking reaches
+	// the buyer as a customer note instead.
+	$already_shipped = 'completed' === $order->get_status();
+	$new_tracking    = '' !== $tracking_number && extrachill_shop_get_order_shipment( $order )['tracking_number'] !== $tracking_number;
+
 	if ( $tracking_number ) {
 		extrachill_shop_update_order_shipment( $order, array( 'tracking_number' => $tracking_number ) );
 	}
@@ -119,6 +126,10 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 	}
 
 	$order->save();
+
+	if ( $already_shipped && $new_tracking ) {
+		$order->add_order_note( __( 'Your seller added tracking to this order.', 'extrachill-shop' ), 1, false );
+	}
 
 	return extrachill_shop_ability_build_order_response( $order );
 }
