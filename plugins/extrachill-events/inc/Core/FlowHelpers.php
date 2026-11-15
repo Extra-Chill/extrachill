@@ -1,11 +1,11 @@
 <?php
 /**
- * Shared flow-access helpers for qualify v2 CLI commands.
+ * Shared flow-access helpers for qualify v2 commands.
  *
- * Lives in extrachill-events even though it reads tables owned by
- * data-machine because qualify v2 is the only consumer in this plugin and the
- * helpers do narrow, well-bounded queries (source_url lookup, run counts,
- * pause via scheduling_config patch).
+ * Single-flow reads and every write go through
+ * {@see \ExtraChillEvents\Core\FlowOps}, which talks to Data Machine through
+ * its abilities. The bulk scraper-flow scan and run counts remain narrow,
+ * read-only queries for the CLI reports.
  *
  * The pause mechanism deliberately uses `scheduling_config.interval = "manual"`
  * + a `paused_reason` field in the same JSON blob, matching the design in
@@ -15,12 +15,10 @@
  * SchedulingTiers work (data-machine-events#260) can resume by restoring the
  * tier-appropriate interval without coupling to the enabled flag.
  *
- * @package ExtraChillEvents\Cli
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
-
-use ExtraChillEvents\Core\QualifyVerdict;
+namespace ExtraChillEvents\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -37,14 +35,7 @@ trait FlowHelpers {
 	 * @return array{flow_id:int,flow_name:string,source_url:string,handler_slug:string,scheduling_config:array}|null
 	 */
 	protected function load_web_scraper_flow( int $flow_id ): ?array {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, flow_name, flow_config, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
-		);
+		$row = FlowOps::fetch_flow_row( $flow_id );
 		if ( ! $row ) {
 			return null;
 		}
@@ -87,11 +78,13 @@ trait FlowHelpers {
 	 * Pull the universal_web_scraper source_url + handler slug out of a flow
 	 * row's flow_config JSON.
 	 *
+	 * Accepts both raw rows (JSON strings) and decoded flows (arrays).
+	 *
 	 * @param array $row { flow_id, flow_name, flow_config, scheduling_config }
 	 * @return array|null
 	 */
 	private static function extract_web_scraper_meta( array $row ): ?array {
-		$config = json_decode( (string) ( $row['flow_config'] ?? '' ), true );
+		$config = self::decode_config( $row['flow_config'] ?? '' );
 		if ( ! is_array( $config ) ) {
 			return null;
 		}
@@ -128,15 +121,27 @@ trait FlowHelpers {
 			return null;
 		}
 
-		$scheduling = json_decode( (string) ( $row['scheduling_config'] ?? '' ), true );
-
 		return array(
 			'flow_id'           => (int) $row['flow_id'],
 			'flow_name'         => (string) ( $row['flow_name'] ?? '' ),
 			'source_url'        => $source_url,
 			'handler_slug'      => $handler_slug,
-			'scheduling_config' => is_array( $scheduling ) ? $scheduling : array(),
+			'scheduling_config' => (array) self::decode_config( $row['scheduling_config'] ?? '' ),
 		);
+	}
+
+	/**
+	 * Decode a flow config column that may already be decoded.
+	 *
+	 * @param mixed $value JSON string or array.
+	 * @return array|null Decoded array, or null when not decodable.
+	 */
+	private static function decode_config( $value ): ?array {
+		if ( is_array( $value ) ) {
+			return $value;
+		}
+		$decoded = json_decode( (string) $value, true );
+		return is_array( $decoded ) ? $decoded : null;
 	}
 
 	/**

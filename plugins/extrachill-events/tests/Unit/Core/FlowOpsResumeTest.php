@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for FlowOps::resume_flow_from_qualified() — events_url propagation.
+ * Tests for FlowOps — resume/events_url propagation, pause, and metadata.
  *
  * Covers the bug fix from extrachill-events#81: when qualify discovers a
  * new events_url within the same host, the flow's universal_web_scraper
@@ -13,48 +13,36 @@
 namespace ExtraChillEvents\Tests\Unit\Core;
 
 use PHPUnit\Framework\TestCase;
-use ExtraChillEvents\Cli\FlowOps;
+use ExtraChillEvents\Core\FlowOps;
+
+require_once __DIR__ . '/Stubs/flow-gateway-stubs.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowOps.php';
 
 /**
- * Exercises the real FlowOps class against a captured $wpdb stub and a
- * captured do_action() log stream so we can assert both the persisted
- * payload and the structured log entries.
- *
- * Runs each test in a separate process because QualifyRecheckHandlerTest
- * loads a fake FlowOps in the same namespace; without isolation, whichever
- * test file loads first wins the class-resolution race.
- *
+ * Exercises the real FlowOps class against an in-memory Data Machine
+ * gateway and a captured `datamachine_log` stream so we can assert the
+ * resulting flow state, the Data Machine calls made, and the structured
+ * log entries.
  */
 class FlowOpsResumeTest extends TestCase {
-	private $original_wpdb;
+	private FakeFlowGateway $gateway;
 	private $log_callback;
 	private $original_log_hooks;
-	private $enqueue_callback;
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->original_wpdb      = $GLOBALS['wpdb'] ?? null;
 		$this->original_log_hooks = $GLOBALS['wp_filter']['datamachine_log'] ?? null;
-
-		// Load the focused fake database before exercising the real FlowOps class.
-		require_once __DIR__ . '/Stubs/flowops-resume-stubs.php';
-		require_once dirname( __DIR__, 3 ) . '/inc/Cli/FlowOps.php';
 
 		if ( function_exists( 'remove_all_actions' ) ) {
 			remove_all_actions( 'datamachine_log' );
 		}
-		$GLOBALS['wpdb']                  = new FlowOpsFakeWpdb();
-		$GLOBALS['ec_test_log_entries']   = array();
-		$GLOBALS['ec_test_async_actions'] = array();
-		$this->log_callback               = static function ( string $level, string $message, array $context ): void {
+		$this->gateway = new FakeFlowGateway();
+		FlowOps::set_gateway( $this->gateway );
+		$GLOBALS['ec_test_log_entries'] = array();
+		$this->log_callback             = static function ( string $level, string $message, array $context ): void {
 			$GLOBALS['ec_test_log_entries'][] = compact( 'level', 'message', 'context' );
 		};
 		add_action( 'datamachine_log', $this->log_callback, 10, 3 );
-		$this->enqueue_callback = static function ( $pre, string $hook, array $args, string $group ) {
-			$GLOBALS['ec_test_async_actions'][] = compact( 'hook', 'args', 'group' );
-			return 1;
-		};
-		add_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10, 4 );
 		add_filter( 'pre_option_timezone_string', array( $this, 'filter_timezone_string' ) );
 	}
 
@@ -63,21 +51,20 @@ class FlowOpsResumeTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		$GLOBALS['wpdb'] = $this->original_wpdb;
+		FlowOps::set_gateway( null );
 		remove_action( 'datamachine_log', $this->log_callback, 10 );
-		remove_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10 );
 		if ( null === $this->original_log_hooks ) {
 			unset( $GLOBALS['wp_filter']['datamachine_log'] );
 		} else {
 			$GLOBALS['wp_filter']['datamachine_log'] = $this->original_log_hooks;
 		}
 		remove_filter( 'pre_option_timezone_string', array( $this, 'filter_timezone_string' ) );
-		unset( $GLOBALS['ec_test_log_entries'], $GLOBALS['ec_test_async_actions'] );
+		unset( $GLOBALS['ec_test_log_entries'] );
 		parent::tearDown();
 	}
 
 	/**
-	 * Build a paused flow row seeded into the fake $wpdb.
+	 * Seed a paused flow into the fake gateway.
 	 *
 	 * @param int    $flow_id
 	 * @param string $source_url Initial universal_web_scraper source_url.
@@ -97,42 +84,30 @@ class FlowOpsResumeTest extends TestCase {
 			$extra_steps
 		);
 
-		$scheduling = array(
-			'interval'       => 'manual',
-			'prior_interval' => 'daily',
-			'paused_reason'  => 'unreachable',
-			'paused_at'      => '2025-01-01 00:00:00',
-		);
-
-		$GLOBALS['wpdb']->seed_row(
+		$this->gateway->seed(
 			$flow_id,
+			$flow_config,
 			array(
-				'flow_id'           => $flow_id,
-				'flow_config'       => json_encode( $flow_config ),
-				'scheduling_config' => json_encode( $scheduling ),
+				'interval'       => 'manual',
+				'prior_interval' => 'daily',
+				'paused_reason'  => 'unreachable',
+				'paused_at'      => '2025-01-01 00:00:00',
 			)
 		);
 	}
 
 	/**
-	 * Pull the most recent flow_config update applied to a flow_id, decoded.
+	 * Current flow_config, or null when no step source URL was updated.
 	 */
 	private function captured_flow_config( int $flow_id ): ?array {
-		foreach ( array_reverse( $GLOBALS['wpdb']->updates ) as $u ) {
-			if ( ( $u['where']['flow_id'] ?? null ) === $flow_id && isset( $u['data']['flow_config'] ) ) {
-				return json_decode( (string) $u['data']['flow_config'], true );
-			}
+		if ( empty( $this->gateway->calls_to( 'update_step_source_url' ) ) ) {
+			return null;
 		}
-		return null;
+		return $this->gateway->flows[ $flow_id ]['flow_config'];
 	}
 
-	private function last_update( int $flow_id ): ?array {
-		foreach ( array_reverse( $GLOBALS['wpdb']->updates ) as $u ) {
-			if ( ( $u['where']['flow_id'] ?? null ) === $flow_id ) {
-				return $u;
-			}
-		}
-		return null;
+	private function scheduling( int $flow_id ): array {
+		return $this->gateway->flows[ $flow_id ]['scheduling_config'];
 	}
 
 	private function find_log_entries( string $action ): array {
@@ -163,12 +138,14 @@ class FlowOpsResumeTest extends TestCase {
 			$patched[0]['handler_config']['source_url']
 		);
 
-		// Scheduling restored too.
-		$update     = $this->last_update( 100 );
-		$scheduling = json_decode( (string) $update['data']['scheduling_config'], true );
+		// Scheduling restored too, through Data Machine's schedule sync.
+		$scheduling = $this->scheduling( 100 );
 		$this->assertSame( 'daily', $scheduling['interval'] );
 		$this->assertArrayNotHasKey( 'paused_reason', $scheduling );
+		$this->assertArrayNotHasKey( 'prior_interval', $scheduling );
 		$this->assertTrue( $scheduling['resumed_by_qualify'] );
+		$this->assertSame( 'daily', $this->gateway->calls_to( 'update_scheduling' )[0]['args'][1]['interval'] );
+		$this->assertSame( array( array( 'method' => 'run_flow', 'args' => array( 100 ) ) ), $this->gateway->calls_to( 'run_flow' ) );
 	}
 
 	public function test_resume_skips_propagation_when_events_url_matches(): void {
@@ -182,13 +159,11 @@ class FlowOpsResumeTest extends TestCase {
 			)
 		);
 
-		$update = $this->last_update( 101 );
-		$this->assertArrayNotHasKey(
-			'flow_config',
-			$update['data'],
-			'flow_config must not be in the update when events_url matches'
+		$this->assertNull(
+			$this->captured_flow_config( 101 ),
+			'flow_config must not be updated when events_url matches'
 		);
-		$this->assertArrayHasKey( 'scheduling_config', $update['data'] );
+		$this->assertSame( 'daily', $this->scheduling( 101 )['interval'] );
 		$this->assertEmpty( $this->find_log_entries( 'flow_source_url_updated_by_qualify' ) );
 	}
 
@@ -203,8 +178,7 @@ class FlowOpsResumeTest extends TestCase {
 			)
 		);
 
-		$update = $this->last_update( 102 );
-		$this->assertArrayNotHasKey( 'flow_config', $update['data'] );
+		$this->assertNull( $this->captured_flow_config( 102 ) );
 		$this->assertEmpty( $this->find_log_entries( 'flow_source_url_updated_by_qualify' ) );
 	}
 
@@ -219,10 +193,8 @@ class FlowOpsResumeTest extends TestCase {
 			)
 		);
 
-		$update = $this->last_update( 103 );
-		$this->assertArrayNotHasKey(
-			'flow_config',
-			$update['data'],
+		$this->assertNull(
+			$this->captured_flow_config( 103 ),
 			'Cross-host events_url must not patch flow_config'
 		);
 
@@ -307,17 +279,13 @@ class FlowOpsResumeTest extends TestCase {
 				),
 			),
 		);
-		$scheduling  = array(
-			'interval'       => 'manual',
-			'prior_interval' => 'daily',
-			'paused_reason'  => 'unreachable',
-		);
-		$GLOBALS['wpdb']->seed_row(
+		$this->gateway->seed(
 			106,
+			$flow_config,
 			array(
-				'flow_id'           => 106,
-				'flow_config'       => json_encode( $flow_config ),
-				'scheduling_config' => json_encode( $scheduling ),
+				'interval'       => 'manual',
+				'prior_interval' => 'daily',
+				'paused_reason'  => 'unreachable',
 			)
 		);
 
@@ -345,6 +313,8 @@ class FlowOpsResumeTest extends TestCase {
 		);
 		$patched = $this->captured_flow_config( 107 );
 		$this->assertSame( 'https://venue.com/events', $patched[0]['handler_config']['source_url'] );
+		$this->assertEmpty( $this->gateway->calls_to( 'update_scheduling' ), 'Repair must not touch scheduling' );
+		$this->assertEmpty( $this->gateway->calls_to( 'run_flow' ), 'Repair must not start a run' );
 	}
 
 	public function test_confirmed_repair_rejects_cross_host_source_url(): void {
@@ -354,5 +324,88 @@ class FlowOpsResumeTest extends TestCase {
 			FlowOps::repair_flow_source_url( 108, 'https://venue.com/calendar', 'https://other.example/events' )
 		);
 		$this->assertNull( $this->captured_flow_config( 108 ) );
+	}
+
+	public function test_confirmed_repair_rejects_stale_current_source_url(): void {
+		$this->seed_paused_flow( 109, 'https://venue.com/shows' );
+
+		$this->assertFalse(
+			FlowOps::repair_flow_source_url( 109, 'https://venue.com/calendar', 'https://venue.com/events' )
+		);
+		$this->assertNull( $this->captured_flow_config( 109 ) );
+	}
+
+	public function test_pause_sets_manual_interval_through_data_machine(): void {
+		$this->gateway->seed(
+			110,
+			array(),
+			array(
+				'interval'          => 'every_6_hours',
+				'stale_flag'        => array( 'consecutive_failures' => 6 ),
+				'recheck_action_id' => 0,
+			)
+		);
+
+		$this->assertTrue( FlowOps::pause_flow_by_verdict( 110, 'bot_blocked' ) );
+
+		$synced = $this->gateway->calls_to( 'update_scheduling' );
+		$this->assertCount( 1, $synced );
+		$this->assertSame( 'manual', $synced[0]['args'][1]['interval'] );
+
+		$scheduling = $this->scheduling( 110 );
+		$this->assertSame( 'manual', $scheduling['interval'] );
+		$this->assertSame( 'every_6_hours', $scheduling['prior_interval'] );
+		$this->assertSame( 'bot_blocked', $scheduling['paused_reason'] );
+		$this->assertArrayNotHasKey( 'stale_flag', $scheduling );
+		$this->assertArrayNotHasKey( 'recheck_action_id', $scheduling );
+	}
+
+	public function test_repause_keeps_original_prior_interval(): void {
+		$this->gateway->seed(
+			111,
+			array(),
+			array(
+				'interval'       => 'manual',
+				'prior_interval' => 'daily',
+				'paused_reason'  => 'unreachable',
+			)
+		);
+
+		$this->assertTrue( FlowOps::pause_flow_by_verdict( 111, 'bot_blocked' ) );
+
+		$scheduling = $this->scheduling( 111 );
+		$this->assertSame( 'daily', $scheduling['prior_interval'] );
+		$this->assertSame( 'bot_blocked', $scheduling['paused_reason'] );
+	}
+
+	public function test_metadata_updates_never_resync_the_schedule(): void {
+		$this->gateway->seed(
+			112,
+			array(),
+			array(
+				'interval'              => 'manual',
+				'paused_reason'         => 'unreachable',
+				'recheck_action_id'     => 5,
+				'recheck_scheduled_for' => '2025-01-01 00:00:00',
+			)
+		);
+
+		$this->assertTrue( FlowOps::update_paused_reason( 112, 'bot_blocked' ) );
+		$this->assertTrue( FlowOps::set_recheck_metadata( 112, 77, 1767225600 ) );
+		$this->assertTrue( FlowOps::flag_stale_paused( 112, 'bot_blocked', 6 ) );
+
+		$this->assertEmpty( $this->gateway->calls_to( 'update_scheduling' ) );
+		$scheduling = $this->scheduling( 112 );
+		$this->assertSame( 'manual', $scheduling['interval'] );
+		$this->assertSame( 'bot_blocked', $scheduling['paused_reason'] );
+		$this->assertSame( 6, $scheduling['stale_flag']['consecutive_failures'] );
+		$this->assertArrayNotHasKey( 'recheck_action_id', $scheduling );
+		$this->assertArrayNotHasKey( 'recheck_scheduled_for', $scheduling );
+	}
+
+	public function test_missing_flow_writes_nothing(): void {
+		$this->assertFalse( FlowOps::resume_flow_from_qualified( 999, array( 'verdict' => 'qualified_structured' ) ) );
+		$this->assertFalse( FlowOps::pause_flow_by_verdict( 999, 'bot_blocked' ) );
+		$this->assertEmpty( $this->gateway->writes() );
 	}
 }

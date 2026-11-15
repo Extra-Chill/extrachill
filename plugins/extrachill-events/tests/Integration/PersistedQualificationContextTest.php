@@ -118,7 +118,7 @@ class PersistedQualificationContextTest extends TestCase {
 
 	/**
 	 * Seeds a real datamachine_flows row so
-	 * ExtraChillEvents\Cli\FlowOps::repair_flow_source_url() — called by the
+	 * ExtraChillEvents\Core\FlowOps::repair_flow_source_url() — called by the
 	 * real UnqualifiableFlowsCommand apply-repair path — finds a matching
 	 * flow_config and genuinely updates it, the same outcome the deleted
 	 * fake FlowOps unconditionally recorded.
@@ -134,10 +134,16 @@ class PersistedQualificationContextTest extends TestCase {
 				'flow_name'         => 'Test Venue',
 				'flow_config'       => wp_json_encode(
 					array(
-						array(
-							'step_type'      => 'event_import',
-							'handler_slug'   => 'universal_web_scraper',
-							'handler_config' => array( 'source_url' => $source_url ),
+						self::flow_step_id( $flow_id ) => array(
+							'flow_step_id'     => self::flow_step_id( $flow_id ),
+							'pipeline_step_id' => 'p3-import',
+							'pipeline_id'      => 3,
+							'flow_id'          => $flow_id,
+							'step_type'        => 'event_import',
+							'handler_slugs'    => array( 'universal_web_scraper' ),
+							'handler_configs'  => array(
+								'universal_web_scraper' => array( 'source_url' => $source_url ),
+							),
 						),
 					)
 				),
@@ -146,6 +152,14 @@ class PersistedQualificationContextTest extends TestCase {
 			array( '%d', '%d', '%d', '%s', '%s', '%s' )
 		);
 		$this->seeded_flow_ids[] = $flow_id;
+	}
+
+	/**
+	 * Data Machine's composite `{pipeline_step_id}_{flow_id}` step ID, so the
+	 * repair can address the step through `datamachine/update-flow-step`.
+	 */
+	private static function flow_step_id( int $flow_id ): string {
+		return 'p3-import_' . $flow_id;
 	}
 
 	/**
@@ -344,7 +358,7 @@ class PersistedQualificationContextTest extends TestCase {
 	}
 
 	public function test_all_processed_stable_zero_is_expected_zero(): void {
-		require_once dirname( __DIR__, 2 ) . '/inc/Cli/FlowHelpers.php';
+		require_once dirname( __DIR__, 2 ) . '/inc/Core/FlowHelpers.php';
 		require_once dirname( __DIR__, 2 ) . '/inc/Cli/UnqualifiableFlowsCommand.php';
 
 		$command = new class() extends UnqualifiableFlowsCommand {
@@ -497,8 +511,9 @@ class PersistedQualificationContextTest extends TestCase {
 			}
 		);
 		// UnqualifiableFlowsCommand's apply-repair path calls the real
-		// ExtraChillEvents\Cli\FlowOps::repair_flow_source_url(), which reads
-		// and writes a real datamachine_flows row — seed one whose
+		// ExtraChillEvents\Core\FlowOps::repair_flow_source_url(), which reads
+		// and writes a real datamachine_flows row through Data Machine's
+		// get-flows/update-flow-step abilities — seed one whose
 		// flow_config carries the stale URL being repaired.
 		$this->seed_flow_row( 42, 'https://venue.example/stale' );
 
@@ -553,7 +568,7 @@ class PersistedQualificationContextTest extends TestCase {
 			)
 		);
 		$flow_config = json_decode( (string) $encoded, true );
-		return $flow_config[0]['handler_config']['source_url'] ?? null;
+		return $flow_config[ self::flow_step_id( $flow_id ) ]['handler_configs']['universal_web_scraper']['source_url'] ?? null;
 	}
 
 	public function test_apply_repair_requires_explicit_confirmation(): void {
@@ -660,7 +675,7 @@ class PersistedQualificationContextTest extends TestCase {
 	}
 
 	private function new_command(): UnqualifiableFlowsCommand {
-		require_once dirname( __DIR__, 2 ) . '/inc/Cli/FlowHelpers.php';
+		require_once dirname( __DIR__, 2 ) . '/inc/Core/FlowHelpers.php';
 		require_once dirname( __DIR__, 2 ) . '/inc/Cli/UnqualifiableFlowsCommand.php';
 
 		return new class() extends UnqualifiableFlowsCommand {

@@ -44,8 +44,8 @@ final class CliProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/RequalifyPendingCommand.php';
 		\WP_CLI::add_command( 'extrachill venues requalify-pending', \ExtraChillEvents\Cli\RequalifyPendingCommand::class );
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/FlowOps.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/FlowHelpers.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowOps.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowHelpers.php';
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/RequalifyFlowCommand.php';
 		\WP_CLI::add_command( 'extrachill venues requalify-flow', \ExtraChillEvents\Cli\RequalifyFlowCommand::class );

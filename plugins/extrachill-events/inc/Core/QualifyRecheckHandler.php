@@ -26,8 +26,6 @@
 
 namespace ExtraChillEvents\Core;
 
-use ExtraChillEvents\Cli\FlowOps;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

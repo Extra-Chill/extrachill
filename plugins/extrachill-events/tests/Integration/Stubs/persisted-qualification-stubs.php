@@ -103,10 +103,10 @@ function is_wp_error( $thing ): bool {
 }
 
 // FlowOps is intentionally NOT stubbed here. The real class
-// (inc/Cli/FlowOps.php, same namespace) is already loaded in this sandbox
+// (inc/Core/FlowOps.php) is already loaded in this sandbox
 // runtime — UnqualifiableFlowsCommand's apply-repair path calls
 // FlowOps::repair_flow_source_url() directly, which reads and writes a real
-// datamachine_flows row via $wpdb. The test seeds that row (see
+// datamachine_flows row through Data Machine abilities. The test seeds that row (see
 // PersistedQualificationContextTest::seed_flow_row()) so the real repair
 // genuinely succeeds instead of being recorded by a fake. See
 // https://github.com/Extra-Chill/extrachill-events/issues/846.

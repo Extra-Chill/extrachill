@@ -13,6 +13,8 @@
 
 namespace ExtraChillEvents\Cli;
 
+use ExtraChillEvents\Core\FlowHelpers;
+use ExtraChillEvents\Core\FlowOps;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\QualifyVerdictsTable;
 

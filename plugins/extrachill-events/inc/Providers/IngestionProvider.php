@@ -30,7 +30,7 @@ final class IngestionProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdict.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictsTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyCohortDeriver.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/FlowOps.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowOps.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyRecheckHandler.php';
 		\ExtraChillEvents\Core\QualifyRecheckHandler::register();
 
