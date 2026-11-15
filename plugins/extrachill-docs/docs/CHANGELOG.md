@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.5] - 2026-11-15
+
+### Fixed
+- keep documented shop fee values in Docs Agent maintenance
+
 ## [0.12.4] - 2026-11-15
 
 ### Fixed
