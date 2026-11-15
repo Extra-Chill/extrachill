@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.54.4] - 2026-11-15
+
+### Fixed
+- route team writers to Studio instead of wp-admin
+
 ## [0.54.3] - 2026-11-15
 
 ### Changed
