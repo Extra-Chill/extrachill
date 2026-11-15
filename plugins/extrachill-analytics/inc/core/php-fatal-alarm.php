@@ -829,7 +829,8 @@ function extrachill_analytics_disk_alarm_candidates( array $state, $now ) {
 			continue;
 		}
 		// One candidate per filesystem, even when several paths share it.
-		$fs_key = $reading['total'] . ':' . (int) ( function_exists( 'stat' ) ? ( @stat( $path )['dev'] ?? 0 ) : 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best-effort device id.
+		$stat   = @stat( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best-effort device id.
+		$fs_key = $reading['total'] . ':' . ( is_array( $stat ) ? (int) $stat['dev'] : 0 );
 		if ( isset( $seen[ $fs_key ] ) ) {
 			continue;
 		}
