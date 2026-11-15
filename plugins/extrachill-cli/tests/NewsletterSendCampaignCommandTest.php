@@ -1,6 +1,6 @@
 <?php
 /**
- * Behavior tests for `wp extrachill newsletter send_campaign`.
+ * Behavior tests for `wp extrachill newsletter send-campaign`.
  *
  * Run standalone: php tests/NewsletterSendCampaignCommandTest.php
  */
