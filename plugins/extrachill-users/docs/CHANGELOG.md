@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.66.0] - 2026-11-15
+
+### Added
+- Extra Chill Supporter badge for lifetime members
+
 ## [0.65.1] - 2026-11-15
 
 ### Fixed
