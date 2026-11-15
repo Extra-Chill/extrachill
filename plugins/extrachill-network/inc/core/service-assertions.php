@@ -564,6 +564,144 @@ function ec_cross_site_verified_service_context( WP_REST_Request $request ): arr
 }
 
 /**
+ * Return the REST request whose route callbacks are currently executing.
+ *
+ * Permission and route callbacks receive their own request, but ability
+ * callbacks do not. Network tracks the active request so target-side service
+ * policy can read verified claims without each consumer binding REST hooks.
+ *
+ * @return WP_REST_Request|null Innermost active request, or null outside REST.
+ */
+function ec_cross_site_current_rest_request(): ?WP_REST_Request {
+	$stack = $GLOBALS['ec_cross_site_active_rest_requests'] ?? array();
+	if ( ! is_array( $stack ) || empty( $stack ) ) {
+		return null;
+	}
+
+	$request = end( $stack );
+
+	return $request instanceof WP_REST_Request ? $request : null;
+}
+
+/**
+ * Bind a matched REST request before its permission and route callbacks run.
+ *
+ * @param mixed $response Current REST response.
+ * @param mixed $handler  Matched route handler.
+ * @param mixed $request  REST request.
+ * @return mixed Unchanged REST response.
+ */
+function ec_cross_site_bind_rest_request( $response, $handler, $request ) {
+	unset( $handler );
+
+	// Errors skip every callback, so there is nothing to bind.
+	if ( ! is_wp_error( $response ) && $request instanceof WP_REST_Request ) {
+		$stack   = $GLOBALS['ec_cross_site_active_rest_requests'] ?? array();
+		$stack   = is_array( $stack ) ? $stack : array();
+		$stack[] = $request;
+
+		$GLOBALS['ec_cross_site_active_rest_requests'] = $stack;
+	}
+
+	return $response;
+}
+add_filter( 'rest_request_before_callbacks', 'ec_cross_site_bind_rest_request', 10, 3 );
+
+/**
+ * Restore the outer request when a nested internal dispatch finishes.
+ *
+ * Internal rest_do_request() calls never reach rest_post_dispatch, so nested
+ * requests are released here. The outermost request stays bound until
+ * rest_post_dispatch so response filters that re-check permissions still see it.
+ *
+ * @param mixed $response Current REST response.
+ * @param mixed $handler  Matched route handler.
+ * @param mixed $request  REST request.
+ * @return mixed Unchanged REST response.
+ */
+function ec_cross_site_restore_nested_rest_request( $response, $handler, $request ) {
+	unset( $handler );
+
+	$stack = $GLOBALS['ec_cross_site_active_rest_requests'] ?? array();
+	if ( is_array( $stack ) && count( $stack ) > 1 && end( $stack ) === $request ) {
+		array_pop( $stack );
+
+		$GLOBALS['ec_cross_site_active_rest_requests'] = $stack;
+	}
+
+	return $response;
+}
+add_filter( 'rest_request_after_callbacks', 'ec_cross_site_restore_nested_rest_request', 10, 3 );
+
+/**
+ * Release a request, and anything still bound above it, after dispatch.
+ *
+ * @param mixed $response Current REST response.
+ * @param mixed $server   REST server.
+ * @param mixed $request  REST request.
+ * @return mixed Unchanged REST response.
+ */
+function ec_cross_site_release_rest_request( $response, $server, $request ) {
+	unset( $server );
+
+	$stack = $GLOBALS['ec_cross_site_active_rest_requests'] ?? array();
+	if ( ! is_array( $stack ) ) {
+		return $response;
+	}
+
+	for ( $index = count( $stack ) - 1; $index >= 0; --$index ) {
+		if ( $stack[ $index ] === $request ) {
+			$GLOBALS['ec_cross_site_active_rest_requests'] = array_slice( $stack, 0, $index );
+			break;
+		}
+	}
+
+	return $response;
+}
+add_filter( 'rest_post_dispatch', 'ec_cross_site_release_rest_request', 20, 3 );
+
+/**
+ * Check whether the active REST request carries an exact verified service grant.
+ *
+ * The request must already have passed ec_cross_site_verify_service_assertion().
+ * Its verified service ID and scope must equal the arguments, and a registered
+ * target grant must still match those claims together with the request's exact
+ * method and route. Anything else, including no active request, is denied.
+ *
+ * @param string $service_id Expected service ID.
+ * @param string $scope      Expected operation scope.
+ * @return bool Whether the active request is authorized by that grant.
+ */
+function ec_cross_site_request_has_service_grant( string $service_id, string $scope ): bool {
+	$request = ec_cross_site_current_rest_request();
+	if ( null === $request ) {
+		return false;
+	}
+
+	$claims = ec_cross_site_verified_service_context( $request );
+	if (
+		! isset( $claims['service_id'], $claims['scope'], $claims['source_site_id'], $claims['target_site_id'], $claims['target_host'] )
+		|| $service_id !== $claims['service_id']
+		|| $scope !== $claims['scope']
+	) {
+		return false;
+	}
+
+	return null !== ec_cross_site_service_assertion_find_grant(
+		'target',
+		array(
+			'service_id'     => $service_id,
+			'scope'          => $scope,
+			'source_site_id' => (int) $claims['source_site_id'],
+			'target_site_id' => (int) $claims['target_site_id'],
+			'target_host'    => strtolower( (string) $claims['target_host'] ),
+			'method'         => strtoupper( $request->get_method() ),
+			'route'          => $request->get_route(),
+		)
+	);
+}
+
+/**
  * Verify a service assertion before route permission callbacks run.
  *
  * @param mixed           $result  Existing pre-dispatch result.
