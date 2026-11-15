@@ -143,4 +143,30 @@ $mode = '';
 $missing = true;
 check( is_wp_error( extrachill_api_media_upload_handler( new WP_REST_Request( 'link_page_profile' ) ) ), 'Missing ability must fail' );
 check( 4 === $blog, 'Missing ability must restore caller blog' );
+
+// User avatar writes delegate the URL snapshot refresh to extrachill-users.
+$avatar_meta = array( 8 => 55 );
+$GLOBALS['snapshot_refreshes'] = array();
+function get_user_option( $key, $user_id ) {
+	check( 'custom_avatar_id' === $key, 'Unexpected user option read' );
+	return $GLOBALS['avatar_meta'][ $user_id ] ?? false;
+}
+function update_user_option( $user_id, $key, $value, $global ) {
+	check( 'custom_avatar_id' === $key && true === $global, 'Avatar must be a global user option' );
+	$GLOBALS['avatar_meta'][ $user_id ] = $value;
+}
+function delete_user_option( $user_id, $key, $global ) {
+	check( 'custom_avatar_id' === $key && true === $global, 'Avatar must be a global user option' );
+	unset( $GLOBALS['avatar_meta'][ $user_id ] );
+}
+function extrachill_users_refresh_avatar_snapshot( $user_id ) {
+	$GLOBALS['snapshot_refreshes'][] = array( $user_id, $GLOBALS['avatar_meta'][ $user_id ] ?? null );
+}
+function avatar_snapshot_refreshes() {
+	return $GLOBALS['snapshot_refreshes'];
+}
+check( 55 === extrachill_api_media_assign( 'user_avatar', 8, 91 ), 'Avatar assign must return the replaced attachment' );
+check( array( array( 8, 91 ) ) === avatar_snapshot_refreshes(), 'Avatar assign must refresh the snapshot after writing the new ID' );
+check( 91 === extrachill_api_media_unassign( 'user_avatar', 8 ), 'Avatar unassign must return the removed attachment' );
+check( array( array( 8, 91 ), array( 8, null ) ) === avatar_snapshot_refreshes(), 'Avatar unassign must refresh the snapshot after clearing the ID' );
 echo "Link Page media storage smoke test passed\n";

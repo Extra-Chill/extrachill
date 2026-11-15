@@ -37,6 +37,7 @@ Network-wide user management plugin providing authentication (including Google O
 
 ## Avatar system
 - Avatar display is provided by this plugin via `inc/avatar-display.php` (filters `pre_get_avatar`).
+- Avatar URLs are cached in the global `ec_avatar_urls` user meta snapshot (`inc/avatar-snapshot.php`), so rendering does not switch to the community blog. Writers of `custom_avatar_id` call `extrachill_users_refresh_avatar_snapshot()`; community attachment deletes/edits invalidate it; `wp extrachill users avatar-snapshot backfill [--dry-run]` builds missing snapshots.
 - Avatar upload UI lives in `extrachill-community` (bbPress profile edit integration).
 
 ## Avatar menu

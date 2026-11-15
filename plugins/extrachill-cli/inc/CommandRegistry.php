@@ -87,6 +87,7 @@ class CommandRegistry {
 			'extrachill users team'                    => Commands\Users\TeamCommand::class,
 			'extrachill users settings'                => Commands\Users\SettingsCommand::class,
 			'extrachill users profile'                 => Commands\Users\ProfileCommand::class,
+			'extrachill users avatar-snapshot'         => Commands\Users\AvatarSnapshotCommand::class,
 
 			// Community commands.
 			'extrachill community'                     => Commands\Community\CommunityCommand::class,
