@@ -598,6 +598,14 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_deli
 		}
 	}
 
+	// Disk pressure on the WordPress/database filesystem pages too (#1418).
+	foreach ( extrachill_analytics_disk_alarm_candidates( $state, $now ) as $row ) {
+		$candidates[] = $row;
+		if ( $row['would_alarm'] ) {
+			$alarms[] = $row;
+		}
+	}
+
 	$result['candidates'] = $candidates;
 	$result['alarms']     = $alarms;
 
@@ -621,7 +629,10 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_deli
 			'last_alerted_rate' => $alarm['rate_per_hr'],
 			'last_seen'         => $alarm['last_seen'],
 		);
-		$state_changed                = true;
+		if ( isset( $alarm['free_bytes'] ) ) {
+			$state[ $alarm['signature'] ]['last_alerted_free'] = (int) $alarm['free_bytes'];
+		}
+		$state_changed = true;
 	}
 
 	// Prune state entries that are stale (not seen in 7 days) to keep the option
@@ -724,6 +735,141 @@ function extrachill_analytics_rest_5xx_alarm_candidates( array $state, $now, $wi
 		);
 	}
 
+	return $rows;
+}
+
+/**
+ * Filesystem paths watched for disk pressure.
+ *
+ * @return string[] Absolute paths; each is reported once per filesystem.
+ */
+function extrachill_analytics_disk_alarm_paths() {
+	/**
+	 * Filter the paths whose filesystems are watched for disk pressure.
+	 *
+	 * @param string[] $paths Default: ABSPATH (WordPress; on this host also MySQL and Redis).
+	 */
+	return array_values( array_filter( array_map( 'strval', (array) apply_filters( 'extrachill_analytics_disk_alarm_paths', array( ABSPATH ) ) ) ) );
+}
+
+/**
+ * Disk pressure thresholds.
+ *
+ * @return array{min_free_pct:float,min_free_bytes:int}
+ */
+function extrachill_analytics_disk_alarm_thresholds() {
+	/**
+	 * Filter the disk pressure thresholds. A filesystem pages when free space
+	 * is below EITHER threshold.
+	 *
+	 * @param array $thresholds min_free_pct (0-1, default 0.10) and min_free_bytes (default 10 GB).
+	 */
+	$t = (array) apply_filters(
+		'extrachill_analytics_disk_alarm_thresholds',
+		array(
+			'min_free_pct'   => 0.10,
+			'min_free_bytes' => 10 * GB_IN_BYTES,
+		)
+	);
+	return array(
+		'min_free_pct'   => max( 0.0, min( 1.0, (float) ( $t['min_free_pct'] ?? 0.10 ) ) ),
+		'min_free_bytes' => max( 0, (int) ( $t['min_free_bytes'] ?? 10 * GB_IN_BYTES ) ),
+	);
+}
+
+/**
+ * Read free/total bytes for a path. Filterable so tests can inject readings.
+ *
+ * @param string $path Absolute path.
+ * @return array{free:int,total:int}|null Null when unreadable.
+ */
+function extrachill_analytics_disk_alarm_reading( $path ) {
+	/**
+	 * Short-circuit the disk reading for a path.
+	 *
+	 * @param array|null $reading Null to read the real filesystem, or array{free:int,total:int}.
+	 * @param string     $path    Watched path.
+	 */
+	$reading = apply_filters( 'extrachill_analytics_disk_alarm_reading', null, $path );
+	if ( is_array( $reading ) ) {
+		return array(
+			'free'  => (int) ( $reading['free'] ?? 0 ),
+			'total' => (int) ( $reading['total'] ?? 0 ),
+		);
+	}
+	$free  = @disk_free_space( $path );  // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable paths fail closed to null.
+	$total = @disk_total_space( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable paths fail closed to null.
+	if ( false === $free || false === $total || $total <= 0 ) {
+		return null;
+	}
+	return array(
+		'free'  => (int) $free,
+		'total' => (int) $total,
+	);
+}
+
+/**
+ * Build alarm candidates for filesystems under disk pressure.
+ *
+ * A filesystem pages when free space falls below either threshold. While it
+ * stays low it re-pages every 24 hours, or immediately once free space halves
+ * since the last delivered page. Healthy filesystems produce no candidate.
+ *
+ * @param array $state Alarm dedupe state keyed by signature.
+ * @param int   $now   Unix time.
+ * @return array<int, array<string, mixed>> Candidate rows.
+ */
+function extrachill_analytics_disk_alarm_candidates( array $state, $now ) {
+	$thresholds = extrachill_analytics_disk_alarm_thresholds();
+	$rows       = array();
+	$seen       = array();
+	foreach ( extrachill_analytics_disk_alarm_paths() as $path ) {
+		$reading = extrachill_analytics_disk_alarm_reading( $path );
+		if ( null === $reading || $reading['total'] <= 0 ) {
+			continue;
+		}
+		// One candidate per filesystem, even when several paths share it.
+		$stat   = @stat( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best-effort device id.
+		$fs_key = $reading['total'] . ':' . ( is_array( $stat ) ? (int) $stat['dev'] : 0 );
+		if ( isset( $seen[ $fs_key ] ) ) {
+			continue;
+		}
+		$seen[ $fs_key ] = true;
+		$free_pct        = $reading['free'] / $reading['total'];
+		if ( $free_pct >= $thresholds['min_free_pct'] && $reading['free'] >= $thresholds['min_free_bytes'] ) {
+			continue;
+		}
+		$signature = 'disk:' . untrailingslashit( $path );
+		$prior     = isset( $state[ $signature ] ) && is_array( $state[ $signature ] ) ? $state[ $signature ] : null;
+		$is_new    = null === $prior;
+		$rearmed   = ! $is_new && ( $now - (int) ( $prior['last_alerted_at'] ?? 0 ) ) > DAY_IN_SECONDS;
+		$escalated = ! $is_new && isset( $prior['last_alerted_free'] ) && $reading['free'] * 2 < (int) $prior['last_alerted_free'];
+		$reasons   = array( 'disk_pressure' );
+		if ( $rearmed ) {
+			$reasons[] = 'still_low_after_24h';
+		}
+		if ( $escalated ) {
+			$reasons[] = 'escalated';
+		}
+		$used_pct = (int) round( 100 * ( 1 - $free_pct ) );
+		$rows[]   = array(
+			'kind'        => 'disk',
+			'signature'   => $signature,
+			'severity'    => 'disk',
+			'file'        => $path,
+			'sample'      => sprintf( '%s used %d%%: %s free of %s', $path, $used_pct, size_format( $reading['free'], 1 ), size_format( $reading['total'], 1 ) ),
+			'count'       => $used_pct,
+			'rate_per_hr' => $used_pct,
+			'free_bytes'  => $reading['free'],
+			'total_bytes' => $reading['total'],
+			'first_seen'  => gmdate( 'Y-m-d H:i:s', $now ),
+			'last_seen'   => gmdate( 'Y-m-d H:i:s', $now ),
+			'is_new'      => $is_new,
+			'is_live'     => true,
+			'reasons'     => $reasons,
+			'would_alarm' => $is_new || $rearmed || $escalated,
+		);
+	}
 	return $rows;
 }
 
@@ -1043,6 +1189,8 @@ function extrachill_analytics_fatal_alarm_reason_text( $alarm ) {
 		'over_threshold'       => 'over rate threshold',
 		'escalated'            => 'escalating',
 		'sustained_rest_5xx'   => 'sustained REST 5xx rate',
+		'disk_pressure'        => 'disk nearly full',
+		'still_low_after_24h'  => 'still low after 24h',
 	);
 
 	$reasons = array();
@@ -1065,6 +1213,18 @@ function extrachill_analytics_fatal_alarm_reason_text( $alarm ) {
  */
 function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention = false ) {
 	$prefix = $with_mention ? extrachill_analytics_fatal_alarm_mention_prefix() : '';
+	if ( 'disk' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$prefix . '🚨 **Disk pressure alarm** — ' . extrachill_analytics_fatal_alarm_reason_text( $alarm ),
+				'',
+				$alarm['sample'],
+				'When this filesystem fills, MariaDB fails writes (ENOSPC) and Redis stops persisting (MISCONF).',
+				'Triage: `df -h` then `du -xh --max-depth=2 / | sort -h | tail -20`',
+			)
+		);
+	}
 	if ( 'rest_5xx' === ( $alarm['kind'] ?? '' ) ) {
 		return implode(
 			"\n",
@@ -1115,6 +1275,25 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
  */
 function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 	$mention = extrachill_analytics_fatal_alarm_mention_prefix();
+	if ( 'disk' === ( $alarm['kind'] ?? '' ) ) {
+		return implode(
+			"\n",
+			array(
+				$mention . '🚨 **Disk pressure alarm — investigate and free space.**',
+				'',
+				'- ' . $alarm['sample'],
+				'- On this host the WordPress filesystem also holds MySQL and the Redis RDB. When it fills, MariaDB fails writes (ENOSPC) and Redis stops persisting (MISCONF).',
+				'',
+				'**Workflow:**',
+				'1. `df -h` and `du -xh --max-depth=2 / 2>/dev/null | sort -h | tail -25` to find what grew.',
+				'2. Known culprits: Cargo `target/` dirs and clones written to literal `/tmp` paths, rotated logs under `/var/log`, MySQL binlogs, old backups.',
+				'3. Report the top consumers to the operator. Only delete clearly disposable scratch (agent clones, build targets); ask before touching logs, databases, backups, or anything under `/var/www`.',
+				'4. If a process keeps refilling the disk, file an issue in the owning repo with the evidence.',
+				'',
+				'Report back with what was using the space, what you freed, and the new `df -h` line.',
+			)
+		);
+	}
 	if ( 'rest_5xx' === ( $alarm['kind'] ?? '' ) ) {
 		return implode(
 			"\n",
