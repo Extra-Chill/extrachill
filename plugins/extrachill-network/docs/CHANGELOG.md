@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.13] - 2026-11-15
+
+### Fixed
+- release won disputes and settle lost ones
+
 ## [2.39.12] - 2026-11-15
 
 ### Changed
