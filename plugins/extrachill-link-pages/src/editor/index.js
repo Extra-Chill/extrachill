@@ -378,7 +378,7 @@ function LinksPanel( { draft, change, limits } ) {
 									<input
 										aria-label="Featured thumbnail URL"
 										type="url"
-										placeholder="https://..."
+										placeholder="Thumbnail image URL (optional)"
 										value={ link.thumbnail_url || '' }
 										onChange={ ( event ) => {
 											const items = [ ...section.links ];
@@ -479,7 +479,7 @@ function LinksPanel( { draft, change, limits } ) {
 			) ) }
 			<button
 				type="button"
-				className="button-2 button-medium"
+				className="button-3 button-small ec-lpe-add-section"
 				disabled={ draft.page.links.length >= limits.sections }
 				onClick={ () =>
 					change( {
