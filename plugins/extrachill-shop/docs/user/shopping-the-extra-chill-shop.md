@@ -6,7 +6,7 @@ The [Extra Chill Shop](https://shop.extrachill.com/) is open to everyone. Buy me
 
 - **Artist, venue, and promoter merch**, like shirts, stickers, and patches. Each seller packs and ships its own orders.
 - **Extra Chill merch**, like our stickers.
-- **Lifetime Extra Chill Membership.** A one-time purchase that removes ads across every Extra Chill site.
+- **Extra Chill Supporter (Lifetime).** A one-time way to support Extra Chill. You get the gold-heart Extra Chill Supporter badge next to your name and ad-free browsing on every Extra Chill site.
 - **Event Priority Boost.** Puts an upcoming event first on the calendar for its date.
 
 Tickets for shows are sold on each event's page, not in the shop. See [Buying Event Tickets](buying-event-tickets.md).
@@ -44,11 +44,11 @@ The shop ships to addresses in the United States only.
 
 Memberships and event boosts don't ship. There's nothing to wait for.
 
-## Buying a Lifetime Membership
+## Becoming a Supporter
 
 When you add the membership to your cart, enter the **Community Username** of the account that should get it. If you're logged in, your own username is filled in for you. You can change it to give the membership to someone else.
 
-The username must belong to an existing Extra Chill account. Once your payment goes through, that account stops seeing ads on every Extra Chill site.
+The username must belong to an existing Extra Chill account. Once your payment goes through, that account gets the Extra Chill Supporter badge and stops seeing ads on every Extra Chill site. Read more in [Lifetime membership](https://docs.extrachill.com/accounts/lifetime-membership).
 
 ## Boosting an Event
 
