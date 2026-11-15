@@ -556,6 +556,24 @@
 	}
 }
 
+/* Empty Links tab: a direct first "Add Link" (#1447) */
+.ec-lpe-links-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	margin-bottom: 16px;
+
+	p {
+		margin: 0;
+		color: var(--muted-text);
+	}
+}
+
+.ec-editor__first-steps {
+	margin-bottom: 16px;
+}
+
 /* Modal */
 .ec-lpe-modal-overlay {
 	position: fixed;

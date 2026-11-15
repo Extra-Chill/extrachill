@@ -4,9 +4,28 @@
  * Main editor layout with tab navigation, artist switcher, and save button.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { ActionRow, BlockShell, BlockShellHeader, BlockShellInner, InlineStatus, Panel, ResponsiveTabs } from '@extrachill/components';
+
+/**
+ * External dependencies
+ */
+import {
+	ActionRow,
+	BlockShell,
+	BlockShellHeader,
+	BlockShellInner,
+	InlineStatus,
+	Panel,
+	ResponsiveTabs,
+} from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';
@@ -42,6 +61,7 @@ export default function Editor() {
 		switchArtist,
 		socialIconsCssUrl,
 		fontAwesomeUrl,
+		previewData,
 	} = useEditor();
 
 	const [ saveSuccess, setSaveSuccess ] = useState( false );
@@ -50,6 +70,27 @@ export default function Editor() {
 	const currentArtist = useMemo( () => {
 		return userArtists.find( ( a ) => a.id === artistId );
 	}, [ userArtists, artistId ] );
+
+	// An untouched new page has nothing on it yet. Showing "Saved" there reads
+	// as if something already happened, so a blank page gets a first-step
+	// prompt instead and "Saved" only follows a real save (#1446).
+	const isBlankPage = useMemo(
+		() =>
+			! ( previewData?.links || [] ).some(
+				( section ) => ( section?.links || [] ).length > 0
+			) &&
+			! previewData?.bio &&
+			! previewData?.profileImageUrl &&
+			! ( previewData?.socials || [] ).length,
+		[ previewData ]
+	);
+
+	let saveButtonLabel = __( 'Saved', 'extrachill-artist-platform' );
+	if ( isSaving ) {
+		saveButtonLabel = __( 'Saving…', 'extrachill-artist-platform' );
+	} else if ( hasUnsavedChanges || isBlankPage ) {
+		saveButtonLabel = __( 'Save changes', 'extrachill-artist-platform' );
+	}
 
 	const publicUrl = useMemo( () => {
 		const slug = artist?.slug || currentArtist?.slug;
@@ -110,9 +151,9 @@ export default function Editor() {
 				return <TabSocials />;
 			case 'customize':
 				return <TabCustomize />;
-		case 'advanced':
-			return <TabAdvanced />;
-		default:
+			case 'advanced':
+				return <TabAdvanced />;
+			default:
 				return <TabInfo />;
 		}
 	};
@@ -120,10 +161,26 @@ export default function Editor() {
 	return (
 		<BlockShell className="ec-editor">
 			<BlockShellInner maxWidth="wide">
-				<p><a
-					href={ activeTab === 'advanced' ? window.ecLinkPageEditorConfig.docsAdvancedHelpUrl : window.ecLinkPageEditorConfig.docsHelpUrl }
-					data-ec-track={ activeTab === 'advanced' ? 'docs-help-link-page-advanced-features' : 'docs-help-managing-link-pages' }
-				>{ __( 'How does this work?', 'extrachill-artist-platform' ) }</a></p>
+				<p>
+					<a
+						href={
+							activeTab === 'advanced'
+								? window.ecLinkPageEditorConfig
+										.docsAdvancedHelpUrl
+								: window.ecLinkPageEditorConfig.docsHelpUrl
+						}
+						data-ec-track={
+							activeTab === 'advanced'
+								? 'docs-help-link-page-advanced-features'
+								: 'docs-help-managing-link-pages'
+						}
+					>
+						{ __(
+							'How does this work?',
+							'extrachill-artist-platform'
+						) }
+					</a>
+				</p>
 				<BlockShellHeader
 					title={
 						<div className="ec-editor__header-left">
@@ -134,16 +191,26 @@ export default function Editor() {
 						</div>
 					}
 					actions={
-						<ActionRow align="end" className="ec-editor__header-right">
+						<ActionRow
+							align="end"
+							className="ec-editor__header-right"
+						>
 							<ArtistSwitcher
 								artists={ userArtists }
 								selectedId={ artistId }
 								onChange={ handleArtistChange }
 							/>
-							{ saveError && <InlineStatus tone="error">{ saveError }</InlineStatus> }
+							{ saveError && (
+								<InlineStatus tone="error">
+									{ saveError }
+								</InlineStatus>
+							) }
 							{ saveSuccess && (
 								<InlineStatus tone="success">
-									{ __( 'Saved!', 'extrachill-artist-platform' ) }
+									{ __(
+										'Saved!',
+										'extrachill-artist-platform'
+									) }
 								</InlineStatus>
 							) }
 							<button
@@ -152,11 +219,7 @@ export default function Editor() {
 								onClick={ handleSave }
 								disabled={ isSaving || ! hasUnsavedChanges }
 							>
-								{ isSaving
-									? __( 'Saving...', 'extrachill-artist-platform' )
-									: hasUnsavedChanges
-										? __( 'Save changes', 'extrachill-artist-platform' )
-										: __( 'Saved', 'extrachill-artist-platform' ) }
+								{ saveButtonLabel }
 							</button>
 						</ActionRow>
 					}
@@ -169,47 +232,76 @@ export default function Editor() {
 					artistSlug={ artist?.slug || currentArtist?.slug }
 				/>
 
-				{ isLoading ? (
+				{ isLoading && (
 					<div className="ec-editor-loading">
 						<span className="spinner is-active"></span>
-						<p>{ __( 'Loading editor...', 'extrachill-artist-platform' ) }</p>
+						<p>
+							{ __(
+								'Loading editor…',
+								'extrachill-artist-platform'
+							) }
+						</p>
 					</div>
-				) : error ? (
+				) }
+				{ ! isLoading && error && (
 					<div className="notice notice-error">
 						<p>{ error }</p>
 					</div>
-				) : (
-					<div className="ec-editor__body">
-						<div className="ec-editor__sidebar">
-							<ResponsiveTabs
-								className="ec-editor__sidebar-tabs"
-								tabs={ TABS }
-								active={ activeTab }
-								onChange={ setActiveTab }
-								showDesktopTabs={ true }
-								renderPanel={ () => (
-									<Panel>
-										{ renderTabContent() }
-									</Panel>
-								) }
-							/>
-						</div>
-
-						<div className="ec-editor__preview-region">
-							<div className="ec-editor__preview-header">
-								<h2 className="ec-editor__preview-title">
-									{ __( 'Preview', 'extrachill-artist-platform' ) }
-								</h2>
-								<p className="ec-editor__preview-description">
-									{ __( 'Live preview of your public link page.', 'extrachill-artist-platform' ) }
+				) }
+				{ ! isLoading && ! error && (
+					<>
+						{ isBlankPage && ! hasUnsavedChanges && (
+							<div className="notice notice-info ec-editor__first-steps">
+								<p>
+									<strong>
+										{ __(
+											'Your Link Page is live but empty.',
+											'extrachill-artist-platform'
+										) }
+									</strong>{ ' ' }
+									{ __(
+										"Start by adding a link on the Links tab, then a short bio and a photo on the Info tab. Press Save changes when you're done.",
+										'extrachill-artist-platform'
+									) }
 								</p>
 							</div>
+						) }
+						<div className="ec-editor__body">
+							<div className="ec-editor__sidebar">
+								<ResponsiveTabs
+									className="ec-editor__sidebar-tabs"
+									tabs={ TABS }
+									active={ activeTab }
+									onChange={ setActiveTab }
+									showDesktopTabs={ true }
+									renderPanel={ () => (
+										<Panel>{ renderTabContent() }</Panel>
+									) }
+								/>
+							</div>
 
-							<div className="ec-editor__preview-container">
-								<Preview />
+							<div className="ec-editor__preview-region">
+								<div className="ec-editor__preview-header">
+									<h2 className="ec-editor__preview-title">
+										{ __(
+											'Preview',
+											'extrachill-artist-platform'
+										) }
+									</h2>
+									<p className="ec-editor__preview-description">
+										{ __(
+											'Live preview of your public link page.',
+											'extrachill-artist-platform'
+										) }
+									</p>
+								</div>
+
+								<div className="ec-editor__preview-container">
+									<Preview />
+								</div>
 							</div>
 						</div>
-					</div>
+					</>
 				) }
 			</BlockShellInner>
 		</BlockShell>

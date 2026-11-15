@@ -4,12 +4,19 @@
  * Sections and links management with drag-and-drop.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useCallback, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../../../shared/components/DraggableList';
 
-const createTempId = (prefix) =>
+const createTempId = ( prefix ) =>
 	`temp-${ prefix }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;
 
 export default function TabLinks() {
@@ -47,6 +54,24 @@ export default function TabLinks() {
 		updateLinks( [ ...links, newSection ] );
 	}, [ links, updateLinks ] );
 
+	// A new page has no sections yet. "Add Link" there creates the untitled
+	// section implicitly, so a first link never needs a section first (#1447).
+	const addFirstLink = useCallback( () => {
+		const newSection = {
+			id: createTempId( 'section' ),
+			section_title: '',
+			links: [
+				{
+					id: createTempId( 'link' ),
+					link_text: '',
+					link_url: '',
+					expires_at: '',
+				},
+			],
+		};
+		updateLinks( [ newSection ] );
+	}, [ updateLinks ] );
+
 	const removeSection = useCallback(
 		( sectionIndex ) => {
 			const updated = links.filter( ( _, i ) => i !== sectionIndex );
@@ -56,9 +81,12 @@ export default function TabLinks() {
 	);
 
 	const updateSectionTitle = useCallback(
-		( sectionIndex, section_title ) => {
+		( sectionIndex, sectionTitle ) => {
 			const updated = [ ...links ];
-			updated[ sectionIndex ] = { ...updated[ sectionIndex ], section_title };
+			updated[ sectionIndex ] = {
+				...updated[ sectionIndex ],
+				section_title: sectionTitle,
+			};
 			updateLinks( updated );
 		},
 		[ links, updateLinks ]
@@ -100,8 +128,14 @@ export default function TabLinks() {
 		( sectionIndex, linkIndex, field, value ) => {
 			const updated = [ ...links ];
 			const linksCopy = [ ...updated[ sectionIndex ].links ];
-			linksCopy[ linkIndex ] = { ...linksCopy[ linkIndex ], [ field ]: value };
-			updated[ sectionIndex ] = { ...updated[ sectionIndex ], links: linksCopy };
+			linksCopy[ linkIndex ] = {
+				...linksCopy[ linkIndex ],
+				[ field ]: value,
+			};
+			updated[ sectionIndex ] = {
+				...updated[ sectionIndex ],
+				links: linksCopy,
+			};
 			updateLinks( updated );
 		},
 		[ links, updateLinks ]
@@ -114,9 +148,16 @@ export default function TabLinks() {
 		} ) );
 	}, [] );
 
-	const openExpirationModal = useCallback( ( sectionIndex, linkIndex, currentValue ) => {
-		setExpirationModal( { sectionIndex, linkIndex, value: currentValue || '' } );
-	}, [] );
+	const openExpirationModal = useCallback(
+		( sectionIndex, linkIndex, currentValue ) => {
+			setExpirationModal( {
+				sectionIndex,
+				linkIndex,
+				value: currentValue || '',
+			} );
+		},
+		[]
+	);
 
 	const closeExpirationModal = useCallback( () => {
 		setExpirationModal( null );
@@ -124,14 +165,24 @@ export default function TabLinks() {
 
 	const saveExpiration = useCallback( () => {
 		if ( expirationModal ) {
-			updateLink( expirationModal.sectionIndex, expirationModal.linkIndex, 'expires_at', expirationModal.value );
+			updateLink(
+				expirationModal.sectionIndex,
+				expirationModal.linkIndex,
+				'expires_at',
+				expirationModal.value
+			);
 			setExpirationModal( null );
 		}
 	}, [ expirationModal, updateLink ] );
 
 	const clearExpiration = useCallback( () => {
 		if ( expirationModal ) {
-			updateLink( expirationModal.sectionIndex, expirationModal.linkIndex, 'expires_at', '' );
+			updateLink(
+				expirationModal.sectionIndex,
+				expirationModal.linkIndex,
+				'expires_at',
+				''
+			);
 			setExpirationModal( null );
 		}
 	}, [ expirationModal, updateLink ] );
@@ -151,28 +202,61 @@ export default function TabLinks() {
 						className="ec-link-item__title"
 						value={ link.link_text || '' }
 						onChange={ ( e ) =>
-							updateLink( sectionIndex, linkIndex, 'link_text', e.target.value )
+							updateLink(
+								sectionIndex,
+								linkIndex,
+								'link_text',
+								e.target.value
+							)
 						}
-						placeholder={ __( 'Link title', 'extrachill-artist-platform' ) }
+						placeholder={ __(
+							'Link title',
+							'extrachill-artist-platform'
+						) }
 					/>
 					<input
 						type="url"
 						className="ec-link-item__url"
 						value={ link.link_url || '' }
 						onChange={ ( e ) =>
-							updateLink( sectionIndex, linkIndex, 'link_url', e.target.value )
+							updateLink(
+								sectionIndex,
+								linkIndex,
+								'link_url',
+								e.target.value
+							)
 						}
-						placeholder={ __( 'https://...', 'extrachill-artist-platform' ) }
+						placeholder={ __(
+							'https://…',
+							'extrachill-artist-platform'
+						) }
 					/>
 				</div>
 				{ linkExpirationEnabled && (
 					<button
 						type="button"
 						className={ `ec-link-item__expiration${ hasExpiration ? ' ec-link-item__expiration--active' : '' }` }
-						onClick={ () => openExpirationModal( sectionIndex, linkIndex, link.expires_at ) }
-						title={ hasExpiration
-							? __( 'Expires: ', 'extrachill-artist-platform' ) + link.expires_at
-							: __( 'Set expiration', 'extrachill-artist-platform' )
+						onClick={ () =>
+							openExpirationModal(
+								sectionIndex,
+								linkIndex,
+								link.expires_at
+							)
+						}
+						title={
+							hasExpiration
+								? sprintf(
+										/* translators: %s: link expiration date and time. */
+										__(
+											'Expires: %s',
+											'extrachill-artist-platform'
+										),
+										link.expires_at
+									)
+								: __(
+										'Set expiration',
+										'extrachill-artist-platform'
+									)
 						}
 					>
 						<span className="dashicons dashicons-clock"></span>
@@ -195,7 +279,11 @@ export default function TabLinks() {
 		const isExpanded = expandedSections[ sectionId ] !== false;
 
 		return (
-			<div key={ sectionId } className="ec-lpe-section" data-section-id={ sectionId }>
+			<div
+				key={ sectionId }
+				className="ec-lpe-section"
+				data-section-id={ sectionId }
+			>
 				<div className="ec-lpe-section__header">
 					<span className="ec-lpe-section__drag-handle">
 						<span className="dashicons dashicons-menu"></span>
@@ -207,7 +295,10 @@ export default function TabLinks() {
 						onChange={ ( e ) =>
 							updateSectionTitle( sectionIndex, e.target.value )
 						}
-						placeholder={ __( 'Section title (optional)', 'extrachill-artist-platform' ) }
+						placeholder={ __(
+							'Section title (optional)',
+							'extrachill-artist-platform'
+						) }
 					/>
 					<button
 						type="button"
@@ -262,7 +353,29 @@ export default function TabLinks() {
 				renderItem={ renderSection }
 			/>
 
-			<button type="button" className="ec-add-section" onClick={ addSection }>
+			{ links.length === 0 && (
+				<div className="ec-lpe-links-empty">
+					<p>
+						{ __(
+							'Add the links you want fans to find: your music, shows, merch and more.',
+							'extrachill-artist-platform'
+						) }
+					</p>
+					<button
+						type="button"
+						className="button-1 button-medium ec-lpe-links-empty__add-link"
+						onClick={ addFirstLink }
+					>
+						{ __( 'Add Link', 'extrachill-artist-platform' ) }
+					</button>
+				</div>
+			) }
+
+			<button
+				type="button"
+				className="ec-add-section"
+				onClick={ addSection }
+			>
 				<span className="dashicons dashicons-plus"></span>
 				{ __( 'Add Section', 'extrachill-artist-platform' ) }
 			</button>
@@ -271,16 +384,29 @@ export default function TabLinks() {
 				<div className="ec-expiration-modal">
 					<div className="ec-expiration-modal__inner">
 						<h3 className="ec-expiration-modal__title">
-							{ __( 'Set Link Expiration', 'extrachill-artist-platform' ) }
+							{ __(
+								'Set Link Expiration',
+								'extrachill-artist-platform'
+							) }
 						</h3>
-						<label className="ec-expiration-modal__label">
-							{ __( 'Expiration Date/Time:', 'extrachill-artist-platform' ) }
+						<label
+							className="ec-expiration-modal__label"
+							htmlFor="ec-expiration-modal-input"
+						>
+							{ __(
+								'Expiration Date/Time:',
+								'extrachill-artist-platform'
+							) }
 							<input
+								id="ec-expiration-modal-input"
 								type="datetime-local"
 								className="ec-expiration-modal__input"
 								value={ expirationModal.value }
 								onChange={ ( e ) =>
-									setExpirationModal( { ...expirationModal, value: e.target.value } )
+									setExpirationModal( {
+										...expirationModal,
+										value: e.target.value,
+									} )
 								}
 							/>
 						</label>

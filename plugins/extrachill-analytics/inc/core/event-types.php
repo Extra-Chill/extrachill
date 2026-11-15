@@ -267,6 +267,12 @@ const EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED        = 'artist_access_granted';
 const EC_ANALYTICS_EVENT_ARTIST_SIGNUP_STARTED        = 'artist_signup_started';
 const EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED       = 'artist_profile_created';
 const EC_ANALYTICS_EVENT_ARTIST_PROFILE_FIRST_PUBLISH = 'artist_profile_first_publish';
+/**
+ * An owner saved changes to their Link Page from the editor. Recorded server
+ * side after storage persisted the write, so an editor that loads but cannot
+ * save shows up as editor pageviews with no matching saves.
+ */
+const EC_ANALYTICS_EVENT_ARTIST_LINK_PAGE_SAVED = 'artist_link_page_saved';
 
 const EC_ANALYTICS_ARTIST_ACCESS_GRANTED_SOURCE_ONBOARDING = 'onboarding';
 const EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS           = array(
