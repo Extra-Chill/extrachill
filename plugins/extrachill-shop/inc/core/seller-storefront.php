@@ -226,15 +226,13 @@ function extrachill_shop_return_policy_html( string $policy ): string {
  */
 function extrachill_shop_product_return_policy_tab( $tabs ) {
 	global $product;
-	if ( ! is_object( $product ) || ! method_exists( $product, 'get_id' ) ) {
+	if ( ! $product instanceof WC_Product ) {
 		return $tabs;
 	}
 	$seller = extrachill_shop_get_product_seller( (int) $product->get_id() );
 	if ( ! $seller || '' === extrachill_shop_get_seller_return_policy( $seller ) ) {
 		return $tabs;
 	}
-	$tabs = is_array( $tabs ) ? $tabs : array();
-
 	$tabs['extrachill_shipping_returns'] = array(
 		'title'    => __( 'Shipping & Returns', 'extrachill-shop' ),
 		'priority' => 25,
@@ -248,7 +246,7 @@ function extrachill_shop_product_return_policy_tab( $tabs ) {
  */
 function extrachill_shop_render_product_return_policy_tab(): void {
 	global $product;
-	$seller = is_object( $product ) ? extrachill_shop_get_product_seller( (int) $product->get_id() ) : null;
+	$seller = $product instanceof WC_Product ? extrachill_shop_get_product_seller( (int) $product->get_id() ) : null;
 	if ( ! $seller ) {
 		return;
 	}

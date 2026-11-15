@@ -77,11 +77,11 @@ function extrachill_shop_format_fee_percent( $percent ) {
  * @return array{merch_percent: float, ticket_percent: float, ticket_buyer_fee_percent: float, ticket_buyer_fee_flat: float, merch_summary: string, ticket_summary: string}
  */
 function extrachill_shop_seller_fee_rates() {
-	$settings = ec_commerce_fee_settings();
-	$merch    = (float) $settings['merch_percent'];
-	$ticket   = (float) $settings['ticket_percent'];
-	$buyer_pc = (float) $settings['ticket_buyer_fee_percent'];
-	$buyer_fl = round( ( (int) $settings['ticket_buyer_fee_flat_minor'] ) / 100, 2 );
+	$settings = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings() : array();
+	$merch    = (float) ( $settings['merch_percent'] ?? 0 );
+	$ticket   = (float) ( $settings['ticket_percent'] ?? 0 );
+	$buyer_pc = (float) ( $settings['ticket_buyer_fee_percent'] ?? 0 );
+	$buyer_fl = round( ( (int) ( $settings['ticket_buyer_fee_flat_minor'] ?? 0 ) ) / 100, 2 );
 
 	$ticket_summary = sprintf(
 		/* translators: %s: ticket fee percentage. */

@@ -85,8 +85,12 @@ if ( ! function_exists( 'wc_create_refund' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WC_Order_Refund' ) ) {
+	class WC_Order_Refund {}
+}
+
 /** A saved WooCommerce refund row. */
-final class TestWcRefund {
+final class TestWcRefund extends WC_Order_Refund {
 	public $meta  = array();
 	public $saves = 0;
 	public function __construct( private int $id, public float $amount ) {}

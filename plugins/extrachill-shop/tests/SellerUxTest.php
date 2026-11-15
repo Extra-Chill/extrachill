@@ -12,6 +12,9 @@ namespace {
 	require_once __DIR__ . '/CheckoutRobustnessTest.php';
 	require_once __DIR__ . '/fixtures/class-stripe-refund.php';
 	require_once dirname( __DIR__ ) . '/inc/core/seller-storefront.php';
+	if ( ! class_exists( 'WC_Product' ) ) {
+		class WC_Product {}
+	}
 	require_once dirname( __DIR__ ) . '/inc/abilities/shop-stripe-status.php';
 	require_once dirname( __DIR__ ) . '/inc/abilities/shop-refund-order.php';
 
@@ -362,7 +365,7 @@ namespace {
 			$this->assertStringNotContainsString( '<script>', $html );
 
 			$GLOBALS['test_post_meta'][10] = array( '_extrachill_shop_seller_type' => 'venue', '_extrachill_shop_seller_id' => 9911 );
-			$GLOBALS['product']            = new class() { public function get_id() { return 10; } };
+			$GLOBALS['product']            = new class() extends WC_Product { public function get_id() { return 10; } };
 			$tabs                          = extrachill_shop_product_return_policy_tab( array( 'description' => array( 'title' => 'Description' ) ) );
 			$this->assertSame( 'Shipping & Returns', $tabs['extrachill_shipping_returns']['title'] );
 			ob_start();

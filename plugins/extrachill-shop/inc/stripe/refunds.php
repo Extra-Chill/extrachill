@@ -305,7 +305,7 @@ function extrachill_shop_tag_refund_with_stripe_id( $refund_id ): void {
 	$stripe_id = (string) ( $GLOBALS['extrachill_shop_pending_refund_id'] ?? '' );
 	unset( $GLOBALS['extrachill_shop_pending_refund_id'] );
 	$refund = '' === $stripe_id ? null : wc_get_order( $refund_id );
-	if ( $refund ) {
+	if ( $refund instanceof WC_Order_Refund ) {
 		$refund->update_meta_data( EXTRACHILL_SHOP_REFUND_ID_META, $stripe_id );
 		$refund->save();
 	}
@@ -343,7 +343,7 @@ function extrachill_shop_charge_refund_rows( $charge, $account ) {
 	// @phpstan-ignore-next-line staticMethod.notFound -- Refund::all comes from the SDK's ApiOperations\All trait.
 	$refunds = \Stripe\Refund::all(
 		array(
-			'charge' => $charge->id,
+			'charge' => (string) ( $charge->id ?? '' ),
 			'limit'  => 100,
 		),
 		array( 'stripe_account' => $account )
@@ -437,7 +437,7 @@ function extrachill_shop_merch_charge_refunded( $charge, $account ) {
 		// (and unspent shipping once fully refunded). The buyer's refund stands
 		// either way; a failure is left in a note for an operator.
 		$fresh      = wc_get_order( $order->get_id() );
-		$fee_refund = extrachill_shop_refund_merch_application_fee( $fresh ? $fresh : $order );
+		$fee_refund = extrachill_shop_refund_merch_application_fee( $fresh instanceof WC_Order ? $fresh : $order );
 		if ( is_wp_error( $fee_refund ) ) {
 			$order->add_order_note( 'Dashboard refund recorded, but returning the Extra Chill application fee to the seller failed: ' . $fee_refund->get_error_message() );
 		}
