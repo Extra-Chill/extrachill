@@ -68,6 +68,7 @@ jobs:
       drift_checks: ${{ toJSON(fromJSON(needs.config.outputs.config).drift_checks) }}
       prompt: ${{ fromJSON(needs.config.outputs.config).prompt }}
       model: ${{ fromJSON(needs.config.outputs.config).model }}
+      max_turns: ${{ fromJSON(needs.config.outputs.config).max_turns }}
       dry_run: ${{ inputs.dry_run }}
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

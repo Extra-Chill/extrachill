@@ -2,6 +2,7 @@
 # docs_subpath stays relative to the plugin for publishing and migration.
 # runner is optional: only configured components appear in docs-agent.yml.
 # Keep prompts, bootstrap contracts, writable paths and lane settings here.
+# max_turns is optional (default 40); raise it only with run evidence.
 # Legacy OWNER/REPO identities are derived by the PHP loader for existing pages.
 plugins:
 
@@ -89,6 +90,9 @@ plugins:
       run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-shop-user-docs"
+      # 11 existing articles checked claim by claim: run 43733612403 made 23
+      # successful edits (one per turn) and was still editing at the 40-turn cap.
+      max_turns: 80
       writable_paths: "plugins/extrachill-shop/docs/user/**"
       context_repositories: []
       source_delta: [{"id": "shop-product-surface", "source_refs": ["plugins/extrachill-shop/inc/**", "plugins/extrachill-shop/src/**"], "requires_documentation_change": false}]
