@@ -170,7 +170,7 @@ $outsider_id = (int) $outsider_id;
  * `ec_is_team_member( $id )` -- a per-site `administrator` role on this
  * network does NOT carry `manage_options` (verified empirically: an
  * operator seeded with the `administrator` role failed
- * VenueAuthorization::has_feature_access() with `user_can_manage_options:
+ * TeamAuthorization::has_feature_access() with `user_can_manage_options:
  * false`), so the fixture users need the real `extra_chill_team` role, the
  * same as journeys/gardner-venue-booking's persona.
  */

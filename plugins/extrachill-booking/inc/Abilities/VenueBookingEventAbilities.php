@@ -10,7 +10,7 @@ namespace ExtraChillEvents\Abilities;
 use ExtraChillEvents\Core\BookingEventConversionService;
 use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -25,16 +25,16 @@ class VenueBookingEventAbilities {
 	private $sync;
 	/** @var BookingRepository */
 	private $bookings;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var array|null Exact booking context active during nested event upsert. */
 	private $active_conversion;
 	/** @var array|null Exact booking context active during nested event synchronization. */
 	private $active_sync;
 
-	public function __construct( ?BookingEventConversionService $conversion = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?BookingEventSyncService $sync = null ) {
+	public function __construct( ?BookingEventConversionService $conversion = null, ?BookingRepository $bookings = null, ?callable $authorization = null, ?BookingEventSyncService $sync = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->conversion    = $conversion ? $conversion : new BookingEventConversionService( $this->bookings, null, null, $this->authorization );
 		$this->sync          = $sync ? $sync : new BookingEventSyncService( $this->bookings, null, $this->authorization );
 		add_filter( 'datamachine_events_upsert_event_permission', array( $this, 'can_upsert_booking_event' ), 10, 2 );
@@ -127,7 +127,7 @@ class VenueBookingEventAbilities {
 			return false;
 		}
 		$venue_id = isset( $input['venue'] ) ? (int) $input['venue'] : (int) $this->active_sync['venue_term_id'];
-		return true === $this->authorization->authorize( get_current_user_id(), $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		return true === ( $this->authorization )( 'ec_access_venue', $venue_id, get_current_user_id() );
 	}
 
 	/** Grant only the exact nested DME write performed by this conversion. */
@@ -141,10 +141,10 @@ class VenueBookingEventAbilities {
 			return false;
 		}
 
-		return true === $this->authorization->authorize(
-			get_current_user_id(),
+		return true === ( $this->authorization )(
+			'ec_access_venue',
 			(int) $this->active_conversion['venue_term_id'],
-			VenueAuthorization::ACTION_ACCESS_VENUE
+			get_current_user_id()
 		);
 	}
 
@@ -182,7 +182,7 @@ class VenueBookingEventAbilities {
 	/** Missing records deliberately use the same denial as inaccessible records. */
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
 	private function input_schema(): array {

@@ -9,7 +9,7 @@ use DataMachineEvents\Core\EventDatesTable;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 
 require_once __DIR__ . '/booking-attachment-mysql-bootstrap.php';
 
@@ -262,8 +262,8 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 		$this->assertTrue( add_user_to_blog( $this->events_blog_id, $operator_a, 'administrator' ) );
 		$this->assertTrue( add_user_to_blog( $this->events_blog_id, $operator_b, 'administrator' ) );
 		switch_to_blog( $this->events_blog_id );
-		get_user_by( 'id', $operator_a )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
-		get_user_by( 'id', $operator_b )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
+		get_user_by( 'id', $operator_a )->add_cap( TeamAuthorization::ACCESS_CAPABILITY );
+		get_user_by( 'id', $operator_b )->add_cap( TeamAuthorization::ACCESS_CAPABILITY );
 		restore_current_blog();
 		return array( $operator_a, $operator_b );
 	}

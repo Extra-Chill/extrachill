@@ -8,7 +8,7 @@
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -47,14 +47,13 @@ function ec_events_resolve_booking_console_destination( array $booking, array $r
 
 	$locked_active = array();
 	foreach ( $locked_rows as $row ) {
-		if ( absint( $row['venue_term_id'] ?? 0 ) === $venue_term_id && VenueAuthorization::STATUS_ACTIVE === ( $row['status'] ?? '' ) ) {
+		if ( absint( $row['venue_term_id'] ?? 0 ) === $venue_term_id && TeamAuthorization::STATUS_ACTIVE === ( $row['status'] ?? '' ) ) {
 			$locked_active[ absint( $row['user_id'] ?? 0 ) ] = true;
 		}
 	}
 
-	$authorization = new VenueAuthorization();
 	foreach ( array_unique( array_map( 'absint', $recipient_ids ) ) as $recipient_id ) {
-		if ( $recipient_id < 1 || empty( $locked_active[ $recipient_id ] ) || true !== $authorization->authorize( $recipient_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE ) ) {
+		if ( $recipient_id < 1 || empty( $locked_active[ $recipient_id ] ) || ! user_can( $recipient_id, 'ec_access_venue', $venue_term_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
 			return new WP_Error( 'booking_notification_destination_forbidden', __( 'A booking notification recipient no longer has venue access.', 'extrachill-events' ) );
 		}
 	}
@@ -101,7 +100,7 @@ function ec_events_user_has_managed_identity( int $user_id ): bool {
 	if ( $user_id < 1 ) {
 		return false;
 	}
-	if ( ! class_exists( BookingSchema::class ) || ! class_exists( VenueAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {
+	if ( ! class_exists( BookingSchema::class ) || ! class_exists( TeamAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {
 		return false;
 	}
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
@@ -114,7 +113,7 @@ function ec_events_user_has_managed_identity( int $user_id ): bool {
 		switch_to_blog( $events_blog_id );
 	}
 	try {
-		if ( ! ( new VenueAuthorization() )->has_feature_access( $user_id ) ) {
+		if ( ! ( new TeamAuthorization() )->has_feature_access( $user_id ) ) {
 			return false;
 		}
 		if ( BookingSchema::is_ready() && true === ( new VenueMembershipRepository() )->has_active_venue_for_user( $user_id ) ) {
@@ -236,12 +235,11 @@ function ec_events_get_venue_archive_workspace_action( int $venue_term_id, int $
 		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'logged_out' );
 	}
 
-	$user_id       = $user_id > 0 ? $user_id : get_current_user_id();
-	$authorization = new VenueAuthorization();
-	if ( $authorization->is_administrator( $user_id ) ) {
+	$user_id = $user_id > 0 ? $user_id : get_current_user_id();
+	if ( ( new TeamAuthorization() )->is_administrator( $user_id ) ) {
 		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'administrator' );
 	}
-	if ( $authorization->can( $user_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE ) ) {
+	if ( user_can( $user_id, 'ec_access_venue', $venue_term_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
 		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'member' );
 	}
 

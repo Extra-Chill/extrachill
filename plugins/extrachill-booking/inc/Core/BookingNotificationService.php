@@ -461,7 +461,7 @@ class BookingNotificationService {
 		$owners     = array();
 		$repository = new VenueMembershipRepository();
 		foreach ( $rows as $row ) {
-			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== (int) $booking['venue_term_id'] || VenueAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) ) {
+			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== (int) $booking['venue_term_id'] || TeamAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) ) {
 				continue;
 			}
 			$member = $repository->hydrate( $row );

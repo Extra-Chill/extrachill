@@ -13,7 +13,6 @@ use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueBookingEmbed;
-use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';

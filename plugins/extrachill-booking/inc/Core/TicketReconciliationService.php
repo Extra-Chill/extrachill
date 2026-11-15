@@ -25,7 +25,7 @@ class TicketReconciliationService {
 	private $bookings;
 	/** @var BookingActivityRepository */
 	private $activity;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var BookingAttachmentRepository */
 	private $attachments;
@@ -34,10 +34,10 @@ class TicketReconciliationService {
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null ) {
 		$this->bookings           = $bookings ? $bookings : new BookingRepository();
 		$this->activity           = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization      = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization      = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->attachments        = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->attachment_service = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, $this->bookings, $this->activity, null, null, $this->authorization );
 	}
@@ -69,7 +69,7 @@ class TicketReconciliationService {
 		);
 		$row['request_hash'] = $this->hash( $row, array( 'booking_id', 'event_id', 'venue_term_id', 'provider', 'source_key', 'canonical_url' ) );
 
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$started = $this->begin_authorized( $booking, $actor_id, 'ec_manage_venue_finances' );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -126,7 +126,7 @@ class TicketReconciliationService {
 
 	/** Return a bounded redacted source list. */
 	public function list_sources( int $booking_id, int $actor_id ) {
-		$booking = $this->authorized_booking( $booking_id, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$booking = $this->authorized_booking( $booking_id, $actor_id, 'ec_access_venue' );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
@@ -159,7 +159,7 @@ class TicketReconciliationService {
 
 	/** Parse one approved private CSV attachment into canonical report inputs. */
 	public function csv_report_inputs( array $input, int $actor_id ) {
-		$booking = $this->authorized_booking( $input['booking_id'] ?? 0, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$booking = $this->authorized_booking( $input['booking_id'] ?? 0, $actor_id, 'ec_access_venue' );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
@@ -204,7 +204,7 @@ class TicketReconciliationService {
 
 	/** Derive deterministic diagnostics and current admission state. */
 	public function diagnostics( int $booking_id, int $actor_id ) {
-		$booking = $this->authorized_booking( $booking_id, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$booking = $this->authorized_booking( $booking_id, $actor_id, 'ec_access_venue' );
 		return is_wp_error( $booking ) ? $booking : $this->diagnostics_for_booking( $booking );
 	}
 
@@ -225,7 +225,7 @@ class TicketReconciliationService {
 		if ( is_wp_error( $report_id ) || is_wp_error( $source_id ) || ! is_int( $expected ) || $expected < 0 || ! in_array( $decision, self::DECISIONS, true ) || '' === $reason ) {
 			return is_wp_error( $report_id ) ? $report_id : ( is_wp_error( $source_id ) ? $source_id : new \WP_Error( 'invalid_sales_resolution', __( 'A valid versioned reconciliation decision and reason are required.', 'extrachill-events' ), array( 'status' => 400 ) ) );
 		}
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$started = $this->begin_authorized( $booking, $actor_id, 'ec_manage_venue_finances' );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -789,7 +789,7 @@ class TicketReconciliationService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], $action );
+		$allowed = ( $this->authorization )( $action, $booking['venue_term_id'], $actor_id );
 		return true === $allowed ? $booking : $this->denied( $allowed );
 	}
 
@@ -812,7 +812,7 @@ class TicketReconciliationService {
 		if ( is_wp_error( $members ) ) {
 			return $this->rollback( new \WP_Error( 'sales_reconciliation_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
 		}
-		$allowed = $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], $action, (array) $members );
+		$allowed = ( $this->authorization )( $action, $booking['venue_term_id'], $actor_id, (array) $members );
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
 	}
 

@@ -24,15 +24,15 @@ class BookingMarketingService {
 	private $activity;
 	/** @var VenueBookingConfig */
 	private $config;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var bool */
 	private static bool $registered = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueBookingConfig $config = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueBookingConfig $config = null, ?callable $authorization = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->config        = $config ? $config : new VenueBookingConfig( $this->authorization );
 	}
 
@@ -166,7 +166,7 @@ class BookingMarketingService {
 		if ( ! is_array( $booking ) ) {
 			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
@@ -539,7 +539,7 @@ class BookingMarketingService {
 		if ( ! is_array( $booking ) || $actor_id < 1 ) {
 			return new \WP_Error( 'booking_marketing_owner_forbidden' );
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( is_wp_error( $allowed ) && $this->is_recoverable_apply_error( $allowed ) ) {
 			return $this->recoverable_infrastructure_error( $allowed );
 		}
@@ -652,7 +652,7 @@ class BookingMarketingService {
 		if ( ! is_array( $booking ) ) {
 			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}

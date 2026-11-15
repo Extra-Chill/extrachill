@@ -9,7 +9,7 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingNotificationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -75,7 +75,7 @@ final class BookingNotificationTest extends BookingTestCase {
 			'created_by_user_id' => 1,
 			'created_at'         => '2026-01-01 00:00:00',
 			'updated_at'         => '2026-01-01 00:00:00',
-			'revoked_at'         => VenueAuthorization::STATUS_REVOKED === $status ? '2026-01-02 00:00:00' : null,
+			'revoked_at'         => TeamAuthorization::STATUS_REVOKED === $status ? '2026-01-02 00:00:00' : null,
 		);
 	}
 
@@ -89,7 +89,7 @@ final class BookingNotificationTest extends BookingTestCase {
 		);
 		return static function ( array $booking, array $recipient_ids, array $members ) use ( &$resolved, $authorization ) {
 			foreach ( $recipient_ids as $recipient_id ) {
-				$allowed = $authorization->authorize_locked( $recipient_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE, $members );
+				$allowed = $authorization->authorize_locked( $recipient_id, $booking['venue_term_id'], 'ec_access_venue', $members );
 				if ( true !== $allowed ) {
 					return $allowed;
 				}
@@ -158,7 +158,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_production_users_receipt_payload_is_idempotent_and_complete(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$captured = array();
 		$GLOBALS['ec_artist_test']['users_receipt'] = static function ( array $recipients, array $payload ) use ( &$captured ): array {
@@ -179,7 +179,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_only_inquiry_submitted_claims_producer_owned_email(): void {
 		$booking  = $this->booking();
 		$captured = array();
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$GLOBALS['ec_artist_test']['users_receipt'] = static function ( array $recipients, array $payload ) use ( &$captured ): array {
 			unset( $recipients );
 			$captured[ $payload['type'] ] = $payload;
@@ -205,10 +205,10 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_partial_and_zero_receipts_retry_safely_to_completion(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
-		$this->member( 2, 55, 11, VenueAuthorization::STATUS_ACTIVE, true );
-		$this->member( 3, 55, 12, VenueAuthorization::STATUS_INVITED, false );
-		$this->member( 4, 77, 13, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
+		$this->member( 2, 55, 11, TeamAuthorization::STATUS_ACTIVE, true );
+		$this->member( 3, 55, 12, TeamAuthorization::STATUS_INVITED, false );
+		$this->member( 4, 77, 13, TeamAuthorization::STATUS_ACTIVE, true );
 		$request  = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$resolved = array();
 		$calls    = 0;
@@ -280,9 +280,9 @@ final class BookingNotificationTest extends BookingTestCase {
 	/** Every operational event selects active owners instead of other members. */
 	public function test_recipient_policy_targets_active_owners(): void {
 		$booking = $this->booking();
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
-		$this->member( 2, 55, 11, VenueAuthorization::STATUS_ACTIVE, false );
-		$this->member( 3, 55, 12, VenueAuthorization::STATUS_ACTIVE, false );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
+		$this->member( 2, 55, 11, TeamAuthorization::STATUS_ACTIVE, false );
+		$this->member( 3, 55, 12, TeamAuthorization::STATUS_ACTIVE, false );
 		$deliveries = array();
 		$resolved   = array();
 		$service    = new BookingNotificationService(
@@ -314,7 +314,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_permanent_failure_is_poisoned_after_bounded_attempts(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$service = new BookingNotificationService( null, null, null, static function () { return new WP_Error( 'permanent_route_failure' ); } );
 		for ( $attempt = 0; $attempt < BookingNotificationService::MAX_ATTEMPTS; ++$attempt ) {
@@ -330,7 +330,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	/** A deferred poison request does not block a newer valid notification. */
 	public function test_deferred_poison_request_does_not_starve_newer_work(): void {
 		$booking = $this->booking();
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$old_source  = $this->source( $booking );
 		$old_request = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $old_source['id'] );
 		$failed      = new BookingNotificationService( null, null, null, static function () { return new WP_Error( 'permanent_route_failure' ); } );
@@ -356,7 +356,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_request_lock_rejects_overlapping_reconciliation(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request  = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$overlap  = null;
 		$service  = null;
@@ -379,7 +379,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_two_worker_failure_race_records_once_under_lock(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request  = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$overlap  = null;
 		$service  = null;
@@ -402,7 +402,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_failure_then_success_race_rechecks_due_and_terminal_state(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request  = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$resolved = array();
 		$failure  = new BookingNotificationService( null, null, static function () { return new WP_Error( 'dependency_failed' ); }, $this->destination( $resolved ), static function (): int { return 99; } );
@@ -423,7 +423,7 @@ final class BookingNotificationTest extends BookingTestCase {
 	public function test_revocation_race_reselects_exact_active_recipients(): void {
 		$booking = $this->booking();
 		$source  = $this->source( $booking );
-		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$this->member( 1, 55, 10, TeamAuthorization::STATUS_ACTIVE, true );
 		$request    = ( new BookingNotificationService() )->request( BookingNotificationService::TYPE_INQUIRY_SUBMITTED, $source['id'] );
 		$deliveries = array();
 		$resolved   = array();
@@ -445,7 +445,7 @@ final class BookingNotificationTest extends BookingTestCase {
 
 		$service->reconcile( $request['id'] );
 		$this->make_retry_due( $request['id'] );
-		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1]['status'] = VenueAuthorization::STATUS_REVOKED;
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1]['status'] = TeamAuthorization::STATUS_REVOKED;
 		$terminal = $service->reconcile( $request['id'] );
 
 		$this->assertSame( array( array( 10 ) ), $deliveries );

@@ -46,17 +46,24 @@ final class TeamCapabilities {
 	 *
 	 * This is the same policy evaluation `map_meta_cap` performs; it returns the
 	 * policy's own error so callers keep their established codes and statuses.
+	 * Callers that already hold team membership rows under a transaction lock
+	 * pass them as `$locked_memberships` so the decision uses those rows.
 	 *
-	 * @param string   $cap     Events-owned meta capability, such as `ec_access_venue`.
-	 * @param int      $term_id Exact venue or promoter term ID.
-	 * @param int|null $user_id Network user ID; defaults to the current user.
+	 * @param string     $cap                Events-owned meta capability, such as `ec_access_venue`.
+	 * @param int        $term_id            Exact venue or promoter term ID.
+	 * @param int|null   $user_id            Network user ID; defaults to the current user.
+	 * @param array|null $locked_memberships Membership rows read under the caller's lock.
 	 * @return true|\WP_Error
 	 */
-	public static function authorize( string $cap, int $term_id, ?int $user_id = null ) {
+	public static function authorize( string $cap, int $term_id, ?int $user_id = null, ?array $locked_memberships = null ) {
 		if ( ! isset( self::CAPABILITIES[ $cap ] ) ) {
 			return new \WP_Error( 'invalid_team_capability', __( 'The requested team capability is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		list( $team_type, $action ) = self::CAPABILITIES[ $cap ];
-		return ( new TeamAuthorization() )->authorize( null === $user_id ? get_current_user_id() : $user_id, $team_type, $term_id, $action );
+		$user_id                    = null === $user_id ? get_current_user_id() : $user_id;
+		if ( null !== $locked_memberships ) {
+			return ( new TeamAuthorization() )->authorize_locked( $user_id, $team_type, $term_id, $action, $locked_memberships );
+		}
+		return ( new TeamAuthorization() )->authorize( $user_id, $team_type, $term_id, $action );
 	}
 }

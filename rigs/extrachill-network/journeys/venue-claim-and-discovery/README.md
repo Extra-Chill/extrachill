@@ -16,7 +16,7 @@ Ported from `extrachill-events/tests/browser/venue-claim-acquisition.evidence.js
 
 The originals ran against a fully mocked PHP runtime
 (`venue-claim-archive-fixture.php` stubbed every WordPress function by
-hand, including `VenueAuthorization`/`VenueBookingConfig` themselves) that
+hand, including the venue authorization facade and `VenueBookingConfig` themselves) that
 reproduced `inc/templates/archive.php` and
 `inc/templates/location-venue-badges.php` by hand-copying their markup.
 Reading the real current source revealed the workspace-action markup moved

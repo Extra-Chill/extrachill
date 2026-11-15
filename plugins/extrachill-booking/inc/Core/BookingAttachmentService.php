@@ -46,7 +46,7 @@ class BookingAttachmentService {
 	private $provider;
 	/** Exact venue authorization policy.
 	 *
-	 * @var VenueAuthorization
+	 * @var callable
 	 */
 	private $authorization;
 	/**
@@ -57,16 +57,16 @@ class BookingAttachmentService {
 	 * @param BookingActivityRepository|null           $activity    Activity repository.
 	 * @param BookingAttachmentPolicy|null             $policy      Attachment policy.
 	 * @param mixed                                    $provider      Private provider.
-	 * @param VenueAuthorization|null                  $authorization Exact venue authorization.
+	 * @param callable|null                            $authorization Exact venue authorization.
 	 * @param BookingAttachmentDeliveryRepository|null $deliveries Delivery repository.
 	 */
-	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingAttachmentPolicy $policy = null, $provider = null, ?VenueAuthorization $authorization = null, ?BookingAttachmentDeliveryRepository $deliveries = null ) {
+	public function __construct( ?BookingAttachmentRepository $attachments = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingAttachmentPolicy $policy = null, $provider = null, ?callable $authorization = null, ?BookingAttachmentDeliveryRepository $deliveries = null ) {
 		$this->attachments   = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->deliveries    = $deliveries ? $deliveries : new BookingAttachmentDeliveryRepository();
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
 		$this->policy        = $policy ? $policy : new BookingAttachmentPolicy();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$resolved            = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
 		$this->provider      = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
 			? $resolved
@@ -831,7 +831,7 @@ class BookingAttachmentService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
@@ -1207,7 +1207,7 @@ class BookingAttachmentService {
 			return true;
 		}
 		foreach ( $venue_ids as $venue_id ) {
-			$allowed = $this->authorization->authorize_locked( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, $locked_memberships[ $venue_id ] );
+			$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id, $locked_memberships[ $venue_id ] );
 			if ( true !== $allowed ) {
 				return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 			}

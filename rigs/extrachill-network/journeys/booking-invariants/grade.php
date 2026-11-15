@@ -261,8 +261,8 @@ if ( ! class_exists( '\\ExtraChillEvents\\Core\\BookingRepository' ) ) {
 if ( ! class_exists( '\\ExtraChillEvents\\Core\\BookingActivityRepository' ) ) {
 	throw new RuntimeException( 'BookingActivityRepository is unavailable after bootstrapping extrachill-events.' );
 }
-if ( ! class_exists( '\\ExtraChillEvents\\Core\\VenueAuthorization' ) ) {
-	throw new RuntimeException( 'VenueAuthorization is unavailable after bootstrapping extrachill-events.' );
+if ( ! class_exists( '\\ExtraChillEvents\\Core\\TeamCapabilities' ) ) {
+	throw new RuntimeException( 'TeamCapabilities is unavailable after bootstrapping extrachill-events.' );
 }
 
 wp_set_current_user( 0 );
@@ -457,12 +457,12 @@ wp_set_current_user( $operator_id );
  * behind a generic ability_invalid_permissions code (WP core class-wp-ability.php
  * check_permissions(): "Don't leak the permission check error to someone
  * without the correct perms"). Diagnose the real authorization decision
- * directly against VenueAuthorization -- the same check the ability's own
+ * directly against TeamCapabilities::authorize() -- the same check the ability's own
  * permission_callback makes -- so a genuine access defect is attributable
  * instead of masked.
  */
-$operator_direct_authorization = new \ExtraChillEvents\Core\VenueAuthorization();
-$operator_direct_check         = $operator_direct_authorization->authorize( $operator_id, $venue_a, \ExtraChillEvents\Core\VenueAuthorization::ACTION_ACCESS_VENUE );
+$operator_direct_authorization = new \ExtraChillEvents\Core\TeamAuthorization();
+$operator_direct_check         = \ExtraChillEvents\Core\TeamCapabilities::authorize( 'ec_access_venue', $venue_a, $operator_id );
 booking_invariants_case(
 	'operator-direct-authorization-diagnostic',
 	true === $operator_direct_check,

@@ -13,7 +13,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -808,7 +808,7 @@ final class BookingHoldTest extends BookingTestCase {
 			'venue_term_id'      => 55,
 			'user_id'            => 12,
 			'is_owner'           => 1,
-			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'status'             => TeamAuthorization::STATUS_ACTIVE,
 			'version'            => 1,
 			'created_by_user_id' => 12,
 			'created_at'         => '2030-01-01 00:00:00',
@@ -816,21 +816,21 @@ final class BookingHoldTest extends BookingTestCase {
 			'revoked_at'         => null,
 		);
 		$revoke = static function () use ( $membership_table ) {
-			$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = VenueAuthorization::STATUS_REVOKED;
+			$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = TeamAuthorization::STATUS_REVOKED;
 		};
 		$GLOBALS['wpdb']->after_membership_lock = $revoke;
 		$this->assertSame( 'venue_action_forbidden', $holds->create( $booking['id'], 1, 12 )->get_error_code() );
 
-		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = VenueAuthorization::STATUS_ACTIVE;
+		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = TeamAuthorization::STATUS_ACTIVE;
 		$created = $holds->create( $booking['id'], 1, 12 );
 		$GLOBALS['wpdb']->after_membership_lock = $revoke;
 		$this->assertSame( 'venue_action_forbidden', $holds->release( $created['hold']['id'], 1, 12, 'revoked' )->get_error_code() );
 
-		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = VenueAuthorization::STATUS_ACTIVE;
+		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = TeamAuthorization::STATUS_ACTIVE;
 		$GLOBALS['wpdb']->after_membership_lock = $revoke;
 		$this->assertSame( 'venue_action_forbidden', $lifecycle->transition( $booking['id'], 'held', 2, 12 )->get_error_code() );
 
-		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = VenueAuthorization::STATUS_ACTIVE;
+		$GLOBALS['wpdb']->rows[ $membership_table ][1]['status'] = TeamAuthorization::STATUS_ACTIVE;
 		$lifecycle->transition( $booking['id'], 'held', 2, 12 );
 		$GLOBALS['wpdb']->after_membership_lock = $revoke;
 		$this->assertSame( 'venue_action_forbidden', $lifecycle->transition( $booking['id'], 'confirmed', 3, 12 )->get_error_code() );

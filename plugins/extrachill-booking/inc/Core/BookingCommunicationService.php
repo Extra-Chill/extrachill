@@ -33,7 +33,7 @@ class BookingCommunicationService {
 	private $bookings;
 	/** @var BookingActivityRepository */
 	private $activity;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var VenueBookingConfig */
 	private $config;
@@ -54,10 +54,10 @@ class BookingCommunicationService {
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null, ?VenueBookingConfig $config = null, $venue_recipients = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null, $queue = null, $schedule = null, $cancel = null, $find_actions = null, ?VenueBookingConfig $config = null, $venue_recipients = null ) {
 		$this->bookings         = $bookings ? $bookings : new BookingRepository();
 		$this->activity         = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization    = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization    = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->config           = $config ? $config : new VenueBookingConfig( $this->authorization );
 		$this->queue            = $queue;
 		$this->schedule         = $schedule;
@@ -98,7 +98,7 @@ class BookingCommunicationService {
 		if ( ! is_array( $booking ) ) {
 			return is_wp_error( $booking ) ? $booking : $this->forbidden();
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : $this->forbidden();
 		}
@@ -480,7 +480,7 @@ class BookingCommunicationService {
 		if ( ! is_array( $booking ) ) {
 			return $this->forbidden();
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : $this->forbidden();
 		}
@@ -1333,7 +1333,7 @@ class BookingCommunicationService {
 		if ( is_wp_error( $locked ) ) {
 			return $this->rollback( $locked );
 		}
-		$allowed = $this->authorization->authorize_locked( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, $locked );
+		$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id, $locked );
 		return true === $allowed ? true : $this->rollback( is_wp_error( $allowed ) ? $allowed : $this->forbidden() );
 	}
 
@@ -1343,7 +1343,7 @@ class BookingCommunicationService {
 		if ( is_wp_error( $locked ) ) {
 			return new \WP_Error( 'booking_communication_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) );
 		}
-		$locked = array_values( array_filter( $locked, static fn( $member ) => VenueAuthorization::STATUS_ACTIVE === $member['status'] ) );
+		$locked = array_values( array_filter( $locked, static fn( $member ) => TeamAuthorization::STATUS_ACTIVE === $member['status'] ) );
 		if ( count( $locked ) > 100 ) {
 			return new \WP_Error( 'booking_correspondence_venue_recipients_invalid', __( 'The venue has too many membership records to resolve booking recipients safely.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
@@ -1382,7 +1382,7 @@ class BookingCommunicationService {
 		$emails = array();
 		foreach ( $this->locked_memberships as $row ) {
 			$user_id = (int) ( $row['user_id'] ?? 0 );
-			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== $venue_id || VenueAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) || true !== $this->authorization->authorize_locked( $user_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, $this->locked_memberships ) ) {
+			if ( (int) ( $row['venue_term_id'] ?? 0 ) !== $venue_id || TeamAuthorization::STATUS_ACTIVE !== ( $row['status'] ?? '' ) || true !== ( $this->authorization )( 'ec_access_venue', $venue_id, $user_id, $this->locked_memberships ) ) {
 				continue;
 			}
 			$user  = get_userdata( $user_id );

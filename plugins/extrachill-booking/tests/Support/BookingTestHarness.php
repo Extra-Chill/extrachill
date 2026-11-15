@@ -27,7 +27,8 @@ use ExtraChillEvents\Abilities\VenueBookingHoldAbilities;
 use ExtraChillEvents\Abilities\VenueBookingMutationAbilities;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Abilities\VenueBookingCommunicationAbilities;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
@@ -505,7 +506,7 @@ if ( ! function_exists( 'user_can' ) ) {
 			if ( 'manage_options' === $capability ) {
 				return ! empty( $GLOBALS['venue_membership_test']['administrators'][ $user_id ] );
 			}
-			return VenueAuthorization::ACCESS_CAPABILITY === $capability && ! empty( $GLOBALS['venue_membership_test']['team_access'][ $user_id ] );
+			return TeamAuthorization::ACCESS_CAPABILITY === $capability && ! empty( $GLOBALS['venue_membership_test']['team_access'][ $user_id ] );
 		}
 		if ( isset( $GLOBALS['ec_artist_test']['user_caps'][ (int) $user_id ] ) && array_key_exists( $capability, $GLOBALS['ec_artist_test']['user_caps'][ (int) $user_id ] ) ) {
 			return (bool) $GLOBALS['ec_artist_test']['user_caps'][ (int) $user_id ][ $capability ];
@@ -515,7 +516,7 @@ if ( ! function_exists( 'user_can' ) ) {
 if ( ! function_exists( 'ec_feature_available' ) ) {
 	function ec_feature_available( $feature, $user_id ) {
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
-			return VenueAuthorization::FEATURE === $feature && ! empty( $GLOBALS['venue_membership_test']['feature_available'] );
+			return TeamAuthorization::FEATURE === $feature && ! empty( $GLOBALS['venue_membership_test']['feature_available'] );
 		}
 		if ( array_key_exists( 'feature_available', $GLOBALS['ec_artist_test'] ?? array() ) ) {
 			return 'venue_booking' === $feature && ! empty( $GLOBALS['ec_artist_test']['feature_available'] );
@@ -2362,7 +2363,8 @@ final class BookingWpdb {
 require_once __DIR__ . '/../../../extrachill-events/tests/Support/team-members-fake.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueMembershipRepository.php';
-require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueAuthorization.php';
+require_once __DIR__ . '/../../../extrachill-events/inc/Core/TeamAuthorization.php';
+require_once __DIR__ . '/../../../extrachill-events/inc/Core/TeamCapabilities.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/ArtistAuthorization.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/ArtistMappingLock.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingRepository.php';
@@ -2409,26 +2411,35 @@ require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingReportingAbilities.p
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivacyService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingPrivacyAbilities.php';
 
-final class BookingTestAuthorization extends VenueAuthorization {
+/**
+ * Recording venue capability check injected in place of TeamCapabilities::authorize().
+ */
+final class BookingTestAuthorization {
 	public $calls                     = array();
 	public $direct_calls              = array();
 	public $locked_calls              = array();
 	public $allowed                   = array();
 	public $require_locked_membership = false;
 	public function __construct( array $allowed = array() ) {
-		parent::__construct();
 		$this->allowed = array_merge( array( '12:55' => true ), $allowed );
 	}
-	public function authorize( int $user_id, int $venue_term_id, string $action ) {
-		$this->calls[]        = array( $user_id, $venue_term_id, $action );
-		$this->direct_calls[] = array( $user_id, $venue_term_id, $action );
+	public function __invoke( string $cap, int $venue_term_id, ?int $user_id = null, ?array $locked_memberships = null ) {
+		$user_id = null === $user_id ? get_current_user_id() : $user_id;
+		if ( null === $locked_memberships ) {
+			return $this->authorize( $user_id, $venue_term_id, $cap );
+		}
+		return $this->authorize_locked( $user_id, $venue_term_id, $cap, $locked_memberships );
+	}
+	public function authorize( int $user_id, int $venue_term_id, string $cap ) {
+		$this->calls[]        = array( $user_id, $venue_term_id, $cap );
+		$this->direct_calls[] = array( $user_id, $venue_term_id, $cap );
 		return ! empty( $this->allowed[ $user_id . ':' . $venue_term_id ] ) ? true : new WP_Error( 'venue_action_forbidden' );
 	}
-	public function authorize_locked( int $user_id, int $venue_term_id, string $action, array $locked_memberships ) {
-		$this->calls[]        = array( $user_id, $venue_term_id, $action );
-		$this->locked_calls[] = array( $user_id, $venue_term_id, $action, $locked_memberships );
+	public function authorize_locked( int $user_id, int $venue_term_id, string $cap, array $locked_memberships ) {
+		$this->calls[]        = array( $user_id, $venue_term_id, $cap );
+		$this->locked_calls[] = array( $user_id, $venue_term_id, $cap, $locked_memberships );
 		if ( $this->require_locked_membership ) {
-			return parent::authorize_locked( $user_id, $venue_term_id, $action, $locked_memberships );
+			return TeamCapabilities::authorize( $cap, $venue_term_id, $user_id, $locked_memberships );
 		}
 		return ! empty( $this->allowed[ $user_id . ':' . $venue_term_id ] ) ? true : new WP_Error( 'venue_action_forbidden' );
 	}

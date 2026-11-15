@@ -23,7 +23,7 @@ class ShowSettlementService {
 	private $bookings;
 	/** @var BookingActivityRepository */
 	private $activity;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 	/** @var TicketSettlementService */
 	private $commissions;
@@ -36,10 +36,10 @@ class ShowSettlementService {
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?TicketSettlementService $commissions = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, ?ArtistAuthorization $artist_authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null, ?TicketSettlementService $commissions = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, ?ArtistAuthorization $artist_authorization = null ) {
 		$this->bookings             = $bookings ? $bookings : new BookingRepository();
 		$this->activity             = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization        = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization        = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->commissions          = $commissions ? $commissions : new TicketSettlementService( $this->bookings, $this->activity, $this->authorization );
 		$this->attachments          = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->attachment_service   = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, $this->bookings, $this->activity, null, null, $this->authorization );
@@ -81,7 +81,7 @@ class ShowSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$allowed = ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -162,7 +162,7 @@ class ShowSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$allowed = ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -273,7 +273,7 @@ class ShowSettlementService {
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		$allowed = ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -916,7 +916,7 @@ class ShowSettlementService {
 			return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
 		}
 		$members = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
-		$allowed = ! is_wp_error( $members ) ? $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES, $members ) : false;
+		$allowed = ! is_wp_error( $members ) ? ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id, $members ) : false;
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
 	}
 
@@ -924,7 +924,7 @@ class ShowSettlementService {
 		if ( 'artist' === $authority ) {
 			return null !== $booking['artist_term_id'] ? $this->artist_authorization->authorize_artist( $booking['artist_term_id'], $actor_id ) : false;
 		}
-		return $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES );
+		return ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], $actor_id );
 	}
 
 	private function commission( array $booking, int $actor_id, int $expected_id, ?string $expected_hash, string $currency, bool $lock ) {

@@ -9,7 +9,7 @@ namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,11 +23,11 @@ class VenueBookingHoldAbilities {
 	private $holds;
 	/** @var BookingRepository */
 	private $bookings;
-	/** @var VenueAuthorization */
+	/** @var callable Venue capability check; TeamCapabilities::authorize() by default. */
 	private $authorization;
 
-	public function __construct( ?BookingHoldRepository $holds = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?BookingHoldRepository $holds = null, ?BookingRepository $bookings = null, ?callable $authorization = null ) {
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->holds         = $holds ? $holds : new BookingHoldRepository( $this->bookings, null, $this->authorization );
 		if ( ! self::$registered ) {
@@ -108,19 +108,19 @@ class VenueBookingHoldAbilities {
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
-			? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE )
+			? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() )
 			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
 	public function can_access_hold( array $input ) {
 		$hold = $this->holds->get( absint( $input['hold_id'] ?? 0 ) );
 		return is_array( $hold )
-			? $this->authorization->authorize( get_current_user_id(), $hold['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE )
+			? ( $this->authorization )( 'ec_access_venue', $hold['venue_term_id'], get_current_user_id() )
 			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
 	public function can_access_venue( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['venue_term_id'] ?? 0 ), VenueAuthorization::ACTION_ACCESS_VENUE );
+		return ( $this->authorization )( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ), get_current_user_id() );
 	}
 
 	private function create_schema(): array {

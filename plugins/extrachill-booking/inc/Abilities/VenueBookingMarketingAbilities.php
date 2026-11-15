@@ -9,7 +9,7 @@ namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\BookingMarketingService;
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\TeamCapabilities;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -38,7 +38,7 @@ class VenueBookingMarketingAbilities {
 	/**
 	 * Venue authority.
 	 *
-	 * @var VenueAuthorization
+	 * @var callable
 	 */
 	private $authorization;
 
@@ -47,10 +47,10 @@ class VenueBookingMarketingAbilities {
 	 *
 	 * @param BookingMarketingService|null $marketing     Marketing service.
 	 * @param BookingRepository|null       $bookings      Booking persistence.
-	 * @param VenueAuthorization|null      $authorization Venue authority.
+	 * @param callable|null                $authorization Venue authority.
 	 */
-	public function __construct( ?BookingMarketingService $marketing = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+	public function __construct( ?BookingMarketingService $marketing = null, ?BookingRepository $bookings = null, ?callable $authorization = null ) {
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->marketing     = $marketing ? $marketing : new BookingMarketingService( $this->bookings, null, null, $this->authorization );
 		if ( ! self::$registered ) {
@@ -134,7 +134,7 @@ class VenueBookingMarketingAbilities {
 	 */
 	public function can_access( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? $this->authorization->authorize( get_current_user_id(), $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
 	/**
@@ -153,7 +153,7 @@ class VenueBookingMarketingAbilities {
 				unset( $decision );
 				$input   = is_array( $payload['apply_input'] ?? null ) ? $payload['apply_input'] : array();
 				$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-				return is_array( $booking ) ? $this->authorization->authorize( $user_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE ) : new \WP_Error( 'venue_action_forbidden' );
+				return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $user_id ) : new \WP_Error( 'venue_action_forbidden' );
 			},
 		);
 		return $handlers;

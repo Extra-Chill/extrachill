@@ -46,7 +46,7 @@ class BookingLifecycle {
 	/**
 	 * Exact venue authorization policy.
 	 *
-	 * @var VenueAuthorization
+	 * @var callable
 	 */
 	private $authorization;
 
@@ -65,13 +65,13 @@ class BookingLifecycle {
 	 *
 	 * @param BookingRepository|null         $bookings Booking persistence.
 	 * @param BookingActivityRepository|null $activity      Activity persistence.
-	 * @param VenueAuthorization|null        $authorization Exact venue authorization.
+	 * @param callable|null                  $authorization Exact venue authorization.
 	 * @param VenueBookingConfig|null        $config        Admission configuration.
 	 */
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?VenueBookingConfig $config = null, ?BookingHoldRepository $holds = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?callable $authorization = null, ?VenueBookingConfig $config = null, ?BookingHoldRepository $holds = null ) {
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->activity      = $activity ? $activity : new BookingActivityRepository();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
+		$this->authorization = $authorization ? $authorization : array( TeamCapabilities::class, 'authorize' );
 		$this->config        = $config ? $config : new VenueBookingConfig();
 		$this->holds         = $holds ? $holds : new BookingHoldRepository( $this->bookings, $this->activity, $this->authorization, $this->config );
 	}
@@ -738,7 +738,7 @@ class BookingLifecycle {
 		if ( is_wp_error( $locked ) ) {
 			return $this->rollback( new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), $locked->get_error_data() ) );
 		}
-		$actor_allowed = $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE, (array) $locked );
+		$actor_allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id, (array) $locked );
 		if ( true !== $actor_allowed ) {
 			return $this->rollback( is_wp_error( $actor_allowed ) ? $actor_allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
 		}
