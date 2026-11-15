@@ -232,6 +232,14 @@
 	// on one is the crosslink-density signal (#1436).
 	const CONTENT_SELECTOR = '.entry-content';
 
+	function isRestDestination( url ) {
+		const prefix = config.restPrefix || '/wp-json/';
+		return (
+			url.pathname.indexOf( prefix ) === 0 ||
+			( url.searchParams && url.searchParams.has( 'rest_route' ) )
+		);
+	}
+
 	function trackContentLinkClick( anchorEl, url ) {
 		if (
 			! config.contentEndpoint ||
@@ -252,6 +260,11 @@
 			url.host === window.location.host &&
 			url.pathname === window.location.pathname
 		) {
+			return;
+		}
+
+		// REST endpoints (e.g. ticket redirects) are actions, not content.
+		if ( isRestDestination( url ) ) {
 			return;
 		}
 

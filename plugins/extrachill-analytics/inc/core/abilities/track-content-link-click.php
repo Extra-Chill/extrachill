@@ -96,6 +96,11 @@ function extrachill_analytics_ability_track_content_link_click( array $input ) {
 		return new WP_Error( 'invalid_content_link', __( 'A destination path is required.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 	}
 	$path = substr( substr( $path, 0, strcspn( $path, '?#' ) ), 0, 512 );
+	// REST endpoints (ticket redirects and similar) are actions, not content.
+	$rest_prefix = '/' . trim( rest_get_url_prefix(), '/' ) . '/';
+	if ( 0 === strpos( $path, $rest_prefix ) ) {
+		return new WP_Error( 'invalid_content_link', __( 'REST endpoints are not content links.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+	}
 	$host = strtolower( trim( (string) ( $input['dest_host'] ?? '' ) ) );
 
 	return extrachill_analytics_ability_track_event(

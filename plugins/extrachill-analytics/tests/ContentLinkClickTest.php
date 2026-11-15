@@ -115,6 +115,16 @@ final class ContentLinkClickTest extends Extrachill_Analytics_TestCase {
 		$this->assertSame( 0, $this->event_count() );
 	}
 
+	public function test_rest_destinations_are_rejected(): void {
+		$result = extrachill_analytics_ability_track_content_link_click( $this->valid_input( array( 'dest_path' => '/wp-json/extrachill/v1/events/tickets/5/go' ) ) );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_content_link', $result->get_error_code() );
+		$this->assertSame( 0, $this->event_count() );
+
+		// A content path that merely contains the prefix later is still content.
+		$this->assertIsInt( extrachill_analytics_ability_track_content_link_click( $this->valid_input( array( 'dest_path' => '/story-about/wp-json/' ) ) ) );
+	}
+
 	public function test_network_click_still_rejects_same_host(): void {
 		$result = extrachill_analytics_ability_track_network_click(
 			array(
