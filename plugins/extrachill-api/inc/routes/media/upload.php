@@ -285,6 +285,7 @@ function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 		case 'user_avatar':
 			$old_attachment_id = get_user_option( 'custom_avatar_id', $target_id );
 			update_user_option( $target_id, 'custom_avatar_id', $attachment_id, true );
+			extrachill_api_media_refresh_avatar_snapshot( $target_id );
 			break;
 
 		case 'artist_profile':
@@ -319,6 +320,17 @@ function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 	}
 
 	return $old_attachment_id ? (int) $old_attachment_id : null;
+}
+
+/**
+ * Refresh the users-owned avatar URL snapshot after custom_avatar_id changes.
+ *
+ * @param int $user_id User ID.
+ */
+function extrachill_api_media_refresh_avatar_snapshot( $user_id ) {
+	if ( function_exists( 'extrachill_users_refresh_avatar_snapshot' ) ) {
+		extrachill_users_refresh_avatar_snapshot( (int) $user_id );
+	}
 }
 
 /**
@@ -411,6 +423,7 @@ function extrachill_api_media_unassign( $context, $target_id ) {
 		case 'user_avatar':
 			$attachment_id = get_user_option( 'custom_avatar_id', $target_id );
 			delete_user_option( $target_id, 'custom_avatar_id', true );
+			extrachill_api_media_refresh_avatar_snapshot( $target_id );
 			break;
 
 		case 'artist_profile':
