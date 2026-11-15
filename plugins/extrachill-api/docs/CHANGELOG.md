@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.54.0] - 2026-11-15
+
+### Added
+- seller fee rates, dispute holds, refund reconciliation, partial refunds, return policy
+
 ## [0.53.4] - 2026-11-15
 
 ### Fixed
