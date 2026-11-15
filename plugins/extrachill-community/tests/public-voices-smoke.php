@@ -143,6 +143,7 @@ namespace {
 	function switch_to_blog( $blog_id ) { $GLOBALS['_voice_blog_stack'][] = $GLOBALS['_voice_blog']; $GLOBALS['_voice_blog'] = (int) $blog_id; }
 	function restore_current_blog() { $GLOBALS['_voice_blog'] = array_pop( $GLOBALS['_voice_blog_stack'] ); }
 	function ec_get_blog_id( $site = '' ) { return 'artist' === $site ? 4 : ( 'events' === $site ? 7 : 2 ); }
+	function ec_with_blog( $blog_id, $callback ) { if ( (int) get_current_blog_id() === (int) $blog_id ) { return $callback(); } switch_to_blog( $blog_id ); try { return $callback(); } finally { restore_current_blog(); } }
 	function ec_get_artists_for_user( $user_id ) { return 7 === (int) $user_id && $GLOBALS['_voice_artist_active'] ? array( 101 ) : array(); }
 	function ec_user_can( $capability, $context = array() ) { return 'manage_artist' === $capability && 7 === (int) ( $context['user_id'] ?? 0 ) && 101 === (int) ( $context['artist_id'] ?? 0 ) && $GLOBALS['_voice_artist_active']; }
 	function get_post( $post_id ) { return isset( $GLOBALS['_voice_posts'][ $post_id ] ) ? clone $GLOBALS['_voice_posts'][ $post_id ] : null; }

@@ -91,6 +91,19 @@ namespace {
 	function user_can( $user_id, $capability ) { return ! empty( $GLOBALS['_rest_voice_caps'][ $user_id ][ $capability ] ); }
 	function get_userdata( $user_id ) { return in_array( (int) $user_id, array( 7, 8 ), true ) ? (object) array( 'ID' => (int) $user_id, 'display_name' => 'User ' . (int) $user_id ) : false; }
 	function ec_get_blog_id() { return 1; }
+	if ( ! function_exists( 'ec_with_blog' ) ) {
+		function ec_with_blog( $blog_id, $callback ) {
+			if ( ! function_exists( 'switch_to_blog' ) || (int) get_current_blog_id() === (int) $blog_id ) {
+				return $callback();
+			}
+			switch_to_blog( $blog_id );
+			try {
+				return $callback();
+			} finally {
+				restore_current_blog();
+			}
+		}
+	}
 	function ec_get_artists_for_user( $user_id ) { return 7 === (int) $user_id ? array( 101 ) : array(); }
 	function ec_user_can( $capability, $context = array() ) { return 'manage_artist' === $capability && 7 === (int) ( $context['user_id'] ?? 0 ) && 101 === (int) ( $context['artist_id'] ?? 0 ); }
 

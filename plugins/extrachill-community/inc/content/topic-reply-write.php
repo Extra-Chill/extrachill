@@ -86,16 +86,14 @@ function extrachill_community_authorize_forum_action( $input, $capability, $obje
 		return new WP_Error( $error_code, 'The execution principal does not allow this action.' );
 	}
 
-	$site = extrachill_community_switch_to_community_blog();
-	try {
-		$allowed = $object_id > 0
-			? user_can( $user_id, $capability, $object_id )
-			: user_can( $user_id, $capability );
-	} finally {
-		if ( $site['switched'] ) {
-			restore_current_blog();
+	$allowed = ec_with_blog(
+		(int) ec_get_blog_id( 'community' ),
+		static function () use ( $user_id, $capability, $object_id ) {
+			return $object_id > 0
+				? user_can( $user_id, $capability, $object_id )
+				: user_can( $user_id, $capability );
 		}
-	}
+	);
 
 	if ( ! $allowed ) {
 		return new WP_Error( $error_code, 'The trusted actor cannot perform this action.' );

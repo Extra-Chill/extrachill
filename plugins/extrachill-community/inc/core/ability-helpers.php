@@ -21,26 +21,6 @@ function extrachill_community_resolve_user_id( $input ) {
 }
 
 /**
- * Switch to community blog for cross-site operations.
- *
- * @return array{switched: bool, blog_id: int|null}
- */
-function extrachill_community_switch_to_community_blog() {
-	$community_blog_id = ec_get_blog_id( 'community' );
-	$switched          = false;
-
-	if ( $community_blog_id && get_current_blog_id() !== $community_blog_id ) {
-		switch_to_blog( $community_blog_id );
-		$switched = true;
-	}
-
-	return array(
-		'switched' => $switched,
-		'blog_id'  => $community_blog_id,
-	);
-}
-
-/**
  * Check whether the current viewer may read a forum and its ancestors.
  *
  * @param int $forum_id Forum post ID.
