@@ -98,104 +98,13 @@ function extrachill_events_register_priority_boost_target_grant( array $grants )
 add_filter( 'ec_cross_site_service_assertion_target_grants', 'extrachill_events_register_priority_boost_target_grant' );
 
 /**
- * Check verified claims against the exact Events-owned grant.
+ * Check Network-verified service authority for the active ability request.
  *
- * Network has already verified the request method, route, query, body,
- * signature, lifetime, key, target, and single-use nonce before exposing these
- * claims. Events only applies its product authorization policy here.
- *
- * @param array<string,mixed> $claims Verified Network claims.
- * @param array<string,mixed> $grant  Events target grant.
+ * Network binds the active REST request, verifies the assertion before any
+ * permission callback runs, and matches its claims plus exact method and route
+ * against the target grant registered above.
  */
-function extrachill_events_priority_boost_service_claims_match( array $claims, array $grant ): bool {
-	foreach ( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) as $field ) {
-		if ( ! array_key_exists( $field, $claims ) || (string) $claims[ $field ] !== (string) $grant[ $field ] ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/**
- * Apply Events policy to one request carrying Network-verified claims.
- *
- * @param string              $method  HTTP method.
- * @param string              $route   Exact REST route.
- * @param array<string,mixed> $claims  Verified Network claims.
- * @param array<string,mixed> $grant   Events target grant.
- */
-function extrachill_events_priority_boost_service_request_is_authorized( string $method, string $route, array $claims, array $grant ): bool {
-	return 'POST' === $method
-		&& EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE === $route
-		&& extrachill_events_priority_boost_service_claims_match( $claims, $grant );
-}
-
-/**
- * Store or read the exact REST request currently executing the ability.
- *
- * @param mixed $request Exact REST request, or null.
- * @param bool  $replace Whether to replace the active request.
- * @return mixed Active REST request, or null.
- */
-function extrachill_events_priority_boost_active_rest_request( $request = null, bool $replace = false ) {
-	static $active_request = null;
-
-	if ( $replace ) {
-		$active_request = $request;
-	}
-
-	return $active_request;
-}
-
-/**
- * Bind only the exact ability run request during its callback lifecycle.
- *
- * @param mixed $response Current REST response.
- * @param array $handler  Matched route handler.
- * @param mixed $request  Exact REST request.
- * @return mixed Unchanged REST response.
- */
-function extrachill_events_bind_priority_boost_rest_request( $response, array $handler, $request ) {
-	unset( $handler );
-
-	if ( ! is_wp_error( $response ) && 'POST' === $request->get_method() && EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE === $request->get_route() ) {
-		extrachill_events_priority_boost_active_rest_request( $request, true );
-	}
-
-	return $response;
-}
-add_filter( 'rest_request_before_callbacks', 'extrachill_events_bind_priority_boost_rest_request', 10, 3 );
-
-/**
- * Clear the active request after REST has finished permission header checks.
- *
- * @param mixed $response Current REST response.
- * @param mixed $server   REST server.
- * @param mixed $request  Exact REST request.
- * @return mixed Unchanged REST response.
- */
-function extrachill_events_release_priority_boost_rest_request( $response, $server, $request ) {
-	unset( $server );
-
-	if ( extrachill_events_priority_boost_active_rest_request() === $request ) {
-		extrachill_events_priority_boost_active_rest_request( null, true );
-	}
-
-	return $response;
-}
-add_filter( 'rest_post_dispatch', 'extrachill_events_release_priority_boost_rest_request', 20, 3 );
-
-/** Check exact target-side Network claims for the active ability request. */
 function extrachill_events_priority_boost_has_verified_service_authority(): bool {
-	$request = extrachill_events_priority_boost_active_rest_request();
-	$grant   = extrachill_events_priority_boost_target_grant();
-
-	if ( null === $request || null === $grant || ! function_exists( 'ec_cross_site_verified_service_context' ) ) {
-		return false;
-	}
-
-	$claims = ec_cross_site_verified_service_context( $request );
-
-	return extrachill_events_priority_boost_service_request_is_authorized( $request->get_method(), $request->get_route(), $claims, $grant );
+	return function_exists( 'ec_cross_site_request_has_service_grant' )
+		&& ec_cross_site_request_has_service_grant( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID, EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_SCOPE );
 }

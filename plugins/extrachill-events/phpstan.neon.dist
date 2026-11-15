@@ -1,6 +1,7 @@
-# Rate limiting is supplied by the network foundation.
+# Rate limiting and service-assertion grants are supplied by the network foundation.
 parameters:
 	scanFiles:
 		- ../extrachill-network/inc/core/rate-limit.php
 		- ../extrachill-network/inc/core/signed-token.php
+		- ../extrachill-network/inc/core/service-assertions.php
 		- ../extrachill-link-pages/inc/class-owned-link-pages.php

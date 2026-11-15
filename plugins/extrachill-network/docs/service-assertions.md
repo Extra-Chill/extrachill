@@ -109,6 +109,18 @@ if ( OPERATION_SCOPE !== ( $claims['scope'] ?? '' ) ) {
 
 The context is held in a `WeakMap` keyed by the exact `WP_REST_Request`; it is not copied into request parameters, globals visible to callers, or the current user. Claims are exposed only after localhost, syntax, version, source grant, target site and host, method, route, query, body, time, key, signature, and replay checks succeed.
 
+Callbacks that do not receive the request, such as ability permission and execute callbacks, use the active-request helper instead:
+
+```php
+if ( ! ec_cross_site_request_has_service_grant( SERVICE_ID, OPERATION_SCOPE ) ) {
+	return new WP_Error( 'rest_forbidden', 'Access denied.', array( 'status' => 403 ) );
+}
+```
+
+Network binds each matched REST request on `rest_request_before_callbacks` and releases it on `rest_post_dispatch` at priority `20`, after response filters that re-check permissions. Nested internal dispatches are released on `rest_request_after_callbacks`, which restores the outer request; `ec_cross_site_current_rest_request()` returns the innermost bound request. The helper returns `true` only when that request carries verified claims for exactly the given service ID and scope, and a registered target grant still matches those claims plus the request's exact method and route. With no bound request, unverified claims, another service or scope, or a removed grant, it returns `false`.
+
+The `ec_cross_site_service_assertion_target_grants` filter remains the single target registration surface: verification needs each grant's keys, and the helper reuses the same grants, so consumers register plain grant data once and never bind REST hooks themselves.
+
 ## Expiry And Replay
 
 Assertions live for at most 60 seconds. Issued-at values may be at most five seconds in the future to tolerate small clock differences. The target rejects expired, overlong, or inverted windows.

@@ -586,6 +586,67 @@ $GLOBALS['sa_site_options'] = array(
 $replaced                   = ec_cross_site_service_assertion_service_keys( 'worker.alpha' );
 sa_assert( 'weak' !== $replaced['active_key_id'] && 64 === strlen( $replaced['keys'][ $replaced['active_key_id'] ] ), 'unusable stored keyring is replaced with fresh material' );
 
+// Active-request service grant checks.
+$sa_hook_registered = static function ( $hook, $callback, $priority ) {
+	foreach ( $GLOBALS['sa_filters'][ $hook ] ?? array() as $registered ) {
+		if ( $callback === $registered['callback'] && $priority === $registered['priority'] && 3 === $registered['accepted_args'] ) {
+			return true;
+		}
+	}
+	return false;
+};
+sa_assert( $sa_hook_registered( 'rest_request_before_callbacks', 'ec_cross_site_bind_rest_request', 10 ), 'active request binds before callbacks' );
+sa_assert( $sa_hook_registered( 'rest_request_after_callbacks', 'ec_cross_site_restore_nested_rest_request', 10 ), 'nested request restores after callbacks' );
+sa_assert( $sa_hook_registered( 'rest_post_dispatch', 'ec_cross_site_release_rest_request', 20 ), 'active request releases after post-dispatch permission checks' );
+
+$sa_verified_request = static function ( $body, $query ) {
+	sa_reset();
+	$headers               = sa_mint( $body, $query );
+	$request               = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+	$GLOBALS['sa_blog_id'] = 5;
+	sa_assert( null === sa_verify( $request ), 'grant fixture request verifies' );
+	return $request;
+};
+
+$GLOBALS['ec_cross_site_active_rest_requests'] = array();
+$granted                                       = $sa_verified_request( $body, $query );
+sa_assert( null === ec_cross_site_current_rest_request(), 'no request is bound outside REST callbacks' );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'no bound request has no service grant' );
+
+sa_assert( 'response' === ec_cross_site_bind_rest_request( 'response', array(), $granted ), 'binding leaves the response unchanged' );
+sa_assert( $granted === ec_cross_site_current_rest_request(), 'matched request is bound for its callbacks' );
+sa_assert( ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'exact verified service and scope match the target grant' );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:read' ), 'wrong scope has no service grant' );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.beta', 'records:write' ), 'wrong service has no service grant' );
+
+$GLOBALS['sa_target_grants'] = array();
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'removed target grant revokes the active request' );
+$GLOBALS['sa_target_grants'] = array( array_merge( sa_grant(), array( 'route' => '/example/v1/records/read' ) ) );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'grant for another route does not authorize the active request' );
+$GLOBALS['sa_target_grants'] = array( array_merge( sa_grant(), array( 'source_site_id' => 3 ) ) );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'grant for another source does not authorize the active request' );
+$GLOBALS['sa_target_grants'] = array( sa_grant() );
+
+$unverified = new WP_REST_Request( 'POST', '/example/v1/records/commit' );
+ec_cross_site_bind_rest_request( null, array(), $unverified );
+sa_assert( $unverified === ec_cross_site_current_rest_request(), 'nested request becomes the active request' );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'unverified nested request has no service grant' );
+sa_assert( 'done' === ec_cross_site_restore_nested_rest_request( 'done', array(), $unverified ), 'restoring leaves the response unchanged' );
+sa_assert( $granted === ec_cross_site_current_rest_request(), 'nested dispatch restores the outer request' );
+sa_assert( ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'outer grant applies again after nested dispatch' );
+
+ec_cross_site_restore_nested_rest_request( null, array(), $granted );
+sa_assert( $granted === ec_cross_site_current_rest_request(), 'outermost request stays bound until post-dispatch' );
+ec_cross_site_bind_rest_request( new WP_Error( 'rest_no_route', 'No route.' ), array(), $unverified );
+sa_assert( $granted === ec_cross_site_current_rest_request(), 'error responses skip callbacks and are not bound' );
+
+ec_cross_site_bind_rest_request( null, array(), $unverified );
+sa_assert( 'released' === ec_cross_site_release_rest_request( 'released', new WP_REST_Server(), $granted ), 'release leaves the response unchanged' );
+sa_assert( null === ec_cross_site_current_rest_request(), 'releasing the outer request also drops leaked nested requests' );
+sa_assert( ! ec_cross_site_request_has_service_grant( 'worker.alpha', 'records:write' ), 'released request has no service grant' );
+ec_cross_site_release_rest_request( null, new WP_REST_Server(), $granted );
+sa_assert( null === ec_cross_site_current_rest_request(), 'releasing an unbound request is a no-op' );
+
 $source     = file_get_contents( dirname( __DIR__ ) . '/inc/core/service-assertions.php' )
 	. file_get_contents( __FILE__ )
 	. file_get_contents( dirname( __DIR__ ) . '/docs/service-assertions.md' );

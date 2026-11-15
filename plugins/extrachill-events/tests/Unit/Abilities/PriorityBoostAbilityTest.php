@@ -11,6 +11,20 @@ require_once dirname( __DIR__, 3 ) . '/inc/Abilities/PriorityEventAbilities.php'
 require_once dirname( __DIR__, 3 ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__, 2 ) . '/Support/PriorityBoostAbilityDouble.php';
 
+if ( ! function_exists( 'ec_cross_site_request_has_service_grant' ) ) {
+	/**
+	 * Network contract double: grants only the service/scope pair the test binds.
+	 *
+	 * @param string $service_id Expected service ID.
+	 * @param string $scope      Expected scope.
+	 */
+	function ec_cross_site_request_has_service_grant( string $service_id, string $scope ): bool {
+		$GLOBALS['priority_boost_grant_checks'][] = array( $service_id, $scope );
+
+		return array( $service_id, $scope ) === ( $GLOBALS['priority_boost_bound_grant'] ?? null );
+	}
+}
+
 /** Covers the paid event priority operation contract. */
 final class PriorityBoostAbilityTest extends TestCase {
 
@@ -180,31 +194,21 @@ final class PriorityBoostAbilityTest extends TestCase {
 		);
 	}
 
-	/** Only exact Network-verified product claims match the target grant. */
-	public function test_rejects_mismatched_or_missing_verified_claims(): void {
-		$grant  = $this->target_grant();
-		$claims = array_intersect_key( $grant, array_flip( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) ) );
+	/** Events asks Network for exactly its own service and scope. */
+	public function test_service_authority_delegates_exact_grant_to_network(): void {
+		$GLOBALS['priority_boost_grant_checks'] = array();
+		$GLOBALS['priority_boost_bound_grant']  = null;
+		$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
 
-		$this->assertTrue( extrachill_events_priority_boost_service_claims_match( $claims, $grant ) );
+		$GLOBALS['priority_boost_bound_grant'] = array( 'extrachill.events.tickets', 'extrachill/events:tickets' );
+		$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
 
-		foreach ( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) as $field ) {
-			$mismatched           = $claims;
-			$mismatched[ $field ] = 'wrong';
-			$this->assertFalse( extrachill_events_priority_boost_service_claims_match( $mismatched, $grant ), $field );
-		}
+		$GLOBALS['priority_boost_bound_grant'] = array( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID, EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_SCOPE );
+		$this->assertTrue( extrachill_events_priority_boost_has_verified_service_authority() );
 
-		$this->assertFalse( extrachill_events_priority_boost_service_claims_match( array(), $grant ) );
-	}
-
-	/** Target policy binds verified claims to the exact ability request. */
-	public function test_target_policy_requires_exact_route_method_and_verified_context(): void {
-		$grant  = $this->target_grant();
-		$claims = array_intersect_key( $grant, array_flip( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) ) );
-
-		$this->assertTrue( extrachill_events_priority_boost_service_request_is_authorized( 'POST', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, $claims, $grant ) );
-		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'GET', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, $claims, $grant ) );
-		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'POST', '/wp-abilities/v1/abilities/extrachill/other/run', $claims, $grant ) );
-		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'POST', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, array(), $grant ) );
+		$expected = array( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID, EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_SCOPE );
+		$this->assertSame( array( $expected, $expected, $expected ), $GLOBALS['priority_boost_grant_checks'] );
+		$GLOBALS['priority_boost_bound_grant'] = null;
 	}
 
 	/** Invalid transport assertions never become Events service authority. */
@@ -268,18 +272,6 @@ final class PriorityBoostAbilityTest extends TestCase {
 			'event'              => '42',
 			'external_reference' => 'order:100:item:5',
 			'idempotency_key'    => 'priority-boost:100:5',
-		);
-	}
-
-	/** Return one complete target grant fixture. */
-	private function target_grant(): array {
-		return extrachill_events_priority_boost_build_target_grant(
-			array(
-				'source_site_id' => 3,
-				'target_site_id' => 7,
-				'target_host'    => 'events.extrachill.com',
-				'keys'           => array( 'current' => str_repeat( 's', 32 ) ),
-			)
 		);
 	}
 }
