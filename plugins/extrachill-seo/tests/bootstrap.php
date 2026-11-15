@@ -399,8 +399,14 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 
 if ( ! function_exists( 'get_site_option' ) ) {
 	function get_site_option( $option, $default_value = false ) {
-		unset( $option );
-		return $default_value;
+		$options = $GLOBALS['ec_seo_test_site_options'] ?? array();
+		return array_key_exists( $option, $options ) ? $options[ $option ] : $default_value;
+	}
+}
+
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 	}
 }
 
@@ -624,6 +630,7 @@ require_once __DIR__ . '/../inc/schema/schema-event.php';
 require_once __DIR__ . '/../inc/schema/schema-breadcrumb.php';
 require_once __DIR__ . '/../inc/core/meta-tags.php';
 require_once __DIR__ . '/../inc/core/canonical.php';
+require_once __DIR__ . '/../inc/core/app-banner.php';
 require_once __DIR__ . '/../inc/core/sparse-terms.php';
 require_once __DIR__ . '/../inc/core/open-graph.php';
 require_once __DIR__ . '/../inc/schema/schema-output.php';

@@ -9,6 +9,9 @@
     },
     "tests/share-urls.php": {
       "environment": "standalone-php"
+    },
+    "tests/app-prompt.php": {
+      "environment": "standalone-php"
     }
   }
 }

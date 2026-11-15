@@ -109,6 +109,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/render.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/meta-tags.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/canonical.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/core/app-banner.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/robots.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/robots-txt.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/core/open-graph.php';
