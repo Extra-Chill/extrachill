@@ -28,6 +28,10 @@ class DocsAgentConfigTest(unittest.TestCase):
             settings = config.resolve(component, MAP)
             self.assertEqual(settings["audience"], "user")
             self.assertIn(f"plugins/{component}/", settings["prompt"])
+            self.assertIn(f"Read source only under plugins/{component}/", settings["prompt"])
+            for item in settings["source_delta"]:
+                for ref in item["source_refs"]:
+                    self.assertTrue(ref.startswith(f"plugins/{component}/"), ref)
             self.assertIn("writing-rules.md", settings["prompt"])
             self.assertEqual(len(settings["drift_checks"]), 1)
             if component in ("extrachill-events", "extrachill-newsletter", "extrachill-shop"):
@@ -37,6 +41,17 @@ class DocsAgentConfigTest(unittest.TestCase):
                 self.assertEqual(settings["run_kind"], "bootstrap")
                 self.assertIn("following users", settings["bootstrap_contract"]["forbidden_phrases"])
                 self.assertTrue(settings["bootstrap_contract"]["required_globs"])
+
+    def test_rejects_source_refs_outside_the_component(self):
+        import tempfile
+
+        platforms = yaml.safe_load(MAP.read_text())
+        platforms["plugins"]["plugins/extrachill-shop"]["runner"]["source_delta"][0]["source_refs"] = ["inc/**"]
+        with tempfile.NamedTemporaryFile("w", suffix=".yml") as handle:
+            yaml.safe_dump(platforms, handle)
+            handle.flush()
+            with self.assertRaises(ValueError):
+                config.resolve("extrachill-shop", handle.name)
 
     def test_rejects_unknown_or_unconfigured_component(self):
         for component in ("unknown", "extrachill-news-wire", "../extrachill-community"):

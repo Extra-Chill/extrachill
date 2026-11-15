@@ -50,9 +50,12 @@ jobs:
     # 07f990b runs on WP Codebox v0.33.4, which fails loudly on lost writes
     # (Automattic/docs-agent#185, Automattic/wp-codebox#2567); 4897641 raises
     # the agent turn budget from 12 to 40 (Automattic/docs-agent#186); e227ea8
-    # makes WP Codebox honor it (v0.33.5, Automattic/docs-agent#187).
+    # makes WP Codebox honor it (v0.33.5, Automattic/docs-agent#187);
+    # cbac654a6bc370c0e5d30dbb262f80c69812e17c[:7] bounds user-docs discovery so pages are written incrementally
+    # (Automattic/docs-agent#188) and runs on WP Codebox v0.33.6, which always
+    # reports why an agent runtime failed (Automattic/docs-agent#189).
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@e227ea8b2ee88a1a6802a8504f34290b262e29a5
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@cbac654a6bc370c0e5d30dbb262f80c69812e17c
     with:
       audience: ${{ fromJSON(needs.config.outputs.config).audience }}
       run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
