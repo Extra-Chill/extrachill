@@ -49,6 +49,7 @@ class CommandRegistry {
 			'extrachill analytics conversion'          => Commands\Analytics\ConversionCommand::class,
 			'extrachill analytics route-transitions'   => Commands\Analytics\RouteTransitionsCommand::class,
 			'extrachill analytics crosslink-targets'   => Commands\Analytics\CrosslinkTargetsCommand::class,
+			'extrachill analytics crosslink-clicks'    => Commands\Analytics\CrosslinkClicksCommand::class,
 			'extrachill analytics outbound'            => Commands\Analytics\OutboundCommand::class,
 			'extrachill analytics stickiness'          => Commands\Analytics\StickinessCommand::class,
 			'extrachill analytics content-audit'       => Commands\Analytics\ContentAuditCommand::class,

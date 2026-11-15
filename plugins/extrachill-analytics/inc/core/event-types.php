@@ -89,6 +89,11 @@ const EC_ANALYTICS_EVENT_REDIRECT_FIRE     = 'redirect_fire';
  * - network_click: dest_host (network host), dest_path (path only, max 512),
  *   label (max 80), placement (max 40), route. source_url is origin + pathname;
  *   visitor_id comes from the first-party cookie and is_bot is server-owned.
+ * - content_link_click: post_id (source post, proven by the server-rendered
+ *   pageview proof), dest_host (network host, the current host included),
+ *   dest_path (path only, max 512), label (max 80), link_kind (server-owned:
+ *   same_site|network). Fires for links inside the post body only, so it is
+ *   the crosslink-density measurement (#1436).
  * - form_submit: form, placement, route. NEVER field values — the write gate
  *   admits no input-value dimension for this event type (see
  *   extrachill/track-form-submit).
@@ -99,6 +104,7 @@ const EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION = 'bridge_impression';
 const EC_ANALYTICS_EVENT_OUTBOUND_CLICK    = 'outbound_click';
 const EC_ANALYTICS_EVENT_CTA_CLICK         = 'cta_click';
 const EC_ANALYTICS_EVENT_NETWORK_CLICK     = 'network_click';
+const EC_ANALYTICS_EVENT_CONTENT_LINK      = 'content_link_click';
 const EC_ANALYTICS_EVENT_FORM_SUBMIT       = 'form_submit';
 
 /**
@@ -127,6 +133,7 @@ const EC_ANALYTICS_PUBLIC_BROWSER_EVENTS = array(
 	EC_ANALYTICS_EVENT_OUTBOUND_CLICK,
 	EC_ANALYTICS_EVENT_CTA_CLICK,
 	EC_ANALYTICS_EVENT_NETWORK_CLICK,
+	EC_ANALYTICS_EVENT_CONTENT_LINK,
 	EC_ANALYTICS_EVENT_FORM_SUBMIT,
 );
 
@@ -155,8 +162,8 @@ const EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN = 'studio_transcription_run';
  * would read `ability-search, ability-call` forever and teach nothing about
  * which capabilities are actually used.
  */
-const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED      = 'mcp_session_started';
-const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED         = 'mcp_tool_invoked';
+const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED = 'mcp_session_started';
+const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED    = 'mcp_tool_invoked';
 
 /**
  * The MCP usage event set.

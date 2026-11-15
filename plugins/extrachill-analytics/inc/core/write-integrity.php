@@ -382,6 +382,15 @@ function extrachill_analytics_validate_public_event_data( $event_type, $event_da
 				'route'     => array( 'string', 20 ),
 			);
 			break;
+		case EC_ANALYTICS_EVENT_CONTENT_LINK:
+			$fields = array(
+				'post_id'   => array( 'integer', 0 ),
+				'dest_host' => array( 'string', 253 ),
+				'dest_path' => array( 'string', 512 ),
+				'label'     => array( 'string', 80 ),
+				'link_kind' => array( 'string', 20 ),
+			);
+			break;
 		case EC_ANALYTICS_EVENT_FORM_SUBMIT:
 			$fields = array(
 				'form'      => array( 'string', 80 ),
@@ -462,13 +471,19 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 		return $valid_event_data;
 	}
 
-	if ( EC_ANALYTICS_EVENT_NETWORK_CLICK === $event_type ) {
+	if ( EC_ANALYTICS_EVENT_NETWORK_CLICK === $event_type || EC_ANALYTICS_EVENT_CONTENT_LINK === $event_type ) {
 		$hosts = function_exists( 'ec_get_allowed_redirect_hosts' ) ? ec_get_allowed_redirect_hosts() : array();
 		$hosts = array_map( 'strtolower', $hosts );
 		$host  = $event_data['dest_host'] ?? '';
 		$path  = $event_data['dest_path'] ?? '';
-		if ( ! in_array( $host, $hosts, true ) || extrachill_analytics_public_write_host_is_current_site( $host ) ) {
-			return new WP_Error( 'invalid_network_destination', __( 'Destination must be another network host.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		$local = extrachill_analytics_public_write_host_is_current_site( $host );
+		// network_click is a cross-site hop only; a content link may also stay
+		// on the current host (same-site crosslinks are the point of #1436).
+		$valid = EC_ANALYTICS_EVENT_CONTENT_LINK === $event_type
+			? ( $local || in_array( $host, $hosts, true ) )
+			: ( ! $local && in_array( $host, $hosts, true ) );
+		if ( ! $valid ) {
+			return new WP_Error( 'invalid_network_destination', __( 'Destination must be a network host.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 		}
 		if ( '/' !== substr( $path, 0, 1 ) || '//' === substr( $path, 0, 2 ) || strpbrk( $path, '?#' ) !== false ) {
 			return new WP_Error(
