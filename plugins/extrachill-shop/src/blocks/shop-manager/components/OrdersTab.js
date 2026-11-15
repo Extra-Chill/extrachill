@@ -22,7 +22,17 @@ import { useState, useEffect } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { purchaseShippingLabel } from '../api';
+import { purchaseShippingLabel, quoteShippingLabel } from '../api';
+
+const DEFAULT_PARCEL = {
+	weight: 16,
+	mass_unit: 'oz',
+	length: 10,
+	width: 8,
+	height: 4,
+};
+
+const money = ( value ) => `$${ Number( value || 0 ).toFixed( 2 ) }`;
 
 const ORDER_FILTERS = [
 	{ id: 'all', label: 'All' },
@@ -49,13 +59,49 @@ const OrdersTab = ( {
 	const [ showRefundConfirm, setShowRefundConfirm ] = useState( false );
 	const [ labelPurchasing, setLabelPurchasing ] = useState( false );
 	const [ labelSuccess, setLabelSuccess ] = useState( null );
+	const [ parcel, setParcel ] = useState( DEFAULT_PARCEL );
+	const [ labelQuote, setLabelQuote ] = useState( null );
+	const [ quoting, setQuoting ] = useState( false );
+	const [ confirmOverage, setConfirmOverage ] = useState( false );
 
 	useEffect( () => {
 		setTrackingInput( '' );
 		setActionError( '' );
 		setShowRefundConfirm( false );
 		setLabelSuccess( null );
+		setParcel( {
+			...DEFAULT_PARCEL,
+			...( selectedOrder?.label_parcel || {} ),
+		} );
+		setLabelQuote( null );
+		setConfirmOverage( false );
+		// Prefill only when another order is opened.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ selectedOrder?.id ] );
+
+	const updateParcel = ( field, value ) => {
+		setParcel( ( current ) => ( { ...current, [ field ]: value } ) );
+		// A new parcel needs a new price.
+		setLabelQuote( null );
+		setConfirmOverage( false );
+	};
+
+	const handleQuoteLabel = async () => {
+		if ( ! selectedOrder || ! seller ) {
+			return;
+		}
+		setQuoting( true );
+		setActionError( '' );
+		try {
+			setLabelQuote(
+				await quoteShippingLabel( selectedOrder.id, seller, parcel )
+			);
+		} catch ( err ) {
+			setActionError( err?.message || 'Failed to price the label.' );
+		} finally {
+			setQuoting( false );
+		}
+	};
 
 	const handleMarkShipped = async () => {
 		if ( ! selectedOrder ) {
@@ -100,7 +146,8 @@ const OrdersTab = ( {
 		try {
 			const result = await purchaseShippingLabel(
 				selectedOrder.id,
-				seller
+				seller,
+				{ parcel, confirmOverage }
 			);
 			setLabelSuccess( result );
 			setTrackingInput( result.tracking_number || '' );
@@ -371,24 +418,213 @@ const OrdersTab = ( {
 												</>
 											) : (
 												<>
-													<button
-														type="button"
-														className="button-1 button-small"
-														onClick={
-															handlePrintLabel
-														}
-														disabled={
-															labelPurchasing ||
-															actionLoading
-														}
-													>
-														{ labelPurchasing
-															? 'Purchasing Label...'
-															: 'Print Shipping Label' }
-													</button>
-													<p className="ec-asm__muted">
-														$5 flat rate USPS label
-													</p>
+													<div className="ec-asm__label-parcel">
+														<FieldGroup label="Parcel weight">
+															<input
+																type="number"
+																min="0.1"
+																step="0.1"
+																value={
+																	parcel.weight
+																}
+																onChange={ (
+																	e
+																) =>
+																	updateParcel(
+																		'weight',
+																		e.target
+																			.value
+																	)
+																}
+															/>
+															<select
+																value={
+																	parcel.mass_unit
+																}
+																onChange={ (
+																	e
+																) =>
+																	updateParcel(
+																		'mass_unit',
+																		e.target
+																			.value
+																	)
+																}
+															>
+																<option value="oz">
+																	oz
+																</option>
+																<option value="lb">
+																	lb
+																</option>
+															</select>
+														</FieldGroup>
+														<FieldGroup label="Box size (inches, L × W × H)">
+															{ [
+																'length',
+																'width',
+																'height',
+															].map( ( side ) => (
+																<input
+																	key={ side }
+																	type="number"
+																	min="0.1"
+																	step="0.1"
+																	aria-label={
+																		side
+																	}
+																	value={
+																		parcel[
+																			side
+																		]
+																	}
+																	onChange={ (
+																		e
+																	) =>
+																		updateParcel(
+																			side,
+																			e
+																				.target
+																				.value
+																		)
+																	}
+																/>
+															) ) }
+														</FieldGroup>
+													</div>
+
+													{ ! labelQuote && (
+														<button
+															type="button"
+															className="button-2 button-small"
+															onClick={
+																handleQuoteLabel
+															}
+															disabled={
+																quoting ||
+																actionLoading
+															}
+														>
+															{ quoting
+																? 'Checking price...'
+																: 'Check Label Price' }
+														</button>
+													) }
+
+													{ labelQuote && (
+														<div className="ec-asm__label-quote">
+															<p>
+																<strong>
+																	{
+																		labelQuote.carrier
+																	}{ ' ' }
+																	{
+																		labelQuote.service
+																	}{ ' ' }
+																	label:
+																</strong>{ ' ' }
+																{ money(
+																	labelQuote.cost
+																) }
+																<br />
+																Shipping the
+																buyer paid:{ ' ' }
+																{ money(
+																	labelQuote.shipping_held
+																) }
+															</p>
+															{ labelQuote.exceeds_shipping &&
+																! labelQuote.can_purchase && (
+																	<InlineStatus tone="warning">
+																		This
+																		label
+																		costs
+																		more
+																		than the
+																		shipping
+																		the
+																		buyer
+																		paid, so
+																		it
+																		can&apos;t
+																		be
+																		bought
+																		through
+																		Extra
+																		Chill.
+																		Ship the
+																		order
+																		yourself
+																		and mark
+																		it
+																		shipped
+																		with a
+																		tracking
+																		number;
+																		the{ ' ' }
+																		{ money(
+																			labelQuote.shipping_held
+																		) }{ ' ' }
+																		shipping
+																		is paid
+																		out to
+																		you.
+																	</InlineStatus>
+																) }
+															{ labelQuote.requires_confirmation && (
+																<label
+																	className="ec-asm__label-overage"
+																	htmlFor="ec-asm-confirm-overage"
+																>
+																	<input
+																		id="ec-asm-confirm-overage"
+																		type="checkbox"
+																		checked={
+																			confirmOverage
+																		}
+																		onChange={ (
+																			e
+																		) =>
+																			setConfirmOverage(
+																				e
+																					.target
+																					.checked
+																			)
+																		}
+																	/>{ ' ' }
+																	Buy anyway:
+																	Extra Chill
+																	pays the{ ' ' }
+																	{ money(
+																		labelQuote.cost -
+																			labelQuote.shipping_held
+																	) }{ ' ' }
+																	difference.
+																</label>
+															) }
+															{ labelQuote.can_purchase && (
+																<button
+																	type="button"
+																	className="button-1 button-small"
+																	onClick={
+																		handlePrintLabel
+																	}
+																	disabled={
+																		labelPurchasing ||
+																		actionLoading ||
+																		( labelQuote.requires_confirmation &&
+																			! confirmOverage )
+																	}
+																>
+																	{ labelPurchasing
+																		? 'Purchasing Label...'
+																		: `Buy Label (${ money(
+																				labelQuote.cost
+																			) })` }
+																</button>
+															) }
+														</div>
+													) }
 												</>
 											) }
 										</div>
@@ -419,7 +655,9 @@ const OrdersTab = ( {
 								{ selectedOrder.label_url && ! labelSuccess && (
 									<div className="ec-asm__label-existing">
 										<p>
-											<strong>Label Already Purchased</strong>
+											<strong>
+												Label Already Purchased
+											</strong>
 										</p>
 										<p>
 											Tracking:{ ' ' }

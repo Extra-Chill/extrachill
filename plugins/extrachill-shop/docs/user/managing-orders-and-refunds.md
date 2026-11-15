@@ -45,7 +45,7 @@ Select **Back** to return to the list.
 
 ## Ship an Order
 
-Open the order, then print a label with **Print Shipping Label** or ship it yourself and select **Mark as Shipped**. Either way, the order moves to **completed** and the buyer gets an email saying their order is complete. See [Shipping Your Orders](shipping-your-orders.md).
+Open the order, then buy a label with **Check Label Price** and **Buy Label**, or ship it yourself and select **Mark as Shipped**. Either way, the order moves to **completed** and the buyer gets an email saying their order is complete. See [Shipping Your Orders](shipping-your-orders.md).
 
 The buyer's email doesn't include tracking, so if they ask, send them the tracking number from the order.
 
@@ -55,7 +55,7 @@ The buyer's email doesn't include tracking, so if they ask, send them the tracki
 2. Select **Refund Order**.
 3. Check the amount and select **Yes, Refund**.
 
-The buyer gets back everything still unrefunded on the order, including shipping, and the order changes to **refunded**. The money goes back the way they paid. Extra Chill's fee for the order is returned to you along with it.
+The buyer gets back everything still unrefunded on the order, including shipping, and the order changes to **refunded**. The money goes back the way they paid. Extra Chill's fee for the order is returned to you along with it, except the buyer's shipping charge if it already paid for an Extra Chill label: the postage was spent, so that part stays with Extra Chill.
 
 Refunds from the shop manager are always for the whole order. Always refund here, not from your payout dashboard, so the order and the buyer's record stay up to date.
 

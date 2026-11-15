@@ -10,6 +10,11 @@ namespace {
 		private $id;
 		public function __construct( $id ) { $this->id = $id; }
 		public function get_name() { return 'Product ' . $this->id; }
+		// Weight and dimensions in the store units, from `$GLOBALS['test_product_dims']`.
+		public function get_weight() { return $GLOBALS['test_product_dims'][ $this->id ]['weight'] ?? ''; }
+		public function get_length() { return $GLOBALS['test_product_dims'][ $this->id ]['length'] ?? ''; }
+		public function get_width() { return $GLOBALS['test_product_dims'][ $this->id ]['width'] ?? ''; }
+		public function get_height() { return $GLOBALS['test_product_dims'][ $this->id ]['height'] ?? ''; }
 	}; }
 	// Reuse existing suite WordPress doubles when this file runs alone.
 	require_once __DIR__ . '/SellerCommerceTest.php';

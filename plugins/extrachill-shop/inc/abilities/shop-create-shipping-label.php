@@ -25,32 +25,47 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 		'extrachill/shop-create-shipping-label',
 		array(
 			'label'               => __( 'Purchase Shipping Label', 'extrachill-shop' ),
-			'description'         => __( 'Purchase a USPS shipping label via Shippo for a seller\'s portion of an order. Automatically selects the cheapest rate, updates order status, and emails the label.', 'extrachill-shop' ),
+			'description'         => __( 'Purchase a USPS shipping label via Shippo for a seller\'s portion of an order. Quotes the cheapest rate for the confirmed parcel (defaults from product weights and dimensions), compares it with the buyer\'s shipping charge, then buys the label, updates order status, and emails it. Pass quote=true to price the label without buying it.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'order_id' => array(
+					'order_id'        => array(
 						'type'        => 'integer',
 						'description' => 'WooCommerce order ID.',
 					),
-					'seller'   => extrachill_shop_seller_input_schema(),
+					'seller'          => extrachill_shop_seller_input_schema(),
+					'parcel'          => extrachill_shop_parcel_input_schema(),
+					'quote'           => array(
+						'type'        => 'boolean',
+						'description' => 'Return the cheapest rate for the parcel without buying the label.',
+					),
+					'confirm_overage' => array(
+						'type'        => 'boolean',
+						'description' => 'Shop managers only: buy a label that costs more than the shipping the buyer paid. Extra Chill pays the difference.',
+					),
 				),
 				'required'   => array( 'order_id', 'seller' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'success'         => array( 'type' => 'boolean' ),
-					'reprint'         => array( 'type' => 'boolean' ),
-					'order_id'        => array( 'type' => 'integer' ),
-					'seller'          => extrachill_shop_seller_input_schema(),
-					'label_url'       => array( 'type' => 'string' ),
-					'tracking_number' => array( 'type' => 'string' ),
-					'tracking_url'    => array( 'type' => 'string' ),
-					'carrier'         => array( 'type' => 'string' ),
-					'service'         => array( 'type' => 'string' ),
-					'cost'            => array( 'type' => 'number' ),
+					'success'               => array( 'type' => 'boolean' ),
+					'reprint'               => array( 'type' => 'boolean' ),
+					'order_id'              => array( 'type' => 'integer' ),
+					'seller'                => extrachill_shop_seller_input_schema(),
+					'label_url'             => array( 'type' => 'string' ),
+					'tracking_number'       => array( 'type' => 'string' ),
+					'tracking_url'          => array( 'type' => 'string' ),
+					'carrier'               => array( 'type' => 'string' ),
+					'service'               => array( 'type' => 'string' ),
+					'cost'                  => array( 'type' => 'number' ),
+					'shipping_held'         => array( 'type' => 'number' ),
+					'quote'                 => array( 'type' => 'boolean' ),
+					'exceeds_shipping'      => array( 'type' => 'boolean' ),
+					'can_purchase'          => array( 'type' => 'boolean' ),
+					'requires_confirmation' => array( 'type' => 'boolean' ),
+					'parcel'                => array( 'type' => 'object' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_create_shipping_label',
@@ -134,6 +149,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 			'carrier'         => $shipment['carrier'],
 			'service'         => $shipment['service'],
 			'cost'            => $shipment['cost'],
+			'shipping_held'   => $shipment['shipping_held'],
 		);
 	}
 
@@ -160,16 +176,55 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return new WP_Error( 'international_not_supported', 'International shipping is not currently supported.', array( 'status' => 400 ) );
 	}
 
-	if ( ! function_exists( 'extrachill_shop_shippo_create_label' ) ) {
+	if ( ! function_exists( 'extrachill_shop_shippo_quote_label' ) ) {
 		return new WP_Error( 'shippo_not_available', 'Shippo integration is not available.', array( 'status' => 500 ) );
 	}
 
-	$label_result = extrachill_shop_shippo_create_label( $from_address, $to_address );
+	$parcel = isset( $input['parcel'] ) ? extrachill_shop_normalize_parcel( $input['parcel'] ) : extrachill_shop_order_default_parcel( $order );
+	if ( is_wp_error( $parcel ) ) {
+		return $parcel;
+	}
+
+	$quote = extrachill_shop_shippo_quote_label( $from_address, $to_address, extrachill_shop_shippo_parcel( $parcel ) );
+	if ( is_wp_error( $quote ) ) {
+		return $quote;
+	}
+
+	// The buyer's shipping, already taken in the application fee, pays for the label.
+	$hold_minor = extrachill_shop_order_shipping_hold( $order );
+	$cost_minor = (int) round( (float) $quote['cost'] * 100 );
+	$exceeds    = $cost_minor > $hold_minor;
+	$is_manager = current_user_can( 'manage_woocommerce' ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- WooCommerce shop manager capability.
+
+	if ( ! empty( $input['quote'] ) ) {
+		return array(
+			'success'               => true,
+			'quote'                 => true,
+			'order_id'              => $order_id,
+			'seller'                => $seller,
+			'parcel'                => $parcel,
+			'carrier'               => $quote['carrier'],
+			'service'               => $quote['service'],
+			'cost'                  => (float) ( $cost_minor / 100 ),
+			'shipping_held'         => (float) ( $hold_minor / 100 ),
+			'exceeds_shipping'      => $exceeds,
+			'can_purchase'          => ! $exceeds || $is_manager,
+			'requires_confirmation' => $exceeds && $is_manager,
+		);
+	}
+
+	$allowed = extrachill_shop_label_overage_allowed( $cost_minor, $hold_minor, ! empty( $input['confirm_overage'] ) );
+	if ( is_wp_error( $allowed ) ) {
+		return $allowed;
+	}
+
+	$label_result = extrachill_shop_shippo_buy_label( $quote );
 
 	if ( is_wp_error( $label_result ) ) {
 		return $label_result;
 	}
 
+	$overage_minor = max( 0, $cost_minor - $hold_minor );
 	extrachill_shop_update_order_shipment(
 		$order,
 		array(
@@ -181,20 +236,32 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 			'cost'            => (float) $label_result['cost'],
 			'rate_id'         => $label_result['rate_id'],
 			'transaction_id'  => $label_result['transaction_id'],
+			'parcel'          => $parcel,
 			'purchased_at'    => current_time( 'mysql' ),
 			'purchased_by'    => $user_id,
-			// The buyer's shipping, already taken in the application fee, pays for this label.
-			'shipping_held'   => extrachill_shop_order_shipping_hold( $order ) / 100,
+			'shipping_held'   => (float) ( $hold_minor / 100 ),
+			// Postage above the hold, paid by Extra Chill (shop managers only).
+			'overage'         => (float) ( $overage_minor / 100 ),
 		)
 	);
 
-	$order->set_status( 'completed', sprintf(
-		'Shipping label purchased by %s. Tracking: %s. Label $%s, covered by $%s shipping charged.',
-		wp_get_current_user()->display_name,
-		$label_result['tracking_number'],
-		number_format( (float) $label_result['cost'], 2 ),
-		number_format( extrachill_shop_order_shipping_hold( $order ) / 100, 2 )
-	) );
+	$note = $overage_minor > 0
+		? sprintf(
+			'Shipping label purchased by %s. Tracking: %s. Label $%s exceeds the $%s shipping charged; Extra Chill pays the $%s difference.',
+			wp_get_current_user()->display_name,
+			$label_result['tracking_number'],
+			number_format( $cost_minor / 100, 2 ),
+			number_format( $hold_minor / 100, 2 ),
+			number_format( $overage_minor / 100, 2 )
+		)
+		: sprintf(
+			'Shipping label purchased by %s. Tracking: %s. Label $%s, covered by $%s shipping charged.',
+			wp_get_current_user()->display_name,
+			$label_result['tracking_number'],
+			number_format( $cost_minor / 100, 2 ),
+			number_format( $hold_minor / 100, 2 )
+		);
+	$order->set_status( 'completed', $note );
 	$order->save();
 
 	// Send email notification via the centralized ec_send_email() pipeline
@@ -224,6 +291,8 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		'carrier'         => $label_result['carrier'],
 		'service'         => $label_result['service'],
 		'cost'            => $label_result['cost'],
+		'shipping_held'   => (float) ( $hold_minor / 100 ),
+		'parcel'          => $parcel,
 	);
 }
 

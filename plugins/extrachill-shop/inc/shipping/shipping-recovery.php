@@ -97,19 +97,9 @@ function extrachill_shop_release_shipping_hold( $order ) {
 		return new WP_Error( 'shipping_release_failed', 'Payments are unavailable. Please try again.', array( 'status' => 503 ) );
 	}
 	try {
-		$payment = \Stripe\PaymentIntent::retrieve(
-			array(
-				'id'     => $intent,
-				'expand' => array( 'latest_charge' ),
-			),
-			array( 'stripe_account' => $account )
-		);
-		$fee_id  = (string) ( $payment->latest_charge->application_fee ?? '' );
-		$amount  = 0;
-		if ( '' !== $fee_id ) {
-			$fee    = \Stripe\ApplicationFee::retrieve( $fee_id );
-			$amount = min( $hold, max( 0, (int) $fee->amount - (int) $fee->amount_refunded ) );
-		}
+		$fee    = extrachill_shop_get_order_application_fee( $order );
+		$fee_id = null === $fee ? '' : $fee['id'];
+		$amount = null === $fee ? 0 : min( $hold, max( 0, $fee['amount'] - $fee['amount_refunded'] ) );
 		if ( $amount > 0 ) {
 			\Stripe\ApplicationFee::createRefund(
 				$fee_id,

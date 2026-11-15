@@ -35,14 +35,44 @@ function extrachill_api_register_shipping_labels_routes() {
 		extrachill_api_shop_seller_args()
 	);
 
+	// The seller confirms the parcel before buying; `quote` prices it without
+	// buying, `confirm_overage` lets a shop manager buy above the shipping held.
+	$create_args = array_merge(
+		$args,
+		array(
+			'parcel'          => array(
+				'required'   => false,
+				'type'       => 'object',
+				'properties' => array(
+					'weight'    => array( 'type' => 'number' ),
+					'mass_unit' => array(
+						'type' => 'string',
+						'enum' => array( 'oz', 'lb' ),
+					),
+					'length'    => array( 'type' => 'number' ),
+					'width'     => array( 'type' => 'number' ),
+					'height'    => array( 'type' => 'number' ),
+				),
+			),
+			'quote'           => array(
+				'required' => false,
+				'type'     => 'boolean',
+			),
+			'confirm_overage' => array(
+				'required' => false,
+				'type'     => 'boolean',
+			),
+		)
+	);
+
 	extrachill_api_shop_register_ability_route(
 		'/shop/shipping-labels',
 		array(
 			array(
 				'methods' => WP_REST_Server::CREATABLE,
 				'ability' => 'extrachill/shop-create-shipping-label',
-				'params'  => array( 'order_id' ),
-				'args'    => $args,
+				'params'  => array( 'order_id', 'parcel', 'quote', 'confirm_overage' ),
+				'args'    => $create_args,
 			),
 		)
 	);

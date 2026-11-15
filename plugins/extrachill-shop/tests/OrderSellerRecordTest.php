@@ -137,6 +137,7 @@ final class OrderSellerRecordTest extends \PHPUnit\Framework\TestCase {
 			'zip'     => '29401',
 			'country' => 'US',
 		) );
+		$order->meta['_extrachill_shipping_hold_minor'] = 500;
 		$GLOBALS['shippo_label_result'] = array(
 			'label_url'       => 'https://labels.example/321.pdf',
 			'tracking_number' => '9400LABEL',

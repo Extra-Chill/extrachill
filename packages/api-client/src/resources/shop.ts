@@ -14,6 +14,9 @@ import type {
   ShippingAddressUpdateResponse,
   ShippingLabelLookup,
   ShippingLabelPurchase,
+  ShippingLabelPurchaseOptions,
+  ShippingLabelQuote,
+  ShippingParcel,
   TaxonomyCountsResponse,
 } from '../types';
 
@@ -117,8 +120,21 @@ export class ShopResource extends BaseResource {
     return this.put('extrachill/v1/shop/shipping-address', { ...address, ...this.sellerParams(seller) } as Record<string, unknown>);
   }
 
-  purchaseShippingLabel(orderId: number, seller: ShopSellerRef): Promise<ShippingLabelPurchase> {
-    return this.post('extrachill/v1/shop/shipping-labels', { order_id: orderId, ...this.sellerParams(seller) });
+  purchaseShippingLabel(
+    orderId: number,
+    seller: ShopSellerRef,
+    options: ShippingLabelPurchaseOptions = {},
+  ): Promise<ShippingLabelPurchase> {
+    return this.post('extrachill/v1/shop/shipping-labels', { order_id: orderId, ...this.sellerParams(seller), ...options });
+  }
+
+  quoteShippingLabel(orderId: number, seller: ShopSellerRef, parcel?: ShippingParcel): Promise<ShippingLabelQuote> {
+    return this.post('extrachill/v1/shop/shipping-labels', {
+      order_id: orderId,
+      ...this.sellerParams(seller),
+      ...(parcel ? { parcel } : {}),
+      quote: true,
+    });
   }
 
   getShippingLabel(orderId: number, seller: ShopSellerRef): Promise<ShippingLabelLookup> {

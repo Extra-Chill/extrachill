@@ -163,11 +163,42 @@ export const updateShippingAddress = ( seller, address ) =>
 		seller: sellerRef( seller ),
 	} );
 
-export const purchaseShippingLabel = ( orderId, seller ) =>
+/**
+ * Buy (or, with `quote: true`, price) a shipping label.
+ *
+ * @param {number|string} orderId                  Order ID.
+ * @param {Object}        seller                   Seller reference.
+ * @param {Object}        options                  Purchase options.
+ * @param {Object}        [options.parcel]         Parcel `{ weight, mass_unit, length, width, height }`.
+ * @param {boolean}       [options.quote]          Price the label without buying it.
+ * @param {boolean}       [options.confirmOverage] Shop managers: buy above the shipping the buyer paid.
+ * @return {Promise<Object>} Label, or quote when `quote` is set.
+ */
+export const purchaseShippingLabel = (
+	orderId,
+	seller,
+	{ parcel, quote = false, confirmOverage = false } = {}
+) =>
 	runAbility( 'shop-create-shipping-label', {
 		order_id: Number( orderId ),
 		seller: sellerRef( seller ),
+		...( parcel
+			? {
+					parcel: {
+						weight: Number( parcel.weight ),
+						mass_unit: parcel.mass_unit,
+						length: Number( parcel.length ),
+						width: Number( parcel.width ),
+						height: Number( parcel.height ),
+					},
+				}
+			: {} ),
+		...( quote ? { quote: true } : {} ),
+		...( confirmOverage ? { confirm_overage: true } : {} ),
 	} );
+
+export const quoteShippingLabel = ( orderId, seller, parcel ) =>
+	purchaseShippingLabel( orderId, seller, { parcel, quote: true } );
 
 // ─── Payments (Stripe Connect) ──────────────────────────────────────────────
 

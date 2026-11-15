@@ -11,7 +11,7 @@ WooCommerce CRUD (HPOS and post storage alike):
 | `_extrachill_stripe_account` | connected account the order is charged on (`''` for platform orders) | checkout |
 | `_extrachill_application_fee` | platform fee in minor units (cents), including the shipping hold | checkout |
 | `_extrachill_shipping_hold_minor` / `_extrachill_shipping_released_minor` | buyer shipping held in the fee / returned to the seller (see `inc/shipping/shipping-recovery.php`) | checkout / mark shipped |
-| `_extrachill_shipment` | `{label_url, tracking_number, tracking_url, carrier, service, cost, purchased_at, …}` | label purchase, "mark shipped" tracking |
+| `_extrachill_shipment` | `{label_url, tracking_number, tracking_url, carrier, service, cost, shipping_held, overage, parcel, purchased_at, …}`; `cost` is the label postage, `overage` any postage above the hold paid by Extra Chill | label purchase, "mark shipped" tracking |
 
 `_extrachill_seller` is derived from line items when an order is created
 (classic and Store API checkout) or its items are edited in wp-admin. Once

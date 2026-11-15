@@ -169,8 +169,11 @@ function extrachill_shop_get_order_seller_record( $order ): ?array {
 /**
  * The order's shipment: purchased label and/or tracking number.
  *
+ * `cost` is the label postage; `shipping_held` is the buyer's shipping that
+ * paid for it and `overage` any postage above that, paid by Extra Chill.
+ *
  * @param WC_Order $order Order.
- * @return array{label_url: string, tracking_number: string, tracking_url: string, carrier: string, service: string, cost: float, purchased_at: string}
+ * @return array{label_url: string, tracking_number: string, tracking_url: string, carrier: string, service: string, cost: float, shipping_held: float, overage: float, purchased_at: string}
  */
 function extrachill_shop_get_order_shipment( $order ): array {
 	$stored = $order->get_meta( '_extrachill_shipment' );
@@ -183,6 +186,8 @@ function extrachill_shop_get_order_shipment( $order ): array {
 		'carrier'         => (string) ( $stored['carrier'] ?? '' ),
 		'service'         => (string) ( $stored['service'] ?? '' ),
 		'cost'            => (float) ( $stored['cost'] ?? 0 ),
+		'shipping_held'   => (float) ( $stored['shipping_held'] ?? 0 ),
+		'overage'         => (float) ( $stored['overage'] ?? 0 ),
 		'purchased_at'    => (string) ( $stored['purchased_at'] ?? '' ),
 	);
 }

@@ -13,6 +13,7 @@
 // phpcs:disable -- Test doubles and WordPress/WooCommerce stubs.
 require_once dirname( __DIR__ ) . '/SellerCommerceTest.php';
 require_once dirname( __DIR__ ) . '/TicketTest.php';
+require_once __DIR__ . '/class-stripe-application-fee.php';
 require_once dirname( __DIR__, 2 ) . '/inc/stripe/refunds.php';
 
 if ( ! class_exists( 'WC_Payment_Gateway' ) ) {

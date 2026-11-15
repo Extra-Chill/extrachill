@@ -553,6 +553,31 @@
 	gap: var(--spacing-sm);
 }
 
+.ec-asm__label-section,
+.ec-asm__label-quote {
+	display: grid;
+	gap: var(--spacing-sm);
+}
+
+.ec-asm__label-parcel {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-md);
+
+	.ec-field-group__control {
+		display: flex;
+		gap: var(--spacing-xs, 4px);
+	}
+
+	input[type="number"] {
+		width: 5.5em;
+	}
+}
+
+.ec-asm__label-quote p {
+	margin: 0;
+}
+
 .ec-asm__refund-confirm {
 	display: grid;
 	gap: var(--spacing-sm);

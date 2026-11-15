@@ -50,6 +50,13 @@ final class RefundAndCommissionTest extends TestCase {
 		$GLOBALS['test_orders']        = array();
 		$GLOBALS['ticket_refunds']     = array();
 		$GLOBALS['ticket_refund_fail'] = false;
+		$GLOBALS['stripe_fee']         = array(
+			'id'              => 'fee_artist',
+			'amount'          => 200,
+			'amount_refunded' => 0,
+		);
+		$GLOBALS['stripe_fee_calls']   = array();
+		$GLOBALS['stripe_fee_fail']    = false;
 	}
 
 	/** A paid direct-charge artist order (canonical seller record), registered where wc_get_order() finds it. */
@@ -98,7 +105,7 @@ final class RefundAndCommissionTest extends TestCase {
 		list( $params, $options ) = $GLOBALS['ticket_refunds'][0];
 		$this->assertSame( 'pi_artist', $params['payment_intent'] );
 		$this->assertSame( 2500, $params['amount'] );
-		$this->assertTrue( $params['refund_application_fee'] );
+		$this->assertFalse( $params['refund_application_fee'] );
 		$this->assertSame( 'acct_artist', $options['stripe_account'] );
 	}
 

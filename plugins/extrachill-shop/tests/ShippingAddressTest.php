@@ -17,12 +17,29 @@ function add_option( $key, $value, $deprecated = '', $autoload = false ) {
 if ( ! function_exists( 'extrachill_shop_is_shippo_configured' ) ) {
 	function extrachill_shop_is_shippo_configured() { return true; }
 }
-if ( ! function_exists( 'extrachill_shop_shippo_create_label' ) ) {
-	/** Captures the shipment and counts purchases; returns `$GLOBALS['shippo_label_result']` when a test sets one. */
-	function extrachill_shop_shippo_create_label( $from, $to ) {
-		$GLOBALS['shipping_from']        = $from;
+if ( ! function_exists( 'extrachill_shop_shippo_quote_label' ) ) {
+	/** Captures the shipment; quotes `$GLOBALS['shippo_quote_cost']`, else the test label's cost, else $4.35. */
+	function extrachill_shop_shippo_quote_label( $from, $to, $parcel = null ) {
+		$GLOBALS['shipping_from']   = $from;
+		$GLOBALS['shipping_parcel'] = $parcel;
+		return array(
+			'rate_id' => 'rate_test',
+			'cost'    => (float) ( $GLOBALS['shippo_quote_cost'] ?? $GLOBALS['shippo_label_result']['cost'] ?? 4.35 ),
+			'carrier' => 'USPS',
+			'service' => 'Ground Advantage',
+		);
+	}
+}
+if ( ! function_exists( 'extrachill_shop_shippo_buy_label' ) ) {
+	/** Counts purchases; returns `$GLOBALS['shippo_label_result']` when a test sets one. */
+	function extrachill_shop_shippo_buy_label( array $quote ) {
 		$GLOBALS['shippo_labels_bought'] = ( $GLOBALS['shippo_labels_bought'] ?? 0 ) + 1;
 		return $GLOBALS['shippo_label_result'] ?? new WP_Error( 'shippo_test', 'Captured shipment.' );
+	}
+}
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability ) {
+		return in_array( $capability, $GLOBALS['operator_caps'] ?? array(), true );
 	}
 }
 require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
@@ -134,6 +151,9 @@ final class ShippingAddressTest extends TestCase {
 				private $seller;
 				public function __construct( $seller ) { $this->seller = $seller; }
 				public function get_meta( $key ) {
+					if ( '_extrachill_shipping_hold_minor' === $key ) {
+						return 500;
+					}
 					return '_extrachill_seller' === $key ? extrachill_shop_seller_ref_key( $this->seller ) : '';
 				}
 				public function get_items( $type = 'line_item' ) { return array(); }

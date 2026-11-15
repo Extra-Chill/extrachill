@@ -63,14 +63,14 @@ Body: `seller_type`, `seller_id`, `status` (`completed`), optional `tracking_num
 
 ## POST /shop/orders/{id}/refund
 
-Body: `seller_type`, `seller_id`, optional `reason`. Refunds the seller's order in full. The order is a Stripe direct charge on the seller's connected account, so WooCommerce issues one Stripe refund on that account and returns the platform application fee.
+Body: `seller_type`, `seller_id`, optional `reason`. Refunds the seller's order in full. The order is a Stripe direct charge on the seller's connected account, so WooCommerce issues one Stripe refund on that account, then the platform returns its application fee explicitly (see below).
 
 ```json
 { "success": true, "order_id": 12345, "refund_amount": 14.99 }
 ```
 
 - A cart holds one seller's products, so the refund covers whatever is still refundable on the order, including shipping.
-- Calls `wc_create_refund()` with `refund_payment`; the gateway issues a `Refund` on the order's `_extrachill_stripe_account` with `refund_application_fee`. Platform products have no connected account and refund on the platform account.
+- Calls `wc_create_refund()` with `refund_payment`; the gateway issues a `Refund` on the order's `_extrachill_stripe_account` with `refund_application_fee: false`, then refunds the application fee on the platform (`ApplicationFee::createRefund`) up to a cumulative target: the commission (fee minus shipping hold) in proportion to the share of the order refunded, plus the shipping hold only when the order is fully refunded and no Extra Chill label was bought. Shipping that paid for a label is kept; shipping already paid out to a seller who shipped themselves is not refunded twice. If the fee refund fails, the buyer refund stands and an order note flags it. Platform products have no connected account and refund on the platform account.
 - A failed Stripe refund leaves the order refundable and can be retried. Order status becomes "refunded" only when the whole order has been refunded.
 
 Errors: `404 order_not_found` when the order has no items from the seller, `409 already_refunded` when nothing remains refundable, `409 refund_busy` while another refund for the order is in progress, plus the seller errors above.

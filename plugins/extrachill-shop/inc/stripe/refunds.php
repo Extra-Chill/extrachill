@@ -6,9 +6,17 @@
  * seller's connected account (stored on the order as
  * `_extrachill_stripe_account`) with an application fee for the platform.
  * A platform-owned product order is charged on the platform account and has
- * no connected account. A refund therefore takes a single Stripe call: refund
- * the PaymentIntent on the account that holds the charge, and return the
- * platform's application fee proportionally (`refund_application_fee`).
+ * no connected account. A refund refunds the PaymentIntent on the account that
+ * holds the charge. For a seller order the platform then returns its
+ * application fee explicitly (`extrachill_shop_merch_fee_refund_target()`),
+ * because the fee also holds the buyer's shipping, and shipping already spent
+ * on an Extra Chill label is not given back:
+ *
+ * - Commission (fee minus shipping hold) is returned in proportion to the
+ *   share of the charge refunded so far.
+ * - Shipping hold: no label bought, returned when the order is fully refunded;
+ *   label bought, kept (it paid for the postage); returned to the seller
+ *   already when they shipped themselves, so nothing more.
  *
  * All refunds go through WooCommerce (`wc_create_refund` with
  * `refund_payment`). WooCommerce validates the amount, saves the refund row,
@@ -107,18 +115,127 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( (float) $order->get_total_refunded() * 100 ) );
 	$account = (string) $order->get_meta( '_extrachill_stripe_account' );
 	if ( '' !== $account ) {
-		// Seller order: the charge and the platform's application fee live on
-		// the connected account. Platform products have no account.
+		// Seller order: the charge lives on the connected account. The
+		// platform's application fee is returned explicitly below so shipping
+		// already spent on a label stays with the platform. Platform products
+		// have no account and no fee.
 		$options['stripe_account']        = $account;
-		$params['refund_application_fee'] = true;
+		$params['refund_application_fee'] = false;
 	}
 	try {
 		$refund = \Stripe\Refund::create( $params, $options );
 		if ( ! in_array( $refund->status ?? 'succeeded', array( 'succeeded', 'pending' ), true ) ) {
 			return new WP_Error( 'refund_failed', 'Stripe refund failed.' );
 		}
-		return true;
 	} catch ( \Exception $e ) {
 		return new WP_Error( 'refund_failed', 'Stripe refund failed. Please retry.' );
+	}
+	if ( '' !== $account ) {
+		// The buyer has their money, so the WooCommerce refund stands even if
+		// the fee refund fails; the order note tells an operator to finish it.
+		$fee_refund = extrachill_shop_refund_merch_application_fee( $order );
+		if ( is_wp_error( $fee_refund ) ) {
+			$order->add_order_note( 'Buyer refunded, but returning the Extra Chill application fee to the seller failed: ' . $fee_refund->get_error_message() );
+		}
+	}
+	return true;
+}
+
+/**
+ * Application fee (minor units) the platform should have returned to the
+ * seller once the order's refunds so far are applied.
+ *
+ * Cumulative, so every refund (and a retry) tops the fee refund up to this
+ * target instead of adding to it.
+ *
+ * @param WC_Order $order     Order. Its total refunded already includes the refund being processed.
+ * @param int      $fee_minor Application fee collected on the charge.
+ * @return int
+ */
+function extrachill_shop_merch_fee_refund_target( $order, $fee_minor ) {
+	$fee_minor  = max( 0, (int) $fee_minor );
+	$hold_minor = min( $fee_minor, max( 0, (int) $order->get_meta( EXTRACHILL_SHOP_SHIPPING_HOLD_META ) ) );
+	$commission = $fee_minor - $hold_minor;
+	$total      = max( 0, (int) round( (float) $order->get_total() * 100 ) );
+	$refunded   = min( $total, max( 0, (int) round( (float) $order->get_total_refunded() * 100 ) ) );
+	$full       = $total > 0 && $refunded >= $total;
+
+	$commission_target = $full ? $commission : ( $total > 0 ? (int) floor( $commission * $refunded / $total ) : 0 );
+
+	$released = (string) $order->get_meta( EXTRACHILL_SHOP_SHIPPING_RELEASED_META );
+	if ( '' !== $released ) {
+		// Already refunded to the seller, who shipped without a label.
+		$shipping_target = min( $hold_minor, max( 0, (int) $released ) );
+	} elseif ( '' !== extrachill_shop_get_order_shipment( $order )['label_url'] ) {
+		// Spent on the Extra Chill label.
+		$shipping_target = 0;
+	} else {
+		// Unspent: returned once nothing is left to ship.
+		$shipping_target = $full ? $hold_minor : 0;
+	}
+
+	return min( $fee_minor, $commission_target + $shipping_target );
+}
+
+/**
+ * The platform application fee on a seller order's charge.
+ *
+ * The charge is read on the seller's connected account; the fee object lives
+ * on the platform. Throws on Stripe errors.
+ *
+ * @param WC_Order $order Order.
+ * @return array{id: string, amount: int, amount_refunded: int}|null Null when the charge has none.
+ */
+function extrachill_shop_get_order_application_fee( $order ) {
+	$payment = \Stripe\PaymentIntent::retrieve(
+		array(
+			'id'     => (string) $order->get_meta( '_extrachill_payment_intent' ),
+			'expand' => array( 'latest_charge' ),
+		),
+		array( 'stripe_account' => (string) $order->get_meta( '_extrachill_stripe_account' ) )
+	);
+	$fee_id  = (string) ( $payment->latest_charge->application_fee ?? '' );
+	if ( '' === $fee_id ) {
+		return null;
+	}
+	$fee = \Stripe\ApplicationFee::retrieve( $fee_id );
+	return array(
+		'id'              => $fee_id,
+		'amount'          => (int) $fee->amount,
+		'amount_refunded' => (int) $fee->amount_refunded,
+	);
+}
+
+/**
+ * Return the platform application fee owed to the seller after a refund.
+ *
+ * @param WC_Order $order Order, its total refunded including the refund just issued.
+ * @return int|WP_Error Minor units returned now.
+ */
+function extrachill_shop_refund_merch_application_fee( $order ) {
+	try {
+		$fee = extrachill_shop_get_order_application_fee( $order );
+		if ( null === $fee ) {
+			return 0;
+		}
+		$target = extrachill_shop_merch_fee_refund_target( $order, $fee['amount'] );
+		$amount = min( $fee['amount'] - $fee['amount_refunded'], $target - $fee['amount_refunded'] );
+		if ( $amount <= 0 ) {
+			return 0;
+		}
+		\Stripe\ApplicationFee::createRefund(
+			$fee['id'],
+			array(
+				'amount'   => $amount,
+				'metadata' => array(
+					'order_id' => (string) $order->get_id(),
+					'reason'   => 'order_refund',
+				),
+			),
+			array( 'idempotency_key' => 'ec-merch-fee-refund-' . $order->get_id() . '-' . $target . '-' . $fee['amount_refunded'] )
+		);
+		return $amount;
+	} catch ( \Exception $e ) {
+		return new WP_Error( 'fee_refund_failed', $e->getMessage() );
 	}
 }

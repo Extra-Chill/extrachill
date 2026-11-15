@@ -206,6 +206,11 @@ function extrachill_shop_ability_build_order_response( $order ): array {
 		'order_total'     => (float) ( $record['total'] ?? 0 ),
 		'tracking_number' => $shipment['tracking_number'],
 		'label_url'       => $shipment['label_url'],
+		'label_cost'      => $shipment['cost'],
 		'ships_free_only' => extrachill_shop_items_ship_free_only( $record['items'] ?? array() ),
+		// Shipping the buyer paid that an Extra Chill label can spend.
+		'shipping_held'   => (float) ( extrachill_shop_order_shipping_hold( $order ) / 100 ),
+		// Prefill for the label form: product weights and dimensions, else the default box.
+		'label_parcel'    => extrachill_shop_order_default_parcel( $order ),
 	);
 }
