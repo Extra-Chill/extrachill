@@ -259,3 +259,19 @@
 		padding: 16px;
 	}
 }
+
+/* Empty Links tab: a direct first "Add Link" without a section. */
+.ec-lpe-links-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+
+	p {
+		margin: 0;
+	}
+}
+
+.ec-editor__first-steps {
+	margin: 0 0 16px;
+}

@@ -1,6 +1,17 @@
-/* global afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest */
+/* global afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest, KeyboardEvent */
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import { act } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import {
 	AdapterBoundary,
 	cardBackgroundParts,
@@ -353,6 +364,53 @@ describe( 'portable editor behavior', () => {
 		expect(
 			window.ecLinkPageEditorAdapters[ 'test-adapter' ].read
 		).not.toHaveBeenCalled();
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'offers Add Link on an empty page and no premature Saved state', async () => {
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async () =>
+				documentFor( 'a', { link_sections: [] } )
+			),
+			save: jest.fn(),
+		};
+		const { container, root } = await renderEditor();
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).not.toBeNull();
+		const submit = container.querySelector( 'button[type="submit"]' );
+		expect( submit.textContent ).toBe( 'Save changes' );
+		expect( submit.disabled ).toBe( true );
+		await act( async () =>
+			container.querySelector( '[role="tab"][id$="-links"]' ).click()
+		);
+		await act( async () =>
+			container.querySelector( '.ec-lpe-links-empty__add-link' ).click()
+		);
+		expect( container.querySelector( '.ec-lpe-links-empty' ) ).toBeNull();
+		expect(
+			container.querySelectorAll( 'input[aria-label="Link title"]' )
+				.length
+		).toBe( 1 );
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).toBeNull();
+		expect( submit.disabled ).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'shows Saved for an unchanged page with content', async () => {
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async () => documentFor() ),
+			save: jest.fn(),
+		};
+		const { container, root } = await renderEditor();
+		expect(
+			container.querySelector( 'button[type="submit"]' ).textContent
+		).toBe( 'Saved' );
+		expect(
+			container.querySelector( '.ec-editor__first-steps' )
+		).toBeNull();
 		await act( async () => root.unmount() );
 	} );
 
@@ -767,9 +825,15 @@ describe( 'portable editor behavior', () => {
 			finish.value = 'gloss';
 			finish.dispatchEvent( new Event( 'change', { bubbles: true } ) );
 		} );
-		const preview = container.querySelector( '.extrch-link-page-preview-container' );
-		expect( preview.style.getPropertyValue( '--link-page-button-finish' ) ).toBe( 'gloss' );
-		expect( preview.style.getPropertyValue( '--link-page-button-sheen' ) ).toContain( 'linear-gradient' );
+		const preview = container.querySelector(
+			'.extrch-link-page-preview-container'
+		);
+		expect(
+			preview.style.getPropertyValue( '--link-page-button-finish' )
+		).toBe( 'gloss' );
+		expect(
+			preview.style.getPropertyValue( '--link-page-button-sheen' )
+		).toContain( 'linear-gradient' );
 		expect(
 			container.querySelector( '.extrch-share-page-trigger' )
 		).not.toBeNull();
