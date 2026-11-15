@@ -451,13 +451,8 @@ class ArtistUrlImportAbilities {
 	}
 
 	/** Testable admission seam; mutations must always call this fresh. */
-	protected function qualifyForAdmission( string $url, bool $legacy_artist = false ) {
-		return $this->executeQualifyEventSource(
-			array(
-				'url'           => $url,
-				'legacy_artist' => $legacy_artist,
-			)
-		);
+	protected function qualifyForAdmission( string $url ) {
+		return $this->executeQualifyEventSource( array( 'url' => $url ) );
 	}
 
 	/**
@@ -490,7 +485,7 @@ class ArtistUrlImportAbilities {
 			return $probe;
 		}
 
-		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['legacy_artist'] ) );
+		$classification = $this->classifySource( $events_url, $probe, $qualification );
 		$coverage       = array(
 			'covered' => false,
 			'type'    => 'none',
@@ -577,7 +572,7 @@ class ArtistUrlImportAbilities {
 	}
 
 	/** Classify bounded artist/venue identity from repeated extracted events. */
-	protected function classifySource( string $url, array $probe, array $qualification = array(), bool $force_artist = false ): array {
+	protected function classifySource( string $url, array $probe, array $qualification = array() ): array {
 		$venues             = array();
 		$performers         = array();
 		$missing_headliners = false;
@@ -686,19 +681,6 @@ class ArtistUrlImportAbilities {
 			$scope_evidence = array(
 				'bounded' => true,
 				'type'    => 'shared_title' === $artist['source'] ? 'shared_title_multiple_venues' : 'site_artist_multiple_venues',
-				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
-			);
-			$binding        = array(
-				'taxonomy' => 'artist',
-				'term_id'  => $artist['term_id'],
-				'name'     => $artist['name'],
-			);
-		} elseif ( $force_artist && count( $venues ) > 1 && null !== $artist['term_id'] ) {
-			$kind           = 'artist';
-			$confidence     = 'high';
-			$scope_evidence = array(
-				'bounded' => true,
-				'type'    => 'legacy_artist_identity_multiple_venues',
 				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
 			);
 			$binding        = array(
@@ -1008,7 +990,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		// Re-qualify server-side regardless of what the preview saw.
-		$qualification = $this->qualifyForAdmission( $normalized, ! empty( $input['legacy_artist'] ) );
+		$qualification = $this->qualifyForAdmission( $normalized );
 
 		if ( is_wp_error( $qualification ) ) {
 			return $qualification;
@@ -1193,28 +1175,26 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$is_legacy = ! empty( $submission['compatibility_legacy'] );
-		$fresh     = $this->qualifyForAdmission( (string) ( $submission['canonical_url'] ?? $submission['url'] ), $is_legacy );
+		$fresh = $this->qualifyForAdmission( (string) ( $submission['canonical_url'] ?? $submission['url'] ) );
 		if ( is_wp_error( $fresh ) ) {
 			return $fresh;
 		}
-		$legacy_admission = false;
 		if ( empty( $fresh['recurring_eligible'] ) ) {
-			$legacy_check = $this->validateLegacyArtistAdmission( $submission, $fresh, $input );
-			if ( is_wp_error( $legacy_check ) ) {
-				return $legacy_check;
-			}
-			$legacy_admission = true;
+			return new \WP_Error(
+				'source_no_longer_admissible',
+				__( 'Fresh qualification no longer admits this source for a recurring import.', 'extrachill-events' ),
+				array(
+					'status'        => 409,
+					'qualification' => $fresh,
+				)
+			);
 		}
 
-		$source_kind = $this->resolveApprovalKind( (string) ( $submission['source_kind'] ?? 'artist' ), $input['source_kind'] ?? null );
+		$source_kind = $this->resolveApprovalKind( (string) $submission['source_kind'], $input['source_kind'] ?? null );
 		if ( is_wp_error( $source_kind ) ) {
 			return $source_kind;
 		}
-		if ( $legacy_admission && 'artist' !== $source_kind ) {
-			return new \WP_Error( 'legacy_artist_only', __( 'Legacy artist submissions can only be approved as artists.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-		if ( ! $legacy_admission && $source_kind !== (string) $fresh['source_kind'] ) {
+		if ( $source_kind !== (string) $fresh['source_kind'] ) {
 			return new \WP_Error(
 				'source_kind_changed',
 				__( 'Fresh qualification does not match the selected source kind.', 'extrachill-events' ),
@@ -1263,9 +1243,9 @@ class ArtistUrlImportAbilities {
 			return $this->approveVenueSubmission( $submission_id, $submission, $input );
 		}
 
-		$expected_artist_id   = $legacy_admission ? (int) ( $submission['entity_term_id'] ?? $submission['suggested_artist_term_id'] ?? 0 ) : (int) ( $fresh_binding['term_id'] ?? 0 );
-		$expected_artist_name = $legacy_admission ? (string) ( $submission['entity_name'] ?? $submission['suggested_artist_name'] ?? '' ) : (string) ( $fresh_binding['name'] ?? '' );
-		$artist_identity      = $this->validateArtistApprovalIdentity( $expected_artist_id, $expected_artist_name, $input, $is_legacy );
+		$expected_artist_id   = (int) ( $fresh_binding['term_id'] ?? 0 );
+		$expected_artist_name = (string) ( $fresh_binding['name'] ?? '' );
+		$artist_identity      = $this->validateArtistApprovalIdentity( $expected_artist_id, $expected_artist_name, $input );
 		if ( is_wp_error( $artist_identity ) ) {
 			return $artist_identity;
 		}
@@ -1462,60 +1442,8 @@ class ArtistUrlImportAbilities {
 		);
 	}
 
-	/** Admit only previously accepted artist rows through the legacy exception. */
-	private function validateLegacyArtistAdmission( array $submission, array $fresh, array $input ) {
-		if ( empty( $submission['compatibility_legacy'] ) ) {
-			return new \WP_Error(
-				'source_no_longer_admissible',
-				__( 'Fresh qualification no longer admits this source for a recurring import.', 'extrachill-events' ),
-				array(
-					'status'        => 409,
-					'qualification' => $fresh,
-				)
-			);
-		}
-		$explicit_id   = (int) ( $input['artist_term_id'] ?? $input['entity_term_id'] ?? 0 );
-		$explicit_name = trim( (string) ( $input['artist_name'] ?? $input['entity_name'] ?? '' ) );
-		$stored_name   = trim( (string) ( $submission['entity_name'] ?? $submission['suggested_artist_name'] ?? '' ) );
-		$coverage_type = (string) ( $fresh['existing_coverage']['type'] ?? 'none' );
-		$verdict       = (string) ( $fresh['verdict'] ?? '' );
-		$unsafe        = array(
-			QualifyVerdict::QUALIFIED_FOR_FLYER,
-			QualifyVerdict::UNSUPPORTED_SOURCE,
-			QualifyVerdict::RESERVATION_ONLY,
-			QualifyVerdict::BOT_BLOCKED,
-			QualifyVerdict::UNREACHABLE,
-			QualifyVerdict::COVERED_ELSEWHERE,
-		);
-
-		if ( (int) ( $submission['events_found_count'] ?? 0 ) < 1 || '' === (string) ( $submission['detected_format'] ?? '' ) || '' === $stored_name ) {
-			return new \WP_Error( 'legacy_evidence_missing', __( 'This legacy row does not contain the accepted artist-source evidence required for approval.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-		if ( $explicit_id <= 0 && '' === $explicit_name ) {
-			return new \WP_Error( 'legacy_artist_required', __( 'Select an explicit artist identity to approve this legacy submission.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-		if ( empty( $fresh['success'] ) || (int) ( $fresh['events_found'] ?? 0 ) < 1 || ! empty( $fresh['existing_coverage']['covered'] ) || str_starts_with( $coverage_type, 'unsupported_' ) || in_array( $verdict, $unsafe, true ) || str_contains( strtolower( (string) ( $fresh['extraction_method'] ?? '' ) ), 'vision' ) ) {
-			return new \WP_Error(
-				'legacy_source_unsafe',
-				__( 'Fresh scraper safety checks do not admit this legacy artist source.', 'extrachill-events' ),
-				array(
-					'status'        => 409,
-					'qualification' => $fresh,
-				)
-			);
-		}
-		if ( 'venue' === (string) ( $fresh['source_kind'] ?? 'unknown' ) ) {
-			return new \WP_Error( 'legacy_source_kind_changed', __( 'Fresh qualification identifies this legacy source as a venue.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-		$fresh_name = 'artist' === (string) ( $fresh['source_kind'] ?? '' ) ? trim( (string) ( $fresh['recommended_binding']['name'] ?? '' ) ) : '';
-		if ( '' !== $fresh_name && ! $this->artistNamesMatch( $stored_name, $fresh_name ) ) {
-			return new \WP_Error( 'artist_identity_changed', __( 'Fresh qualification identifies a different artist than the legacy submission.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-		return true;
-	}
-
 	/** Validate moderator identity against the artist proven by admission. */
-	private function validateArtistApprovalIdentity( int $expected_id, string $expected_name, array $input, bool $require_explicit ) {
+	private function validateArtistApprovalIdentity( int $expected_id, string $expected_name, array $input ) {
 		$explicit_id   = (int) ( $input['artist_term_id'] ?? $input['entity_term_id'] ?? 0 );
 		$explicit_name = trim( (string) ( $input['artist_name'] ?? $input['entity_name'] ?? '' ) );
 		$expected_name = trim( $expected_name );
@@ -1523,10 +1451,6 @@ class ArtistUrlImportAbilities {
 		if ( $expected_term instanceof \WP_Term && '' === $expected_name ) {
 			$expected_name = (string) $expected_term->name;
 		}
-		if ( $require_explicit && $explicit_id <= 0 && '' === $explicit_name ) {
-			return new \WP_Error( 'legacy_artist_required', __( 'Select an explicit artist identity to approve this legacy submission.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
 		$explicit_term = null;
 		if ( $explicit_id > 0 ) {
 			$explicit_term = get_term( $explicit_id, 'artist' );

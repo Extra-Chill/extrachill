@@ -181,7 +181,7 @@ class ArtistUrlSubmissionsTable {
 			ARRAY_A
 		);
 
-		return $row ? self::with_compatibility_defaults( $row ) : null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -219,7 +219,7 @@ class ArtistUrlSubmissionsTable {
 			}
 			$candidate = (string) ( $row['canonical_url'] ?? $row['url'] ?? '' );
 			if ( self::normalize_url( $candidate ) === $canonical ) {
-				return self::with_compatibility_defaults( $row );
+				return $row;
 			}
 		}
 		return null;
@@ -241,7 +241,7 @@ class ArtistUrlSubmissionsTable {
 			ARRAY_A
 		);
 
-		return $row ? self::with_compatibility_defaults( $row ) : null;
+		return $row ? $row : null;
 	}
 
 	/**
@@ -373,36 +373,7 @@ class ArtistUrlSubmissionsTable {
 			);
 		}
 
-		return $rows ? array_map( array( self::class, 'with_compatibility_defaults' ), $rows ) : array();
-	}
-
-	/**
-	 * Read legacy artist rows through the generic event-source model.
-	 *
-	 * Existing records predate the source columns, so an empty source kind is
-	 * concrete evidence of the shipped artist-tour contract rather than an
-	 * unknown classification.
-	 */
-	public static function with_compatibility_defaults( array $row ): array {
-		if ( empty( $row['source_kind'] ) ) {
-			$row['source_kind']          = 'artist';
-			$row['compatibility_legacy'] = true;
-		} else {
-			$row['compatibility_legacy'] = false;
-		}
-		if ( empty( $row['canonical_url'] ) ) {
-			$row['canonical_url'] = (string) ( $row['url'] ?? '' );
-		}
-		if ( empty( $row['entity_taxonomy'] ) && 'artist' === $row['source_kind'] ) {
-			$row['entity_taxonomy'] = 'artist';
-		}
-		if ( empty( $row['entity_term_id'] ) && ! empty( $row['suggested_artist_term_id'] ) ) {
-			$row['entity_term_id'] = (int) $row['suggested_artist_term_id'];
-		}
-		if ( empty( $row['entity_name'] ) && ! empty( $row['suggested_artist_name'] ) ) {
-			$row['entity_name'] = (string) $row['suggested_artist_name'];
-		}
-		return $row;
+		return $rows ? $rows : array();
 	}
 
 	/**
