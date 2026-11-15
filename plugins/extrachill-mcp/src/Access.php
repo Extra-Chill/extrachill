@@ -110,7 +110,7 @@ final class Access {
 	public function register(): void {
 		add_filter( 'agents_ability_call_permission', array( $this, 'filter_substrate_call_permission' ), 10, 2 );
 		add_filter( 'ec_feature_ceilings', array( $this, 'register_feature_ceiling' ) );
-		add_filter( 'default_site_option_' . self::TIER_OPTION, array( $this, 'default_tier' ) );
+		add_filter( 'ec_feature_default_tiers', array( $this, 'register_default_tier' ) );
 	}
 
 	/**
@@ -139,15 +139,26 @@ final class Access {
 	}
 
 	/**
-	 * Default live tier while the network option is unset. See DEFAULT_TIER.
+	 * Register the starting live tier used while the network option is
+	 * unset. See DEFAULT_TIER.
 	 *
-	 * Hooked on core's `default_site_option_{option}`, which only runs when
-	 * the option does not exist, so a stored operator choice always wins.
+	 * Registered with extrachill-users' starting-tier registry rather than
+	 * core's `default_site_option_{option}` filter: on multisite that filter
+	 * makes update_site_option() treat the missing row as present, so
+	 * promoting the tier silently failed (Extra-Chill/extrachill#1509).
 	 *
-	 * @return string
+	 * @param mixed $defaults Starting-tier registry. Untrusted, like the
+	 *                        ceiling registry.
+	 * @return array<string,string>
 	 */
-	public function default_tier(): string {
-		return self::DEFAULT_TIER;
+	public function register_default_tier( $defaults ): array {
+		if ( ! is_array( $defaults ) ) {
+			$defaults = array();
+		}
+
+		$defaults[ self::FEATURE ] = self::DEFAULT_TIER;
+
+		return $defaults;
 	}
 
 	/**
