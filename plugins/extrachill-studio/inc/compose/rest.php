@@ -1204,8 +1204,11 @@ function ec_studio_compose_check_upload_size( array $uploaded_file, int $main_bl
 	$file_size = isset( $uploaded_file['size'] ) ? (int) $uploaded_file['size'] : 0;
 
 	switch_to_blog( $main_blog_id );
-	$max_size = (int) wp_max_upload_size();
-	restore_current_blog();
+	try {
+		$max_size = (int) wp_max_upload_size();
+	} finally {
+		restore_current_blog();
+	}
 
 	if ( $max_size <= 0 || $file_size <= $max_size ) {
 		return true;

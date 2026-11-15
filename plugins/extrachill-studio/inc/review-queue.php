@@ -80,17 +80,6 @@ function ec_studio_review_queue_register_page(): void {
 add_action( 'admin_menu', 'ec_studio_review_queue_register_page' );
 
 /**
- * Resolve main extrachill.com's blog id.
- *
- * @since 0.20.1
- *
- * @return int Main blog id, or 0 when unresolved.
- */
-function ec_studio_review_queue_main_blog_id(): int {
-	return (int) ec_get_blog_id( 'main' );
-}
-
-/**
  * Check the current user's editorial capability in the main-site context.
  *
  * Multisite roles are site-specific, so Studio access does not imply main-site
@@ -245,7 +234,7 @@ function ec_studio_review_queue_render_page(): void {
 		wp_die( esc_html__( 'You do not have permission to view Studio submissions.', 'extrachill-studio' ) );
 	}
 
-	$main_blog_id = ec_studio_review_queue_main_blog_id();
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 
 	echo '<div class="wrap">';
 	echo '<h1>' . esc_html__( 'Studio Submissions', 'extrachill-studio' ) . '</h1>';
