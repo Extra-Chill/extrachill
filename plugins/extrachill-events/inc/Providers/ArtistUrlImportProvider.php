@@ -9,7 +9,12 @@ namespace ExtraChillEvents\Providers;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Loads the Artist URL Import table and REST surface once. */
+/**
+ * Loads the Artist URL Import table once.
+ *
+ * The `/event-source/*` REST routes are extrachill-api adapters over the
+ * event-source abilities.
+ */
 final class ArtistUrlImportProvider {
 
 	/**
@@ -34,8 +39,6 @@ final class ArtistUrlImportProvider {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
 
 		self::$registered = true;
 		return true;

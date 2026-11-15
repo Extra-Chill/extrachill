@@ -1,10 +1,17 @@
 <?php
 /**
- * Guest (email-only) Local Scene digest signup ability (#989).
+ * Signed-link Local Scene digest abilities.
  *
- * Domain behavior lives in inc/core/local-scene-digest-guest.php. The public
- * write boundary (Turnstile + rate limit) is a dedicated extrachill-api route,
- * like guest RSVP, so this ability is hidden from the generic REST runner.
+ * - extrachill/guest-subscribe-local-scene-digest: guest (email-only) signup
+ *   (#989). Domain behavior lives in inc/core/local-scene-digest-guest.php.
+ *   The public write boundary (Turnstile + rate limit) is a dedicated
+ *   extrachill-api route, like guest RSVP.
+ * - extrachill/unsubscribe-local-scene-digest: the signed one-click
+ *   unsubscribe page. Domain behavior lives in inc/core/local-scene-digest.php;
+ *   extrachill-api serves it at extrachill/v1/local-scene-digest/unsubscribe.
+ *
+ * Both are hidden from the generic REST runner: the signature, not the
+ * WordPress session, is the authorization.
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -77,6 +84,92 @@ class LocalSceneDigestGuestAbilities {
 				),
 			)
 		);
+
+		wp_register_ability(
+			'extrachill/unsubscribe-local-scene-digest',
+			array(
+				'label'               => __( 'Unsubscribe From Local Scene Digest', 'extrachill-events' ),
+				'description'         => __( 'Resolve a signed Local Scene digest unsubscribe link. Without confirm it returns a scanner-safe confirmation page and never changes consent; with confirm it removes only that location\'s digest subscription.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'confirm'   => array(
+							'type'        => 'boolean',
+							'description' => __( 'Perform the unsubscribe (POST) instead of rendering the confirmation (GET).', 'extrachill-events' ),
+						),
+						'token'     => array(
+							'type'        => 'string',
+							'description' => __( 'Signed unsubscribe token.', 'extrachill-events' ),
+						),
+						'user'      => array(
+							'type'        => 'integer',
+							'description' => __( 'Legacy signed link user ID.', 'extrachill-events' ),
+						),
+						'location'  => array(
+							'type'        => 'string',
+							'description' => __( 'Legacy signed link location slug.', 'extrachill-events' ),
+						),
+						'expires'   => array(
+							'type'        => 'integer',
+							'description' => __( 'Legacy signed link expiry timestamp.', 'extrachill-events' ),
+						),
+						'signature' => array(
+							'type'        => 'string',
+							'description' => __( 'Legacy signed link HMAC.', 'extrachill-events' ),
+						),
+					),
+					'additionalProperties' => false,
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'status'      => array(
+							'type' => 'string',
+							'enum' => array( 'confirm', 'unsubscribed', 'invalid', 'unavailable' ),
+						),
+						'title'       => array( 'type' => 'string' ),
+						'message'     => array( 'type' => 'string' ),
+						'action_html' => array( 'type' => 'string' ),
+						'html'        => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'status', 'title', 'message', 'action_html', 'html' ),
+				),
+				'execute_callback'    => array( $this, 'unsubscribe' ),
+				// The signed link is the authorization; the public transport is
+				// the dedicated extrachill-api route.
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Resolve a signed unsubscribe request into its standalone page.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function unsubscribe( array $input ) {
+		if ( ! function_exists( 'extrachill_events_local_scene_digest_unsubscribe_page' ) ) {
+			return new \WP_Error( 'local_scene_digest_unsubscribe_unavailable', __( 'Unsubscribe is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+
+		$params = array();
+		foreach ( array( 'token', 'user', 'location', 'expires', 'signature' ) as $key ) {
+			if ( isset( $input[ $key ] ) ) {
+				$params[ $key ] = $input[ $key ];
+			}
+		}
+
+		return extrachill_events_local_scene_digest_unsubscribe_page( $params, ! empty( $input['confirm'] ) );
 	}
 
 	/**

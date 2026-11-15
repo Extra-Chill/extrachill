@@ -317,6 +317,36 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
 			),
 		),
+		'/extrachill/v1/event-source/preview|' . EXTRACHILL_API_EVENT_SOURCE_PREVIEW_ABILITY => array(
+			'constraints' => array(
+				'url.format'           => 'The route sanitizes with esc_url_raw(); the ability validates the URI format.',
+				'additionalProperties' => 'The adapter forwards only the declared url field.',
+			),
+		),
+		'/extrachill/v1/event-source/submit|' . EXTRACHILL_API_EVENT_SOURCE_SUBMIT_ABILITY => array(
+			'constraints' => array(
+				'url.format'           => 'The route sanitizes with esc_url_raw(); the ability validates the URI format.',
+				'additionalProperties' => 'The adapter forwards only the declared url and contact fields.',
+			),
+		),
+		'/extrachill/v1/event-source/(?P<id>\\d+)/approve|' . EXTRACHILL_API_EVENT_SOURCE_APPROVE_ABILITY => array(
+			'ability_only'   => array( 'submission_id' => 'Translated from the id path segment.' ),
+			'transport_only' => array( 'id' => 'Submission path segment, forwarded as submission_id.' ),
+			'constraints'    => array(
+				'source_kind.enum'     => 'The route accepts any sanitize_key() value; the ability enforces the source kind enum.',
+				'additionalProperties' => 'The adapter forwards only supplied, declared overrides.',
+			),
+		),
+		'/extrachill/v1/event-source/(?P<id>\\d+)/reject|' . EXTRACHILL_API_EVENT_SOURCE_REJECT_ABILITY => array(
+			'ability_only'   => array( 'submission_id' => 'Translated from the id path segment.' ),
+			'transport_only' => array( 'id' => 'Submission path segment, forwarded as submission_id.' ),
+			'constraints'    => array(
+				'additionalProperties' => 'The adapter forwards only the declared reason field.',
+			),
+		),
+		'/extrachill/v1/local-scene-digest/unsubscribe|extrachill/unsubscribe-local-scene-digest' => array(
+			'ability_only' => array( 'confirm' => 'Derived from the HTTP method: POST confirms the unsubscribe, GET only renders the confirmation.' ),
+		),
 		'/extrachill/v1/network-media|extrachill/network-media-upload' => array(
 			'ability_only' => array(
 				'tmp_name' => 'Derived from the admitted multipart file payload.',

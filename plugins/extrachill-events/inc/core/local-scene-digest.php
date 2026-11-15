@@ -13,11 +13,15 @@ const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY   = 'local_scene_digest';
 const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY = 'location';
 const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_LIMIT    = 8;
 
-/** Register recipient authorization and the scoped unsubscribe route. */
+/**
+ * Register recipient authorization.
+ *
+ * The signed unsubscribe route is an extrachill-api adapter over the
+ * extrachill/unsubscribe-local-scene-digest ability.
+ */
 function extrachill_events_init_local_scene_digest(): void {
 	add_filter( 'extrachill_users_entity_subscription_entities', 'extrachill_events_local_scene_digest_subscription_entities' );
 	add_filter( 'extrachill_users_entity_subscription_producer_authorized', 'extrachill_events_authorize_local_scene_digest_producer', 10, 4 );
-	add_action( 'rest_api_init', 'extrachill_events_register_local_scene_digest_routes' );
 }
 
 /**
@@ -697,64 +701,68 @@ function extrachill_events_local_scene_digest_add_query_args( string $url, array
 	return $url;
 }
 
-/** Register the public, signature-authenticated one-click route. */
-function extrachill_events_register_local_scene_digest_routes(): void {
-	register_rest_route(
-		'extrachill/v1',
-		'/local-scene-digest/unsubscribe',
-		array(
-			array(
-				'methods'             => 'GET',
-				'callback'            => 'extrachill_events_local_scene_digest_unsubscribe_confirmation',
-				'permission_callback' => '__return_true',
-				'args'                => extrachill_events_local_scene_digest_unsubscribe_args(),
-			),
-			array(
-				'methods'             => 'POST',
-				'callback'            => 'extrachill_events_local_scene_digest_unsubscribe',
-				'permission_callback' => '__return_true',
-				'args'                => extrachill_events_local_scene_digest_unsubscribe_args(),
-			),
-		)
-	);
-}
+/**
+ * Resolve one signed unsubscribe request into its standalone browser page.
+ *
+ * Backs the extrachill/unsubscribe-local-scene-digest ability. The public
+ * `extrachill/v1/local-scene-digest/unsubscribe` route in extrachill-api is
+ * the transport: GET asks for confirmation (scanner-safe, never mutates
+ * consent) and POST performs the location-scoped unsubscribe.
+ *
+ * @param array $params  Signed request parameters (token, or legacy user/location/expires/signature).
+ * @param bool  $is_post Whether the request is the confirming POST.
+ * @return array{status: string, title: string, message: string, action_html: string, html: string}
+ */
+function extrachill_events_local_scene_digest_unsubscribe_page( array $params, bool $is_post ): array {
+	$action_html = '';
+	if ( ! $is_post ) {
+		$result = extrachill_events_local_scene_digest_unsubscribe_confirmation( $params );
+		if ( is_wp_error( $result ) ) {
+			$status  = 'invalid';
+			$title   = __( 'Unsubscribe link invalid', 'extrachill-events' );
+			$message = __( 'This unsubscribe link is invalid or has expired. You can manage this Local Scene subscription from its events page.', 'extrachill-events' );
+		} else {
+			$status      = 'confirm';
+			$title       = __( 'Unsubscribe from weekly Local Scene picks?', 'extrachill-events' );
+			$message     = __( 'This stops both the weekly email and its in-app update for this Local Scene only.', 'extrachill-events' );
+			$action_html = $result['html'];
+		}
+	} else {
+		$result = extrachill_events_local_scene_digest_unsubscribe( $params );
+		if ( ! is_wp_error( $result ) ) {
+			$status  = 'unsubscribed';
+			$title   = __( "You're unsubscribed", 'extrachill-events' );
+			$message = __( 'You will no longer receive the weekly email or its in-app update for this Local Scene. Your saved Local Scene and other notification preferences have not changed.', 'extrachill-events' );
+		} elseif ( 'invalid_local_scene_digest_unsubscribe' === $result->get_error_code() ) {
+			$status  = 'invalid';
+			$title   = __( 'Unsubscribe link invalid', 'extrachill-events' );
+			$message = __( 'This unsubscribe request is invalid or has expired. You can manage this Local Scene subscription from its events page.', 'extrachill-events' );
+		} else {
+			$status  = 'unavailable';
+			$title   = __( 'Unsubscribe unavailable', 'extrachill-events' );
+			$message = __( 'This subscription could not be updated right now. Please try again later or manage it from the Local Scene events page.', 'extrachill-events' );
+		}
+	}
 
-/** Return the shared signed unsubscribe request schema. */
-function extrachill_events_local_scene_digest_unsubscribe_args(): array {
 	return array(
-		'token'     => array( 'type' => 'string' ),
-		'user'      => array(
-			'required'          => false,
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
-		),
-		'location'  => array(
-			'required'          => false,
-			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_title',
-		),
-		'expires'   => array(
-			'required'          => false,
-			'type'              => 'integer',
-			'sanitize_callback' => 'absint',
-		),
-		'signature' => array(
-			'required'          => false,
-			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
-		),
+		'status'      => $status,
+		'title'       => $title,
+		'message'     => $message,
+		'action_html' => $action_html,
+		'html'        => extrachill_events_build_local_scene_digest_unsubscribe_page( $title, $message, $action_html ),
 	);
 }
 
 /**
  * Verify and normalize one signed unsubscribe request without mutating consent.
  *
- * @param WP_REST_Request $request Unsubscribe request.
+ * @param array    $params Signed request parameters.
+ * @param int|null $now    Verification time; defaults to now.
  * @return array|WP_Error
  */
-function extrachill_events_verify_local_scene_digest_unsubscribe( WP_REST_Request $request, ?int $now = null ) {
+function extrachill_events_verify_local_scene_digest_unsubscribe( array $params, ?int $now = null ) {
 	$now    = $now ?? time();
-	$token  = (string) $request->get_param( 'token' );
+	$token  = (string) ( $params['token'] ?? '' );
 	$claims = extrachill_verify( 'events.digest_unsubscribe', $token, $now );
 	if ( null !== $claims ) {
 		$user_id = (int) ( $claims['user_id'] ?? 0 );
@@ -763,17 +771,23 @@ function extrachill_events_verify_local_scene_digest_unsubscribe( WP_REST_Reques
 			return compact( 'user_id', 'slug', 'token' );
 		}
 	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
-		return extrachill_events_local_scene_digest_unsubscribe_legacy_verify( $request );
+		return extrachill_events_local_scene_digest_unsubscribe_legacy_verify( $params );
 	}
 	return new WP_Error( 'invalid_local_scene_digest_unsubscribe', __( 'This unsubscribe link is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
 }
 
-/** @internal Temporary legacy verification; delete after the cutoff. */
-function extrachill_events_local_scene_digest_unsubscribe_legacy_verify( WP_REST_Request $request ) {
-	$user_id   = absint( $request->get_param( 'user' ) );
-	$slug      = sanitize_title( $request->get_param( 'location' ) );
-	$expires   = absint( $request->get_param( 'expires' ) );
-	$signature = (string) $request->get_param( 'signature' );
+/**
+ * Temporary legacy verification; delete after the cutoff.
+ *
+ * @internal
+ * @param array $params Signed request parameters.
+ * @return array|WP_Error
+ */
+function extrachill_events_local_scene_digest_unsubscribe_legacy_verify( array $params ) {
+	$user_id   = absint( $params['user'] ?? 0 );
+	$slug      = sanitize_title( (string) ( $params['location'] ?? '' ) );
+	$expires   = absint( $params['expires'] ?? 0 );
+	$signature = (string) ( $params['signature'] ?? '' );
 	$expected  = hash_hmac( 'sha256', $user_id . '|' . $slug . '|' . $expires, wp_salt( 'auth' ) );
 	if ( ! $user_id || '' === $slug || $expires < time() || $expires > time() + 30 * DAY_IN_SECONDS || ! hash_equals( $expected, $signature ) ) {
 		return new WP_Error( 'invalid_local_scene_digest_unsubscribe', __( 'This unsubscribe link is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
@@ -783,28 +797,20 @@ function extrachill_events_local_scene_digest_unsubscribe_legacy_verify( WP_REST
 }
 
 /**
- * Render a scanner-safe confirmation form without changing consent.
+ * Build a scanner-safe confirmation form without changing consent.
  *
- * @param WP_REST_Request $request Unsubscribe request.
- * @param bool            $render  Whether to render the browser handoff page.
+ * @param array $params Signed request parameters.
  * @return array|WP_Error
  */
-function extrachill_events_local_scene_digest_unsubscribe_confirmation( WP_REST_Request $request, bool $render = true ) {
-	$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $request );
+function extrachill_events_local_scene_digest_unsubscribe_confirmation( array $params ) {
+	$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
 	if ( is_wp_error( $verified ) ) {
-		if ( $render ) {
-			extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Unsubscribe link invalid', 'extrachill-events' ), __( 'This unsubscribe link is invalid or has expired. You can manage this Local Scene subscription from its events page.', 'extrachill-events' ) );
-		}
 		return $verified;
 	}
 
-	$form = extrachill_events_build_local_scene_digest_unsubscribe_form( $verified );
-	if ( $render ) {
-		extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Unsubscribe from weekly Local Scene picks?', 'extrachill-events' ), __( 'This stops both the weekly email and its in-app update for this Local Scene only.', 'extrachill-events' ), $form );
-	}
 	return array(
 		'confirmed' => false,
-		'html'      => $form,
+		'html'      => extrachill_events_build_local_scene_digest_unsubscribe_form( $verified ),
 	);
 }
 
@@ -831,38 +837,23 @@ function extrachill_events_build_local_scene_digest_unsubscribe_form( array $ver
 /**
  * Verify a signed POST and remove only its digest-specific location consent.
  *
- * @param WP_REST_Request $request Unsubscribe request.
- * @param bool            $render  Whether to render the browser handoff page.
- * @return WP_REST_Response|WP_Error
+ * @param array $params Signed request parameters.
+ * @return array|WP_Error
  */
-function extrachill_events_local_scene_digest_unsubscribe( WP_REST_Request $request, bool $render = true ) {
-	$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $request );
+function extrachill_events_local_scene_digest_unsubscribe( array $params ) {
+	$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
 	if ( is_wp_error( $verified ) ) {
-		if ( $render ) {
-			extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Unsubscribe link invalid', 'extrachill-events' ), __( 'This unsubscribe request is invalid or has expired. You can manage this Local Scene subscription from its events page.', 'extrachill-events' ) );
-		}
 		return $verified;
 	}
-	$user_id = $verified['user_id'];
-	$slug    = $verified['slug'];
 	if ( ! function_exists( 'extrachill_users_unsubscribe_from_entity' ) ) {
-		if ( $render ) {
-			extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Unsubscribe unavailable', 'extrachill-events' ), __( 'This subscription could not be updated right now. Please try again later or manage it from the Local Scene events page.', 'extrachill-events' ) );
-		}
 		return new WP_Error( 'local_scene_digest_unsubscribe_unavailable', __( 'Unsubscribe is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
 	}
 
-	$result = extrachill_users_unsubscribe_from_entity( $user_id, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $slug );
+	$result = extrachill_users_unsubscribe_from_entity( $verified['user_id'], EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $verified['slug'] );
 	if ( is_wp_error( $result ) ) {
-		if ( $render ) {
-			extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Unsubscribe unavailable', 'extrachill-events' ), __( 'This subscription could not be updated right now. Please try again later or manage it from the Local Scene events page.', 'extrachill-events' ) );
-		}
 		return $result;
 	}
-	if ( $render ) {
-		extrachill_events_render_local_scene_digest_unsubscribe_page( __( "You're unsubscribed", 'extrachill-events' ), __( 'You will no longer receive the weekly email or its in-app update for this Local Scene. Your saved Local Scene and other notification preferences have not changed.', 'extrachill-events' ) );
-	}
-	return rest_ensure_response( array( 'unsubscribed' => true ) );
+	return array( 'unsubscribed' => true );
 }
 
 /**
