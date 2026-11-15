@@ -141,7 +141,7 @@ headers: {
 
 ### Gutenberg Block Integration
 
-The Gutenberg block editor (`src/blocks/link-page-editor/`) uses REST API for all operations:
+The Link Page editor (portable editor in `extrachill-link-pages`, artist adapter at `src/blocks/link-page-editor/adapter.js`) uses REST API for all operations:
 
 ```javascript
 // Block automatically handles REST communication

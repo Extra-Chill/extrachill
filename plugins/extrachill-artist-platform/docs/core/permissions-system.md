@@ -162,7 +162,8 @@ Artist profile and link page editing is handled via Gutenberg block editor:
 ```php
 // Block-based management (primary interface)
 // Location: src/blocks/artist-manager/
-// Location: src/blocks/link-page-editor/
+// Link Pages: portable editor in extrachill-link-pages (src/editor/),
+// artist adapter at src/blocks/link-page-editor/adapter.js
 // Block provides tab-based interface for:
 // - Profile information editing
 // - Roster/member management

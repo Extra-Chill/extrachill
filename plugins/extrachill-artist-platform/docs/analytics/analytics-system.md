@@ -214,7 +214,7 @@ Dedicated Gutenberg block providing comprehensive analytics interface for link p
 
 **Block Registration**:
 ```php
-// Registered separately from link-page-editor block
+// Registered separately from the Link Page editor block (extrachill-link-pages)
 register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
 ```
 
@@ -337,6 +337,6 @@ Analytics data can be exported via REST API endpoints for integration with exter
 ### Third-Party Analytics
 
 The plugin integrates with external analytics services via:
-- Google Tag Manager (GTM) tracking codes configured in TabAdvanced (link-page-editor block)
+- Google Tag Manager (GTM) tracking codes configured in the Advanced tab of the portable Link Page editor (extrachill-link-pages)
 - Meta Pixel (Facebook) integration for conversion tracking
 - Custom event tracking via action hooks and filters

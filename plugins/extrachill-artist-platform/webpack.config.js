@@ -1,17 +1,24 @@
 /**
  * Webpack configuration for extrachill-artist-platform
  *
- * Extends @wordpress/scripts defaults for block builds.
+ * Extends `@wordpress/scripts` defaults for block builds.
+ */
+
+/**
+ * WordPress dependencies
  */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+
+/**
+ * External dependencies
+ */
 const path = require( 'path' );
 
 module.exports = {
 	...defaultConfig,
 	entry: {
-		'blocks/link-page-editor/index':
-			'./src/blocks/link-page-editor/index.js',
-		'blocks/link-page-editor/view': './src/blocks/link-page-editor/view.js',
+		// Only the artist owner adapter remains here; the portable Link Page
+		// editor block itself lives in extrachill-link-pages.
 		'blocks/link-page-editor/adapter':
 			'./src/blocks/link-page-editor/adapter.js',
 		'blocks/artist-analytics/index':

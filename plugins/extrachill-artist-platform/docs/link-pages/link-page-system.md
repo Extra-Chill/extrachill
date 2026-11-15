@@ -72,19 +72,19 @@ $css_variables = [
 
 ## Management Interface
 
-The management interface is **exclusively a Gutenberg block editor component** (React-based) located at `src/blocks/link-page-editor/`. There is no legacy PHP management interface.
+The management interface is **exclusively a Gutenberg block editor component** (React-based) provided by the portable Link Page editor in `extrachill-link-pages` (`src/editor/`), with the artist adapter at `src/blocks/link-page-editor/adapter.js`. There is no legacy PHP management interface.
 
 Link pages are edited directly in the WordPress block editor when editing an `ec_link_page` post (stored on the Link Pages site, extrachill.link).
 
 ### Tab Structure
 
-The editor provides a tabbed interface with five sections:
+The portable editor (`extrachill-link-pages/src/editor/index.js`) shows tabs based on the capabilities the artist adapter declares:
 
-1. **TabInfo** (`components/tabs/TabInfo.js`): Basic information and biography editing
-2. **TabLinks** (`components/tabs/TabLinks.js`): Link management with drag-and-drop reordering
-3. **TabCustomize** (`components/tabs/TabCustomize.js`): Styling and appearance options (fonts, colors)
-4. **TabAdvanced** (`components/tabs/TabAdvanced.js`): Advanced features (expiration, temporary redirects, and tracking settings used by public templates)
-5. **TabSocials** (`components/tabs/TabSocials.js`): Social platform link management (15+ platforms)
+1. **Info**: Basic information and biography editing
+2. **Links**: Link section and link management
+3. **Socials**: Social platform link management (15+ platforms)
+4. **Customize**: Styling and appearance options (fonts, colors)
+5. **Advanced**: Advanced features (expiration, temporary redirects, and tracking settings used by public templates)
 
 Analytics are provided by the separate `artist-analytics` Gutenberg block.
 
@@ -112,7 +112,7 @@ The Gutenberg block editor includes an integrated live preview via the Preview c
 
 ### Gutenberg Block Interface
 
-Primary location: `src/blocks/link-page-editor/components/tabs/TabLinks.js`
+Primary location: `extrachill-link-pages/src/editor/index.js`
 
 Features:
 - React-based link management
@@ -123,7 +123,7 @@ Features:
 
 ### Color Picker
 
-Location: `src/blocks/link-page-editor/components/shared/ColorPicker.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Color picker interface for:
 - Background colors
@@ -133,7 +133,7 @@ Color picker interface for:
 
 ### Font Management
 
-Location: `src/blocks/link-page-editor/components/tabs/TabCustomize.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Integration with Google Fonts:
 - Title font selection
@@ -143,7 +143,7 @@ Integration with Google Fonts:
 
 ### Background Options
 
-Location: `src/blocks/link-page-editor/components/tabs/TabCustomize.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Background types:
 - Solid colors
@@ -190,7 +190,7 @@ extract($data);
 
 ### Link Expiration
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
+Location: `extrachill-link-pages/src/editor/index.js` (editor UI)
 Backend: cron cleanup owned by the `extrachill-link-pages` runtime (`ec_cleanup_expired_link_page_links()`)
 
 Features:
@@ -201,7 +201,7 @@ Features:
 
 ### Redirect System
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js`
+Location: `extrachill-link-pages/src/editor/index.js`
 
 Temporary redirect functionality:
 - 302 redirects to external URLs
@@ -210,7 +210,7 @@ Temporary redirect functionality:
 
 ### YouTube Integration
 
-Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
+Location: `extrachill-link-pages/src/editor/index.js` (editor UI)
 
 Inline YouTube video embedding:
 - Automatic video detection
@@ -233,7 +233,7 @@ All assets loaded based on page context:
 
 ### Save System
 
-Location: REST API integration via `src/blocks/link-page-editor/`
+Location: REST API integration via the artist adapter (`src/blocks/link-page-editor/adapter.js`)
 
 All save operations handled through the Gutenberg block editor exclusively:
 

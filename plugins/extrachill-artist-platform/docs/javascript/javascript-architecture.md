@@ -8,28 +8,13 @@ The plugin uses modern JavaScript patterns organized by functionality across dif
 
 **Location**: `src/blocks/`
 
-Modern React-based components providing five Gutenberg blocks for comprehensive platform management:
+Modern React-based Gutenberg blocks for platform management, plus the Link Page editor adapter:
 
-#### 1. Link Page Editor Block
+#### 1. Link Page Editor Adapter
 
-**Location**: `src/blocks/link-page-editor/`
+**Location**: `src/blocks/link-page-editor/adapter.js`
 
-Complete React-based component for Gutenberg block editor providing link page editing interface with live preview.
-
-**Component Structure**:
-- **Editor.js**: Main editor container managing tabs and state
-- **Preview.js**: Live preview component showing real-time updates
-- **JumpToPreview.js**: Mobile navigation button to jump to preview panel
-- **Tab Components** (`tabs/`):
-  - `TabInfo.js`: Artist info, title, and biography editing
-  - `TabLinks.js`: Link management with drag-and-drop reordering
-  - `TabCustomize.js`: Styling options (fonts, colors, backgrounds)
-  - `TabAdvanced.js`: Advanced settings (tracking, expiration, YouTube)
-  - `TabSocials.js`: Social platform link management
-- **Shared Components** (`shared/`): ColorPicker, ImageUploader, DraggableList, LinkPageUrl, QRCodeModal
-- **Context System**: EditorContext and PreviewContext for state management
-- **Custom Hooks**: useArtist, useLinks, useMediaUpload, useSocials
-- **REST API Integration**: Centralized API client for all block requests
+The Link Page editor UI is the portable editor owned by `extrachill-link-pages` (`src/editor/`). Artist Platform ships only the artist owner adapter, which registers with that editor and routes artist, links, and socials saves through the shared API client (`src/blocks/shared/api/client.js`). `inc/link-pages/editor-adapter.php` enqueues the built adapter.
 
 #### 2. Link Page Analytics Block
 
@@ -102,7 +87,7 @@ Artist profile management is handled exclusively via the Artist Manager block (`
 
 ### Advanced Features
 
-**Location**: `src/blocks/link-page-editor/`
+**Location**: portable Link Page editor in `extrachill-link-pages` (`src/editor/`)
 - Link expiration scheduling
 - Temporary redirect configuration  
 - YouTube embed settings
@@ -141,9 +126,8 @@ npm run format   # Code formatting
 ```
 
 **Output**:
-- Compiled assets: `build/blocks/link-page-editor/`
-- Block manifest: `build/blocks/link-page-editor/block.json`
-- Auto-enqueued by WordPress via `register_block_type()`
+- Block bundles and manifests: `build/blocks/{artist-analytics,artist-manager,artist-creator}/` (registered via `register_block_type()`)
+- Link Page adapter: `build/blocks/link-page-editor/adapter.js` + `adapter.asset.php` (enqueued by `inc/link-pages/editor-adapter.php`)
 
 ## Performance Optimization
 

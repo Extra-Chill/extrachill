@@ -35,8 +35,8 @@ The platform consists of two primary custom post types:
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Four Gutenberg Blocks**: Modern React-based blocks for complete platform management
-  - `link-page-editor`: Full link page editing with all features
+- **Gutenberg Blocks**: Modern React-based blocks for complete platform management
+  - Link Page editing: portable editor owned by `extrachill-link-pages`; this plugin ships the artist adapter (`src/blocks/link-page-editor/adapter.js`)
   - `artist-analytics`: Analytics dashboard with Chart.js visualization
   - `artist-manager`: Artist profile management and metadata
   - `artist-creator`: Artist profile creation
@@ -62,11 +62,8 @@ Dual template architecture:
 
 **Location**: `src/blocks/`
 
-Five React-based Gutenberg blocks providing complete platform management (registered by `extrachill_artist_platform_register_blocks()`):
-- **link-page-editor**: Link page editing interface
-  - Includes TabInfo, TabLinks, TabCustomize, TabAdvanced, TabSocials
-  - Live preview with Context API state management
-  - REST API integration for all data operations
+React-based Gutenberg blocks providing platform management (registered by `extrachill_artist_platform_register_blocks()`):
+- **Link Page editor**: owned and registered by `extrachill-link-pages`, not this plugin; `src/blocks/link-page-editor/adapter.js` plugs artist identities and saves into it
 
 - **artist-analytics**: Dedicated analytics dashboard
   - Chart.js-powered visualization
