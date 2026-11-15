@@ -8,10 +8,11 @@
  * behind a non-blocking MySQL advisory lock and re-checks stored versions
  * (with fresh option caches) after taking it.
  *
- * Pure-PHP unit test: the real RsvpPassesTable / GuestListPartiesTable /
- * OwnerGuestListTable installers run against a fake $wpdb that models
- * GET_LOCK/RELEASE_LOCK and an option store with a request-local cache, so
- * a stale cached version read is reproducible. dbDelta comes from
+ * Pure-PHP unit test: the real RsvpPassesTable / GuestListPartiesTable
+ * installers run against a fake $wpdb that models GET_LOCK/RELEASE_LOCK,
+ * the legacy owner's-list tables (extrachill#1521 drops them only while
+ * empty), and an option store with a request-local cache, so a stale
+ * cached version read is reproducible. dbDelta comes from
  * tests/fixtures/wp-admin/includes/upgrade.php and records each call.
  *
  * @package ExtraChillEvents\Tests
@@ -24,7 +25,6 @@ use ExtraChillEvents\Providers\LifecycleProvider;
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__, 3 ) . '/inc/Core/GuestListPartiesTable.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Providers/LifecycleProvider.php';
 
@@ -105,6 +105,9 @@ final class SchemaLockTestFakeWpdb {
 	/** @var \Throwable|null Thrown from the next dbDelta call. */
 	public $throw_on_schema = null;
 
+	/** @var array<string, int> Existing legacy tables and their row counts. */
+	public $legacy_tables = array();
+
 	public function get_charset_collate() {
 		return 'DEFAULT CHARSET=utf8mb4';
 	}
@@ -138,6 +141,12 @@ final class SchemaLockTestFakeWpdb {
 			$released         = $m[1] === $this->held_lock ? '1' : '0';
 			$this->held_lock  = null;
 			return $released;
+		}
+		if ( preg_match( "/^SHOW TABLES LIKE '([^']+)'$/", $query, $m ) ) {
+			return isset( $this->legacy_tables[ $m[1] ] ) ? $m[1] : null;
+		}
+		if ( preg_match( '/^SELECT COUNT\(\*\) FROM (\S+)$/', $query, $m ) ) {
+			return (string) $this->legacy_tables[ $m[1] ];
 		}
 		throw new \LogicException( 'Unexpected get_var: ' . $query ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test double diagnostic, never rendered.
 	}
@@ -207,15 +216,15 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 
 		$this->assertSame( array( 'GET_LOCK:0', 'RELEASE_LOCK' ), $this->wpdb->lock_log, 'Lock is taken without waiting and released.' );
 		$this->assertNull( $this->wpdb->held_lock );
-		// Passes table, owner list + check-ins, parties table.
-		$this->assertSame( 4, $this->dbdelta_calls() );
+		// Passes table, pass check-ins, parties table.
+		$this->assertSame( 3, $this->dbdelta_calls() );
 		$this->assertSame( RsvpPassesTable::SCHEMA_VERSION, $this->stored_rsvp_version() );
 		$this->assertSame( array( RsvpPassesTable::VERSION_OPTION ), $GLOBALS['schema_lock_test']['writes'] );
 
 		// The same request (or the next) is now a lock-free no-op.
 		LifecycleProvider::maybe_install_schema();
 		$this->assertSame( array( 'GET_LOCK:0', 'RELEASE_LOCK' ), $this->wpdb->lock_log );
-		$this->assertSame( 4, $this->dbdelta_calls() );
+		$this->assertSame( 3, $this->dbdelta_calls() );
 	}
 
 	public function test_lock_held_by_another_request_skips_install(): void {
@@ -239,7 +248,7 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 		$this->wpdb->held_elsewhere = false;
 		LifecycleProvider::maybe_install_schema();
 
-		$this->assertSame( 4, $this->dbdelta_calls() );
+		$this->assertSame( 3, $this->dbdelta_calls() );
 		$this->assertSame( RsvpPassesTable::SCHEMA_VERSION, $this->stored_rsvp_version() );
 	}
 
@@ -298,6 +307,50 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 		$this->assertCount( 1, $names );
 		$expected = 'ec_events_schema_' . substr( hash( 'sha256', "\0wp_" ), 0, 40 );
 		$this->assertSame( $expected, $names[0] );
+	}
+
+	public function test_schema_8_adds_owner_pass_columns_and_check_ins(): void {
+		$this->assertSame( '8', RsvpPassesTable::SCHEMA_VERSION );
+		RsvpPassesTable::create_table();
+
+		$sql = implode( "\n", $GLOBALS['ec_artist_test']['dbdelta'] );
+		foreach ( array( 'email varchar(200) NULL', 'owner_type varchar(16) NULL', 'owner_term_id bigint(20) unsigned NULL', 'KEY owner_status (owner_type, owner_term_id, status)', 'CREATE TABLE wp_7_ec_event_pass_checkins', 'UNIQUE KEY pass_event (pass_id, event_id)' ) as $needle ) {
+			$this->assertStringContainsString( $needle, $sql );
+		}
+		$this->assertStringNotContainsString( 'ec_owner_guest_list', $sql, 'The standalone owner tables are no longer created.' );
+	}
+
+	public function test_empty_legacy_owner_tables_are_dropped(): void {
+		$this->wpdb->legacy_tables = array(
+			'wp_7_ec_owner_guest_list'          => 0,
+			'wp_7_ec_owner_guest_list_checkins' => 0,
+		);
+
+		RsvpPassesTable::create_table();
+
+		$this->assertContains( 'DROP TABLE IF EXISTS wp_7_ec_owner_guest_list', $this->wpdb->queries );
+		$this->assertContains( 'DROP TABLE IF EXISTS wp_7_ec_owner_guest_list_checkins', $this->wpdb->queries );
+	}
+
+	public function test_legacy_owner_tables_with_rows_are_left_and_logged(): void {
+		$GLOBALS['ec_artist_test']['fired_actions'] = array();
+		$this->wpdb->legacy_tables                  = array(
+			'wp_7_ec_owner_guest_list'          => 2,
+			'wp_7_ec_owner_guest_list_checkins' => 0,
+		);
+
+		RsvpPassesTable::create_table();
+
+		$this->assertSame( array(), preg_grep( '/^DROP TABLE/', $this->wpdb->queries ), 'Neither table is dropped while either holds rows.' );
+		$log = $GLOBALS['ec_artist_test']['fired_actions']['datamachine_log'][0];
+		$this->assertSame( 'warning', $log[0] );
+		$this->assertSame( 2, $log[2]['rows'] );
+		$this->assertSame( RsvpPassesTable::SCHEMA_VERSION, $this->stored_rsvp_version(), 'The upgrade still completes.' );
+	}
+
+	public function test_missing_legacy_owner_tables_are_a_no_op(): void {
+		RsvpPassesTable::create_table();
+		$this->assertSame( array(), preg_grep( '/^DROP TABLE/', $this->wpdb->queries ) );
 	}
 
 	public function test_stale_integration_schema_opens_the_guarded_install_path(): void {
