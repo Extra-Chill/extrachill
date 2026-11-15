@@ -1,19 +1,19 @@
-# Community Ranks and Points
+# Community ranks and points
 
-Your community rank reflects your forum contributions. Points come from creating topics, replying, and receiving upvotes. Published articles on the main Extra Chill site can also add points for contributors.
+Your rank is a quick way to see how much you have contributed to community conversations. You can find your rank and points on your profile and in the community leaderboard. Special role badges, when shown, are separate from your rank.
 
 ## How points add up
 
-- Each forum topic earns 2 points.
-- Each forum reply earns 2 points.
-- Each upvote received earns 0.5 points.
+- Creating a forum topic earns 2 points.
+- Replying earns 2 points.
+- Each upvote you receive earns half a point.
 - Each published article on the main site earns 10 points.
 
-Removing an upvote also removes its 0.5 points from the author's total. Topic and reply points may take time to appear; upvote changes are reflected directly in the total.
+Removing an upvote also removes its half point from the author's total. Topic and reply points may take a little time to appear. Upvote changes show directly in the total.
 
-## Rank names
+## Rank levels
 
-Ranks progress through these levels as your point total grows:
+Your rank changes as your point total grows:
 
 - Dew: 0–14 points; Droplet: 15–34; Puddle: 35–68; Crisp Air: 69–102.
 - First Frost: 103–154; Overnight Freeze: 155–231; Ice Cube: 232–348.
@@ -23,4 +23,4 @@ Ranks progress through these levels as your point total grows:
 - Snowstorm: 30,214–45,321; Ski Resort: 45,322–67,982; Blizzard: 67,983–101,973.
 - Glacier: 101,974–152,960; Antarctica: 152,961–229,441; Ice Age: 229,442–344,163; Upper Atmosphere: 344,164–516,245; Frozen Deep Space: 516,246 points or more.
 
-Your rank and points appear on your profile and in the community leaderboard. Special role badges, when shown, are separate from your rank.
+If a new topic or reply does not change your total right away, check again later. Your rank and points are shown on your profile and the leaderboard.
