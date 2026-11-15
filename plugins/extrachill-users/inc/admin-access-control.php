@@ -29,7 +29,7 @@ function ec_users_can_access_wp_admin( $user = null ) {
 	if ( $main_blog_id <= 0 ) {
 		return false;
 	}
-	if ( $user->ID === get_current_user_id() && function_exists( 'ec_studio_review_queue_user_can_review_main' ) ) {
+	if ( get_current_user_id() === $user->ID && function_exists( 'ec_studio_review_queue_user_can_review_main' ) ) {
 		return ec_studio_review_queue_user_can_review_main( $main_blog_id );
 	}
 
