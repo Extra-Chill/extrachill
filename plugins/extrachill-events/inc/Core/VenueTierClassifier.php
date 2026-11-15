@@ -2,12 +2,10 @@
 /**
  * Classify venues into the `_venue_tier` vocabulary from aggregate signals.
  *
- * Command: `wp extrachill venues classify-tier`.
- *
  * Implements the Extra Chill side of venue tiering
  * (Extra-Chill/extrachill-events#801). The generic `_venue_tier` term meta
  * field and its closed vocabulary live upstream in data-machine-events
- * (#786); this command proposes a tier per venue using ONLY aggregate
+ * (#786); this classifier proposes a tier per venue using ONLY aggregate
  * per-venue statistics — there are no AI/LLM calls anywhere in this path.
  * The per-event signal problem documented in the issue (per-event price,
  * per-event ticketing detection) is sidestepped entirely: a venue's
@@ -20,7 +18,7 @@
  *   - share of events whose block `price` attribute is non-empty
  *   - share of events with a non-empty `_datamachine_ticket_url`
  *   - share of events whose ticket URL points at a recognized ticketing
- *     platform ({@see ClassifyVenueTierCommand::TICKET_PLATFORMS})
+ *     platform ({@see VenueTierClassifier::TICKET_PLATFORMS})
  *   - repeat-performer rate: 1 - (distinct block `performer` values /
  *     events with a performer), i.e. how much the calendar cycles the
  *     same acts
@@ -28,36 +26,35 @@
  *   - share of events starting before 19:00
  *   - venue name tokens (weak, corroborating only) and `_venue_capacity`
  *
- * Deterministic scoring: {@see ClassifyVenueTierCommand::score()}.
- * Dry-run by default; `--apply` writes through
- * `DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta()` (the human
- * write path) only for proposals at or above `--min-confidence`, never
- * overwriting an existing non-empty tier without `--overwrite`. Existing
- * `_ec_priority_venue` flags are never modified; see `--seed-from-priority`.
+ * Deterministic scoring: {@see VenueTierClassifier::score()}. Writes go
+ * through `DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta()` (the
+ * human write path) only for proposals at or above the confidence
+ * threshold, never overwriting an existing non-empty tier unless asked.
+ * Existing `_ec_priority_venue` flags are never modified.
  *
  * The upstream tier API is newer than the deployed data-machine-events
- * release: dry-run works without it (the command only reads events and
- * venues), but `--apply` aborts unless
- * `Venue_Taxonomy::get_venue_tier_vocabulary()` exists.
+ * release: proposing works without it (it only reads events and venues),
+ * but writes require `Venue_Taxonomy::get_venue_tier_vocabulary()`
+ * ({@see VenueTierClassifier::venue_tier_upstream_ready()}).
  *
- * Always invoke with `--url=events.extrachill.com`.
+ * Consumed by the `wp extrachill venues classify-tier` adapter in
+ * extrachill-cli, which owns argument parsing and report formatting.
  *
- * @package ExtraChillEvents\Cli
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChillEvents\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Proposes `_venue_tier` values from aggregate per-venue behavioral signals.
- *
- * Dry-run by default; --apply commits through the upstream human write path.
- * See the file docblock for the signal list and the scoring rules.
+ * Proposes and writes `_venue_tier` values from aggregate per-venue
+ * behavioral signals. See the file docblock for the signal list and the
+ * scoring rules.
  */
-class ClassifyVenueTierCommand {
+class VenueTierClassifier {
 
 	/** Term meta written by the upstream venue tier API (#786). */
 	public const TIER_META_KEY = '_venue_tier';
@@ -74,11 +71,11 @@ class ClassifyVenueTierCommand {
 	/** Term meta flag for the hand-picked priority venues (#89). */
 	private const PRIORITY_META_KEY = '_ec_priority_venue';
 
-	/** Tier assigned by --seed-from-priority. */
+	/** Tier assigned by priority seeding (--seed-from-priority). */
 	private const SEED_TIER = 'club';
 
 	/** Confidence assigned to --seed-from-priority writes. */
-	private const SEED_CONFIDENCE = 1.0;
+	public const SEED_CONFIDENCE = 1.0;
 
 	/** Event title pattern for embedded time ranges ("Derek Cribb 6-9pm"). */
 	private const TIME_RANGE_TITLE_PATTERN = '[0-9]{1,2}(:[0-9]{2})?[[:space:]]*[-\x{2013}\x{2014}][[:space:]]*[0-9]{1,2}(:[0-9]{2})?[[:space:]]*(am|pm)';
@@ -87,7 +84,7 @@ class ClassifyVenueTierCommand {
 	 * Recognized ticketing-platform URL fragments, pattern => platform slug.
 	 *
 	 * Used for BOTH the PHP-side detector
-	 * ({@see ClassifyVenueTierCommand::detect_ticket_platform()}) and the
+	 * ({@see VenueTierClassifier::detect_ticket_platform()}) and the
 	 * SQL REGEXP alternation built from the same list, so the two can never
 	 * drift. The generic upstream PlatformDetector classifies venue-site
 	 * HTML, not ticket URLs, so this bounded list lives here.
@@ -156,7 +153,7 @@ class ClassifyVenueTierCommand {
 	);
 
 	/** Confidence histogram buckets, label => [inclusive_min, exclusive_max]. */
-	private const HISTOGRAM_BUCKETS = array(
+	public const HISTOGRAM_BUCKETS = array(
 		'0.0-0.5' => array( 0.0, 0.5 ),
 		'0.5-0.6' => array( 0.5, 0.6 ),
 		'0.6-0.7' => array( 0.6, 0.7 ),
@@ -165,140 +162,56 @@ class ClassifyVenueTierCommand {
 		'0.9-1.0' => array( 0.9, 1.01 ),
 	);
 
+	/** Tier slugs in report order ('' = no proposal). */
+	public const TIER_ORDER = array( 'amphitheater', 'concert_hall', 'club', 'listening_room', 'bar_gig', '' );
+
 	/**
-	 * Classify venue tiers from aggregate signals.
+	 * Non-fatal degradations recorded by the last collect_signals() call.
 	 *
-	 * Dry-run by default; pass --apply to commit writes through
-	 * Venue_Taxonomy::update_venue_meta().
-	 *
-	 * ## OPTIONS
-	 *
-	 * [--apply]
-	 * : Commit proposals at or above --min-confidence (plus
-	 *   --seed-from-priority seeds). Default is dry-run.
-	 *
-	 * [--min-confidence=<0-1>]
-	 * : Minimum confidence to write. Proposals below the threshold are
-	 *   listed for human review and never written.
-	 * ---
-	 * default: 0.7
-	 * ---
-	 *
-	 * [--min-events=<n>]
-	 * : Venues with fewer published events are never classified (tier
-	 *   proposal is empty) — signals are too thin to be meaningful.
-	 * ---
-	 * default: 3
-	 * ---
-	 *
-	 * [--limit=<n>]
-	 * : Consider at most n venues, ordered by total event count
-	 *   descending. 0 means no limit.
-	 * ---
-	 * default: 0
-	 * ---
-	 *
-	 * [--offset=<n>]
-	 * : Skip the first n venues (by the same ordering) before applying
-	 *   --limit.
-	 * ---
-	 * default: 0
-	 * ---
-	 *
-	 * [--venue=<term_id|slug>]
-	 * : Inspect a single venue: print the raw aggregate signals and the
-	 *   score() result. Never writes, even with --apply.
-	 *
-	 * [--overwrite]
-	 * : Allow replacing an existing non-empty `_venue_tier`. Default off —
-	 *   human decisions win over CLI proposals.
-	 *
-	 * [--seed-from-priority]
-	 * : With --apply, seed `club` at confidence 1.0 for any
-	 *   `_ec_priority_venue` venue that has no tier yet. Priority
-	 *   (calendar ordering) and tier (classification) stay orthogonal;
-	 *   the seed only fills the empty classification of hand-picked
-	 *   concert rooms and never touches the `_ec_priority_venue` flag.
-	 *
-	 * [--format=<format>]
-	 * : Format for the review list.
-	 * ---
-	 * default: table
-	 * options:
-	 *   - table
-	 *   - csv
-	 *   - json
-	 * ---
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill venues classify-tier --url=events.extrachill.com
-	 *     wp extrachill venues classify-tier --url=events.extrachill.com --limit=300
-	 *     wp extrachill venues classify-tier --url=events.extrachill.com --venue=the-dinghy
-	 *     wp extrachill venues classify-tier --url=events.extrachill.com --apply --seed-from-priority
-	 *
-	 * @param array $args       Positional args (unused).
-	 * @param array $assoc_args Named args.
+	 * @var string[]
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
-		unset( $args );
+	private array $warnings = array();
 
-		if ( ! defined( 'WP_CLI' ) ) {
-			return;
+	/**
+	 * Non-fatal degradations recorded by the last collect_signals() call.
+	 *
+	 * @return string[]
+	 */
+	public function warnings(): array {
+		return $this->warnings;
+	}
+
+	/**
+	 * Resolve a venue term by slug or numeric term ID.
+	 *
+	 * @param string $selector Venue term ID or slug.
+	 * @return \WP_Term|null
+	 */
+	public function find_venue( string $selector ): ?\WP_Term {
+		$term = get_term_by( 'slug', $selector, 'venue' );
+		if ( ! $term instanceof \WP_Term && ctype_digit( $selector ) ) {
+			$term = get_term( (int) $selector, 'venue' );
 		}
 
-		$apply          = ! empty( $assoc_args['apply'] );
-		$overwrite      = ! empty( $assoc_args['overwrite'] );
-		$seed_priority  = ! empty( $assoc_args['seed-from-priority'] );
-		$min_confidence = isset( $assoc_args['min-confidence'] ) ? (float) $assoc_args['min-confidence'] : 0.7;
-		$min_events     = isset( $assoc_args['min-events'] ) ? (int) $assoc_args['min-events'] : 3;
-		$limit          = isset( $assoc_args['limit'] ) ? max( 0, (int) $assoc_args['limit'] ) : 0;
-		$offset         = isset( $assoc_args['offset'] ) ? max( 0, (int) $assoc_args['offset'] ) : 0;
-		$format         = (string) ( $assoc_args['format'] ?? 'table' );
-		$venue_selector = isset( $assoc_args['venue'] ) ? (string) $assoc_args['venue'] : '';
+		return $term instanceof \WP_Term ? $term : null;
+	}
 
-		if ( $min_confidence < 0 || $min_confidence > 1 ) {
-			\WP_CLI::error( '--min-confidence must be between 0 and 1.' );
-			return;
-		}
-
-		if ( $min_events < 1 ) {
-			\WP_CLI::error( '--min-events must be at least 1.' );
-			return;
-		}
-
-		if ( ! in_array( $format, array( 'table', 'csv', 'json' ), true ) ) {
-			\WP_CLI::error( 'Unknown --format. Use table, csv, or json.' );
-			return;
-		}
-
-		// Upstream version guard. Dry-run only reads events/venues and works
-		// against any deployed data-machine-events; --apply writes through
-		// the human write path that shipped with #786, so it requires it.
-		if ( $apply && ! self::venue_tier_upstream_ready() ) {
-			\WP_CLI::error(
-				'The deployed data-machine-events does not expose '
-				. 'Venue_Taxonomy::get_venue_tier_vocabulary() (venue tier API from data-machine-events#786). '
-				. 'Upgrade data-machine-events before running with --apply. '
-				. 'Dry-run (proposal only) works without the upgrade.'
-			);
-			return;
-		}
-
-		if ( '' !== $venue_selector ) {
-			$this->inspect_single_venue( $venue_selector, $min_events );
-			return;
-		}
-
-		// Aggregate signals for every venue, computed in a few set-based queries.
-		$signals = $this->collect_signals( $min_events );
-
-		if ( empty( $signals ) ) {
-			\WP_CLI::log( 'No venue signals could be computed — nothing to classify.' );
-			return;
-		}
-
-		// Order by total events descending, then apply --offset/--limit.
+	/**
+	 * Score a page of the catalog and the full priority-venue set.
+	 *
+	 * Signals are ordered by total events descending before $offset/$limit
+	 * apply. Priority venues are scored against the FULL catalog, before
+	 * pagination, so the reconciliation sanity check always covers every
+	 * `_ec_priority_venue` even when the page excludes some of them.
+	 *
+	 * @param array<int,array> $signals        venue_id => signals from collect_signals().
+	 * @param float            $min_confidence Writable confidence threshold.
+	 * @param int              $min_events     Minimum events to propose.
+	 * @param int              $offset         Venues to skip.
+	 * @param int              $limit          Max venues (0 = no limit).
+	 * @return array{venues:int,proposals:array<int,array>,tier_counts:array<string,int>,histogram:array<string,int>,below_min:int,needs_review:int,priority_proposals:array<int,array>}
+	 */
+	public function propose( array $signals, float $min_confidence, int $min_events, int $offset = 0, int $limit = 0 ): array {
 		uasort(
 			$signals,
 			static function ( array $a, array $b ): int {
@@ -306,9 +219,6 @@ class ClassifyVenueTierCommand {
 			}
 		);
 
-		// Priority venues are scored against the FULL catalog, before
-		// pagination, so the reconciliation sanity check always covers every
-		// `_ec_priority_venue` even when --limit excludes some of them.
 		$priority_signals = array_filter(
 			$signals,
 			static function ( array $signal ): bool {
@@ -323,20 +233,8 @@ class ClassifyVenueTierCommand {
 			$signals = array_slice( $signals, 0, $limit, true );
 		}
 
-		\WP_CLI::log(
-			sprintf(
-				'%s venue tier classification — venues=%d min-confidence=%.2f min-events=%d%s%s',
-				$apply ? 'APPLY' : 'DRY RUN',
-				count( $signals ),
-				$min_confidence,
-				$min_events,
-				$overwrite ? ' overwrite=yes' : '',
-				$seed_priority ? ' seed-from-priority=yes' : ''
-			)
-		);
-
 		$proposals    = array();
-		$tier_counts  = array_fill_keys( array( 'amphitheater', 'concert_hall', 'club', 'listening_room', 'bar_gig', '' ), 0 );
+		$tier_counts  = array_fill_keys( self::TIER_ORDER, 0 );
 		$histogram    = array_fill_keys( array_keys( self::HISTOGRAM_BUCKETS ), 0 );
 		$below_min    = 0;
 		$needs_review = 0;
@@ -368,12 +266,6 @@ class ClassifyVenueTierCommand {
 			}
 		}
 
-		$this->print_summary( $apply, $tier_counts, $histogram, $below_min, $needs_review );
-
-		$this->print_review_list( $proposals, $min_confidence, $format );
-
-		// Score the full priority set (independent of pagination) and show
-		// it as the reconciliation sanity check.
 		$priority_proposals = array();
 		foreach ( $priority_signals as $venue_id => $signal ) {
 			$priority_result = self::score( $signal );
@@ -390,19 +282,178 @@ class ClassifyVenueTierCommand {
 			);
 		}
 
-		$this->print_priority_reconciliation( $priority_proposals );
+		return array(
+			'venues'             => count( $signals ),
+			'proposals'          => $proposals,
+			'tier_counts'        => $tier_counts,
+			'histogram'          => $histogram,
+			'below_min'          => $below_min,
+			'needs_review'       => $needs_review,
+			'priority_proposals' => $priority_proposals,
+		);
+	}
 
-		if ( ! $apply ) {
-			\WP_CLI::log( '' );
-			\WP_CLI::log( 'Dry run — nothing was written. Re-run with --apply to commit proposals at or above the confidence threshold.' );
-			return;
+	/**
+	 * Write qualifying proposals through the upstream human write path.
+	 *
+	 * Writes Venue_Taxonomy::update_venue_meta( $term_id, array( 'tier' =>
+	 * $slug ) ) only for proposals at or above the confidence threshold.
+	 * Existing non-empty tiers are never overwritten without $overwrite
+	 * (human decisions win). Every proposed slug is re-validated against
+	 * the live upstream vocabulary before writing; a venue whose slug was
+	 * filtered out of the active vocabulary is skipped with a warning
+	 * rather than written with an out-of-vocabulary value.
+	 *
+	 * @param array<int,array> $proposals      venue_id => proposal.
+	 * @param float            $min_confidence Threshold.
+	 * @param bool             $overwrite      Allow replacing existing tiers.
+	 * @return array{messages:array<int,array{level:string,message:string}>,written:int,skipped:int,review:int,errors:int}
+	 */
+	public function apply_proposals( array $proposals, float $min_confidence, bool $overwrite ): array {
+		$messages = array();
+		$written  = 0;
+		$skipped  = 0;
+		$review   = 0;
+		$errors   = 0;
+
+		foreach ( $proposals as $proposal ) {
+			if ( '' === $proposal['tier'] || $proposal['confidence'] < $min_confidence ) {
+				++$review;
+				continue;
+			}
+
+			if ( '' !== $proposal['existing'] && ! $overwrite ) {
+				++$skipped;
+				$messages[] = self::message( 'log', sprintf( '  skip (existing tier "%s"): %s', $proposal['existing'], $proposal['name'] ) );
+				continue;
+			}
+
+			// Re-validate against the live upstream vocabulary.
+			$canonical = \DataMachineEvents\Core\Venue_Taxonomy::resolve_venue_tier( $proposal['tier'] );
+			if ( '' === $canonical ) {
+				++$skipped;
+				$messages[] = self::message(
+					'warning',
+					sprintf( '  skip (tier "%s" not in the active vocabulary): %s', $proposal['tier'], $proposal['name'] )
+				);
+				continue;
+			}
+
+			$updated = \DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta(
+				$proposal['venue_id'],
+				array( 'tier' => $canonical )
+			);
+
+			if ( ! $updated ) {
+				++$errors;
+				$messages[] = self::message( 'warning', sprintf( '  write FAILED: %s (term %d)', $proposal['name'], $proposal['venue_id'] ) );
+				continue;
+			}
+
+			++$written;
+			$messages[] = self::message(
+				'log',
+				sprintf(
+					'  write tier=%s conf=%.2f: %s (term %d)',
+					$canonical,
+					$proposal['confidence'],
+					$proposal['name'],
+					$proposal['venue_id']
+				)
+			);
 		}
 
-		$this->apply_proposals( $proposals, $min_confidence, $overwrite );
+		return array(
+			'messages' => $messages,
+			'written'  => $written,
+			'skipped'  => $skipped,
+			'review'   => $review,
+			'errors'   => $errors,
+		);
+	}
 
-		if ( $seed_priority ) {
-			$this->seed_priority_venues( $priority_proposals, $min_confidence );
+	/**
+	 * Seed `club` at confidence 1.0 into priority venues without a tier.
+	 *
+	 * Priority venues are hand-picked concert rooms (#89); their empty
+	 * classification is filled from that editorial decision. The
+	 * `_ec_priority_venue` flag itself is never touched — ordering and
+	 * classification stay orthogonal (#801).
+	 *
+	 * A priority venue the classifier already proposes at or above the
+	 * confidence threshold is skipped: its classifier tier is the better
+	 * value (apply writes it when the venue falls inside the pagination
+	 * window), and seeding must never stomp a fresh proposal — the
+	 * proposal's pre-run "existing tier" snapshot cannot see it. Only
+	 * venues the classifier could NOT classify (empty proposal or below
+	 * threshold) receive the editorial `club` seed.
+	 *
+	 * @param array<int,array> $priority_proposals venue_id => proposal for
+	 *                                             every priority venue.
+	 * @param float            $min_confidence     Threshold.
+	 * @return array{messages:array<int,array{level:string,message:string}>,seeded:int}
+	 */
+	public function seed_priority_venues( array $priority_proposals, float $min_confidence ): array {
+		$messages = array();
+		$seeded   = 0;
+
+		foreach ( $priority_proposals as $proposal ) {
+			if ( '' !== $proposal['existing'] ) {
+				$messages[] = self::message( 'log', sprintf( '  skip (already tiered "%s"): %s', $proposal['existing'], $proposal['name'] ) );
+				continue;
+			}
+
+			if ( '' !== $proposal['tier'] && $proposal['confidence'] >= $min_confidence ) {
+				$messages[] = self::message(
+					'log',
+					sprintf(
+						'  skip (classifier proposal tier=%s conf=%.2f covers this venue): %s',
+						$proposal['tier'],
+						$proposal['confidence'],
+						$proposal['name']
+					)
+				);
+				continue;
+			}
+
+			$canonical = \DataMachineEvents\Core\Venue_Taxonomy::resolve_venue_tier( self::SEED_TIER );
+			if ( '' === $canonical ) {
+				$messages[] = self::message( 'warning', '  skip: "club" is not in the active tier vocabulary.' );
+				continue;
+			}
+
+			$updated = \DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta(
+				$proposal['venue_id'],
+				array( 'tier' => $canonical )
+			);
+
+			if ( ! $updated ) {
+				$messages[] = self::message( 'warning', sprintf( '  seed FAILED: %s (term %d)', $proposal['name'], $proposal['venue_id'] ) );
+				continue;
+			}
+
+			++$seeded;
+			$messages[] = self::message( 'log', sprintf( '  seed tier=%s conf=%.1f: %s (term %d)', $canonical, self::SEED_CONFIDENCE, $proposal['name'], $proposal['venue_id'] ) );
 		}
+
+		return array(
+			'messages' => $messages,
+			'seeded'   => $seeded,
+		);
+	}
+
+	/**
+	 * Build one ordered report message.
+	 *
+	 * @param string $level   log|warning.
+	 * @param string $message Message text.
+	 * @return array{level:string,message:string}
+	 */
+	private static function message( string $level, string $message ): array {
+		return array(
+			'level'   => $level,
+			'message' => $message,
+		);
 	}
 
 	/**
@@ -456,7 +507,7 @@ class ClassifyVenueTierCommand {
 	 * Confidence starts at the rule's base (0.60-0.75 depending on rule)
 	 * and gains +0.05 per corroborating signal, capped per rule (0.95
 	 * amphitheater/concert_hall, 0.90 bar_gig, 0.85 listening_room/club).
-	 * With the default --min-confidence of 0.7, every base case needs at
+	 * With the default min-confidence of 0.7, every base case needs at
 	 * least one or two corroborations to become writable — conservative
 	 * by design.
 	 *
@@ -644,7 +695,7 @@ class ClassifyVenueTierCommand {
 	 * Detect which recognized ticketing platform a ticket URL points at.
 	 *
 	 * Pure static method. Matches substrings against the shared platform
-	 * list ({@see ClassifyVenueTierCommand::TICKET_PLATFORMS}) — the same
+	 * list ({@see VenueTierClassifier::TICKET_PLATFORMS}) — the same
 	 * list that builds the SQL-side REGEXP, so the single-venue display
 	 * and the aggregate query cannot disagree.
 	 *
@@ -726,7 +777,7 @@ class ClassifyVenueTierCommand {
 	 * @param float $confidence 0-1.
 	 * @return string Bucket label.
 	 */
-	private static function confidence_bucket( float $confidence ): string {
+	public static function confidence_bucket( float $confidence ): string {
 		foreach ( self::HISTOGRAM_BUCKETS as $label => $range ) {
 			if ( $confidence >= $range[0] && $confidence < $range[1] ) {
 				return $label;
@@ -746,10 +797,13 @@ class ClassifyVenueTierCommand {
 	 * ~5.3k venues on the live site.
 	 *
 	 * @param int $min_events Passed through to score() via each signal row.
+	 * Non-fatal degradations are recorded in {@see self::warnings()}.
+	 *
 	 * @return array<int,array> venue_id => signals array (score() contract
 	 *                          plus venue_name, existing_tier, is_priority).
 	 */
-	private function collect_signals( int $min_events ): array {
+	public function collect_signals( int $min_events ): array {
+		$this->warnings = array();
 		global $wpdb;
 
 		$posts_table   = $wpdb->posts;
@@ -760,7 +814,7 @@ class ClassifyVenueTierCommand {
 
 		$dates_available = $this->dates_table_exists( $dates_table );
 		if ( ! $dates_available ) {
-			\WP_CLI::warning( 'datamachine_event_dates table not found — recency and start-hour signals unavailable (scoring degrades to ticketing/performer/title evidence only).' );
+			$this->warnings[] = 'datamachine_event_dates table not found — recency and start-hour signals unavailable (scoring degrades to ticketing/performer/title evidence only).';
 		}
 
 		$venue_terms = get_terms(
@@ -790,7 +844,7 @@ class ClassifyVenueTierCommand {
 
 		$platform_regex = $this->platform_sql_regex();
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Two one-shot bulk reads over the whole catalog (per-venue WP_Query would be orders of magnitude slower and the CLI runs once). Interpolated values are trusted $wpdb table properties, fixed table names, and compile-time constant patterns; no user input is interpolated.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Two one-shot bulk reads over the whole catalog (per-venue WP_Query would be orders of magnitude slower and the classifier runs once). Interpolated values are trusted $wpdb table properties, fixed table names, and compile-time constant patterns; no user input is interpolated.
 
 		// Query A — content + ticket-meta derived signals (one GROUP BY over
 		// the whole event catalog). The ticket-meta derived table dedupes
@@ -890,70 +944,6 @@ class ClassifyVenueTierCommand {
 	}
 
 	/**
-	 * Print the raw signals and score() result for one venue.
-	 *
-	 * @param string $selector   Venue term ID or slug.
-	 * @param int    $min_events --min-events value for the score() call.
-	 */
-	private function inspect_single_venue( string $selector, int $min_events ): void {
-		$term = get_term_by( 'slug', $selector, 'venue' );
-		if ( ! $term instanceof \WP_Term && ctype_digit( $selector ) ) {
-			$term = get_term( (int) $selector, 'venue' );
-		}
-
-		if ( ! $term instanceof \WP_Term ) {
-			\WP_CLI::error( sprintf( 'Venue "%s" not found.', $selector ) );
-			return;
-		}
-
-		$signals  = $this->collect_signals( $min_events );
-		$venue_id = (int) $term->term_id;
-
-		if ( ! isset( $signals[ $venue_id ] ) ) {
-			\WP_CLI::error( sprintf( 'No aggregate signals could be computed for venue "%s" (no published events?).', $term->name ) );
-			return;
-		}
-
-		$signal = $signals[ $venue_id ];
-		$result = self::score( $signal );
-
-		\WP_CLI::log( sprintf( '=== %s (term %d) ===', $term->name, $venue_id ) );
-		\WP_CLI::log( '' );
-
-		$rows = array();
-		foreach ( $signal as $key => $value ) {
-			if ( is_float( $value ) ) {
-				$value = round( $value, 4 );
-			}
-			if ( is_bool( $value ) ) {
-				$value = $value ? 'yes' : 'no';
-			}
-			$rows[] = array(
-				'signal' => $key,
-				'value'  => (string) $value,
-			);
-		}
-		\WP_CLI\Utils\format_items( 'table', $rows, array( 'signal', 'value' ) );
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log(
-			sprintf(
-				'Proposal: tier=%s confidence=%.2f%s',
-				'' === $result['tier'] ? '(none — human review)' : $result['tier'],
-				$result['confidence'],
-				'' !== (string) $signal['existing_tier'] ? sprintf( ' (existing tier: %s)', $signal['existing_tier'] ) : ''
-			)
-		);
-		foreach ( $result['reasons'] as $reason ) {
-			\WP_CLI::log( sprintf( '  - %s', $reason ) );
-		}
-
-		if ( ! empty( $signal['is_priority'] ) ) {
-			\WP_CLI::log( 'Note: this venue carries the _ec_priority_venue flag (ordering stays orthogonal to tier).' );
-		}
-	}
-
-	/**
 	 * Fetch one term-meta key for a list of terms as an id => value map.
 	 *
 	 * Set-based IN() lookup — no per-term meta reads.
@@ -978,7 +968,7 @@ class ClassifyVenueTierCommand {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal identifiers: the $wpdb->termmeta table name and an IN() placeholder list built entirely from %d tokens.
 			$sql = "SELECT term_id, meta_value FROM {$wpdb->termmeta} WHERE meta_key = %s AND term_id IN ( {$placeholders} )";
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot bulk CLI read; get_term_meta per venue would be thousands of queries.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot bulk read; get_term_meta per venue would be thousands of queries.
 			$rows = $wpdb->get_results(
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is passed to prepare() immediately on this line.
 				$wpdb->prepare( $sql, array_merge( array( $meta_key ), $chunk ) ),
@@ -1002,7 +992,7 @@ class ClassifyVenueTierCommand {
 	private function dates_table_exists( string $dates_table ): bool {
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Schema probe in a one-shot CLI command; $dates_table derives from $wpdb->prefix.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Schema probe in a one-shot classification run; $dates_table derives from $wpdb->prefix.
 		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $dates_table ) ) === $dates_table;
 	}
 
@@ -1011,13 +1001,13 @@ class ClassifyVenueTierCommand {
 	 *
 	 * Runtime guard, not a static fact: older data-machine-events deploys do
 	 * not expose Venue_Taxonomy::get_venue_tier_vocabulary() (venue tier API
-	 * from data-machine-events#786), so --apply must fail closed on them.
+	 * from data-machine-events#786), so apply runs must fail closed on them.
 	 * The indirection through is_callable() with a runtime class-name keeps
 	 * the check honest instead of hard-wiring the current dependency.
 	 *
 	 * @return bool
 	 */
-	private static function venue_tier_upstream_ready(): bool {
+	public static function venue_tier_upstream_ready(): bool {
 		$venue_taxonomy_class = '\DataMachineEvents\Core\Venue_Taxonomy';
 
 		return is_callable( array( $venue_taxonomy_class, 'get_venue_tier_vocabulary' ) );
@@ -1036,286 +1026,5 @@ class ClassifyVenueTierCommand {
 		}
 
 		return implode( '|', $patterns );
-	}
-
-	/**
-	 * Print the summary: per-tier counts, confidence histogram, review count.
-	 *
-	 * @param bool              $apply        Whether this is an apply run.
-	 * @param array<string,int> $tier_counts  Proposal counts keyed by tier ('' = none).
-	 * @param array<string,int> $histogram    Confidence bucket counts.
-	 * @param int               $below_min    Venues under --min-events (counted, not listed).
-	 * @param int               $needs_review Venues on the human-review path.
-	 */
-	private function print_summary( bool $apply, array $tier_counts, array $histogram, int $below_min, int $needs_review ): void {
-		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf( '=== Venue tier classification report (%s) ===', $apply ? 'APPLY' : 'DRY RUN' ) );
-
-		$tier_rows = array();
-		foreach ( $tier_counts as $tier => $count ) {
-			$tier_rows[] = array(
-				'proposed_tier' => '' === $tier ? '(none — review)' : $tier,
-				'venues'        => $count,
-			);
-		}
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Per-tier proposal counts:' );
-		\WP_CLI\Utils\format_items( 'table', $tier_rows, array( 'proposed_tier', 'venues' ) );
-
-		$hist_rows = array();
-		foreach ( $histogram as $bucket => $count ) {
-			$hist_rows[] = array(
-				'confidence' => $bucket,
-				'venues'     => $count,
-			);
-		}
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Confidence histogram (proposals, including empty tiers):' );
-		\WP_CLI\Utils\format_items( 'table', $hist_rows, array( 'confidence', 'venues' ) );
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log(
-			sprintf(
-				'Needs human review: %d | below min-events (not listed): %d',
-				$needs_review,
-				$below_min
-			)
-		);
-	}
-
-	/** Review-list rows shown before the display cap kicks in. */
-	private const REVIEW_LIST_DISPLAY_CAP = 100;
-
-	/**
-	 * Print the review list: venues whose proposal is empty or below the
-	 * confidence threshold.
-	 *
-	 * Display is capped at {@see ClassifyVenueTierCommand::REVIEW_LIST_DISPLAY_CAP}
-	 * rows; the counts in the summary always reflect the complete set. Use
-	 * --limit/--offset or --format=csv|json to consume the full list.
-	 *
-	 * @param array<int,array> $proposals      venue_id => proposal.
-	 * @param float            $min_confidence Threshold.
-	 * @param string           $format         table|csv|json.
-	 */
-	private function print_review_list( array $proposals, float $min_confidence, string $format ): void {
-		$rows = array();
-
-		foreach ( $proposals as $proposal ) {
-			if ( '' !== $proposal['tier'] && $proposal['confidence'] >= $min_confidence ) {
-				continue;
-			}
-
-			$rows[] = array(
-				'venue_id'   => $proposal['venue_id'],
-				'venue'      => $proposal['name'],
-				'events'     => $proposal['events'],
-				'proposed'   => '' === $proposal['tier'] ? '(none)' : $proposal['tier'],
-				'confidence' => sprintf( '%.2f', $proposal['confidence'] ),
-				'top_reason' => '' !== $proposal['tier'] && ! empty( $proposal['reasons'] )
-					? (string) $proposal['reasons'][0]
-					: ( $proposal['reasons'][0] ?? '' ),
-			);
-		}
-
-		\WP_CLI::log( '' );
-
-		if ( empty( $rows ) ) {
-			\WP_CLI::log( 'Review list: empty — every proposal is at or above the confidence threshold.' );
-			return;
-		}
-
-		$capped   = array_slice( $rows, 0, self::REVIEW_LIST_DISPLAY_CAP );
-		$cap_note = count( $rows ) > count( $capped )
-			? sprintf( ' (showing first %d of %d — paginate with --limit/--offset or use --format=csv|json)', count( $capped ), count( $rows ) )
-			: '';
-
-		\WP_CLI::log( sprintf( 'Review list (%d venue(s) below the confidence threshold or without a proposal)%s:', count( $rows ), $cap_note ) );
-		\WP_CLI\Utils\format_items( $format, $capped, array( 'venue_id', 'venue', 'events', 'proposed', 'confidence', 'top_reason' ) );
-	}
-
-	/**
-	 * Print the priority-venue reconciliation section.
-	 *
-	 * Priority (ordering) and tier (classification) are deliberately kept
-	 * orthogonal (#801 acceptance criterion): this section never modifies
-	 * `_ec_priority_venue` — it shows every priority venue's proposed tier
-	 * (scored against the full catalog regardless of --limit/--offset) as
-	 * a sanity check that the two signals agree on the obvious cases.
-	 *
-	 * @param array<int,array> $priority_proposals venue_id => proposal for
-	 *                                             every priority venue.
-	 */
-	private function print_priority_reconciliation( array $priority_proposals ): void {
-		\WP_CLI::log( '' );
-
-		if ( empty( $priority_proposals ) ) {
-			\WP_CLI::log( 'Priority-venue reconciliation: no _ec_priority_venue venues exist on this site.' );
-			return;
-		}
-
-		\WP_CLI::log( 'Priority-venue reconciliation (flags are kept; tier is classification, not ordering):' );
-
-		$rows = array();
-		foreach ( $priority_proposals as $proposal ) {
-			$rows[] = array(
-				'venue'         => $proposal['name'],
-				'proposed_tier' => '' === $proposal['tier'] ? '(none)' : $proposal['tier'],
-				'confidence'    => sprintf( '%.2f', $proposal['confidence'] ),
-				'existing_tier' => '' !== $proposal['existing'] ? $proposal['existing'] : '(none)',
-				'priority_flag' => 'kept',
-				'in_this_run'   => ! empty( $proposal['in_run'] ) ? 'yes' : 'no (outside --limit/--offset)',
-			);
-		}
-
-		\WP_CLI\Utils\format_items( 'table', $rows, array( 'venue', 'proposed_tier', 'confidence', 'existing_tier', 'priority_flag', 'in_this_run' ) );
-	}
-
-	/**
-	 * Write qualifying proposals through the upstream human write path.
-	 *
-	 * Writes Venue_Taxonomy::update_venue_meta( $term_id, array( 'tier' =>
-	 * $slug ) ) only for proposals at or above the confidence threshold.
-	 * Existing non-empty tiers are never overwritten without --overwrite
-	 * (human decisions win). Every proposed slug is re-validated against
-	 * the live upstream vocabulary before writing; a venue whose slug was
-	 * filtered out of the active vocabulary is skipped with a warning
-	 * rather than written with an out-of-vocabulary value.
-	 *
-	 * @param array<int,array> $proposals      venue_id => proposal.
-	 * @param float            $min_confidence Threshold.
-	 * @param bool             $overwrite      Allow replacing existing tiers.
-	 */
-	private function apply_proposals( array $proposals, float $min_confidence, bool $overwrite ): void {
-		$written = 0;
-		$skipped = 0;
-		$review  = 0;
-		$errors  = 0;
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Applying proposals:' );
-
-		foreach ( $proposals as $proposal ) {
-			if ( '' === $proposal['tier'] || $proposal['confidence'] < $min_confidence ) {
-				++$review;
-				continue;
-			}
-
-			if ( '' !== $proposal['existing'] && ! $overwrite ) {
-				++$skipped;
-				\WP_CLI::log( sprintf( '  skip (existing tier "%s"): %s', $proposal['existing'], $proposal['name'] ) );
-				continue;
-			}
-
-			// Re-validate against the live upstream vocabulary.
-			$canonical = \DataMachineEvents\Core\Venue_Taxonomy::resolve_venue_tier( $proposal['tier'] );
-			if ( '' === $canonical ) {
-				++$skipped;
-				\WP_CLI::warning(
-					sprintf( '  skip (tier "%s" not in the active vocabulary): %s', $proposal['tier'], $proposal['name'] )
-				);
-				continue;
-			}
-
-			$updated = \DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta(
-				$proposal['venue_id'],
-				array( 'tier' => $canonical )
-			);
-
-			if ( ! $updated ) {
-				++$errors;
-				\WP_CLI::warning( sprintf( '  write FAILED: %s (term %d)', $proposal['name'], $proposal['venue_id'] ) );
-				continue;
-			}
-
-			++$written;
-			\WP_CLI::log(
-				sprintf(
-					'  write tier=%s conf=%.2f: %s (term %d)',
-					$canonical,
-					$proposal['confidence'],
-					$proposal['name'],
-					$proposal['venue_id']
-				)
-			);
-		}
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log(
-			sprintf(
-				'Apply complete — written: %d | skipped: %d | left for review: %d | errors: %d',
-				$written,
-				$skipped,
-				$review,
-				$errors
-			)
-		);
-	}
-
-	/**
-	 * Seed `club` at confidence 1.0 into priority venues without a tier.
-	 *
-	 * Priority venues are hand-picked concert rooms (#89); their empty
-	 * classification is filled from that editorial decision. The
-	 * `_ec_priority_venue` flag itself is never touched — ordering and
-	 * classification stay orthogonal (#801).
-	 *
-	 * A priority venue the classifier already proposes at or above the
-	 * confidence threshold is skipped: its classifier tier is the better
-	 * value (apply writes it when the venue falls inside the pagination
-	 * window), and seeding must never stomp a fresh proposal — the
-	 * proposal's pre-run "existing tier" snapshot cannot see it. Only
-	 * venues the classifier could NOT classify (empty proposal or below
-	 * threshold) receive the editorial `club` seed.
-	 *
-	 * @param array<int,array> $priority_proposals venue_id => proposal for
-	 *                                             every priority venue.
-	 * @param float            $min_confidence     Threshold.
-	 */
-	private function seed_priority_venues( array $priority_proposals, float $min_confidence ): void {
-		$seeded = 0;
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Seeding priority venues (--seed-from-priority):' );
-
-		foreach ( $priority_proposals as $proposal ) {
-			if ( '' !== $proposal['existing'] ) {
-				\WP_CLI::log( sprintf( '  skip (already tiered "%s"): %s', $proposal['existing'], $proposal['name'] ) );
-				continue;
-			}
-
-			if ( '' !== $proposal['tier'] && $proposal['confidence'] >= $min_confidence ) {
-				\WP_CLI::log(
-					sprintf(
-						'  skip (classifier proposal tier=%s conf=%.2f covers this venue): %s',
-						$proposal['tier'],
-						$proposal['confidence'],
-						$proposal['name']
-					)
-				);
-				continue;
-			}
-
-			$canonical = \DataMachineEvents\Core\Venue_Taxonomy::resolve_venue_tier( self::SEED_TIER );
-			if ( '' === $canonical ) {
-				\WP_CLI::warning( '  skip: "club" is not in the active tier vocabulary.' );
-				continue;
-			}
-
-			$updated = \DataMachineEvents\Core\Venue_Taxonomy::update_venue_meta(
-				$proposal['venue_id'],
-				array( 'tier' => $canonical )
-			);
-
-			if ( ! $updated ) {
-				\WP_CLI::warning( sprintf( '  seed FAILED: %s (term %d)', $proposal['name'], $proposal['venue_id'] ) );
-				continue;
-			}
-
-			++$seeded;
-			\WP_CLI::log( sprintf( '  seed tier=%s conf=%.1f: %s (term %d)', $canonical, self::SEED_CONFIDENCE, $proposal['name'], $proposal['venue_id'] ) );
-		}
-
-		\WP_CLI::log( sprintf( 'Priority seeding complete — seeded: %d.', $seeded ) );
 	}
 }

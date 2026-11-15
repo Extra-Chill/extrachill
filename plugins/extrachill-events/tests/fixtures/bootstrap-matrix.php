@@ -118,7 +118,6 @@ namespace {
 	}
 
 	$hooks_before_repeat = count( $GLOBALS['bootstrap_matrix_hooks'] );
-	\ExtraChillEvents\Providers\CliProvider::register();
 	\ExtraChillEvents\Providers\IngestionProvider::register();
 	\ExtraChillEvents\Providers\AdministrationProvider::register();
 	\ExtraChillEvents\Providers\LifecycleProvider::register();
@@ -142,6 +141,22 @@ namespace {
 			'optional_users_seen'      => function_exists( 'ec_users_notify_with_receipts' ),
 			'cli_commands'             => class_exists( 'WP_CLI', false ) ? count( WP_CLI::$commands ) : 0,
 			'cli_command_names'        => class_exists( 'WP_CLI', false ) ? array_keys( WP_CLI::$commands ) : array(),
+			'operator_services'        => array_values(
+				array_filter(
+					array(
+						'ExtraChillEvents\\Core\\EventSourceRampEvaluator',
+						'ExtraChillEvents\\Core\\QualifyStatsReport',
+						'ExtraChillEvents\\Core\\VenueRequalifier',
+						'ExtraChillEvents\\Core\\FlowLocationRepairer',
+						'ExtraChillEvents\\Core\\LocationIntegrityAuditor',
+						'ExtraChillEvents\\Core\\RootLocationReconciler',
+						'ExtraChillEvents\\Core\\GenreProjectionBackfill',
+						'ExtraChillEvents\\Core\\VenueTierClassifier',
+						'ExtraChillEvents\\Core\\ArtistGenreClassifier',
+					),
+					static fn( string $class_name ): bool => class_exists( $class_name, false )
+				)
+			),
 			'provider_failures'        => $GLOBALS['bootstrap_matrix_provider_failures'],
 			'translation_calls'        => $GLOBALS['bootstrap_matrix_translation_calls'],
 			'ability_lifecycle_hooked' => in_array( array( 'plugins_loaded', array( \ExtraChillEvents\Providers\AbilitiesProvider::class, 'initialize' ), 25, 1 ), $GLOBALS['bootstrap_matrix_hooks'], true ),

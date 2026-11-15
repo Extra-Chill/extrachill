@@ -36,26 +36,29 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertFalse( $result['booking_registered'] );
 	}
 
-	/** CLI registration remains available and provider calls are idempotent. */
-	public function test_cli_boot_registers_commands_once(): void {
+	/**
+	 * Operator commands live in extrachill-cli; a CLI boot registers none here
+	 * but still declares the services those adapters call. Provider calls stay
+	 * idempotent.
+	 */
+	public function test_cli_boot_registers_no_commands_and_loads_operator_services(): void {
 		$result = $this->run_fixture( 'cli' );
 
-		$this->assertSame( 11, $result['cli_commands'] );
+		$this->assertSame( 0, $result['cli_commands'] );
+		$this->assertSame( array(), $result['cli_command_names'] );
 		$this->assertSame(
 			array(
-				'extrachill events ramp',
-				'extrachill venues qualify-stats',
-				'extrachill venues requalify-pending',
-				'extrachill venues requalify-flow',
-				'extrachill venues unqualifiable-flows',
-				'extrachill events flows repair-locations',
-				'extrachill events locations audit-integrity',
-				'extrachill events locations reconcile-roots',
-				'extrachill events sync-genres',
-				'extrachill venues classify-tier',
-				'extrachill artists classify-genre',
+				'ExtraChillEvents\\Core\\EventSourceRampEvaluator',
+				'ExtraChillEvents\\Core\\QualifyStatsReport',
+				'ExtraChillEvents\\Core\\VenueRequalifier',
+				'ExtraChillEvents\\Core\\FlowLocationRepairer',
+				'ExtraChillEvents\\Core\\LocationIntegrityAuditor',
+				'ExtraChillEvents\\Core\\RootLocationReconciler',
+				'ExtraChillEvents\\Core\\GenreProjectionBackfill',
+				'ExtraChillEvents\\Core\\VenueTierClassifier',
+				'ExtraChillEvents\\Core\\ArtistGenreClassifier',
 			),
-			$result['cli_command_names']
+			$result['operator_services']
 		);
 		$this->assertSame( $result['hooks_before_repeat'], $result['hooks_after_repeat'] );
 	}
@@ -113,7 +116,6 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$bootstrap = file_get_contents( dirname( __DIR__, 3 ) . '/inc/Core/Plugin.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.
 
 		$this->assertIsString( $bootstrap );
-		$cli       = strpos( $bootstrap, 'CliProvider::register()' );
 		$ingestion = strpos( $bootstrap, 'IngestionProvider::register()' );
 		$core      = strpos( $bootstrap, 'CoreRuntimeProvider::register()' );
 		$artist    = strpos( $bootstrap, 'EventSourceIntakeProvider::register()' );
@@ -122,7 +124,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$abilities = strpos( $bootstrap, 'AbilitiesProvider::register()' );
 		$optional  = strpos( $bootstrap, 'DataMachineEventsProvider::register()' );
 
-		$this->assertIsInt( $cli );
+		$this->assertFalse( strpos( $bootstrap, 'CliProvider' ) );
 		$this->assertIsInt( $ingestion );
 		$this->assertIsInt( $core );
 		$this->assertIsInt( $artist );
@@ -130,7 +132,6 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertIsInt( $public );
 		$this->assertIsInt( $abilities );
 		$this->assertIsInt( $optional );
-		$this->assertLessThan( $ingestion, $cli );
 		$this->assertLessThan( $public, $ingestion );
 		$this->assertLessThan( $artist, $core );
 		$this->assertLessThan( $public, $artist );

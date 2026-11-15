@@ -24,22 +24,7 @@ class OwnerSiteAbility {
 	 * @return \WP_Ability|null Ability instance. Errors when unavailable.
 	 */
 	public static function get( $site_key, $site_label, $ability_name ) {
-		$owner_blog_id = (int) ec_get_blog_id( $site_key );
-		if ( ! $owner_blog_id ) {
-			WP_CLI::error( sprintf( 'Could not resolve the %s owner site.', $site_label ) );
-		}
-
-		$owner_url = ec_get_site_url( $site_key );
-		if ( get_current_blog_id() !== $owner_blog_id ) {
-			WP_CLI::error(
-				sprintf(
-					'%1$s is owned by the %2$s site. Run this command with --url=%3$s.',
-					$ability_name,
-					$site_label,
-					$owner_url
-				)
-			);
-		}
+		$owner_url = self::require_owner_site( $site_key, $site_label, $ability_name );
 
 		if ( ! function_exists( 'wp_get_ability' ) ) {
 			WP_CLI::error( 'Abilities API not available (requires WordPress 6.9+).' );
@@ -57,5 +42,62 @@ class OwnerSiteAbility {
 		}
 
 		return $ability;
+	}
+
+	/**
+	 * Require a feature plugin's service class on its owner site.
+	 *
+	 * For operator commands whose logic lives in a feature-plugin service
+	 * class rather than an ability. Feature plugins that load only on their
+	 * owner site leave the class undeclared elsewhere, so the site is
+	 * checked first to point the operator at the right --url.
+	 *
+	 * @param string $site_key   Network site key.
+	 * @param string $site_label Human-readable owner label.
+	 * @param string $class_name Fully-qualified service class name.
+	 * @return void Errors when unavailable.
+	 */
+	public static function require_service( $site_key, $site_label, $class_name ) {
+		$owner_url = self::require_owner_site( $site_key, $site_label, $class_name );
+
+		if ( ! class_exists( $class_name ) ) {
+			WP_CLI::error(
+				sprintf(
+					'%1$s is not available on %2$s. Ensure its owner plugin is active for %3$s.',
+					$class_name,
+					$site_label,
+					$owner_url
+				)
+			);
+		}
+	}
+
+	/**
+	 * Error unless the current blog is the owner site.
+	 *
+	 * @param string $site_key   Network site key.
+	 * @param string $site_label Human-readable owner label.
+	 * @param string $subject    Ability or service name for the message.
+	 * @return string Owner site URL.
+	 */
+	private static function require_owner_site( $site_key, $site_label, $subject ) {
+		$owner_blog_id = (int) ec_get_blog_id( $site_key );
+		if ( ! $owner_blog_id ) {
+			WP_CLI::error( sprintf( 'Could not resolve the %s owner site.', $site_label ) );
+		}
+
+		$owner_url = ec_get_site_url( $site_key );
+		if ( get_current_blog_id() !== $owner_blog_id ) {
+			WP_CLI::error(
+				sprintf(
+					'%1$s is owned by the %2$s site. Run this command with --url=%3$s.',
+					$subject,
+					$site_label,
+					$owner_url
+				)
+			);
+		}
+
+		return (string) $owner_url;
 	}
 }

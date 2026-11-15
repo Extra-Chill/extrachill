@@ -9,21 +9,21 @@
  * set. Pausing uses scheduling_config.interval = "manual" + a paused_reason
  * field in the same JSON blob (matches the design in issue #75).
  *
- * @package ExtraChillEvents\Cli
+ * Thin adapter over VenueRequalifier (extrachill-events).
+ *
+ * @package ExtraChill\CLI\Commands\Events
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChill\CLI\Commands\Events;
 
-use ExtraChillEvents\Core\FlowHelpers;
-use ExtraChillEvents\Core\QualifyVerdict;
+use ExtraChill\CLI\OwnerSiteAbility;
+use ExtraChillEvents\Core\VenueRequalifier;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 class RequalifyFlowCommand {
-
-	use FlowHelpers;
 
 	/**
 	 * Re-qualify an existing live flow (or every active universal_web_scraper flow).
@@ -65,14 +65,12 @@ class RequalifyFlowCommand {
 	 *     wp extrachill venues requalify-flow all --dry-run
 	 *     wp extrachill venues requalify-flow all --auto-pause
 	 *
+	 * @when after_wp_load
+	 *
 	 * @param array $args       Positional args.
 	 * @param array $assoc_args Named args.
 	 */
 	public function __invoke( array $args, array $assoc_args ): void {
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
-			return;
-		}
-
 		$target  = (string) ( $args[0] ?? '' );
 		$limit   = max( 1, (int) ( $assoc_args['limit'] ?? 100 ) );
 		$dry_run = ! empty( $assoc_args['dry-run'] );
@@ -84,15 +82,13 @@ class RequalifyFlowCommand {
 			return;
 		}
 
-		if ( 'all' === $target ) {
-			$flows = array_slice( $this->load_all_web_scraper_flows(), 0, $limit );
-		} else {
-			$flow = $this->load_web_scraper_flow( (int) $target );
-			if ( ! $flow ) {
-				\WP_CLI::error( sprintf( 'Flow %s not found or has no universal_web_scraper step.', $target ) );
-				return;
-			}
-			$flows = array( $flow );
+		OwnerSiteAbility::require_service( 'events', 'Events', VenueRequalifier::class );
+
+		$requalifier = new VenueRequalifier();
+		$flows       = $requalifier->target_flows( $target, $limit );
+		if ( null === $flows ) {
+			\WP_CLI::error( sprintf( 'Flow %s not found or has no universal_web_scraper step.', $target ) );
+			return;
 		}
 
 		if ( empty( $flows ) ) {
@@ -102,67 +98,14 @@ class RequalifyFlowCommand {
 
 		\WP_CLI::log( sprintf( 'Re-qualifying %d flow(s)%s%s.', count( $flows ), $dry_run ? ' (dry run)' : '', $auto ? ' with --auto-pause' : '' ) );
 
-		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/qualify-venue' ) : null;
-		if ( ! $ability && ! $dry_run ) {
-			\WP_CLI::error( 'extrachill/qualify-venue ability not available.' );
+		$results = $requalifier->requalify_flows( $flows, $dry_run, $auto );
+		if ( is_wp_error( $results ) ) {
+			\WP_CLI::error( $results->get_error_message() );
 			return;
 		}
 
-		$results = array();
-		foreach ( $flows as $flow ) {
-			$row = array(
-				'flow_id'        => $flow['flow_id'],
-				'flow_name'      => $flow['flow_name'],
-				'source_url'     => $flow['source_url'],
-				'new_verdict'    => '',
-				'event_count'    => 0,
-				'action'         => 'none',
-				'agent_guidance' => '',
-			);
-
-			if ( $dry_run ) {
-				$row['action'] = 'would_requalify';
-				$results[]     = $row;
-				continue;
-			}
-
-			$result = $ability->execute(
-				array(
-					'url'     => $flow['source_url'],
-					'flow_id' => (int) $flow['flow_id'],
-				)
-			);
-			if ( is_wp_error( $result ) ) {
-				$row['new_verdict'] = 'error';
-				$row['action']      = 'error: ' . $result->get_error_message();
-				$results[]          = $row;
-				continue;
-			}
-
-			$row['new_verdict']    = (string) ( $result['verdict'] ?? '' );
-			$row['event_count']    = (int) ( $result['event_count'] ?? 0 );
-			$row['agent_guidance'] = (string) ( $result['agent_guidance'] ?? '' );
-
-			if ( QualifyVerdict::QUALIFIED_STRUCTURED === $row['new_verdict'] ) {
-				$row['action'] = 'keep';
-			} elseif ( QualifyVerdict::is_qualified( $row['new_verdict'] ) ) {
-				// QUALIFIED_FOR_FLYER — still qualified but needs review;
-				// recommend operator inspection rather than auto-pause.
-				$row['action'] = 'review_recommended';
-			} elseif ( $auto ) {
-				// Not qualified anymore and --auto-pause is set — pause the flow.
-				$ok            = $this->pause_requalified_flow( $flow, $row['new_verdict'] );
-				$row['action'] = $ok ? 'paused' : 'pause_failed';
-			} else {
-				// Not qualified anymore — recommend pause without acting.
-				$row['action'] = 'recommend_pause';
-			}
-
-			$results[] = $row;
-		}
-
 		if ( 'json' === $format ) {
-			\WP_CLI::log( wp_json_encode( $results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			\WP_CLI::log( (string) wp_json_encode( $results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 			return;
 		}
 
@@ -182,16 +125,5 @@ class RequalifyFlowCommand {
 			\WP_CLI::log( '' );
 			\WP_CLI::warning( sprintf( '%d flow(s) recommend pausing. Re-run with --auto-pause to apply.', count( $recommended ) ) );
 		}
-	}
-
-	/**
-	 * Pause a requalified flow while preserving the URL needed by rechecks.
-	 *
-	 * @param array  $flow    Flow metadata from FlowHelpers.
-	 * @param string $verdict New qualification verdict.
-	 * @return bool True when the flow was paused.
-	 */
-	protected function pause_requalified_flow( array $flow, string $verdict ): bool {
-		return $this->pause_flow_by_verdict( $flow['flow_id'], $verdict, $flow['source_url'] );
 	}
 }

@@ -10,6 +10,40 @@ namespace ExtraChillEvents\Core;
 class LocationIntegrityAuditor {
 
 	/**
+	 * Audit every location term on the current site.
+	 *
+	 * Read-only: terms and relationships are never changed.
+	 *
+	 * @return array<int,array<string,mixed>>|\WP_Error Findings, or the term query error.
+	 */
+	public static function audit_site() {
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'hide_empty' => false,
+			)
+		);
+		if ( is_wp_error( $terms ) ) {
+			return $terms;
+		}
+
+		$rows = array_map(
+			static function ( \WP_Term $term ): array {
+				return array(
+					'term_id' => (int) $term->term_id,
+					'name'    => $term->name,
+					'slug'    => $term->slug,
+					'parent'  => (int) $term->parent,
+					'count'   => (int) $term->count,
+				);
+			},
+			$terms
+		);
+
+		return self::audit( $rows );
+	}
+
+	/**
 	 * Find root-level terms that overlap cities and canonical cities sharing a name.
 	 *
 	 * Matching is deliberately exact. Results are operator-review candidates, not

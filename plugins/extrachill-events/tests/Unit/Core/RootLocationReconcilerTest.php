@@ -1,25 +1,18 @@
 <?php
 /**
- * Qualified root reconciliation CLI tests.
+ * Qualified root reconciliation service tests.
  *
  * @package ExtraChillEvents\Tests
  */
 
-use ExtraChillEvents\Cli\ReconcileRootLocationsCommand;
+use ExtraChillEvents\Core\RootLocationReconciler;
 use PHPUnit\Framework\TestCase;
 
-// phpcs:disable -- Test doubles intentionally share global WordPress and WP-CLI state.
+// phpcs:disable -- Test doubles intentionally share global WordPress state.
 
-require_once dirname( __DIR__, 2 ) . '/Integration/Stubs/wp-cli-stubs.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifiedRootLocation.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RootLocationRepair.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/ReconcileRootLocationsCommand.php';
-
-if ( ! function_exists( 'taxonomy_exists' ) ) {
-	function taxonomy_exists(): bool {
-		return true;
-	}
-}
+require_once dirname( __DIR__, 3 ) . '/inc/Core/RootLocationReconciler.php';
 
 if ( ! function_exists( 'get_terms' ) ) {
 	function get_terms(): array {
@@ -29,18 +22,13 @@ if ( ! function_exists( 'get_terms' ) ) {
 }
 
 /** Verifies dry-run and apply authorization boundaries. */
-final class ReconcileRootLocationsCommandTest extends TestCase {
+final class RootLocationReconcilerTest extends TestCase {
 
 	protected function setUp(): void {
-		if ( ! property_exists( \WP_CLI::class, 'logs' ) || ! property_exists( \WP_CLI::class, 'formatted' ) ) {
-			$this->markTestSkipped( 'Requires the isolated WP-CLI capture stub; managed real-WP-CLI coverage is tracked in #749.' );
-		}
 		$GLOBALS['ec_reconcile_cli_test'] = array(
 			'term_queries' => 0,
 			'terms'        => array(),
 		);
-		\WP_CLI::$logs                       = array();
-		\WP_CLI::$formatted                  = array();
 		$GLOBALS['ec_test_ability_resolver'] = null;
 	}
 
@@ -52,25 +40,32 @@ final class ReconcileRootLocationsCommandTest extends TestCase {
 			return null;
 		};
 
-		( new ReconcileRootLocationsCommand() )( array(), array() );
+		$rows = ( new RootLocationReconciler() )->reconcile( false );
 
+		$this->assertSame( array(), $rows );
 		$this->assertSame( array(), $ability_requests );
 		$this->assertSame( 1, $GLOBALS['ec_reconcile_cli_test']['term_queries'] );
-		$this->assertStringStartsWith( 'Dry run:', end( \WP_CLI::$logs ) );
 	}
 
-	/** Apply mode fails before candidate retrieval when the user lacks permission. */
+	/** Apply readiness fails without touching candidates when the user lacks permission. */
 	public function test_apply_fails_fast_without_redirect_permission(): void {
 		$GLOBALS['ec_test_ability_resolver'] = static fn() => new ReconcileAbilityDouble( false );
 
-		try {
-			( new ReconcileRootLocationsCommand() )( array(), array( 'apply' => true ) );
-			$this->fail( 'Expected apply authorization to fail.' );
-		} catch ( RuntimeException $exception ) {
-			$this->assertStringContainsString( '--user=<administrator-login-or-id>', $exception->getMessage() );
-		}
+		$ready = ( new RootLocationReconciler() )->assert_apply_ready();
 
+		$this->assertInstanceOf( WP_Error::class, $ready );
+		$this->assertStringContainsString( '--user=<administrator-login-or-id>', $ready->get_error_message() );
 		$this->assertSame( 0, $GLOBALS['ec_reconcile_cli_test']['term_queries'] );
+	}
+
+	/** A missing redirect ability names the ability. */
+	public function test_apply_fails_when_a_redirect_ability_is_missing(): void {
+		$GLOBALS['ec_test_ability_resolver'] = static fn() => null;
+
+		$ready = ( new RootLocationReconciler() )->assert_apply_ready();
+
+		$this->assertInstanceOf( WP_Error::class, $ready );
+		$this->assertSame( 'Apply requires the extrachill-seo/list-redirects ability, but it is unavailable.', $ready->get_error_message() );
 	}
 
 	/** Authorized apply mode verifies all redirect abilities before retrieval. */
@@ -81,7 +76,9 @@ final class ReconcileRootLocationsCommandTest extends TestCase {
 			return new ReconcileAbilityDouble( true );
 		};
 
-		( new ReconcileRootLocationsCommand() )( array(), array( 'apply' => true ) );
+		$reconciler = new RootLocationReconciler();
+		$this->assertTrue( $reconciler->assert_apply_ready() );
+		$reconciler->reconcile( true );
 
 		$this->assertSame(
 			array(

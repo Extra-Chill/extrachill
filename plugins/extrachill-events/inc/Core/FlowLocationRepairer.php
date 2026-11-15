@@ -1,85 +1,46 @@
 <?php
 /**
- * `wp extrachill events flows repair-locations` — repair
- * `taxonomy_location_selection` on `upsert_event` flows so they point at
- * the pipeline's market term instead of `ai_decides` / empty / a stale
+ * Repair `taxonomy_location_selection` on `upsert_event` flows so they point
+ * at the pipeline's market term instead of `ai_decides` / empty / a stale
  * string.
  *
- * Bleeding-source fix for Extra-Chill/extrachill-events#98. Companion to
- * `wp extrachill events fix-locations` (post-level repair via the
- * extrachill/reconcile-event-locations ability).
+ * Bleeding-source fix for Extra-Chill/extrachill-events#98. Consumed by the
+ * `wp extrachill events flows repair-locations` adapter in extrachill-cli.
  *
- * Reads the events subsite (blog_id=7, prefix `c8c_7_`) — must be invoked
- * with `--url=events.extrachill.com` so $wpdb->prefix resolves correctly.
+ * Reads the events subsite tables through $wpdb->prefix, so callers must run
+ * on the events site.
  *
- * @package ExtraChillEvents\Cli
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChillEvents\Core;
 
 use DataMachine\Core\Database\Flows\Flows;
-use ExtraChillEvents\Core\FlowLocationGuard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class RepairFlowLocationsCommand {
+/** Plans and writes flow location-selection repairs. */
+class FlowLocationRepairer {
 
 	/**
-	 * Repair `taxonomy_location_selection` on every `upsert_event` flow
-	 * whose current value would defeat the location-from-venue rule
-	 * (`ai_decides`, empty, `skip`, or a stale string that no longer
-	 * resolves to a real `location` term).
+	 * Repair `taxonomy_location_selection` on every `upsert_event` flow whose
+	 * current value would defeat the location-from-venue rule (`ai_decides`,
+	 * empty, `skip`, or a stale string that no longer resolves to a real
+	 * `location` term).
 	 *
-	 * Strategy: resolve each flow's pipeline name to a `location` term
-	 * ID, then rewrite the upsert step. Writes go through
-	 * `Flows::update_flow()` so JSON encoding stays the repository's
-	 * responsibility (MEMORY.md load-bearing rule).
+	 * Strategy: resolve each flow's pipeline name to a `location` term ID,
+	 * then rewrite the upsert step. Writes go through `Flows::update_flow()`
+	 * so JSON encoding stays the repository's responsibility.
 	 *
-	 * Dry-run is the default. Pass `--commit` to write.
-	 *
-	 * ## OPTIONS
-	 *
-	 * [--commit]
-	 * : Actually write the repairs. Default is dry-run (no DB writes).
-	 *
-	 * [--flow-id=<id>]
-	 * : Limit to a single flow_id. Useful for spot-fix work.
-	 *
-	 * [--format=<format>]
-	 * : Output format for the per-flow report.
-	 * ---
-	 * default: table
-	 * options:
-	 *   - table
-	 *   - json
-	 *   - csv
-	 * ---
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill events flows repair-locations --url=events.extrachill.com
-	 *     wp extrachill events flows repair-locations --url=events.extrachill.com --commit
-	 *     wp extrachill events flows repair-locations --url=events.extrachill.com --flow-id=727
-	 *
-	 * @param array $args       Positional args (unused).
-	 * @param array $assoc_args Named args.
+	 * @param bool $commit  Write the repairs. False reports only.
+	 * @param int  $flow_id Limit to one flow (0 = every flow). Single-flow
+	 *                      mode reports clean rows too.
+	 * @return array{rows:array<int,array<string,mixed>>,totals:array<string,int>}|null
+	 *         Report rows and totals, or null when no upsert_event flows exist.
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
-			return;
-		}
-
-		if ( ! class_exists( '\\DataMachine\\Core\\Database\\Flows\\Flows' ) ) {
-			\WP_CLI::error( 'Data Machine Flows repository is not available on this site.' );
-			return;
-		}
-
-		$commit  = ! empty( $assoc_args['commit'] );
-		$flow_id = isset( $assoc_args['flow-id'] ) ? (int) $assoc_args['flow-id'] : 0;
-		$format  = (string) ( $assoc_args['format'] ?? 'table' );
-
+	public function repair( bool $commit, int $flow_id = 0 ): ?array {
 		global $wpdb;
 		$flows_table     = $wpdb->prefix . 'datamachine_flows';
 		$pipelines_table = $wpdb->prefix . 'datamachine_pipelines';
@@ -113,8 +74,7 @@ class RepairFlowLocationsCommand {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
 		if ( empty( $rows ) ) {
-			\WP_CLI::log( 'No flows with upsert_event found.' );
-			return;
+			return null;
 		}
 
 		$db_flows = new Flows();
@@ -259,7 +219,7 @@ class RepairFlowLocationsCommand {
 
 		// Always include rows that need attention (would_repair, skipped
 		// unresolved, failed); skip already-clean rows from the report
-		// unless --flow-id was used.
+		// unless a single flow was requested.
 		$visible = array_values(
 			array_filter(
 				$report,
@@ -274,29 +234,10 @@ class RepairFlowLocationsCommand {
 			$visible = $report;
 		}
 
-		\WP_CLI\Utils\format_items(
-			$format,
-			$visible,
-			array( 'flow_id', 'flow_name', 'pipeline_id', 'pipeline_name', 'current', 'proposed', 'status', 'reason' )
+		return array(
+			'rows'   => $visible,
+			'totals' => $totals,
 		);
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log(
-			sprintf(
-				'Summary: scanned=%d needs_repair=%d repaired=%d skipped_clean=%d skipped_unresolved=%d failed=%d',
-				$totals['scanned'],
-				$totals['needs_repair'],
-				$totals['repaired'],
-				$totals['skipped_clean'],
-				$totals['skipped_unresolved'],
-				$totals['failed']
-			)
-		);
-
-		if ( ! $commit ) {
-			\WP_CLI::log( '' );
-			\WP_CLI::log( 'Dry run — no changes written. Re-run with --commit to apply.' );
-		}
 	}
 
 	/**

@@ -1,50 +1,59 @@
 <?php
 /**
- * Dry-run-first repair for qualified root location terms.
+ * Dry-run-first reconciliation of qualified root location terms.
  *
- * @package ExtraChillEvents\Cli
+ * Finds root "City, State/Province" location terms that duplicate a
+ * canonical hierarchy term and, in apply mode, repairs them through
+ * {@see RootLocationRepair} with redirects managed by the extrachill-seo
+ * redirect abilities. Consumed by the
+ * `wp extrachill events locations reconcile-roots` adapter in extrachill-cli.
+ *
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
-
-use ExtraChillEvents\Core\QualifiedRootLocation;
-use ExtraChillEvents\Core\RootLocationRepair;
+namespace ExtraChillEvents\Core;
 
 defined( 'ABSPATH' ) || exit;
 
 /** Reports and optionally repairs exact qualified root location duplicates. */
-final class ReconcileRootLocationsCommand {
+final class RootLocationReconciler {
+
+	/** Redirect abilities apply mode depends on. */
+	private const REDIRECT_ABILITIES = array(
+		'extrachill-seo/list-redirects',
+		'extrachill-seo/add-redirect',
+		'extrachill-seo/delete-redirect',
+	);
 
 	/**
-	 * Report or reconcile safe "City, State/Province" root terms.
+	 * Ensure apply mode can use every redirect ability before inspecting candidates.
 	 *
-	 * ## OPTIONS
-	 *
-	 * [--apply]
-	 * : Move relationships, create and verify redirects, and delete safe duplicates. Requires an administrator user context. Default is dry-run.
-	 *
-	 * [--format=<format>]
-	 * : Output format: table, json, or csv. Default: table.
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill events locations reconcile-roots --url=events.extrachill.com
-	 *     wp extrachill events locations reconcile-roots --url=events.extrachill.com --user=<administrator-login-or-id> --apply
-	 *
-	 * @param array $args       Positional arguments (unused).
-	 * @param array $assoc_args Named arguments.
+	 * @return true|\WP_Error
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
-		unset( $args );
-		if ( ! taxonomy_exists( 'location' ) ) {
-			\WP_CLI::error( 'The location taxonomy is not registered. Use --url=events.extrachill.com.' );
+	public function assert_apply_ready() {
+		foreach ( self::REDIRECT_ABILITIES as $ability_name ) {
+			$ability = wp_get_ability( $ability_name );
+			if ( ! $ability ) {
+				return new \WP_Error( 'redirect_ability_unavailable', sprintf( 'Apply requires the %s ability, but it is unavailable.', $ability_name ) );
+			}
+
+			if ( true !== $ability->check_permissions() ) {
+				return new \WP_Error( 'redirect_permission_denied', 'Apply requires an authorized WordPress administrator context for redirect management. Re-run with --user=<administrator-login-or-id>.' );
+			}
 		}
 
-		$apply = ! empty( $assoc_args['apply'] );
-		if ( $apply ) {
-			$this->assert_apply_ready();
-		}
+		return true;
+	}
 
+	/**
+	 * Report (and with $apply, repair) every qualified root location candidate.
+	 *
+	 * Callers must run assert_apply_ready() first when $apply is true.
+	 *
+	 * @param bool $apply Move relationships, verify redirects, and delete safe duplicates.
+	 * @return array<int,array<string,mixed>>|\WP_Error Report rows, or the term query error.
+	 */
+	public function reconcile( bool $apply ) {
 		$terms = get_terms(
 			array(
 				'taxonomy'   => 'location',
@@ -53,7 +62,7 @@ final class ReconcileRootLocationsCommand {
 			)
 		);
 		if ( is_wp_error( $terms ) ) {
-			\WP_CLI::error( $terms->get_error_message() );
+			return $terms;
 		}
 
 		$repair = $apply ? $this->repair_service() : null;
@@ -68,7 +77,7 @@ final class ReconcileRootLocationsCommand {
 			$status = $match['status'];
 			$reason = $match['reason'];
 			if ( 'safe_match' === $status ) {
-				if ( $apply ) {
+				if ( null !== $repair ) {
 					$result = $repair->repair( $term, $match['canonical'] );
 					$status = $result['status'];
 					$reason = $result['reason'];
@@ -88,35 +97,7 @@ final class ReconcileRootLocationsCommand {
 			);
 		}
 
-		\WP_CLI\Utils\format_items(
-			(string) ( $assoc_args['format'] ?? 'table' ),
-			$rows,
-			array( 'candidate_id', 'candidate', 'canonical_id', 'canonical', 'relationships', 'status', 'reason' )
-		);
-
-		if ( ! $apply ) {
-			\WP_CLI::log( 'Dry run: no redirects, relationships, or terms changed. Re-run with --apply only after reviewing every row.' );
-		}
-	}
-
-	/** Ensure apply mode can use every redirect ability before inspecting candidates. */
-	private function assert_apply_ready(): void {
-		$ability_names = array(
-			'extrachill-seo/list-redirects',
-			'extrachill-seo/add-redirect',
-			'extrachill-seo/delete-redirect',
-		);
-
-		foreach ( $ability_names as $ability_name ) {
-			$ability = wp_get_ability( $ability_name );
-			if ( ! $ability ) {
-				\WP_CLI::error( sprintf( 'Apply requires the %s ability, but it is unavailable.', $ability_name ) );
-			}
-
-			if ( true !== $ability->check_permissions() ) {
-				\WP_CLI::error( 'Apply requires an authorized WordPress administrator context for redirect management. Re-run with --user=<administrator-login-or-id>.' );
-			}
-		}
+		return $rows;
 	}
 
 	/** Build the repair service with WordPress and SEO ability adapters. */

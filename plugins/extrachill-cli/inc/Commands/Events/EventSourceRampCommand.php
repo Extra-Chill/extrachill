@@ -1,12 +1,17 @@
 <?php
 /**
- * JSON CLI adapter for event source ramp evidence.
+ * `wp extrachill events ramp`
  *
- * @package ExtraChillEvents\Cli
+ * JSON CLI adapter for event source ramp evidence. The ramp policy lives in
+ * extrachill-events (EventSourceRampEvaluator); this adapter only reads the
+ * evidence file and prints the decision.
+ *
+ * @package ExtraChill\CLI\Commands\Events
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChill\CLI\Commands\Events;
 
+use ExtraChill\CLI\OwnerSiteAbility;
 use ExtraChillEvents\Core\EventSourceRampEvaluator;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -45,6 +50,8 @@ class EventSourceRampCommand {
 	 *
 	 *     wp extrachill events ramp --source-class=dice --current-max-items=3 --phase=postflight --evidence=- --scope=flow --scope-id=42
 	 *
+	 * @when after_wp_load
+	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Named arguments.
 	 */
@@ -57,13 +64,15 @@ class EventSourceRampCommand {
 			}
 		}
 
+		OwnerSiteAbility::require_service( 'events', 'Events', EventSourceRampEvaluator::class );
+
 		$path = (string) $assoc_args['evidence'];
 		$json = '-' === $path ? stream_get_contents( STDIN ) : file_get_contents( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Operator-supplied local CLI evidence file.
 		if ( false === $json ) {
 			\WP_CLI::error( 'Unable to read evidence JSON.' );
 		}
 
-		$evidence = json_decode( $json, true );
+		$evidence = json_decode( (string) $json, true );
 		if ( ! is_array( $evidence ) ) {
 			\WP_CLI::error( 'Evidence must be a JSON object.' );
 		}
@@ -79,6 +88,6 @@ class EventSourceRampCommand {
 			)
 		);
 
-		\WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		\WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 	}
 }

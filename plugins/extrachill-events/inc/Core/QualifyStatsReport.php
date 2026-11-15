@@ -1,74 +1,36 @@
 <?php
 /**
- * `wp extrachill venues qualify-stats` — verdict histogram.
+ * Verdict histogram over the persistent qualification log.
  *
  * Aggregates the latest verdict per canonical URL from
- * <prefix>_dme_qualify_verdicts and reports a histogram by verdict, optionally
- * broken down by detected platform. The JSON format surfaces full verdict
- * counts plus agent_guidance so external agents can read the output
- * programmatically.
+ * <prefix>_dme_qualify_verdicts into a histogram by verdict, with detected
+ * platform counts and remediation cohorts. Consumed by the
+ * `wp extrachill venues qualify-stats` adapter in extrachill-cli.
  *
- * @package ExtraChillEvents\Cli
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
-
-use ExtraChillEvents\Core\QualifyCohortDeriver;
-use ExtraChillEvents\Core\QualifyVerdict;
-use ExtraChillEvents\Core\QualifyVerdictsTable;
+namespace ExtraChillEvents\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class QualifyStatsCommand {
+/** Builds the latest-verdict-per-URL histogram and remediation cohorts. */
+class QualifyStatsReport {
 	private const PAGE_SIZE = 250;
 
 	/**
-	 * Show a verdict histogram from the persistent verdict log.
+	 * Build the report for verdicts logged in the last N days.
 	 *
 	 * Aggregates over the LATEST verdict per canonical URL so historical
-	 * verdicts do not double-count. Use --days to limit how far back to look.
+	 * verdicts do not double-count.
 	 *
-	 * ## OPTIONS
-	 *
-	 * [--days=<days>]
-	 * : Only include verdicts from the last N days.
-	 * ---
-	 * default: 30
-	 * ---
-	 *
-	 * [--format=<format>]
-	 * : Output format.
-	 * ---
-	 * default: table
-	 * options:
-	 *   - table
-	 *   - json
-	 *   - csv
-	 * ---
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill venues qualify-stats
-	 *     wp extrachill venues qualify-stats --days=7
-	 *     wp extrachill venues qualify-stats --format=json
-	 *
-	 * @param array $args       Positional arguments.
-	 * @param array $assoc_args Named arguments.
+	 * @param int $days Lookback days (minimum 1).
+	 * @return array{days:int,verdicts:array<string,array<string,mixed>>,cohorts:array<int,array<string,mixed>>}
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
-			return;
-		}
-
-		if ( ! QualifyVerdictsTable::table_exists() ) {
-			\WP_CLI::error( 'Qualify verdicts table does not exist on this site. Deactivate/reactivate extrachill-events to install it.' );
-			return;
-		}
-
-		$days   = max( 1, (int) ( $assoc_args['days'] ?? 30 ) );
-		$format = $assoc_args['format'] ?? 'table';
+	public function build( int $days ): array {
+		$days   = max( 1, $days );
 		$cutoff = $this->site_local_cutoff( $days );
 
 		$rows         = array();
@@ -89,78 +51,48 @@ class QualifyStatsCommand {
 		} while ( self::PAGE_SIZE === $page_count );
 
 		$this->sort_histogram( $rows );
-		$cohorts = QualifyCohortDeriver::finish( $cohort_state );
 
-		if ( 'json' === $format ) {
-			\WP_CLI::log(
-				wp_json_encode(
-					array(
-						'days'                     => $days,
-						'total_urls'               => array_sum( array_column( $rows, 'count' ) ),
-						'representative_url_limit' => QualifyCohortDeriver::representative_url_limit(),
-						'verdicts'                 => array_values( $rows ),
-						'cohorts'                  => $cohorts,
-						'guidance_index'           => $this->guidance_index(),
-					),
-					JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-				)
-			);
-			return;
-		}
+		return array(
+			'days'     => $days,
+			'verdicts' => $rows,
+			'cohorts'  => QualifyCohortDeriver::finish( $cohort_state ),
+		);
+	}
 
-		// Stable display order: matches QualifyVerdict::all() — qualified
-		// verdicts first, then fixable, then permanent disqualifications.
+	/**
+	 * Histogram rows in stable display order: QualifyVerdict::all() order
+	 * (qualified, then fixable, then permanent), unknown verdicts last.
+	 *
+	 * @param array<string,array<string,mixed>> $verdicts Histogram keyed by verdict.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function ordered( array $verdicts ): array {
 		$ordered = array();
 		foreach ( QualifyVerdict::all() as $v ) {
-			if ( isset( $rows[ $v ] ) ) {
-				$ordered[] = $rows[ $v ];
+			if ( isset( $verdicts[ $v ] ) ) {
+				$ordered[] = $verdicts[ $v ];
 			}
 		}
-		foreach ( $rows as $verdict => $row ) {
+		foreach ( $verdicts as $verdict => $row ) {
 			if ( ! in_array( $verdict, QualifyVerdict::all(), true ) ) {
 				$ordered[] = $row;
 			}
 		}
+		return $ordered;
+	}
 
-		$table_rows = array();
-		foreach ( $ordered as $row ) {
-			$table_rows[] = array(
-				'verdict'       => $row['verdict'],
-				'count'         => $row['count'],
-				'top_platforms' => $this->format_platforms( $row['platforms'] ),
-			);
+	/**
+	 * Verdict → guidance string for every known verdict, so agents reading
+	 * the stats programmatically get the canonical guidance in one payload.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function guidance_index(): array {
+		$out = array();
+		foreach ( QualifyVerdict::all() as $verdict ) {
+			$out[ $verdict ] = QualifyVerdict::guidance_for( $verdict );
 		}
-
-		\WP_CLI::log( sprintf( 'Verdicts in the last %d day(s): %d URLs', $days, array_sum( array_column( $ordered, 'count' ) ) ) );
-		\WP_CLI::log( '' );
-
-		if ( empty( $table_rows ) ) {
-			\WP_CLI::log( 'No verdicts logged yet.' );
-			return;
-		}
-
-		\WP_CLI\Utils\format_items( $format, $table_rows, array( 'verdict', 'count', 'top_platforms' ) );
-
-		if ( empty( $cohorts ) ) {
-			return;
-		}
-
-		$cohort_rows = array_map(
-			static function ( array $cohort ): array {
-				$cohort['representative_urls'] = implode( ', ', $cohort['representative_urls'] );
-				return $cohort;
-			},
-			$cohorts
-		);
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Remediation cohorts (latest verdict per URL):' );
-		\WP_CLI::log( sprintf( 'Representative URLs are capped at %d per cohort.', QualifyCohortDeriver::representative_url_limit() ) );
-		\WP_CLI::log( '' );
-		\WP_CLI\Utils\format_items(
-			$format,
-			$cohort_rows,
-			array( 'category', 'platform', 'structured_signal', 'page_shape', 'extractor', 'reason', 'count', 'representative_urls' )
-		);
+		return $out;
 	}
 
 	/**
@@ -296,46 +228,5 @@ class QualifyStatsCommand {
 			);
 		}
 		unset( $row );
-	}
-
-	/**
-	 * Compact "top platforms" string for table output. Caps at 3 entries plus
-	 * an "(other)" bucket so the column stays readable.
-	 *
-	 * @param array $platforms Platform counts.
-	 */
-	private function format_platforms( array $platforms ): string {
-		if ( empty( $platforms ) ) {
-			return '(n/a)';
-		}
-
-		$parts = array();
-		$shown = 0;
-		$other = 0;
-		foreach ( $platforms as $name => $count ) {
-			if ( $shown < 3 ) {
-				$parts[] = $name . '(' . $count . ')';
-				++$shown;
-			} else {
-				$other += $count;
-			}
-		}
-		if ( $other > 0 ) {
-			$parts[] = '(other)(' . $other . ')';
-		}
-		return implode( ' ', $parts );
-	}
-
-	/**
-	 * Verdict → guidance string. Bundled in the JSON output so agents
-	 * reading the stats programmatically get the canonical guidance for
-	 * every verdict in one payload.
-	 */
-	private function guidance_index(): array {
-		$out = array();
-		foreach ( QualifyVerdict::all() as $verdict ) {
-			$out[ $verdict ] = QualifyVerdict::guidance_for( $verdict );
-		}
-		return $out;
 	}
 }

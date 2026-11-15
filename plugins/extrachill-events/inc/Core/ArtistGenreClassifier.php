@@ -2,22 +2,20 @@
 /**
  * Classify genres onto unclaimed events-site artist terms (`_genres` termmeta).
  *
- * Command: `wp extrachill artists classify-genre`.
- *
  * Implements Extra-Chill/extrachill-events#830 (step 4 of #30). Genre is an
- * artist fact: this command proposes a genre set ONCE PER ARTIST — never per
- * event — for unclaimed events-site `artist` terms, and writes the same
+ * artist fact: this classifier proposes a genre set ONCE PER ARTIST — never
+ * per event — for unclaimed events-site `artist` terms, and writes the same
  * `_genres` termmeta contract the genre projection (#828/#829) reads. The
  * write fires the projection's `updated_term_meta` fan-out, which syncs the
- * artist's events; this command never touches events itself and never writes
- * to main-site terms (those are owned by the claimed-profile mirror).
+ * artist's events; this classifier never touches events itself and never
+ * writes to main-site terms (those are owned by the claimed-profile mirror).
  *
  * Pipeline:
- *  1. Deterministic pass (zero cost, {@see ClassifyGenreCommand::deterministic()}):
+ *  1. Deterministic pass (zero cost, {@see ArtistGenreClassifier::deterministic()}):
  *     the artist name and performer attributes resolve through the network
  *     genre resolver (`extrachill_network_resolve_genres()`), and a co-billing
  *     prior fires when >= 3 co-billed artists carry genres that agree.
- *  2. Constrained AI pass for the remainder (skipped with --no-ai), modeled on
+ *  2. Constrained AI pass for the remainder (optional), modeled on
  *     extrachill-network's term-classification task: the prompt lists ONLY the
  *     active vocabulary names, requires JSON
  *     `{"<term_id>": {"genres": ["Name", ...max 3], "confidence": 0.0-1.0}}`,
@@ -25,39 +23,33 @@
  *     anything that does not resolve is dropped, so AI output structurally
  *     cannot introduce a non-vocabulary genre.
  *
- * Writes happen only with --apply, at confidence >= --min-confidence, and
- * only for artists with no existing `_genres` unless --overwrite:
- * `_genres` (JSON slug array), `_genres_source` (deterministic|ai), and
- * `_genres_confidence`. Dry-run is the default and runs the deterministic
- * pass for real; the AI pass may run read-only in dry-run (results printed,
- * nothing written) — pass --no-ai for a zero-cost structural run.
+ * Writes ({@see ArtistGenreClassifier::apply_proposals()}) happen only at
+ * confidence >= the threshold, and only for artists with no existing
+ * `_genres` unless overwriting: `_genres` (JSON slug array), `_genres_source`
+ * (deterministic|ai), and `_genres_confidence`.
  *
- * The network genre vocabulary is NOT a hard runtime dependency of the reads:
- * proposals need it, so the command aborts with a clear error when
- * `extrachill_network_get_genre_vocabulary()` / `extrachill_network_resolve_genres()`
- * are unavailable. On a site where extrachill-network predates the genre
- * module, load the vocabulary through a read-only `wp eval-file` harness that
- * require_once's the network checkout's inc/taxonomy/genre.php before
- * invoking this command class.
+ * Proposals need the network genre vocabulary
+ * (`extrachill_network_get_genre_vocabulary()` /
+ * `extrachill_network_resolve_genres()`); see
+ * {@see ArtistGenreClassifier::vocabulary_available()}.
  *
- * Always invoke with `--url=events.extrachill.com`.
+ * Consumed by the `wp extrachill artists classify-genre` adapter in
+ * extrachill-cli, which owns argument parsing and report formatting.
  *
- * @package ExtraChillEvents\Cli
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
+namespace ExtraChillEvents\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Proposes `_genres` for unclaimed events-site artist terms.
- *
- * Dry-run by default; --apply commits the termmeta writes. See the file
- * docblock for the pipeline and the write semantics.
+ * Proposes and writes `_genres` for unclaimed events-site artist terms.
+ * See the file docblock for the pipeline and the write semantics.
  */
-class ClassifyGenreCommand {
+class ArtistGenreClassifier {
 
 	/** Term meta holding the JSON genre slug array (the #828/#829 contract). */
 	public const GENRES_META_KEY = '_genres';
@@ -126,198 +118,96 @@ class ClassifyGenreCommand {
 		'feat',
 	);
 
-	/** Review/proposal display cap for the default table output. */
-	private const DISPLAY_CAP = 30;
+	/**
+	 * Non-fatal degradations recorded by the last run_ai_pass() call.
+	 *
+	 * @var string[]
+	 */
+	private array $warnings = array();
 
 	/**
-	 * Classify genres for unclaimed artist terms.
+	 * Non-fatal degradations recorded by the last run_ai_pass() call.
 	 *
-	 * Dry-run by default; pass --apply to commit termmeta writes.
-	 *
-	 * ## OPTIONS
-	 *
-	 * [--apply]
-	 * : Commit proposals at or above --min-confidence. Default is dry-run.
-	 *
-	 * [--min-confidence=<0-1>]
-	 * : Minimum confidence to write. Proposals below the threshold go to the
-	 *   review list and are never written.
-	 * ---
-	 * default: 0.7
-	 * ---
-	 *
-	 * [--min-events=<n>]
-	 * : Artist terms with fewer events are never classified (term count
-	 *   filter; an explicit --artist bypasses it).
-	 * ---
-	 * default: 5
-	 * ---
-	 *
-	 * [--limit=<n>]
-	 * : Consider at most n artists, ordered by event count descending.
-	 *   0 means no limit.
-	 * ---
-	 * default: 0
-	 * ---
-	 *
-	 * [--offset=<n>]
-	 * : Skip the first n artists (by the same ordering) before --limit.
-	 * ---
-	 * default: 0
-	 * ---
-	 *
-	 * [--artist=<term_id|slug>]
-	 * : Run for one artist term only (bypasses --min-events; still respects
-	 *   the --overwrite rule).
-	 *
-	 * [--overwrite]
-	 * : Allow replacing an existing `_genres` value. Default off — the
-	 *   command runs once per artist; claimed-profile mirrors and prior
-	 *   runs always win.
-	 *
-	 * [--ai]
-	 * : Run the constrained AI pass for artists the deterministic pass could
-	 *   not resolve. On by default. Declared so WP-CLI accepts `--no-ai`:
-	 *   it resolves a negation to `ai => false` and rejects it outright
-	 *   unless the positive flag exists, so declaring only `[--no-ai]`
-	 *   made the zero-cost run fail with "unknown --ai parameter".
-	 *
-	 * [--no-ai]
-	 * : Skip the AI pass entirely (deterministic proposals only; zero AI
-	 *   cost). Remaining artists land on the review list.
-	 *
-	 * [--batch-size=<n>]
-	 * : Artists per AI request.
-	 * ---
-	 * default: 20
-	 * ---
-	 *
-	 * [--format=<format>]
-	 * : Format for the review list.
-	 * ---
-	 * default: table
-	 * options:
-	 *   - table
-	 *   - csv
-	 *   - json
-	 * ---
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill artists classify-genre --url=events.extrachill.com --limit=100 --no-ai
-	 *     wp extrachill artists classify-genre --url=events.extrachill.com --limit=100 --batch-size=20
-	 *     wp extrachill artists classify-genre --url=events.extrachill.com --artist=123
-	 *     wp extrachill artists classify-genre --url=events.extrachill.com --apply --limit=500
-	 *
-	 * @param array $args       Positional args (unused).
-	 * @param array $assoc_args Named args.
+	 * @return string[]
 	 */
-	public function __invoke( array $args, array $assoc_args ): void {
-		unset( $args );
+	public function warnings(): array {
+		return $this->warnings;
+	}
 
-		if ( ! defined( 'WP_CLI' ) ) {
-			return;
+	/**
+	 * Whether the network genre vocabulary resolver is loaded on this site.
+	 *
+	 * @return bool
+	 */
+	public static function vocabulary_available(): bool {
+		return function_exists( 'extrachill_network_get_genre_vocabulary' ) && function_exists( 'extrachill_network_resolve_genres' );
+	}
+
+	/**
+	 * Select the artist terms in scope.
+	 *
+	 * An explicit artist bypasses $min_events but still respects $overwrite.
+	 *
+	 * @param string $artist     Artist term ID or slug ('' = catalog scope).
+	 * @param int    $min_events Minimum term count (catalog scope only).
+	 * @param int    $limit      Max artists (0 = no limit).
+	 * @param int    $offset     Artists to skip.
+	 * @param bool   $overwrite  Include artists that already have `_genres`.
+	 * @return array<int,array{term_id:int,name:string,count:int}>|\WP_Error
+	 */
+	public function scope( string $artist, int $min_events, int $limit, int $offset, bool $overwrite ) {
+		if ( '' === $artist ) {
+			return $this->select_candidates( $min_events, $limit, $offset, $overwrite );
 		}
 
-		if ( ! function_exists( 'extrachill_network_get_genre_vocabulary' ) || ! function_exists( 'extrachill_network_resolve_genres' ) ) {
-			\WP_CLI::error(
-				'The genre vocabulary resolver (extrachill-network genre module) is not available on this site. '
-				. 'Upgrade extrachill-network, or load inc/taxonomy/genre.php from the extrachill-network checkout '
-				. 'through a read-only `wp eval-file` harness before invoking this command.'
+		$term_id = $this->resolve_artist_term( $artist );
+		if ( $term_id <= 0 ) {
+			return new \WP_Error( 'artist_not_found', sprintf( 'Artist term "%s" not found on this site.', $artist ) );
+		}
+
+		$existing = get_term_meta( $term_id, self::GENRES_META_KEY, true );
+		if ( '' !== (string) $existing && ! $overwrite ) {
+			return new \WP_Error(
+				'artist_already_classified',
+				sprintf(
+					'Artist term %d already has %s. Re-run with --overwrite to replace it.',
+					$term_id,
+					self::GENRES_META_KEY
+				)
 			);
-			return;
 		}
 
-		$apply          = ! empty( $assoc_args['apply'] );
-		$overwrite      = ! empty( $assoc_args['overwrite'] );
-		$no_ai          = ! \WP_CLI\Utils\get_flag_value( $assoc_args, 'ai', true );
-		$min_confidence = isset( $assoc_args['min-confidence'] ) ? (float) $assoc_args['min-confidence'] : 0.7;
-		$min_events     = isset( $assoc_args['min-events'] ) ? (int) $assoc_args['min-events'] : 5;
-		$limit          = isset( $assoc_args['limit'] ) ? max( 0, (int) $assoc_args['limit'] ) : 0;
-		$offset         = isset( $assoc_args['offset'] ) ? max( 0, (int) $assoc_args['offset'] ) : 0;
-		$batch_size     = isset( $assoc_args['batch-size'] ) ? max( 1, (int) $assoc_args['batch-size'] ) : 20;
-		$format         = (string) ( $assoc_args['format'] ?? 'table' );
-		$artist_arg     = isset( $assoc_args['artist'] ) ? (string) $assoc_args['artist'] : '';
-
-		if ( $min_confidence < 0 || $min_confidence > 1 ) {
-			\WP_CLI::error( '--min-confidence must be between 0 and 1.' );
-			return;
+		$term_name = get_term_field( 'name', $term_id, self::TAXONOMY );
+		if ( is_wp_error( $term_name ) || null === $term_name ) {
+			$term_name = '';
 		}
 
-		if ( $min_events < 1 ) {
-			\WP_CLI::error( '--min-events must be at least 1.' );
-			return;
+		$term_count = get_term_field( 'count', $term_id, self::TAXONOMY );
+		if ( is_wp_error( $term_count ) || null === $term_count ) {
+			$term_count = 0;
 		}
 
-		if ( ! in_array( $format, array( 'table', 'csv', 'json' ), true ) ) {
-			\WP_CLI::error( 'Unknown --format. Use table, csv, or json.' );
-			return;
-		}
-
-		$vocabulary = extrachill_network_get_genre_vocabulary();
-		if ( empty( $vocabulary ) ) {
-			\WP_CLI::error( 'The active genre vocabulary is empty — nothing to classify against.' );
-			return;
-		}
-
-		// Select the artists in scope.
-		if ( '' !== $artist_arg ) {
-			$term_id = $this->resolve_artist_term( $artist_arg );
-			if ( $term_id <= 0 ) {
-				\WP_CLI::error( sprintf( 'Artist term "%s" not found on this site.', $artist_arg ) );
-				return;
-			}
-
-			$existing = get_term_meta( $term_id, self::GENRES_META_KEY, true );
-			if ( '' !== (string) $existing && ! $overwrite ) {
-				\WP_CLI::error(
-					sprintf(
-						'Artist term %d already has %s. Re-run with --overwrite to replace it.',
-						$term_id,
-						self::GENRES_META_KEY
-					)
-				);
-				return;
-			}
-
-			$term_name = get_term_field( 'name', $term_id, self::TAXONOMY );
-			if ( is_wp_error( $term_name ) || null === $term_name ) {
-				$term_name = '';
-			}
-
-			$term_count = get_term_field( 'count', $term_id, self::TAXONOMY );
-			if ( is_wp_error( $term_count ) || null === $term_count ) {
-				$term_count = 0;
-			}
-
-			$candidates = array(
-				array(
-					'term_id' => $term_id,
-					'name'    => (string) $term_name,
-					'count'   => (int) $term_count,
-				),
-			);
-		} else {
-			$candidates = $this->select_candidates( $min_events, $limit, $offset, $overwrite );
-		}
-
-		if ( empty( $candidates ) ) {
-			\WP_CLI::log( 'No artist terms in scope — nothing to classify.' );
-			return;
-		}
-
-		\WP_CLI::log(
-			sprintf(
-				'%s artist genre classification — artists=%d min-confidence=%.2f min-events=%d batch-size=%d ai=%s%s',
-				$apply ? 'APPLY' : 'DRY RUN',
-				count( $candidates ),
-				$min_confidence,
-				$min_events,
-				$batch_size,
-				$no_ai ? 'off' : 'on',
-				$overwrite ? ' overwrite=yes' : ''
-			)
+		return array(
+			array(
+				'term_id' => $term_id,
+				'name'    => (string) $term_name,
+				'count'   => (int) $term_count,
+			),
 		);
+	}
+
+	/**
+	 * Propose genres for every candidate: deterministic pass, then the
+	 * constrained AI pass for the leftovers.
+	 *
+	 * @param array<int,array{term_id:int,name:string,count:int}> $candidates Rows from scope().
+	 * @param array<string,string>                                $vocabulary Active vocabulary slug => name.
+	 * @param bool                                                $use_ai     Run the AI pass.
+	 * @param int                                                 $batch_size Artists per AI request.
+	 * @return array{proposals:array<int,array>,det_count:int,ai_counts:array<string,int>}
+	 */
+	public function classify( array $candidates, array $vocabulary, bool $use_ai, int $batch_size ): array {
+		$this->warnings = array();
 
 		// Aggregate signals for every candidate with set-based queries.
 		$signals = $this->collect_signals( $candidates );
@@ -375,7 +265,7 @@ class ClassifyGenreCommand {
 			'total'      => 0,
 		);
 
-		if ( ! $no_ai && ! empty( $needs_ai ) ) {
+		if ( $use_ai && ! empty( $needs_ai ) ) {
 			$ai_counts = $this->run_ai_pass(
 				array_keys( $needs_ai ),
 				$signals,
@@ -385,16 +275,162 @@ class ClassifyGenreCommand {
 			);
 		}
 
-		// Report before any writes.
-		$this->print_report( $apply, $proposals, $det_count, $ai_counts, $min_confidence, $format, $vocabulary );
+		return array(
+			'proposals' => $proposals,
+			'det_count' => $det_count,
+			'ai_counts' => $ai_counts,
+		);
+	}
 
-		if ( ! $apply ) {
-			\WP_CLI::log( '' );
-			\WP_CLI::log( 'Dry run — nothing was written. Re-run with --apply to commit proposals at or above the confidence threshold.' );
-			return;
+	/**
+	 * Tally proposals: writable/review counts, confidence histogram, and
+	 * per-genre artist counts.
+	 *
+	 * @param array<int,array> $proposals      term_id => proposal.
+	 * @param float            $min_confidence Threshold.
+	 * @return array{writable:int,review:int,histogram:array<string,int>,per_genre:array<string,int>}
+	 */
+	public static function tally( array $proposals, float $min_confidence ): array {
+		$writable  = 0;
+		$review    = 0;
+		$histogram = array_fill_keys( array_keys( self::HISTOGRAM_BUCKETS ), 0 );
+		$per_genre = array();
+
+		foreach ( $proposals as $proposal ) {
+			foreach ( $proposal['genres'] as $slug ) {
+				$per_genre[ $slug ] = ( $per_genre[ $slug ] ?? 0 ) + 1;
+			}
+			++$histogram[ self::confidence_bucket( (float) $proposal['confidence'] ) ];
+
+			if ( '' !== $proposal['source'] && $proposal['confidence'] >= $min_confidence ) {
+				++$writable;
+			} else {
+				++$review;
+			}
 		}
 
-		$this->apply_proposals( $proposals, $min_confidence, $overwrite, $vocabulary );
+		ksort( $per_genre );
+
+		return array(
+			'writable'  => $writable,
+			'review'    => $review,
+			'histogram' => $histogram,
+			'per_genre' => $per_genre,
+		);
+	}
+
+	/**
+	 * Write qualifying proposals as artist termmeta.
+	 *
+	 * Writes `_genres` (JSON slug array) plus `_genres_source` and
+	 * `_genres_confidence` only for proposals at or above the confidence
+	 * threshold, only for artists without existing `_genres` unless
+	 * $overwrite. Every slug is re-validated against the active vocabulary
+	 * before the write. The `_genres` write fires the genre projection's
+	 * `updated_term_meta` fan-out (#828/#829) — this method deliberately
+	 * does nothing else.
+	 *
+	 * @param array<int,array>     $proposals      term_id => proposal.
+	 * @param float                $min_confidence Threshold.
+	 * @param bool                 $overwrite      Allow replacing existing values.
+	 * @param array<string,string> $vocabulary     Active vocabulary slug => name.
+	 * @return array{messages:array<int,array{level:string,message:string}>,written:int,skipped:int,review:int,errors:int}
+	 */
+	public function apply_proposals( array $proposals, float $min_confidence, bool $overwrite, array $vocabulary ): array {
+		$messages = array();
+		$written  = 0;
+		$skipped  = 0;
+		$review   = 0;
+		$errors   = 0;
+
+		foreach ( $proposals as $proposal ) {
+			if ( '' === $proposal['source'] || $proposal['confidence'] < $min_confidence ) {
+				++$review;
+				continue;
+			}
+
+			if ( $proposal['existing'] && ! $overwrite ) {
+				++$skipped;
+				$messages[] = self::message( 'log', sprintf( '  skip (existing %s): %s', self::GENRES_META_KEY, $proposal['name'] ) );
+				continue;
+			}
+
+			// Re-validate every slug against the live vocabulary.
+			$slugs = array();
+			foreach ( $proposal['genres'] as $slug ) {
+				if ( isset( $vocabulary[ $slug ] ) ) {
+					$slugs[] = $slug;
+				}
+			}
+
+			if ( empty( $slugs ) ) {
+				++$errors;
+				$messages[] = self::message( 'warning', sprintf( '  skip (no slugs left in the active vocabulary): %s', $proposal['name'] ) );
+				continue;
+			}
+
+			$updated = update_term_meta( (int) $proposal['term_id'], self::GENRES_META_KEY, wp_json_encode( $slugs ) );
+			if ( false === $updated ) {
+				++$errors;
+				$messages[] = self::message( 'warning', sprintf( '  write FAILED: %s (term %d)', $proposal['name'], $proposal['term_id'] ) );
+				continue;
+			}
+
+			update_term_meta( (int) $proposal['term_id'], self::SOURCE_META_KEY, (string) $proposal['source'] );
+			update_term_meta( (int) $proposal['term_id'], self::CONFIDENCE_META_KEY, (float) $proposal['confidence'] );
+
+			++$written;
+			$messages[] = self::message(
+				'log',
+				sprintf(
+					'  write %s=%s conf=%.2f source=%s: %s (term %d)',
+					self::GENRES_META_KEY,
+					implode( ',', $slugs ),
+					(float) $proposal['confidence'],
+					(string) $proposal['source'],
+					$proposal['name'],
+					(int) $proposal['term_id']
+				)
+			);
+		}
+
+		return array(
+			'messages' => $messages,
+			'written'  => $written,
+			'skipped'  => $skipped,
+			'review'   => $review,
+			'errors'   => $errors,
+		);
+	}
+
+	/**
+	 * Histogram bucket label for a confidence value.
+	 *
+	 * @param float $confidence 0-1.
+	 * @return string Bucket label.
+	 */
+	public static function confidence_bucket( float $confidence ): string {
+		foreach ( self::HISTOGRAM_BUCKETS as $label => $range ) {
+			if ( $confidence >= $range[0] && $confidence < $range[1] ) {
+				return $label;
+			}
+		}
+
+		return '0.9-1.0';
+	}
+
+	/**
+	 * Build one ordered report message.
+	 *
+	 * @param string $level   log|warning.
+	 * @param string $message Message text.
+	 * @return array{level:string,message:string}
+	 */
+	private static function message( string $level, string $message ): array {
+		return array(
+			'level'   => $level,
+			'message' => $message,
+		);
 	}
 
 	/**
@@ -528,7 +564,7 @@ class ClassifyGenreCommand {
 	 * Window scan (longest first, left to right) lets "The Bluegrass Boys"
 	 * resolve through "bluegrass" and "indie rock trio" through "indie rock",
 	 * while whole-string matches keep the higher confidence. Windows made up
-	 * entirely of generic band nouns ({@see ClassifyGenreCommand::SCAN_STOP_WORDS})
+	 * entirely of generic band nouns ({@see ArtistGenreClassifier::SCAN_STOP_WORDS})
 	 * are skipped. Pure static; the resolver is injected.
 	 *
 	 * @param string   $text     Raw text.
@@ -610,7 +646,7 @@ class ClassifyGenreCommand {
 	 *
 	 * One term_taxonomy query: `count` is the term's object count (the same
 	 * basis as the issue's distribution numbers). Artists already carrying
-	 * `_genres` are excluded unless --overwrite (the command runs once per
+	 * `_genres` are excluded unless overwriting (the classifier runs once per
 	 * artist; mirrors and prior runs win).
 	 *
 	 * @param int  $min_events Minimum term count.
@@ -619,7 +655,7 @@ class ClassifyGenreCommand {
 	 * @param bool $overwrite  Include artists that already have `_genres`.
 	 * @return array<int,array{term_id:int,name:string,count:int}>
 	 */
-	private function select_candidates( int $min_events, int $limit, int $offset, bool $overwrite ): array {
+	public function select_candidates( int $min_events, int $limit, int $offset, bool $overwrite ): array {
 		global $wpdb;
 
 		$term_taxonomy = $wpdb->term_taxonomy;
@@ -629,7 +665,7 @@ class ClassifyGenreCommand {
 		$exclude_sql = $overwrite ? '' : " AND NOT EXISTS ( SELECT 1 FROM {$termmeta} tm WHERE tm.term_id = tt.term_id AND tm.meta_key = '" . self::GENRES_META_KEY . "' )";
 		$limit_sql   = $limit > 0 ? sprintf( ' LIMIT %d OFFSET %d', $limit, $offset ) : '';
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSqlParameter -- One-shot bulk CLI read over the term catalog; per-term queries would be orders of magnitude slower. Interpolated values are trusted $wpdb table properties, a compile-time-constant meta key, %d placeholders, and fixed LIMIT/OFFSET integers; no user input is interpolated.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSqlParameter -- One-shot bulk read over the term catalog; per-term queries would be orders of magnitude slower. Interpolated values are trusted $wpdb table properties, a compile-time-constant meta key, %d placeholders, and fixed LIMIT/OFFSET integers; no user input is interpolated.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT t.term_id, t.name, tt.count FROM {$term_taxonomy} tt INNER JOIN {$terms_table} t ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND tt.count >= %d{$exclude_sql} ORDER BY tt.count DESC, tt.term_id ASC{$limit_sql}",
@@ -653,12 +689,12 @@ class ClassifyGenreCommand {
 	}
 
 	/**
-	 * Resolve an `--artist` argument to an events-site artist term ID.
+	 * Resolve an artist selector to an events-site artist term ID.
 	 *
 	 * @param string $artist Term ID or slug.
 	 * @return int 0 when unresolvable.
 	 */
-	private function resolve_artist_term( string $artist ): int {
+	public function resolve_artist_term( string $artist ): int {
 		$artist = trim( $artist );
 		if ( '' === $artist ) {
 			return 0;
@@ -686,7 +722,7 @@ class ClassifyGenreCommand {
 	 *                          performer_texts, cobilled_genres, venues,
 	 *                          external_links).
 	 */
-	private function collect_signals( array $candidates ): array {
+	public function collect_signals( array $candidates ): array {
 		global $wpdb;
 
 		$ids = array_map( static fn( array $c ): int => (int) $c['term_id'], $candidates );
@@ -716,7 +752,7 @@ class ClassifyGenreCommand {
 		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%d' ) );
 
-			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Four one-shot bulk reads over the candidate subset; per-artist WP_Query would be orders of magnitude slower and the CLI runs once. Interpolated values are trusted $wpdb table properties, fixed meta keys, compile-time-constant patterns, and an IN() placeholder list built entirely from %d tokens; the replacement sniff cannot count the IN() tokens, so its warning is suppressed here; no user input is interpolated.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Four one-shot bulk reads over the candidate subset; per-artist WP_Query would be orders of magnitude slower and the classifier runs once. Interpolated values are trusted $wpdb table properties, fixed meta keys, compile-time-constant patterns, and an IN() placeholder list built entirely from %d tokens; the replacement sniff cannot count the IN() tokens, so its warning is suppressed here; no user input is interpolated.
 
 			// Event rows: title + performer attribute, ordered for the per-artist caps.
 			$event_rows = $wpdb->get_results(
@@ -1014,7 +1050,7 @@ class ClassifyGenreCommand {
 	 * @param string         $meta_key Term meta key.
 	 * @return array<int,string>
 	 */
-	private function fetch_term_meta_map( array $term_ids, string $meta_key ): array {
+	public function fetch_term_meta_map( array $term_ids, string $meta_key ): array {
 		global $wpdb;
 
 		if ( empty( $term_ids ) ) {
@@ -1030,7 +1066,7 @@ class ClassifyGenreCommand {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal identifiers: the $wpdb->termmeta table name and an IN() placeholder list built entirely from %d tokens.
 			$sql = "SELECT term_id, meta_value FROM {$wpdb->termmeta} WHERE meta_key = %s AND term_id IN ( {$placeholders} )";
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot bulk CLI read; get_term_meta per term would be thousands of queries.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot bulk read; get_term_meta per term would be thousands of queries.
 			$rows = $wpdb->get_results(
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is passed to prepare() immediately on this line.
 				$wpdb->prepare( $sql, array_merge( array( $meta_key ), $chunk ) ),
@@ -1054,7 +1090,7 @@ class ClassifyGenreCommand {
 	 * with the DM default system model, JSON-only response, and every
 	 * returned name re-resolved through the network resolver. Per-batch
 	 * failures (WP_Error, invalid JSON) count as errors and never abort the
-	 * run.
+	 * run; they are recorded in {@see self::warnings()}.
 	 *
 	 * @param array<int,int>       $term_ids   Artist term IDs needing AI.
 	 * @param array<int,array>     $signals    Signals by term ID.
@@ -1063,7 +1099,7 @@ class ClassifyGenreCommand {
 	 * @param array<int,array>     $proposals  Proposal map (by reference; filled with AI results).
 	 * @return array<string,int> Counters: proposals, requests, errors, prompt, completion, total.
 	 */
-	private function run_ai_pass( array $term_ids, array $signals, array $vocabulary, int $batch_size, array &$proposals ): array {
+	public function run_ai_pass( array $term_ids, array $signals, array $vocabulary, int $batch_size, array &$proposals ): array {
 		$counts = array(
 			'proposals'  => 0,
 			'requests'   => 0,
@@ -1074,7 +1110,7 @@ class ClassifyGenreCommand {
 		);
 
 		if ( ! class_exists( '\DataMachine\Engine\AI\ConversationManager' ) || ! class_exists( '\DataMachine\Engine\AI\RequestBuilder' ) ) {
-			\WP_CLI::warning( 'Data Machine AI engine is not available — the AI pass was skipped; affected artists go to the review list.' );
+			$this->warnings[] = 'Data Machine AI engine is not available — the AI pass was skipped; affected artists go to the review list.';
 			$counts['errors'] = count( $term_ids );
 			return $counts;
 		}
@@ -1090,7 +1126,7 @@ class ClassifyGenreCommand {
 		$model_id = $model['model'];
 
 		if ( '' === $provider || '' === $model_id ) {
-			\WP_CLI::warning( 'No default AI provider/model configured in Data Machine — the AI pass was skipped; affected artists go to the review list.' );
+			$this->warnings[] = 'No default AI provider/model configured in Data Machine — the AI pass was skipped; affected artists go to the review list.';
 			$counts['errors'] = count( $term_ids );
 			return $counts;
 		}
@@ -1121,9 +1157,7 @@ class ClassifyGenreCommand {
 
 			if ( is_wp_error( $response ) ) {
 				++$counts['errors'];
-				\WP_CLI::warning(
-					sprintf( 'AI batch failed (%d/%d artists done): %s', $done, $total, $response->get_error_message() )
-				);
+				$this->warnings[] = sprintf( 'AI batch failed (%d/%d artists done): %s', $done, $total, $response->get_error_message() );
 				continue;
 			}
 
@@ -1136,7 +1170,7 @@ class ClassifyGenreCommand {
 
 			if ( ! is_array( $decoded ) ) {
 				++$counts['errors'];
-				\WP_CLI::warning( sprintf( 'AI batch returned invalid JSON (%d/%d artists done).', $done, $total ) );
+				$this->warnings[] = sprintf( 'AI batch returned invalid JSON (%d/%d artists done).', $done, $total );
 				continue;
 			}
 
@@ -1273,265 +1307,5 @@ class ClassifyGenreCommand {
 		if ( method_exists( $usage, 'getTotalTokens' ) ) {
 			$counts['total'] += (int) $usage->getTotalTokens();
 		}
-	}
-
-	/**
-	 * Print the run report.
-	 *
-	 * @param bool                 $apply          Whether this is an apply run.
-	 * @param array<int,array>     $proposals      term_id => proposal.
-	 * @param int                  $det_count      Deterministic proposals.
-	 * @param array<string,int>    $ai_counts      AI counters.
-	 * @param float                $min_confidence Threshold.
-	 * @param string               $format         table|csv|json (review list).
-	 * @param array<string,string> $vocabulary     Active vocabulary slug => name.
-	 */
-	private function print_report( bool $apply, array $proposals, int $det_count, array $ai_counts, float $min_confidence, string $format, array $vocabulary ): void {
-		$writable  = 0;
-		$review    = 0;
-		$histogram = array_fill_keys( array_keys( self::HISTOGRAM_BUCKETS ), 0 );
-		$per_genre = array();
-
-		foreach ( $proposals as $proposal ) {
-			foreach ( $proposal['genres'] as $slug ) {
-				$per_genre[ $slug ] = ( $per_genre[ $slug ] ?? 0 ) + 1;
-			}
-			++$histogram[ $this->confidence_bucket( (float) $proposal['confidence'] ) ];
-
-			if ( '' !== $proposal['source'] && $proposal['confidence'] >= $min_confidence ) {
-				++$writable;
-			} else {
-				++$review;
-			}
-		}
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf( '=== Artist genre classification report (%s) ===', $apply ? 'APPLY' : 'DRY RUN' ) );
-
-		\WP_CLI::log(
-			sprintf(
-				'Scanned: %1$d | deterministic: %2$d | ai: %3$d | below threshold or empty (review): %4$d | AI requests: %5$d | AI errors: %6$d%7$s',
-				count( $proposals ),
-				$det_count,
-				(int) $ai_counts['proposals'],
-				$review,
-				(int) $ai_counts['requests'],
-				(int) $ai_counts['errors'],
-				(int) $ai_counts['total'] > 0
-					? sprintf( ' | AI tokens (prompt/completion/total): %d/%d/%d', $ai_counts['prompt'], $ai_counts['completion'], $ai_counts['total'] )
-					: ''
-			)
-		);
-
-		ksort( $per_genre );
-
-		$genre_rows = array();
-		foreach ( $vocabulary as $slug => $name ) {
-			$genre_rows[] = array(
-				'genre'        => sprintf( '%s (%s)', $slug, $name ),
-				'artist_count' => (int) ( $per_genre[ $slug ] ?? 0 ),
-			);
-		}
-		$extra = array_diff( array_keys( $per_genre ), array_keys( $vocabulary ) );
-		foreach ( $extra as $slug ) {
-			$genre_rows[] = array(
-				'genre'        => sprintf( '%s (OUT OF VOCABULARY)', $slug ),
-				'artist_count' => (int) $per_genre[ $slug ],
-			);
-		}
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Per-genre artist proposal counts:' );
-		\WP_CLI\Utils\format_items( 'table', $genre_rows, array( 'genre', 'artist_count' ) );
-
-		$hist_rows = array();
-		foreach ( $histogram as $bucket => $count ) {
-			$hist_rows[] = array(
-				'confidence' => $bucket,
-				'artists'    => $count,
-			);
-		}
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Confidence histogram (all proposals, including empty):' );
-		\WP_CLI\Utils\format_items( 'table', $hist_rows, array( 'confidence', 'artists' ) );
-
-		// Top proposals (display cap; the review list below carries --format).
-		$with_proposal = array_filter(
-			$proposals,
-			static fn( array $proposal ): bool => '' !== $proposal['source']
-		);
-		$top           = array_slice( $with_proposal, 0, self::DISPLAY_CAP, true );
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( sprintf( 'Proposals (first %d of %d with any proposal):', count( $top ), count( $with_proposal ) ) );
-
-		$top_rows = array();
-		foreach ( $top as $proposal ) {
-			$top_rows[] = $this->proposal_row( $proposal );
-		}
-		\WP_CLI\Utils\format_items( 'table', $top_rows, array( 'term_id', 'artist', 'events', 'source', 'proposed', 'confidence' ) );
-
-		$this->print_review_list( $proposals, $min_confidence, $format );
-	}
-
-	/**
-	 * One table row for a proposal.
-	 *
-	 * @param array $proposal Proposal.
-	 * @return array<string,string|int>
-	 */
-	private function proposal_row( array $proposal ): array {
-		return array(
-			'term_id'    => (int) $proposal['term_id'],
-			'artist'     => (string) $proposal['name'],
-			'events'     => (int) $proposal['events'],
-			'source'     => '' !== $proposal['source'] ? $proposal['source'] : '(none)',
-			'proposed'   => '' !== $proposal['source'] ? implode( ', ', $proposal['genres'] ) : '(none)',
-			'confidence' => sprintf( '%.2f', (float) $proposal['confidence'] ),
-		);
-	}
-
-	/**
-	 * Print the review list: artists without a proposal or below threshold.
-	 *
-	 * Display is capped at {@see ClassifyGenreCommand::DISPLAY_CAP} rows for
-	 * the table format; use --format=csv|json for the complete list.
-	 *
-	 * @param array<int,array> $proposals      term_id => proposal.
-	 * @param float            $min_confidence Threshold.
-	 * @param string           $format         table|csv|json.
-	 */
-	private function print_review_list( array $proposals, float $min_confidence, string $format ): void {
-		$rows = array();
-
-		foreach ( $proposals as $proposal ) {
-			if ( '' !== $proposal['source'] && $proposal['confidence'] >= $min_confidence ) {
-				continue;
-			}
-
-			$row              = $this->proposal_row( $proposal );
-			$row['top_title'] = (string) ( $proposal['titles'][0] ?? '' );
-			$rows[]           = $row;
-		}
-
-		\WP_CLI::log( '' );
-
-		if ( empty( $rows ) ) {
-			\WP_CLI::log( 'Review list: empty — every artist has a proposal at or above the confidence threshold.' );
-			return;
-		}
-
-		$columns = array( 'term_id', 'artist', 'events', 'proposed', 'confidence', 'top_title' );
-		$capped  = 'table' === $format ? array_slice( $rows, 0, self::DISPLAY_CAP ) : $rows;
-		$note    = 'table' === $format && count( $rows ) > count( $capped )
-			? sprintf( ' (showing first %d of %d — use --format=csv|json for the complete list)', count( $capped ), count( $rows ) )
-			: '';
-
-		\WP_CLI::log( sprintf( 'Review list (%d artist(s) below the confidence threshold or without a proposal)%s:', count( $rows ), $note ) );
-		\WP_CLI\Utils\format_items( $format, $capped, $columns );
-	}
-
-	/**
-	 * Write qualifying proposals as artist termmeta.
-	 *
-	 * Writes `_genres` (JSON slug array) plus `_genres_source` and
-	 * `_genres_confidence` only for proposals at or above the confidence
-	 * threshold, only for artists without existing `_genres` unless
-	 * --overwrite. Every slug is re-validated against the active vocabulary
-	 * before the write. The `_genres` write fires the genre projection's
-	 * `updated_term_meta` fan-out (#828/#829) — this method deliberately
-	 * does nothing else.
-	 *
-	 * @param array<int,array>     $proposals      term_id => proposal.
-	 * @param float                $min_confidence Threshold.
-	 * @param bool                 $overwrite      Allow replacing existing values.
-	 * @param array<string,string> $vocabulary     Active vocabulary slug => name.
-	 */
-	private function apply_proposals( array $proposals, float $min_confidence, bool $overwrite, array $vocabulary ): void {
-		$written = 0;
-		$skipped = 0;
-		$review  = 0;
-		$errors  = 0;
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log( 'Applying proposals:' );
-
-		foreach ( $proposals as $proposal ) {
-			if ( '' === $proposal['source'] || $proposal['confidence'] < $min_confidence ) {
-				++$review;
-				continue;
-			}
-
-			if ( $proposal['existing'] && ! $overwrite ) {
-				++$skipped;
-				\WP_CLI::log( sprintf( '  skip (existing %s): %s', self::GENRES_META_KEY, $proposal['name'] ) );
-				continue;
-			}
-
-			// Re-validate every slug against the live vocabulary.
-			$slugs = array();
-			foreach ( $proposal['genres'] as $slug ) {
-				if ( isset( $vocabulary[ $slug ] ) ) {
-					$slugs[] = $slug;
-				}
-			}
-
-			if ( empty( $slugs ) ) {
-				++$errors;
-				\WP_CLI::warning( sprintf( '  skip (no slugs left in the active vocabulary): %s', $proposal['name'] ) );
-				continue;
-			}
-
-			$updated = update_term_meta( (int) $proposal['term_id'], self::GENRES_META_KEY, wp_json_encode( $slugs ) );
-			if ( false === $updated ) {
-				++$errors;
-				\WP_CLI::warning( sprintf( '  write FAILED: %s (term %d)', $proposal['name'], $proposal['term_id'] ) );
-				continue;
-			}
-
-			update_term_meta( (int) $proposal['term_id'], self::SOURCE_META_KEY, (string) $proposal['source'] );
-			update_term_meta( (int) $proposal['term_id'], self::CONFIDENCE_META_KEY, (float) $proposal['confidence'] );
-
-			++$written;
-			\WP_CLI::log(
-				sprintf(
-					'  write %s=%s conf=%.2f source=%s: %s (term %d)',
-					self::GENRES_META_KEY,
-					implode( ',', $slugs ),
-					(float) $proposal['confidence'],
-					(string) $proposal['source'],
-					$proposal['name'],
-					(int) $proposal['term_id']
-				)
-			);
-		}
-
-		\WP_CLI::log( '' );
-		\WP_CLI::log(
-			sprintf(
-				'Apply complete — written: %d | skipped: %d | left for review: %d | errors: %d',
-				$written,
-				$skipped,
-				$review,
-				$errors
-			)
-		);
-		\WP_CLI::log( 'The _genres writes fire the genre projection fan-out (#828/#829); events were not touched directly.' );
-	}
-
-	/**
-	 * Histogram bucket label for a confidence value.
-	 *
-	 * @param float $confidence 0-1.
-	 * @return string Bucket label.
-	 */
-	private function confidence_bucket( float $confidence ): string {
-		foreach ( self::HISTOGRAM_BUCKETS as $label => $range ) {
-			if ( $confidence >= $range[0] && $confidence < $range[1] ) {
-				return $label;
-			}
-		}
-
-		return '0.9-1.0';
 	}
 }

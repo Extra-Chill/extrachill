@@ -7,17 +7,19 @@
 
 namespace ExtraChillEvents\Tests\Unit\Core;
 
-use ExtraChillEvents\Cli\QualifyStatsCommand;
+use ExtraChillEvents\Core\QualifyStatsReport;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Stubs/digest-stubs.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyVerdictsTable.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/QualifyStatsCommand.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyVerdict.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyCohortDeriver.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyStatsReport.php';
 
 /**
  * Covers keyset and page-size constraints on stats reads.
  */
-class QualifyStatsCommandTest extends TestCase {
+class QualifyStatsReportTest extends TestCase {
 
 	/** Test snapshot paging honors canonical backfill and equal-local-time ordering. */
 	public function test_latest_rows_query_is_snapshot_bounded_and_canonical(): void {
@@ -95,9 +97,9 @@ class QualifyStatsCommandTest extends TestCase {
 		};
 
 		try {
-			$method = new \ReflectionMethod( QualifyStatsCommand::class, 'latest_rows_page' );
+			$method = new \ReflectionMethod( QualifyStatsReport::class, 'latest_rows_page' );
 			$method->setAccessible( true );
-			$rows = $method->invoke( new QualifyStatsCommand(), '2025-01-01 07:00:00', 500, 123, 250 );
+			$rows = $method->invoke( new QualifyStatsReport(), '2025-01-01 07:00:00', 500, 123, 250 );
 
 			$this->assertSame( 125, $rows[0]['id'] );
 			$query = end( $wpdb->prepared );
@@ -110,10 +112,16 @@ class QualifyStatsCommandTest extends TestCase {
 			$this->assertStringNotContainsString( 'NOW()', $query['query'] );
 			$this->assertSame( array( 500, '2025-01-01 07:00:00', 123, 500, 250 ), $query['args'] );
 
-			$cutoff_method = new \ReflectionMethod( QualifyStatsCommand::class, 'site_local_cutoff' );
+			$cutoff_method = new \ReflectionMethod( QualifyStatsReport::class, 'site_local_cutoff' );
 			$cutoff_method->setAccessible( true );
-			$cutoff = $cutoff_method->invoke( new QualifyStatsCommand(), 30, strtotime( '2025-02-01 12:00:00 UTC' ) );
+			$cutoff = $cutoff_method->invoke( new QualifyStatsReport(), 30, strtotime( '2025-02-01 12:00:00 UTC' ) );
 			$this->assertSame( '2025-01-02 07:00:00', $cutoff );
+
+			$report = ( new QualifyStatsReport() )->build( 0 );
+			$this->assertSame( 1, $report['days'] );
+			$this->assertSame( 1, $report['verdicts']['extraction_gap']['count'] );
+			$this->assertSame( array( 'extraction_gap' ), array_column( QualifyStatsReport::ordered( $report['verdicts'] ), 'verdict' ) );
+			$this->assertArrayHasKey( 'extraction_gap', QualifyStatsReport::guidance_index() );
 		} finally {
 			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restore original database object.
 			$wpdb = $original_wpdb;
