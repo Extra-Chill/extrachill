@@ -189,6 +189,20 @@ if ( ! function_exists( 'get_bloginfo' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_userdata' ) ) {
+	function get_userdata( $user_id ) {
+		return 0 < (int) $user_id ? (object) array( 'ID' => (int) $user_id ) : false;
+	}
+}
+
+// Same globals as ArtistUrlImportNotificationTest so either definition serves both.
+if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+	function ec_users_notify_with_receipts( $user_ids, array $data ) {
+		$GLOBALS['artist_import_notification_calls'][] = compact( 'user_ids', 'data' );
+		return $GLOBALS['artist_import_notification_receipt'] ?? array( 'requested' => 1, 'inserted' => 1, 'existing' => 0, 'failed' => 0, 'recipients' => array() );
+	}
+}
+
 if ( ! function_exists( 'wp_register_ability' ) ) {
 	function wp_register_ability( $name, $definition ) {
 		$GLOBALS['event_source_registered_abilities'][ $name ] = $definition;
@@ -685,26 +699,52 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertSame( 'unknown', $result['source_kind'] );
 	}
 
-	public function test_performerless_multi_artist_listing_is_not_an_artist_source(): void {
-		// Modeled on mosplaceradio.com/bandschedules (#1347): a station's band
-		// schedule, every title a different act, every date a different venue.
+	/** Modeled on mosplaceradio.com/bandschedules (#1347). */
+	private function mosplace_listing_events(): array {
+		return array(
+			array( 'title' => 'Carl Chloros', 'venue' => 'L Street Tavern' ),
+			array( 'title' => 'Chad Lamarsh', 'venue' => 'The Windham Restaurant' ),
+			array( 'title' => 'Open Mic', 'venue' => 'Far From The Tree' ),
+			array( 'title' => 'Joe Buford', 'venue' => 'Tour Golf & Grill' ),
+			array( 'title' => 'Karaoke', 'venue' => 'The Hong Kong' ),
+		);
+	}
+
+	public function test_performerless_multi_artist_listing_is_recommended_as_listing(): void {
+		// A station's band schedule: every title a different act, every date a
+		// different venue. Not an artist or venue; routed as a listing (#1515).
 		$result = $this->classification(
-			array(
-				array( 'title' => 'Carl Chloros', 'venue' => 'L Street Tavern' ),
-				array( 'title' => 'Chad Lamarsh', 'venue' => 'The Windham Restaurant' ),
-				array( 'title' => 'Open Mic', 'venue' => 'Far From The Tree' ),
-				array( 'title' => 'Joe Buford', 'venue' => 'Tour Golf & Grill' ),
-				array( 'title' => 'Karaoke', 'venue' => 'The Hong Kong' ),
-			),
+			$this->mosplace_listing_events(),
 			'https://mosplaceradio.com/bandschedules',
-			'<html><head><title>Live Music &amp; Band Schedule | Merrimack Valley, Boston &amp; NH</title></head></html>',
+			'<html><head><title>Live Music &amp; Band Schedule | Merrimack Valley, Boston &amp; NH</title><meta property="og:site_name" content="Mo\'s Place Radio"></head></html>',
 			'jsonld'
 		);
-		$this->assertSame( 'unknown', $result['source_kind'] );
-		$this->assertFalse( $result['scope_evidence']['bounded'] );
-		$this->assertSame( '', $result['binding']['taxonomy'] );
-		$this->assertNotEmpty( $result['warnings'] );
+		$this->assertSame( 'listing', $result['source_kind'] );
+		$this->assertSame( 'medium', $result['confidence'] );
+		$this->assertTrue( $result['scope_evidence']['bounded'] );
+		$this->assertSame( 'multi_artist_listing', $result['scope_evidence']['type'] );
+		$this->assertSame( array( 'taxonomy' => '', 'term_id' => null, 'name' => "Mo's Place Radio" ), $result['binding'] );
 		$this->assertStringContainsString( 'multi-artist listings', implode( ' ', $result['warnings'] ) );
+	}
+
+	public function test_listing_source_name_falls_back_to_host_without_site_branding(): void {
+		$result = $this->classification(
+			$this->mosplace_listing_events(),
+			'https://www.mosplaceradio.com/bandschedules',
+			'<html><head><title>Live Music &amp; Band Schedule</title></head></html>'
+		);
+		$this->assertSame( 'listing', $result['source_kind'] );
+		$this->assertSame( 'Mosplaceradio', $result['binding']['name'] );
+	}
+
+	public function test_page_dominated_by_one_act_is_not_a_listing(): void {
+		$events = array();
+		foreach ( array( 'Room A', 'Room B', 'Room C', 'Room D' ) as $venue ) {
+			$events[] = array( 'title' => 'Will Overman', 'venue' => $venue );
+		}
+		$events[] = array( 'title' => 'Special Show', 'venue' => 'Room E' );
+		$events[] = array( 'title' => 'Another Show', 'venue' => 'Room F' );
+		$this->assertNotSame( 'listing', $this->classification( $events, 'https://unrelated-site.test' )['source_kind'] );
 	}
 
 	public function test_performerless_tour_with_venue_or_artist_titles_stays_artist(): void {
@@ -1017,7 +1057,13 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$qualify    = $registered['extrachill/qualify-event-source'];
 		$approve    = $registered['extrachill-events/approve-event-source-submission'];
 		$this->assertArrayHasKey( 'recurring_eligible', $qualify['output_schema']['properties'] );
-		$this->assertCount( 2, $approve['output_schema']['oneOf'] );
+		$this->assertCount( 3, $approve['output_schema']['oneOf'] );
+		$this->assertContains( 'listing', $approve['input_schema']['properties']['source_kind']['enum'] );
+		$this->assertContains( 'listing', $qualify['output_schema']['properties']['source_kind']['enum'] );
+		$this->assertContains( 'listing', $registered['extrachill-events/submit-event-source']['output_schema']['properties']['source_kind']['enum'] );
+		$listing_branch = $approve['output_schema']['oneOf'][2];
+		$this->assertSame( array( 'listing' ), $listing_branch['properties']['source_kind']['enum'] );
+		$this->assertSame( array( 'success', 'pipeline_id', 'flow_id', 'source_kind' ), $listing_branch['required'] );
 		foreach ( array( 'preview', 'submit', 'approve', 'reject' ) as $action ) {
 			$this->assertArrayNotHasKey( "extrachill-events/{$action}-artist-url" . ( in_array( $action, array( 'approve', 'reject' ), true ) ? '-submission' : '' ), $registered );
 		}
@@ -1103,5 +1149,357 @@ final class EventSourceIntakeTest extends BookingTestCase {
 
 		$page['http_status'] = 404;
 		$this->assertSame( '', $method->invoke( $this->intake, 'https://venue.test', $page ) );
+	}
+
+	// ── Listings sources (#1515) ───────────────────────────────────────────
+
+	private const LISTING_URL = 'https://mosplaceradio.com/bandschedules';
+
+	private function listing_qualification( bool $eligible = true, array $coverage = array( 'covered' => false, 'type' => 'none' ), string $url = self::LISTING_URL ): array {
+		return array(
+			'success'              => true,
+			'qualified'            => true,
+			'canonical_events_url' => $url,
+			'source_identity_url'  => ArtistUrlSubmissionsTable::normalize_url( $url ),
+			'verdict'              => 'qualified_structured',
+			'events_found'         => 258,
+			'events_preview'       => array(),
+			'extraction_method'    => 'jsonld',
+			'source_kind'          => 'listing',
+			'recommended_binding'  => array( 'taxonomy' => '', 'term_id' => null, 'name' => "Mo's Place Radio" ),
+			'existing_coverage'    => $coverage,
+			'warnings'             => array(),
+			'recurring_eligible'   => $eligible,
+		);
+	}
+
+	private function pending_listing_submission( int $id, string $url = self::LISTING_URL, string $stored_kind = 'unknown' ): array {
+		return array(
+			'id'                 => $id,
+			'user_id'            => 1543,
+			'url'                => $url,
+			'url_hash'           => ArtistUrlSubmissionsTable::url_hash( $url ),
+			'canonical_url'      => $url,
+			'source_kind'        => $stored_kind,
+			'entity_taxonomy'    => '',
+			'entity_term_id'     => null,
+			'entity_name'        => '',
+			'status'             => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
+			'events_found_count' => 258,
+		);
+	}
+
+	/**
+	 * Stateful Data Machine doubles: an exact-name pipeline lookup, pipeline
+	 * creation, flow creation (flows become visible to later lookups), and
+	 * revisioned step updates.
+	 */
+	private function listing_abilities( array &$state ): array {
+		$state += array( 'pipeline_id' => null, 'flows' => array(), 'next_flow_id' => 1001 );
+		$revision = 'sha256:' . str_repeat( 'c', 64 );
+		return array(
+			'datamachine/get-pipeline-configuration' => new EventSourceAbilityDouble(
+				static function ( array $input ) use ( &$state, $revision ) {
+					if ( isset( $input['pipeline_name'] ) && ( 'Regional Listings Import' !== $input['pipeline_name'] || null === $state['pipeline_id'] ) ) {
+						return array( 'success' => false, 'error_code' => 'pipeline_not_found', 'error' => 'Pipeline not found', 'status' => 404 );
+					}
+					return array(
+						'success'  => true,
+						'pipeline' => array( 'pipeline_id' => $state['pipeline_id'], 'pipeline_name' => 'Regional Listings Import', 'revision' => $revision ),
+						'flows'    => array_values( $state['flows'] ),
+					);
+				}
+			),
+			'datamachine/create-pipeline' => new EventSourceAbilityDouble(
+				static function () use ( &$state ) {
+					$state['pipeline_id'] = 230;
+					return array( 'success' => true, 'pipeline_id' => 230 );
+				}
+			),
+			'datamachine/create-flow' => new EventSourceAbilityDouble(
+				static function ( array $input ) use ( &$state, $revision ) {
+					$flow_id                    = $state['next_flow_id']++;
+					$state['flows'][ $flow_id ] = array(
+						'flow_id'  => $flow_id,
+						'revision' => $revision,
+						'steps'    => array(
+							array(
+								'step_type'       => 'event_import',
+								'handler_configs' => array( 'universal_web_scraper' => $input['step_configs']['event_import']['handler_config'] ),
+							),
+						),
+					);
+					return array( 'success' => true, 'flow_id' => $flow_id );
+				}
+			),
+			'datamachine/update-step-configuration' => new EventSourceAbilityDouble( array( 'success' => true, 'revision' => 'sha256:' . str_repeat( 'd', 64 ) ) ),
+			'datamachine/run-flow' => new EventSourceAbilityDouble( array( 'success' => true ) ),
+		);
+	}
+
+	private function existing_listing_flow( int $flow_id, string $source_url ): array {
+		return array(
+			'flow_id'  => $flow_id,
+			'revision' => 'sha256:' . str_repeat( 'e', 64 ),
+			'steps'    => array(
+				array( 'step_type' => 'event_import', 'handler_configs' => array( 'universal_web_scraper' => array( 'source_url' => $source_url, 'search' => '', 'exclude_keywords' => '' ) ) ),
+				array( 'step_type' => 'ai', 'prompt_queue' => array() ),
+				array( 'step_type' => 'upsert', 'handler_configs' => array( 'upsert_event' => array( 'post_author' => 32 ) ) ),
+			),
+		);
+	}
+
+	public function test_listing_approval_creates_shared_pipeline_and_configured_flow(): void {
+		$GLOBALS['artist_import_notification_calls'] = array();
+		$this->wpdb->submissions[1] = $this->pending_listing_submission( 1 );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->listing_qualification();
+		$state     = array();
+		$abilities = $this->listing_abilities( $state );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1, 'source_kind' => 'listing' ) );
+
+		$this->assertSame(
+			array( 'success' => true, 'pipeline_id' => 230, 'flow_id' => 1001, 'source_kind' => 'listing', 'linked_existing_flow' => false ),
+			$result
+		);
+
+		// Pipeline: created once by its stable name with the three-step scaffold.
+		$create_pipeline = $abilities['datamachine/create-pipeline']->calls;
+		$this->assertCount( 1, $create_pipeline );
+		$this->assertSame( 'Regional Listings Import', $create_pipeline[0]['pipeline_name'] );
+		$this->assertSame( array( 'event_import', 'ai', 'upsert' ), array_column( $create_pipeline[0]['steps'], 'step_type' ) );
+
+		// Pipeline AI system prompt: region-neutral and set once on creation.
+		$updates         = $abilities['datamachine/update-step-configuration']->calls;
+		$pipeline_update = array_values( array_filter( $updates, static fn( $u ) => 'pipeline' === $u['target'] ) );
+		$this->assertCount( 1, $pipeline_update );
+		$this->assertSame( 230, $pipeline_update[0]['pipeline_id'] );
+		$this->assertSame( 'ai', $pipeline_update[0]['step_type'] );
+		$this->assertSame(
+			"You process events from regional listings sources for the Extra Chill Events feed. A listings source is a curated gig list (a radio station's band schedule, a regional calendar) covering many venues across many towns, so each event can be at any venue in the region the source covers. No venue or city is pre-selected: identify the venue, city/location, performing artist(s), and festival (if any) for each event from the event data. Keep venue and city spelling exactly as extracted. Skip WordPress categories and post tags entirely.\n\nTitles: write the title as a reader would want to see it on a calendar, led by the performing act(s). Fold in support acts when the source gives them.",
+			$pipeline_update[0]['configuration']['system_prompt']
+		);
+
+		// Flow: scraper → AI → upsert with nothing pinned, daily by default.
+		$create_flow = $abilities['datamachine/create-flow']->calls;
+		$this->assertCount( 1, $create_flow );
+		$flow = $create_flow[0];
+		$this->assertSame( 230, $flow['pipeline_id'] );
+		$this->assertSame( "Mo's Place Radio — Listings", $flow['flow_name'] );
+		$this->assertSame( array( 'interval' => 'daily' ), $flow['scheduling_config'] );
+		$this->assertSame( 'universal_web_scraper', $flow['step_configs']['event_import']['handler_slug'] );
+		$this->assertSame( array( 'source_url' => self::LISTING_URL, 'search' => '', 'exclude_keywords' => '' ), $flow['step_configs']['event_import']['handler_config'] );
+		$this->assertSame( 'upsert_event', $flow['step_configs']['upsert']['handler_slug'] );
+		$this->assertSame(
+			array(
+				'post_status'                 => 'publish',
+				'include_images'              => false,
+				'post_author'                 => 32,
+				'taxonomy_location_selection' => 'ai_decides',
+				'taxonomy_artist_selection'   => 'ai_decides',
+				'taxonomy_festival_selection' => 'ai_decides',
+				'taxonomy_genre_selection'    => 'skip',
+				'taxonomy_promoter_selection' => 'skip',
+			),
+			$flow['step_configs']['upsert']['handler_config']
+		);
+		$message = $flow['step_configs']['ai']['user_message'];
+		$this->assertStringContainsString( "Mo's Place Radio", $message );
+		foreach ( array( 'venue', 'city', 'artist', 'festival' ) as $part ) {
+			$this->assertStringContainsString( $part, $message );
+		}
+
+		// Flow settings go through the revisioned owner contract too.
+		$flow_updates = array_values( array_filter( $updates, static fn( $u ) => 'flow' === $u['target'] ) );
+		$this->assertSame( array( 'event_import', 'upsert', 'ai' ), array_column( $flow_updates, 'step_type' ) );
+		$this->assertSame( 1001, $flow_updates[0]['flow_id'] );
+
+		// Submission row: approved and linked.
+		$row = $this->wpdb->submissions[1];
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_APPROVED, $row['status'] );
+		$this->assertSame( 230, $row['pipeline_id'] );
+		$this->assertSame( 1001, $row['flow_id'] );
+		$this->assertSame( 'listing', $row['source_kind'] );
+		$this->assertSame( "Mo's Place Radio", $row['entity_name'] );
+		$this->assertSame( '', $row['entity_taxonomy'] );
+		$this->assertNull( $row['entity_term_id'] );
+
+		// First scrape and submitter notification, like the other kinds.
+		$this->assertSame( array( array( 'flow_id' => 1001 ) ), $abilities['datamachine/run-flow']->calls );
+		$this->assertCount( 1, $GLOBALS['artist_import_notification_calls'] );
+		$notice = $GLOBALS['artist_import_notification_calls'][0];
+		$this->assertSame( array( 1543 ), $notice['user_ids'] );
+		$this->assertSame( 'event_source_approved', $notice['data']['type'] );
+		$this->assertSame( 'submission:1:event_source_approved', $notice['data']['idempotency_key'] );
+		$this->assertStringContainsString( "Mo's Place Radio", $notice['data']['title'] );
+	}
+
+	public function test_second_listing_reuses_the_shared_pipeline(): void {
+		$other_url = 'https://regional-calendar.test/gigs';
+		$this->wpdb->submissions[1] = $this->pending_listing_submission( 1 );
+		$this->wpdb->submissions[2] = $this->pending_listing_submission( 2, $other_url, 'listing' );
+		$second = $this->listing_qualification( true, array( 'covered' => false, 'type' => 'none' ), $other_url );
+		$second['recommended_binding']['name'] = 'Regional Calendar';
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications = array( $this->listing_qualification(), $second );
+		$state     = array();
+		$abilities = $this->listing_abilities( $state );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$first  = $intake->executeApprove( array( 'submission_id' => 1, 'source_kind' => 'listing' ) );
+		$result = $intake->executeApprove( array( 'submission_id' => 2, 'schedule_interval' => 'weekly' ) );
+
+		$this->assertSame( 230, $first['pipeline_id'] );
+		$this->assertSame( 230, $result['pipeline_id'] );
+		$this->assertSame( 1002, $result['flow_id'] );
+		$this->assertFalse( $result['linked_existing_flow'] );
+		$this->assertCount( 1, $abilities['datamachine/create-pipeline']->calls );
+		$this->assertCount( 2, $abilities['datamachine/create-flow']->calls );
+		$flow = $abilities['datamachine/create-flow']->calls[1];
+		$this->assertSame( 230, $flow['pipeline_id'] );
+		$this->assertSame( 'Regional Calendar — Listings', $flow['flow_name'] );
+		$this->assertSame( array( 'interval' => 'weekly' ), $flow['scheduling_config'] );
+		$this->assertSame( $other_url, $flow['step_configs']['event_import']['handler_config']['source_url'] );
+		$this->assertCount( 1, array_filter( $abilities['datamachine/update-step-configuration']->calls, static fn( $u ) => 'pipeline' === $u['target'] ) );
+		$this->assertSame( 1002, $this->wpdb->submissions[2]['flow_id'] );
+	}
+
+	public function test_listing_with_existing_flow_links_it_without_creating_another(): void {
+		// Submission #21 against hand-built flow 983 on pipeline 230.
+		$GLOBALS['artist_import_notification_calls'] = array();
+		$this->wpdb->submissions[21] = $this->pending_listing_submission( 21 );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->listing_qualification(
+			false,
+			array( 'covered' => true, 'type' => 'universal_scraper_flow', 'flow_id' => 983, 'flow_name' => "Mo's Place Radio — Band Schedules" )
+		);
+		$state     = array(
+			'pipeline_id' => 230,
+			'flows'       => array( 983 => $this->existing_listing_flow( 983, 'https://mosplaceradio.com/bandschedules/' ) ),
+		);
+		$abilities = $this->listing_abilities( $state );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeApprove( array( 'submission_id' => 21, 'source_kind' => 'listing' ) );
+
+		$this->assertSame(
+			array( 'success' => true, 'pipeline_id' => 230, 'flow_id' => 983, 'source_kind' => 'listing', 'linked_existing_flow' => true ),
+			$result
+		);
+		$this->assertSame( array(), $abilities['datamachine/create-pipeline']->calls );
+		$this->assertSame( array(), $abilities['datamachine/create-flow']->calls );
+		$this->assertSame( array(), $abilities['datamachine/update-step-configuration']->calls, 'The hand-built flow keeps its own configuration.' );
+		$this->assertSame( array(), $abilities['datamachine/run-flow']->calls, 'The linked flow is already scheduled.' );
+		$row = $this->wpdb->submissions[21];
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_APPROVED, $row['status'] );
+		$this->assertSame( 230, $row['pipeline_id'] );
+		$this->assertSame( 983, $row['flow_id'] );
+		$this->assertSame( 'listing', $row['source_kind'] );
+		$this->assertCount( 1, $GLOBALS['artist_import_notification_calls'] );
+	}
+
+	public function test_listing_covered_by_a_flow_outside_the_listings_pipeline_is_rejected(): void {
+		$this->wpdb->submissions[1] = $this->pending_listing_submission( 1 );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->listing_qualification( false, array( 'covered' => true, 'type' => 'universal_scraper_flow', 'flow_id' => 55 ) );
+		$state     = array( 'pipeline_id' => 230, 'flows' => array( 984 => $this->existing_listing_flow( 984, 'https://elsewhere.test/gigs' ) ) );
+		$abilities = $this->listing_abilities( $state );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1, 'source_kind' => 'listing' ) );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'source_already_covered', $result->get_error_code() );
+		$this->assertSame( array(), $abilities['datamachine/create-flow']->calls );
+		$this->assertSame( array(), $this->wpdb->updates );
+	}
+
+	public function test_coverage_never_relaxes_admission_for_artist_or_platform_coverage(): void {
+		$this->wpdb->submissions[1] = $this->pending_listing_submission( 1 );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->listing_qualification( false, array( 'covered' => true, 'type' => 'platform_pipeline' ) );
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1, 'source_kind' => 'listing' ) );
+
+		$this->assertSame( 'source_no_longer_admissible', $result->get_error_code() );
+		$this->assertSame( array(), $this->wpdb->updates );
+	}
+
+	public function test_listing_approval_requires_fresh_listing_classification(): void {
+		$this->wpdb->submissions[1] = $this->pending_submission( 'artist' );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1, 'source_kind' => 'listing' ) );
+
+		$this->assertSame( 'source_kind_changed', $result->get_error_code() );
+		$this->assertSame( array(), $this->wpdb->updates );
+	}
+
+	public function test_unknown_source_kind_still_requires_explicit_choice(): void {
+		$this->wpdb->submissions[1] = $this->pending_listing_submission( 1 );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->listing_qualification();
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1 ) );
+
+		$this->assertSame( 'explicit_source_kind_required', $result->get_error_code() );
+		$this->assertSame( array(), $this->wpdb->updates );
+	}
+
+	public function test_staff_listing_submission_is_approved_without_review(): void {
+		$GLOBALS['ec_artist_test']['user_caps'][7]['access_events_admin'] = true;
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications = array( $this->listing_qualification(), $this->listing_qualification() );
+		$state     = array();
+		$abilities = $this->listing_abilities( $state );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeSubmit( array( 'url' => self::LISTING_URL ) );
+
+		$this->assertTrue( $result['auto_approved'] );
+		$this->assertSame( 'listing', $result['source_kind'] );
+		$this->assertSame( 230, $result['pipeline_id'] );
+		$this->assertSame( 'listing', $this->wpdb->submissions[1]['source_kind'] );
+		$this->assertSame( "Mo's Place Radio — Listings", $abilities['datamachine/create-flow']->calls[0]['flow_name'] );
+	}
+
+	public function test_artist_shared_pipeline_creation_keeps_artist_prompt(): void {
+		$this->wpdb->submissions[1] = $this->pending_submission( 'artist' );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$created   = false;
+		$revision  = 'sha256:' . str_repeat( 'a', 64 );
+		$selectors = array();
+		$abilities = $this->artist_flow_abilities( new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) ) );
+		$abilities['datamachine/get-pipeline-configuration'] = new EventSourceAbilityDouble(
+			static function ( array $input ) use ( &$created, &$selectors, $revision ) {
+				$selectors[] = $input;
+				if ( isset( $input['pipeline_name'] ) && ! $created ) {
+					return array( 'success' => false, 'error_code' => 'pipeline_not_found', 'status' => 404 );
+				}
+				return array( 'success' => true, 'pipeline' => array( 'pipeline_id' => 42, 'revision' => $revision ), 'flows' => array( array( 'flow_id' => 77, 'revision' => $revision ) ) );
+			}
+		);
+		$abilities['datamachine/create-pipeline'] = new EventSourceAbilityDouble(
+			static function () use ( &$created ) {
+				$created = true;
+				return array( 'success' => true, 'pipeline_id' => 42 );
+			}
+		);
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1 ) );
+
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 42, $result['pipeline_id'] );
+		$this->assertSame( array( 'pipeline_name' => 'Artist Tour Import' ), $selectors[0] );
+		$this->assertSame( 'Artist Tour Import', $abilities['datamachine/create-pipeline']->calls[0]['pipeline_name'] );
+		$pipeline_update = array_values( array_filter( $abilities['datamachine/update-step-configuration']->calls, static fn( $u ) => 'pipeline' === $u['target'] ) );
+		$this->assertStringContainsString( 'tour/events pages for the Events Test events feed', $pipeline_update[0]['configuration']['system_prompt'] );
+		$this->assertSame( 'artist', $this->wpdb->submissions[1]['source_kind'] );
+		$this->assertSame( 72, $this->wpdb->submissions[1]['artist_term_id'] );
 	}
 }

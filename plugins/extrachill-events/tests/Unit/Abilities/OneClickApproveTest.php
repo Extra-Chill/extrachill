@@ -70,4 +70,12 @@ final class OneClickApproveTest extends TestCase {
 		$this->assertLessThan( $kind, $details, 'Manual fields live inside Change details.' );
 		$this->assertStringContainsString( 'findCityPipelineForVenue( $entity_term_id )', $source );
 	}
+
+	public function test_approve_form_offers_listings_kind_with_one_click(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/admin/EventSourceSubmissionsAdmin.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source read.
+
+		$this->assertStringContainsString( '<option value="listing" <?php selected( $source_kind, \'listing\' ); ?>>', $source );
+		$this->assertStringContainsString( "\$one_click = 'listing' === \$source_kind", $source );
+		$this->assertStringContainsString( "<option value=\"daily\" <?php selected( 'listing' === \$source_kind ); ?>>", $source );
+	}
 }

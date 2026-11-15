@@ -2,8 +2,9 @@
 /**
  * Event Source Import Abilities
  *
- * Qualifies, previews, submits, approves, and rejects recurring artist and
- * venue event sources through the canonical generic ability contracts.
+ * Qualifies, previews, submits, approves, and rejects recurring artist,
+ * venue, and regional listings event sources through the canonical generic
+ * ability contracts.
  *
  * Substrate consumption (layer purity): the preview probe consumes the
  * generic scraping primitive by its *registered handler slug*
@@ -54,6 +55,26 @@ class ArtistUrlImportAbilities {
 	 * approval creates a NEW FLOW on it.
 	 */
 	private const SHARED_PIPELINE_NAME = 'Artist Tour Import';
+
+	/**
+	 * Stable name of the shared Regional Listings Import pipeline (portable
+	 * slug `regional-listings-import`). Listings sources are curated
+	 * multi-venue gig lists; each approval creates a NEW FLOW on it. Resolved
+	 * through the same public exact-name contract as the artist pipeline.
+	 */
+	private const LISTINGS_PIPELINE_NAME = 'Regional Listings Import';
+
+	/**
+	 * Region-neutral AI system prompt for the shared listings pipeline. It
+	 * must not name a city: city "feed for <City>" prompts make the AI reject
+	 * shows in neighbouring towns.
+	 */
+	private const LISTINGS_SYSTEM_PROMPT = "You process events from regional listings sources for the Extra Chill Events feed. A listings source is a curated gig list (a radio station's band schedule, a regional calendar) covering many venues across many towns, so each event can be at any venue in the region the source covers. No venue or city is pre-selected: identify the venue, city/location, performing artist(s), and festival (if any) for each event from the event data. Keep venue and city spelling exactly as extracted. Skip WordPress categories and post tags entirely.\n\nTitles: write the title as a reader would want to see it on a calendar, led by the performing act(s). Fold in support acts when the source gives them.";
+
+	/**
+	 * Default schedule interval for newly approved listings flows.
+	 */
+	private const LISTINGS_DEFAULT_INTERVAL = 'daily';
 
 	/**
 	 * Default schedule interval for newly approved artist flows.
@@ -233,7 +254,7 @@ class ArtistUrlImportAbilities {
 						'events_found'  => array( 'type' => 'integer' ),
 						'source_kind'   => array(
 							'type' => 'string',
-							'enum' => array( 'artist', 'venue' ),
+							'enum' => array( 'artist', 'venue', 'listing' ),
 						),
 						'auto_approved' => array( 'type' => 'boolean' ),
 						'flow_id'       => array( 'type' => 'integer' ),
@@ -249,7 +270,7 @@ class ArtistUrlImportAbilities {
 			'submission_id'     => array( 'type' => 'integer' ),
 			'source_kind'       => array(
 				'type' => 'string',
-				'enum' => array( 'artist', 'venue', 'unknown' ),
+				'enum' => array( 'artist', 'venue', 'listing', 'unknown' ),
 			),
 			'entity_term_id'    => array( 'type' => 'integer' ),
 			'entity_name'       => array( 'type' => 'string' ),
@@ -264,7 +285,7 @@ class ArtistUrlImportAbilities {
 			'extrachill-events/approve-event-source-submission',
 			array(
 				'label'               => __( 'Approve Event Source Submission', 'extrachill-events' ),
-				'description'         => __( 'Approve a moderated artist or venue source through its existing owner flow primitive.', 'extrachill-events' ),
+				'description'         => __( 'Approve a moderated artist, venue, or regional listings source through its existing owner flow primitive.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -300,6 +321,20 @@ class ArtistUrlImportAbilities {
 									'enum' => array( 'venue' ),
 								),
 								'venue_term_id' => array( 'type' => 'integer' ),
+							),
+						),
+						array(
+							'type'       => 'object',
+							'required'   => array( 'success', 'pipeline_id', 'flow_id', 'source_kind' ),
+							'properties' => array(
+								'success'              => array( 'type' => 'boolean' ),
+								'pipeline_id'          => array( 'type' => 'integer' ),
+								'flow_id'              => array( 'type' => 'integer' ),
+								'source_kind'          => array(
+									'type' => 'string',
+									'enum' => array( 'listing' ),
+								),
+								'linked_existing_flow' => array( 'type' => 'boolean' ),
 							),
 						),
 					),
@@ -378,7 +413,7 @@ class ArtistUrlImportAbilities {
 				'extraction_method'         => array( 'type' => 'string' ),
 				'source_kind'               => array(
 					'type' => 'string',
-					'enum' => array( 'artist', 'venue', 'unknown' ),
+					'enum' => array( 'artist', 'venue', 'listing', 'unknown' ),
 				),
 				'classification_confidence' => array(
 					'type' => 'string',
@@ -526,7 +561,7 @@ class ArtistUrlImportAbilities {
 
 		$recurring_eligible = ! empty( $qualification['qualified'] )
 			&& (int) $probe['events_found'] >= 2
-			&& in_array( $classification['source_kind'], array( 'artist', 'venue' ), true )
+			&& in_array( $classification['source_kind'], array( 'artist', 'venue', 'listing' ), true )
 			&& empty( $coverage['covered'] );
 		$extraction_method  = '' !== (string) $probe['detected_format']
 			? (string) $probe['detected_format']
@@ -674,8 +709,21 @@ class ArtistUrlImportAbilities {
 			);
 		} elseif ( 0 === count( $performers ) && count( $venues ) > 1 && $this->isMultiArtistListing( $probe, $artist ) ) {
 			// Performerless titles that name many different acts are a regional
-			// listings page, not one artist's tour widget (#1347).
-			$warnings[] = __( 'Event titles name many different acts across multiple venues; this looks like a multi-artist listings source, not one artist or venue.', 'extrachill-events' );
+			// listings page, not one artist's tour widget (#1347). Route it to
+			// the shared Regional Listings Import pipeline (#1515).
+			$kind           = 'listing';
+			$confidence     = 'medium';
+			$scope_evidence = array(
+				'bounded' => true,
+				'type'    => 'multi_artist_listing',
+				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
+			);
+			$binding        = array(
+				'taxonomy' => '',
+				'term_id'  => null,
+				'name'     => $this->listingSourceName( $url, $probe ),
+			);
+			$warnings[]     = __( 'Event titles name many different acts across multiple venues; this looks like a multi-artist listings source, not one artist or venue.', 'extrachill-events' );
 		} elseif ( 0 === count( $performers ) && count( $venues ) > 1 && $this->isCredibleSiteArtist( $artist ) ) {
 			// Tour widgets (Seated, Bandsintown embeds) list dates without a
 			// per-event performer; the artist is implied by the site itself.
@@ -758,6 +806,8 @@ class ArtistUrlImportAbilities {
 	 * the venue, or nothing, so a listing needs at least three distinct foreign
 	 * titles that also cover at least half of all extracted events. That keeps
 	 * a tour with a couple of specially named shows classified as an artist.
+	 * No single title may cover half of the events either: a page dominated by
+	 * one act is that act's tour with outliers, not a listings source (#1515).
 	 *
 	 * @param array $probe  Extracted event probe.
 	 * @param array $artist Site-derived artist candidate.
@@ -786,10 +836,33 @@ class ArtistUrlImportAbilities {
 			if ( is_string( $venue ) && '' !== trim( $venue ) && sanitize_title( $venue ) === $title_slug ) {
 				continue;
 			}
-			$distinct[ $title_slug ] = true;
+			$distinct[ $title_slug ] = ( $distinct[ $title_slug ] ?? 0 ) + 1;
 			++$foreign;
 		}
-		return count( $distinct ) >= 3 && $foreign >= 0.5 * count( $events );
+		$dominant = empty( $distinct ) ? 0 : max( $distinct );
+		return count( $distinct ) >= 3 && $foreign >= 0.5 * count( $events ) && $dominant < 0.5 * count( $events );
+	}
+
+	/**
+	 * Name a listings source by its site branding (og:site_name), falling back
+	 * to the host. Page titles describe the schedule ("Live Music & Band
+	 * Schedule"), not the source, so they are not used.
+	 *
+	 * @param string $url   Source URL.
+	 * @param array  $probe Extracted event probe.
+	 */
+	private function listingSourceName( string $url, array $probe ): string {
+		$html = (string) ( $probe['page_html'] ?? '' );
+		// Quote-delimited capture: site names often contain apostrophes ("Mo's Place Radio").
+		if ( '' !== $html && preg_match( '/<meta\s[^>]*property=(["\'])og:site_name\1[^>]*\scontent=(["\'])(.*?)\2/is', $html, $m ) ) {
+			$name = trim( html_entity_decode( $m[3], ENT_QUOTES ) );
+			if ( '' !== $name && ! $this->isGenericSourceLabel( $name ) ) {
+				return $name;
+			}
+		}
+		$host = preg_replace( '/^www\./i', '', (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$root = '' !== $host ? explode( '.', $host )[0] : '';
+		return '' !== $root ? $this->titleCaseFromSlug( $root ) : '';
 	}
 
 	/**
@@ -1182,7 +1255,7 @@ class ArtistUrlImportAbilities {
 		if ( is_wp_error( $fresh ) ) {
 			return $fresh;
 		}
-		if ( empty( $fresh['recurring_eligible'] ) ) {
+		if ( empty( $fresh['recurring_eligible'] ) && ! $this->isListingCoveredByScraperFlow( $fresh ) ) {
 			return new \WP_Error(
 				'source_no_longer_admissible',
 				__( 'Fresh qualification no longer admits this source for a recurring import.', 'extrachill-events' ),
@@ -1222,6 +1295,10 @@ class ArtistUrlImportAbilities {
 		$fresh_binding                     = (array) ( $fresh['recommended_binding'] ?? array() );
 		$submission['canonical_url']       = (string) $fresh['canonical_events_url'];
 		$submission['fresh_qualification'] = $fresh;
+
+		if ( 'listing' === $source_kind ) {
+			return $this->approveListingSubmission( $submission_id, $submission, $input );
+		}
 
 		if ( 'venue' === $source_kind ) {
 			$fresh_venue_id = (int) ( $fresh_binding['term_id'] ?? 0 );
@@ -1435,12 +1512,12 @@ class ArtistUrlImportAbilities {
 	/** Resolve approval dispatch without silently coercing unknown sources. */
 	private function resolveApprovalKind( string $stored_kind, $explicit_kind = null ) {
 		$kind = null !== $explicit_kind ? sanitize_key( (string) $explicit_kind ) : sanitize_key( $stored_kind );
-		if ( in_array( $kind, array( 'artist', 'venue' ), true ) ) {
+		if ( in_array( $kind, array( 'artist', 'venue', 'listing' ), true ) ) {
 			return $kind;
 		}
 		return new \WP_Error(
 			'explicit_source_kind_required',
-			__( 'Select artist or venue and a concrete entity before approving this ambiguous source.', 'extrachill-events' ),
+			__( 'Select artist, venue, or listing (and a concrete entity for artist or venue) before approving this ambiguous source.', 'extrachill-events' ),
 			array( 'status' => 400 )
 		);
 	}
@@ -1505,6 +1582,236 @@ class ArtistUrlImportAbilities {
 			'entity_term_id'        => isset( $binding['term_id'] ) ? (int) $binding['term_id'] : null,
 			'entity_name'           => (string) ( $binding['name'] ?? '' ),
 		);
+	}
+
+	/**
+	 * Whether fresh qualification only withheld admission because a listings
+	 * source already has a scraper flow. Approval may then link that flow
+	 * (when it lives on the shared listings pipeline) instead of creating a
+	 * second one; approveListingSubmission() enforces the pipeline check.
+	 */
+	private function isListingCoveredByScraperFlow( array $fresh ): bool {
+		return 'listing' === (string) ( $fresh['source_kind'] ?? '' )
+			&& ! empty( $fresh['qualified'] )
+			&& (int) ( $fresh['events_found'] ?? 0 ) >= 2
+			&& ! empty( $fresh['existing_coverage']['covered'] )
+			&& 'universal_scraper_flow' === (string) ( $fresh['existing_coverage']['type'] ?? '' );
+	}
+
+	/**
+	 * Approve a regional listings source onto the shared Regional Listings
+	 * Import pipeline. Mirrors the artist path (shared pipeline, one flow per
+	 * source) but pins nothing: venue, location, artist and festival are all
+	 * decided per event. A source whose URL already has a flow on the
+	 * listings pipeline links that flow instead of creating a duplicate.
+	 *
+	 * @param int   $submission_id Pending submission row.
+	 * @param array $submission    Submission row with fresh qualification.
+	 * @param array $input         Approval input.
+	 * @return array|\WP_Error
+	 */
+	private function approveListingSubmission( int $submission_id, array $submission, array $input ) {
+		$fresh       = (array) ( $submission['fresh_qualification'] ?? array() );
+		$source_url  = (string) $submission['canonical_url'];
+		$source_name = $this->resolveListingSourceName( $submission, $input );
+
+		$interval = isset( $input['schedule_interval'] ) ? sanitize_key( (string) $input['schedule_interval'] ) : self::LISTINGS_DEFAULT_INTERVAL;
+		if ( ! in_array( $interval, self::ALLOWED_INTERVALS, true ) ) {
+			$interval = self::LISTINGS_DEFAULT_INTERVAL;
+		}
+
+		$pipeline_id = $this->resolveSharedImportPipeline( self::LISTINGS_PIPELINE_NAME, static fn(): string => self::LISTINGS_SYSTEM_PROMPT );
+		if ( $pipeline_id instanceof \WP_Error ) {
+			return $pipeline_id;
+		}
+
+		$existing_flow_id = $this->findPipelineFlowForSourceUrl( $pipeline_id, $source_url );
+		if ( $existing_flow_id instanceof \WP_Error ) {
+			return $existing_flow_id;
+		}
+		if ( $existing_flow_id <= 0 && ! empty( $fresh['existing_coverage']['covered'] ) ) {
+			return new \WP_Error(
+				'source_already_covered',
+				__( 'This listings source is already covered by a flow outside the Regional Listings Import pipeline.', 'extrachill-events' ),
+				array(
+					'status'            => 409,
+					'existing_coverage' => $fresh['existing_coverage'],
+				)
+			);
+		}
+
+		$linked_existing = $existing_flow_id > 0;
+		$flow_id         = $existing_flow_id;
+		if ( ! $linked_existing ) {
+			$flow_id = $this->createListingFlow( $pipeline_id, $source_url, $source_name, $interval );
+			if ( $flow_id instanceof \WP_Error ) {
+				return $flow_id;
+			}
+		}
+
+		ArtistUrlSubmissionsTable::update(
+			$submission_id,
+			array_merge(
+				$this->freshQualificationPersistence( $submission ),
+				array(
+					'status'          => ArtistUrlSubmissionsTable::STATUS_APPROVED,
+					'pipeline_id'     => $pipeline_id,
+					'flow_id'         => $flow_id,
+					'source_kind'     => 'listing',
+					'entity_taxonomy' => '',
+					'entity_term_id'  => null,
+					'entity_name'     => $source_name,
+					'reviewed_at'     => current_time( 'mysql', true ),
+					'reviewed_by'     => get_current_user_id(),
+				)
+			)
+		);
+
+		delete_transient( 'user_points_' . (int) $submission['user_id'] );
+		$this->notifySubmitter(
+			$submission,
+			'event_source_approved',
+			/* translators: %s: listings source name. */
+			sprintf( __( 'Your event source for %s was approved', 'extrachill-events' ), $source_name ),
+			home_url(),
+			$flow_id
+		);
+
+		// A linked flow is already scheduled; only kick off a new one.
+		if ( ! $linked_existing ) {
+			$run_ability = wp_get_ability( 'datamachine/run-flow' );
+			if ( $run_ability ) {
+				$run_ability->execute( array( 'flow_id' => $flow_id ) );
+			}
+		}
+
+		return array(
+			'success'              => true,
+			'pipeline_id'          => $pipeline_id,
+			'flow_id'              => $flow_id,
+			'source_kind'          => 'listing',
+			'linked_existing_flow' => $linked_existing,
+		);
+	}
+
+	/** Moderator-supplied name, then qualification branding, then the host. */
+	private function resolveListingSourceName( array $submission, array $input ): string {
+		$fresh      = (array) ( $submission['fresh_qualification'] ?? array() );
+		$candidates = array(
+			$input['entity_name'] ?? '',
+			$fresh['recommended_binding']['name'] ?? '',
+			$submission['entity_name'] ?? '',
+		);
+		foreach ( $candidates as $candidate ) {
+			$name = sanitize_text_field( (string) $candidate );
+			if ( '' !== trim( $name ) ) {
+				return trim( $name );
+			}
+		}
+		$host = preg_replace( '/^www\./i', '', (string) wp_parse_url( (string) $submission['canonical_url'], PHP_URL_HOST ) );
+		return '' !== $host ? $host : __( 'Listings source', 'extrachill-events' );
+	}
+
+	/**
+	 * Find a flow on a pipeline whose scraper already reads this source URL,
+	 * compared by canonical URL identity.
+	 *
+	 * @param int    $pipeline_id Pipeline ID.
+	 * @param string $source_url  Source URL.
+	 * @return int|\WP_Error Flow ID, 0 when none, or WP_Error.
+	 */
+	private function findPipelineFlowForSourceUrl( int $pipeline_id, string $source_url ) {
+		$configuration = $this->getPipelineConfiguration( array( 'pipeline_id' => $pipeline_id ) );
+		if ( $configuration instanceof \WP_Error ) {
+			return $configuration;
+		}
+		$identity = ArtistUrlSubmissionsTable::normalize_url( $source_url );
+		if ( '' === $identity ) {
+			return 0;
+		}
+		foreach ( (array) ( $configuration['flows'] ?? array() ) as $flow ) {
+			foreach ( (array) ( $flow['steps'] ?? array() ) as $step ) {
+				$handler_url = (string) ( $step['handler_configs'][ self::SCRAPER_HANDLER_SLUG ]['source_url'] ?? '' );
+				if ( '' !== $handler_url && ArtistUrlSubmissionsTable::normalize_url( $handler_url ) === $identity ) {
+					return (int) ( $flow['flow_id'] ?? 0 );
+				}
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Create and configure a listings flow on the shared listings pipeline.
+	 *
+	 * @return int|\WP_Error Flow ID or WP_Error.
+	 */
+	private function createListingFlow( int $pipeline_id, string $source_url, string $source_name, string $interval ) {
+		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
+		if ( ! $flow_ability ) {
+			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		$import_handler_config = array(
+			'source_url'       => $source_url,
+			'search'           => '',
+			'exclude_keywords' => '',
+		);
+		$upsert_handler_config = array(
+			'post_status'                 => 'publish',
+			'include_images'              => false,
+			'post_author'                 => self::DEFAULT_POST_AUTHOR,
+			'taxonomy_location_selection' => SelectionMode::AI_DECIDES,
+			'taxonomy_artist_selection'   => SelectionMode::AI_DECIDES,
+			'taxonomy_festival_selection' => SelectionMode::AI_DECIDES,
+			'taxonomy_genre_selection'    => SelectionMode::SKIP,
+			'taxonomy_promoter_selection' => SelectionMode::SKIP,
+		);
+		$ai_message            = sprintf(
+			/* translators: %s: listings source name */
+			__( 'Process this event from %s, a regional listings source covering many venues. No venue or city is pre-selected: identify the venue, city, performing artist(s), and festival (if any) from the event data.', 'extrachill-events' ),
+			$source_name
+		);
+
+		$flow_input = array(
+			'pipeline_id'       => $pipeline_id,
+			'flow_name'         => $source_name . ' — Listings',
+			'scheduling_config' => array( 'interval' => $interval ),
+			'step_configs'      => array(
+				'event_import' => array(
+					'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+					'handler_config' => $import_handler_config,
+				),
+				'upsert'       => array(
+					'handler_slug'   => 'upsert_event',
+					'handler_config' => $upsert_handler_config,
+				),
+				'ai'           => array(
+					'user_message' => $ai_message,
+				),
+			),
+		);
+
+		$flow_agent_id = $this->resolveSystemAgentContext()['agent_id'] ?? null;
+		if ( $flow_agent_id > 0 ) {
+			$flow_input['agent_id'] = $flow_agent_id;
+		}
+
+		$flow_result = $flow_ability->execute( $flow_input );
+		if ( is_wp_error( $flow_result ) ) {
+			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
+		}
+		if ( empty( $flow_result['success'] ) || empty( $flow_result['flow_id'] ) ) {
+			$err = $flow_result['error'] ?? 'Unknown error';
+			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $err, array( 'status' => 500 ) );
+		}
+
+		$flow_id    = (int) $flow_result['flow_id'];
+		$configured = $this->configureFlowSteps( $pipeline_id, $flow_id, $import_handler_config, $upsert_handler_config, $ai_message );
+		if ( $configured instanceof \WP_Error ) {
+			return $configured;
+		}
+
+		return $flow_id;
 	}
 
 	/** Approve a venue source through the existing city/venue flow owner. */
@@ -2169,9 +2476,23 @@ class ArtistUrlImportAbilities {
 	 * @return int|\WP_Error Pipeline ID, or WP_Error on creation failure.
 	 */
 	private function resolveSharedArtistImportPipeline() {
+		return $this->resolveSharedImportPipeline( self::SHARED_PIPELINE_NAME, fn(): string => $this->artistPipelineSystemPrompt() );
+	}
+
+	/**
+	 * Find (by exact name through Data Machine's public configuration
+	 * contract) or create a shared event_import → ai → upsert pipeline, and
+	 * give a newly created pipeline its source-agnostic AI system prompt once.
+	 * Existing pipelines keep whatever prompt operators have set.
+	 *
+	 * @param string   $pipeline_name Stable shared pipeline name.
+	 * @param callable $system_prompt Builds the AI system prompt; only called on creation.
+	 * @return int|\WP_Error Pipeline ID, or WP_Error on failure.
+	 */
+	private function resolveSharedImportPipeline( string $pipeline_name, callable $system_prompt ) {
 		$system_context = $this->resolveSystemAgentContext();
 		$agent_id       = $system_context['agent_id'] ?? null;
-		$configuration  = $this->getPipelineConfiguration( array( 'pipeline_name' => self::SHARED_PIPELINE_NAME ) );
+		$configuration  = $this->getPipelineConfiguration( array( 'pipeline_name' => $pipeline_name ) );
 
 		if ( ! $configuration instanceof \WP_Error ) {
 			$pipeline_id = (int) ( $configuration['pipeline']['pipeline_id'] ?? 0 );
@@ -2192,7 +2513,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		$pipeline_input = array(
-			'pipeline_name' => self::SHARED_PIPELINE_NAME,
+			'pipeline_name' => $pipeline_name,
 			'steps'         => array(
 				array(
 					'step_type' => 'event_import',
@@ -2216,7 +2537,7 @@ class ArtistUrlImportAbilities {
 				'datamachine_log',
 				'warning',
 				'ArtistUrlImportAbilities: could not resolve system agent for shared pipeline',
-				array( 'pipeline_name' => self::SHARED_PIPELINE_NAME )
+				array( 'pipeline_name' => $pipeline_name )
 			);
 		}
 
@@ -2224,13 +2545,13 @@ class ArtistUrlImportAbilities {
 
 		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
 			$err = $pipeline_result['error'] ?? 'Unknown error';
-			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared Artist Tour Import pipeline: ' . $err, array( 'status' => 500 ) );
+			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared ' . $pipeline_name . ' pipeline: ' . $err, array( 'status' => 500 ) );
 		}
 
 		$pipeline_id = (int) $pipeline_result['pipeline_id'];
 
-		// Set the artist-agnostic AI system prompt ONCE at creation.
-		$configured = $this->configureSharedPipelineAiStep( $pipeline_id );
+		// Set the source-agnostic AI system prompt ONCE at creation.
+		$configured = $this->configureSharedPipelineAiStep( $pipeline_id, (string) $system_prompt() );
 		if ( $configured instanceof \WP_Error ) {
 			return $configured;
 		}
@@ -2263,25 +2584,15 @@ class ArtistUrlImportAbilities {
 	 * Does not set a provider/model — those are resolved by AIStep from
 	 * agent_config and site settings at runtime.
 	 *
-	 * @param int $pipeline_id Pipeline ID.
+	 * @param int    $pipeline_id Pipeline ID.
+	 * @param string $prompt      AI system prompt.
 	 * @return array|\WP_Error
 	 */
-	private function configureSharedPipelineAiStep( int $pipeline_id ) {
+	private function configureSharedPipelineAiStep( int $pipeline_id, string $prompt ) {
 		$configuration = $this->getPipelineConfiguration( array( 'pipeline_id' => $pipeline_id ) );
 		if ( $configuration instanceof \WP_Error ) {
 			return $configuration;
 		}
-
-		/**
-		 * Filter the events feed name written into the AI step prompt.
-		 *
-		 * @param string $feed_name Default feed name (site name).
-		 */
-		$feed_name = (string) apply_filters( 'extrachill_events_artist_url_feed_name', get_bloginfo( 'name' ) );
-		$prompt    = sprintf(
-			'You process events from tour/events pages for the %s events feed. The artist for each flow is already pre-selected and named in the flow\'s user message — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
-			$feed_name
-		);
 
 		return $this->updateStepConfiguration(
 			array(
@@ -2291,6 +2602,20 @@ class ArtistUrlImportAbilities {
 				'expected_revision' => (string) ( $configuration['pipeline']['revision'] ?? '' ),
 				'configuration'     => array( 'system_prompt' => $prompt ),
 			)
+		);
+	}
+
+	/** Artist-agnostic system prompt for the shared Artist Tour Import pipeline. */
+	private function artistPipelineSystemPrompt(): string {
+		/**
+		 * Filter the events feed name written into the AI step prompt.
+		 *
+		 * @param string $feed_name Default feed name (site name).
+		 */
+		$feed_name = (string) apply_filters( 'extrachill_events_artist_url_feed_name', get_bloginfo( 'name' ) );
+		return sprintf(
+			'You process events from tour/events pages for the %s events feed. The artist for each flow is already pre-selected and named in the flow\'s user message — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
+			$feed_name
 		);
 	}
 
