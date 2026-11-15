@@ -50,7 +50,7 @@ class OnlineUsersProvider extends AbstractMetricProvider {
 	 * @return int|null Online-user count, or null if the community blog is unavailable.
 	 */
 	public function value() {
-		$blog_id = $this->resolve_blog_id( 'community' );
+		$blog_id = ec_get_blog_id( 'community' );
 		if ( null === $blog_id ) {
 			return null;
 		}

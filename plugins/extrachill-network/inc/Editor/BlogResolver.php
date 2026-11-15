@@ -22,7 +22,7 @@ class BlogResolver {
 	 *
 	 * Returns the explicit `blog_id` from input when present, otherwise falls
 	 * back to the current blog. Callers can use the returned ID to decide
-	 * whether they need to switch_to_blog().
+	 * whether they need ec_with_blog().
 	 *
 	 * @param array    $input   Ability input.
 	 * @param int|null $fallback Optional default blog_id when input has none.
@@ -42,31 +42,5 @@ class BlogResolver {
 		}
 
 		return (int) get_current_blog_id();
-	}
-
-	/**
-	 * Run a callable inside a target blog context, restoring the prior blog
-	 * even when the callable throws.
-	 *
-	 * Skip the switch when the target matches the current blog so single-site
-	 * paths stay zero-overhead. Matches the pattern used by
-	 * NetworkMediaAbilities and the existing media upload routes.
-	 *
-	 * @template T
-	 * @param int           $blog_id Target blog ID.
-	 * @param callable(): T $callback Callable executed inside the target blog.
-	 * @return T Whatever the callable returns.
-	 */
-	public static function withBlog( int $blog_id, callable $callback ) {
-		if ( 0 >= $blog_id || (int) get_current_blog_id() === $blog_id ) {
-			return $callback();
-		}
-
-		switch_to_blog( $blog_id );
-		try {
-			return $callback();
-		} finally {
-			restore_current_blog();
-		}
 	}
 }

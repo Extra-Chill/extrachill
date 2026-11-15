@@ -87,6 +87,37 @@ if ( ! function_exists( 'ec_get_blog_id' ) ) {
 }
 
 /**
+ * Run a callback inside a target blog context, restoring the caller's blog
+ * even when the callback throws.
+ *
+ * The switch is skipped when the target is already the current blog, when the
+ * target is not a positive ID, or when multisite blog switching is
+ * unavailable, so same-site and single-site paths stay zero-overhead.
+ *
+ * Link Page storage has its own specialised wrapper,
+ * ec_with_link_page_storage_blog(), which restores the exact switch stack.
+ *
+ * @template T
+ * @param int           $blog_id  Target blog ID.
+ * @param callable(): T $callback Callable executed inside the target blog.
+ * @return T Whatever the callback returns.
+ */
+if ( ! function_exists( 'ec_with_blog' ) ) {
+	function ec_with_blog( int $blog_id, callable $callback ) {
+		if ( 0 >= $blog_id || ! function_exists( 'switch_to_blog' ) || (int) get_current_blog_id() === $blog_id ) {
+			return $callback();
+		}
+
+		switch_to_blog( $blog_id );
+		try {
+			return $callback();
+		} finally {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
  * Map of domains to blog IDs for routing.
  * Includes the dedicated Link Pages site at extrachill.link.
  *
