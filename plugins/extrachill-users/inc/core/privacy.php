@@ -45,6 +45,7 @@ function extrachill_users_privacy_meta_keys() {
 		'_user_profile_dynamic_links',
 		'custom_avatar',
 		'custom_avatar_id',
+		'ec_avatar_urls',
 		'extrachill_total_points',
 		'extrachill_team',
 		'extrachill_team_manual_override',

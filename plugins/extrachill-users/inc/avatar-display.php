@@ -6,9 +6,11 @@
  * before Gravatar fallback. Uses custom_avatar_id user meta (WordPress
  * attachment ID stored on the community subsite).
  *
- * Performance: resolves avatar data once per user per request via static cache,
- * minimizing switch_to_blog() calls. Serves size-appropriate images and includes
- * loading="lazy", decoding="async", and srcset attributes.
+ * Performance: reads avatar URLs from the global `ec_avatar_urls` user meta
+ * snapshot (see avatar-snapshot.php), so rendering needs no switch_to_blog()
+ * once the snapshot exists. Resolves once per user per request via static
+ * cache. Serves size-appropriate images and includes loading="lazy",
+ * decoding="async", and srcset attributes.
  *
  * @package ExtraChill\Users
  */
@@ -68,60 +70,81 @@ function extrachill_avatar_image_size( $size ) {
 }
 
 /**
- * Resolve avatar attachment data for a user, with per-request static cache.
+ * Resolve a user's avatar URL snapshot, with per-request static cache.
  *
- * Returns cached attachment ID or false. Only calls switch_to_blog() on the
- * first lookup for each user within a single PHP request.
+ * Reads the global `ec_avatar_urls` snapshot first (no blog switch). On a
+ * miss or a stale snapshot it falls back to resolving on the community blog
+ * and lazily writes the snapshot, so later requests skip the switch.
+ *
+ * @param int $user_id WordPress user ID.
+ * @return array{attachment_id:int,urls:array<string,string>}|null Snapshot, or null when no avatar is assigned.
+ */
+function extrachill_get_avatar_snapshot_cached( $user_id ) {
+	static $cache = array();
+
+	$user_id = (int) $user_id;
+	if ( array_key_exists( $user_id, $cache ) ) {
+		return $cache[ $user_id ];
+	}
+
+	if ( extrachill_users_get_assigned_avatar_id( $user_id ) <= 0 ) {
+		$cache[ $user_id ] = null;
+		return null;
+	}
+
+	$snapshot = extrachill_users_get_avatar_snapshot( $user_id );
+	if ( null === $snapshot ) {
+		$snapshot = extrachill_users_refresh_avatar_snapshot( $user_id );
+	}
+
+	$cache[ $user_id ] = $snapshot;
+	return $snapshot;
+}
+
+/**
+ * Resolve the avatar attachment ID for a user.
+ *
+ * Returns the attachment only when it resolved to a usable image.
  *
  * @param int $user_id WordPress user ID.
  * @return int|false Attachment ID on the community blog, or false.
  */
 function extrachill_get_avatar_attachment_id( $user_id ) {
-	static $cache = array();
+	$snapshot = extrachill_get_avatar_snapshot_cached( $user_id );
 
-	if ( isset( $cache[ $user_id ] ) ) {
-		return $cache[ $user_id ];
-	}
-
-	$community_blog_id = ec_get_blog_id( 'community' );
-	if ( ! $community_blog_id || ! function_exists( 'switch_to_blog' ) ) {
-		$cache[ $user_id ] = false;
+	if ( null === $snapshot || empty( $snapshot['urls'] ) ) {
 		return false;
 	}
 
-	switch_to_blog( $community_blog_id );
-
-	try {
-		$custom_avatar_id = get_user_option( 'custom_avatar_id', $user_id );
-
-		if ( $custom_avatar_id && wp_attachment_is_image( $custom_avatar_id ) ) {
-			$cache[ $user_id ] = (int) $custom_avatar_id;
-		} else {
-			$cache[ $user_id ] = false;
-		}
-	} finally {
-		restore_current_blog();
-	}
-
-	return $cache[ $user_id ];
+	return $snapshot['attachment_id'];
 }
 
 /**
  * Get avatar image URL for a given attachment and size, with static cache.
  *
- * Caches resolved URLs keyed by attachment_id:wp_size to avoid repeated
- * switch_to_blog() calls for the same image at the same size.
+ * Uses the user's snapshot first when $user_id is given and the snapshot was
+ * built from $attachment_id. Otherwise falls back to resolving the URL on the
+ * community blog.
  *
  * @param int    $attachment_id Attachment ID on the community blog.
  * @param string $wp_size       WordPress image size name.
+ * @param int    $user_id       Optional. Owner of the avatar, to read the snapshot.
  * @return string|false Image URL or false.
  */
-function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
+function extrachill_get_avatar_url_cached( $attachment_id, $wp_size, $user_id = 0 ) {
 	static $url_cache = array();
 	$cache_key        = $attachment_id . ':' . $wp_size;
 
 	if ( isset( $url_cache[ $cache_key ] ) ) {
 		return $url_cache[ $cache_key ];
+	}
+
+	if ( $user_id ) {
+		$snapshot = extrachill_get_avatar_snapshot_cached( $user_id );
+		if ( null !== $snapshot && (int) $attachment_id === $snapshot['attachment_id'] && isset( $snapshot['urls'][ $wp_size ] ) ) {
+			$url_cache[ $cache_key ] = $snapshot['urls'][ $wp_size ];
+			return $url_cache[ $cache_key ];
+		}
 	}
 
 	$community_blog_id = ec_get_blog_id( 'community' );
@@ -165,7 +188,7 @@ function extrachill_custom_avatar( $avatar, $id_or_email, $args ) {
 
 	$size    = isset( $args['size'] ) ? (int) $args['size'] : 96;
 	$wp_size = extrachill_avatar_image_size( $size );
-	$src     = extrachill_get_avatar_url_cached( $attachment_id, $wp_size );
+	$src     = extrachill_get_avatar_url_cached( $attachment_id, $wp_size, $user->ID );
 
 	if ( ! $src ) {
 		return null;
@@ -188,7 +211,7 @@ function extrachill_custom_avatar( $avatar, $id_or_email, $args ) {
 	if ( $size <= 200 ) {
 		$wp_size_2x = extrachill_avatar_image_size( $size * 2 );
 		if ( $wp_size_2x !== $wp_size ) {
-			$src_2x = extrachill_get_avatar_url_cached( $attachment_id, $wp_size_2x );
+			$src_2x = extrachill_get_avatar_url_cached( $attachment_id, $wp_size_2x, $user->ID );
 			if ( $src_2x && $src_2x !== $src ) {
 				$srcset_attr = sprintf( ' srcset="%s 1x, %s 2x"', esc_url( $src ), esc_url( $src_2x ) );
 			}
@@ -235,7 +258,7 @@ function extrachill_custom_avatar_data( $args, $id_or_email ) {
 
 	$size    = isset( $args['size'] ) ? (int) $args['size'] : 96;
 	$wp_size = extrachill_avatar_image_size( $size );
-	$url     = extrachill_get_avatar_url_cached( $attachment_id, $wp_size );
+	$url     = extrachill_get_avatar_url_cached( $attachment_id, $wp_size, $user->ID );
 
 	if ( $url ) {
 		$args['url']          = $url;
@@ -272,6 +295,7 @@ function generate_custom_avatar_ids() {
 
 		if ( $attachment_id && wp_attachment_is_image( $attachment_id ) ) {
 			add_user_meta( $user->ID, 'custom_avatar_id', $attachment_id, true );
+			extrachill_users_refresh_avatar_snapshot( $user->ID );
 			printf( "User %d: Added custom avatar ID.\n", (int) $user->ID );
 		} else {
 			printf( "User %d: Failed to add custom avatar ID.\n", (int) $user->ID );

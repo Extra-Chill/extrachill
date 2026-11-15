@@ -166,6 +166,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/apple-service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/jwt-rs256.php';
 
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-snapshot.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu-items.php';
