@@ -189,6 +189,7 @@
   ],
   "hooks": {
     "post:deploy:project": [
+      "wp cron event run extrachill_docs_publish_plugin_docs --url=https://docs.extrachill.com --path={{base_path}}",
       "wp extrachill-cache purge --all --path={{base_path}}"
     ]
   }
