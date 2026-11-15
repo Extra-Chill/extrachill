@@ -11,7 +11,7 @@ use ExtraChillEvents\Cli\RequalifyFlowCommand;
 use ExtraChillEvents\Core\QualifyVerdict;
 use PHPUnit\Framework\TestCase;
 
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/FlowHelpers.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowHelpers.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Cli/RequalifyFlowCommand.php';
 
 class RequalifyFlowCommandTest extends TestCase {

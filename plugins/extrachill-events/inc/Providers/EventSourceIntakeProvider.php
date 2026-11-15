@@ -1,6 +1,6 @@
 <?php
 /**
- * Artist URL Import dependency registration.
+ * Event-source intake dependency registration.
  *
  * @package ExtraChillEvents\Providers
  */
@@ -10,12 +10,12 @@ namespace ExtraChillEvents\Providers;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Loads the Artist URL Import table once.
+ * Loads the event-source intake table once.
  *
  * The `/event-source/*` REST routes are extrachill-api adapters over the
  * event-source abilities.
  */
-final class ArtistUrlImportProvider {
+final class EventSourceIntakeProvider {
 
 	/**
 	 * Whether dependencies have loaded.
@@ -25,7 +25,7 @@ final class ArtistUrlImportProvider {
 	private static $registered = false;
 
 	/**
-	 * Register the Artist URL Import dependencies.
+	 * Register the event-source intake dependencies.
 	 *
 	 * @return bool Whether the provider is registered.
 	 */

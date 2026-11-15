@@ -38,7 +38,7 @@ final class AdministrationProvider {
 
 	/** Register the Artist URL Import moderation queue before its parent menu. */
 	public static function register_artist_url_admin(): void {
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/ArtistUrlSubmissionsAdmin.php';
-		new \ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin();
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/EventSourceSubmissionsAdmin.php';
+		new \ExtraChillEvents\Admin\EventSourceSubmissionsAdmin();
 	}
 }

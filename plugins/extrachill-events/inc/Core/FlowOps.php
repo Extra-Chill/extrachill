@@ -2,56 +2,104 @@
 /**
  * Qualify v2 — static flow operations.
  *
- * Called by both CLI commands (via the FlowHelpers trait) and the recheck
- * handler (which has no `$this` context). Keeping the read/write logic in
- * one place keeps idempotency promises predictable: any caller that
- * touches scheduling_config goes through the same code path.
+ * Called by CLI commands (via the FlowHelpers trait) and by the recheck
+ * handler at runtime. Keeping the read/write logic in one place keeps
+ * idempotency promises predictable: any caller that touches a flow's
+ * scheduling goes through the same code path.
  *
- * @package ExtraChillEvents\Cli
+ * All Data Machine access goes through {@see DataMachineFlowGateway}:
+ * interval changes use `datamachine/update-flow` (which also syncs or
+ * removes the flow's schedule), qualify bookkeeping keys use
+ * `Flows::update_flow_scheduling_metadata()`, source URL repairs use
+ * `datamachine/update-flow-step`, and immediate runs use
+ * `datamachine/run-flow`.
+ *
+ * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Cli;
-
-use ExtraChillEvents\Core\QualifyVerdict;
+namespace ExtraChillEvents\Core;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/DataMachineFlowGateway.php';
+
 /**
- * Static flow operations called by both CLI commands (via the FlowHelpers
- * trait) and the recheck handler (which has no `$this` context).
- *
- * Keeping the read/write logic in one place keeps idempotency promises
- * predictable: any caller that touches scheduling_config goes through the
- * same code path.
+ * Static flow operations shared by CLI commands and the recheck handler.
  *
  * @internal
  */
 class FlowOps {
 
 	/**
-	 * Read a flow row.
+	 * Qualify bookkeeping keys cleared when a flow resumes.
+	 */
+	private const PAUSE_KEYS = array( 'prior_interval', 'paused_reason', 'paused_at', 'recheck_action_id', 'recheck_scheduled_for', 'stale_flag' );
+
+	/**
+	 * Gateway override (tests only).
+	 *
+	 * @var DataMachineFlowGateway|null
+	 */
+	private static $gateway = null;
+
+	/**
+	 * Swap the Data Machine gateway. Pass null to restore the default.
+	 *
+	 * @param DataMachineFlowGateway|null $gateway Gateway instance.
+	 */
+	public static function set_gateway( ?DataMachineFlowGateway $gateway ): void {
+		self::$gateway = $gateway;
+	}
+
+	/**
+	 * Active Data Machine gateway.
+	 *
+	 * @return DataMachineFlowGateway
+	 */
+	private static function gateway(): DataMachineFlowGateway {
+		if ( null === self::$gateway ) {
+			self::$gateway = new DataMachineFlowGateway();
+		}
+		return self::$gateway;
+	}
+
+	/**
+	 * Read a flow.
 	 *
 	 * @param int $flow_id Flow ID.
-	 * @return array|null Associative row with decoded scheduling_config.
+	 * @return array|null Flow with decoded flow_config and scheduling_config.
 	 */
 	public static function fetch_flow_row( int $flow_id ): ?array {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
+		return self::gateway()->get_flow( $flow_id );
+	}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, flow_name, scheduling_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
-		);
-		if ( ! $row ) {
-			return null;
+	/**
+	 * Apply a scheduling change: set/remove qualify keys and, when the
+	 * interval changes (or $sync is true), re-sync the schedule through
+	 * Data Machine.
+	 *
+	 * @param int         $flow_id  Flow ID.
+	 * @param array       $current  Current scheduling config.
+	 * @param array       $set      Keys to set.
+	 * @param array       $remove   Keys to remove.
+	 * @param string|null $interval New interval, or null to keep it.
+	 * @return bool True on success.
+	 */
+	private static function apply_scheduling( int $flow_id, array $current, array $set, array $remove, ?string $interval = null ): bool {
+		if ( null !== $interval ) {
+			$desired = array_diff_key( array_merge( $current, $set ), array_flip( $remove ) );
+
+			$desired['interval'] = $interval;
+			if ( ! self::gateway()->update_scheduling( $flow_id, $desired ) ) {
+				return false;
+			}
 		}
 
-		$scheduling               = json_decode( (string) ( $row['scheduling_config'] ?? '' ), true );
-		$row['scheduling_config'] = is_array( $scheduling ) ? $scheduling : array();
-		return $row;
+		// Data Machine skips an unchanged schedule, so the qualify keys are
+		// always written as metadata too; this is a no-op when already set.
+		return self::gateway()->patch_scheduling_metadata( $flow_id, $set, $remove );
 	}
 
 	/**
@@ -59,29 +107,31 @@ class FlowOps {
 	 * stashing the verdict in paused_reason, and (optionally) queuing the
 	 * next recheck Action Scheduler job.
 	 *
+	 * The manual interval is applied through Data Machine, which also
+	 * removes the flow's scheduled runs.
+	 *
 	 * @param int    $flow_id    Flow ID.
 	 * @param string $verdict    Verdict that triggered the pause.
 	 * @param string $source_url Source URL — required for recheck scheduling.
 	 * @return bool True on success.
 	 */
 	public static function pause_flow_by_verdict( int $flow_id, string $verdict, string $source_url = '' ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
 		$row = self::fetch_flow_row( $flow_id );
 		if ( ! $row ) {
 			return false;
 		}
 
-		$scheduling = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
+		$scheduling = $row['scheduling_config'];
+		$set        = array(
+			'paused_reason' => $verdict,
+			'paused_at'     => current_time( 'mysql' ),
+		);
+		$remove     = array( 'recheck_action_id', 'recheck_scheduled_for', 'stale_flag' );
 
 		$prior_interval = (string) ( $scheduling['interval'] ?? '' );
 		if ( 'manual' !== $prior_interval ) {
-			$scheduling['prior_interval'] = $prior_interval;
+			$set['prior_interval'] = $prior_interval;
 		}
-		$scheduling['interval']      = 'manual';
-		$scheduling['paused_reason'] = $verdict;
-		$scheduling['paused_at']     = current_time( 'mysql' );
 
 		// Cancel any in-flight recheck before scheduling a new one so a
 		// repeat pause never leaves a stale action behind.
@@ -89,9 +139,6 @@ class FlowOps {
 		if ( $prior_action_id > 0 && function_exists( 'as_unschedule_action' ) ) {
 			as_unschedule_action( 'dme/qualify_recheck', null, 'dme_qualify' );
 		}
-		unset( $scheduling['recheck_action_id'] );
-		unset( $scheduling['recheck_scheduled_for'] );
-		unset( $scheduling['stale_flag'] );
 
 		// Schedule the next recheck when enabled and the verdict has a
 		// non-null cadence. Source URL is required — without it the
@@ -114,26 +161,14 @@ class FlowOps {
 				'dme_qualify'
 			);
 			if ( $action_id ) {
-				$scheduling['recheck_action_id']     = (int) $action_id;
-				$scheduling['recheck_scheduled_for'] = gmdate( 'Y-m-d H:i:s', $ts );
+				$set['recheck_action_id']     = (int) $action_id;
+				$set['recheck_scheduled_for'] = gmdate( 'Y-m-d H:i:s', $ts );
+				$remove                       = array( 'stale_flag' );
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
-			array( 'flow_id' => $flow_id ),
-			array( '%s' ),
-			array( '%d' )
-		);
-
-		// Unschedule Action Scheduler hooks so paused flows do not fire.
-		if ( $ok && function_exists( 'as_unschedule_all_actions' ) ) {
-			as_unschedule_all_actions( 'datamachine_run_flow_now', array( $flow_id ), 'data-machine' );
-		}
-
-		return false !== $ok;
+		// Always sync: re-pausing a manual flow still clears stale schedules.
+		return self::apply_scheduling( $flow_id, $scheduling, $set, $remove, 'manual' );
 	}
 
 	/**
@@ -145,27 +180,13 @@ class FlowOps {
 	 * @return bool True on success.
 	 */
 	public static function update_paused_reason( int $flow_id, string $verdict ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		$row = self::fetch_flow_row( $flow_id );
-		if ( ! $row ) {
-			return false;
-		}
-		$scheduling                  = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
-		$scheduling['paused_reason'] = $verdict;
-		$scheduling['paused_at']     = current_time( 'mysql' );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
-			array( 'flow_id' => $flow_id ),
-			array( '%s' ),
-			array( '%d' )
+		return self::gateway()->patch_scheduling_metadata(
+			$flow_id,
+			array(
+				'paused_reason' => $verdict,
+				'paused_at'     => current_time( 'mysql' ),
+			)
 		);
-
-		return false !== $ok;
 	}
 
 	/**
@@ -180,27 +201,13 @@ class FlowOps {
 	 * @return bool True on success.
 	 */
 	public static function set_recheck_metadata( int $flow_id, int $action_id, int $next_run_ts ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		$row = self::fetch_flow_row( $flow_id );
-		if ( ! $row ) {
-			return false;
-		}
-		$scheduling                          = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
-		$scheduling['recheck_action_id']     = $action_id;
-		$scheduling['recheck_scheduled_for'] = gmdate( 'Y-m-d H:i:s', $next_run_ts );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
-			array( 'flow_id' => $flow_id ),
-			array( '%s' ),
-			array( '%d' )
+		return self::gateway()->patch_scheduling_metadata(
+			$flow_id,
+			array(
+				'recheck_action_id'     => $action_id,
+				'recheck_scheduled_for' => gmdate( 'Y-m-d H:i:s', $next_run_ts ),
+			)
 		);
-
-		return false !== $ok;
 	}
 
 	/**
@@ -215,32 +222,18 @@ class FlowOps {
 	 * @return bool True on success.
 	 */
 	public static function flag_stale_paused( int $flow_id, string $verdict, int $consecutive_failures ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		$row = self::fetch_flow_row( $flow_id );
-		if ( ! $row ) {
-			return false;
-		}
-		$scheduling = is_array( $row['scheduling_config'] ?? null ) ? $row['scheduling_config'] : array();
-
-		$scheduling['paused_reason'] = $verdict;
-		$scheduling['stale_flag']    = array(
-			'flagged_at'           => current_time( 'mysql' ),
-			'consecutive_failures' => $consecutive_failures,
-			'last_verdict'         => $verdict,
-		);
 		// Cancel any further recheck — operator review required.
-		unset( $scheduling['recheck_action_id'] );
-		unset( $scheduling['recheck_scheduled_for'] );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			array( 'scheduling_config' => wp_json_encode( $scheduling ) ),
-			array( 'flow_id' => $flow_id ),
-			array( '%s' ),
-			array( '%d' )
+		$ok = self::gateway()->patch_scheduling_metadata(
+			$flow_id,
+			array(
+				'paused_reason' => $verdict,
+				'stale_flag'    => array(
+					'flagged_at'           => current_time( 'mysql' ),
+					'consecutive_failures' => $consecutive_failures,
+					'last_verdict'         => $verdict,
+				),
+			),
+			array( 'recheck_action_id', 'recheck_scheduled_for' )
 		);
 
 		do_action(
@@ -254,7 +247,7 @@ class FlowOps {
 			)
 		);
 
-		return false !== $ok;
+		return $ok;
 	}
 
 	/**
@@ -266,11 +259,11 @@ class FlowOps {
 	 *  - Clear paused_reason / paused_at / prior_interval / recheck_*
 	 *    fields and any stale_flag.
 	 *  - If qualify discovered an `events_url` that differs from the
-	 *    current flow source_url AND is on the same host, walk
-	 *    flow_config and patch every universal_web_scraper step whose
-	 *    source_url matches the OLD value. Cross-host changes are
-	 *    skipped (operator review required for venue rebrands).
-	 *  - Queue an immediate run via datamachine_run_flow_now so the
+	 *    current flow source_url AND is on the same host, patch every
+	 *    universal_web_scraper step whose source_url matches the OLD
+	 *    value. Cross-host changes are skipped (operator review required
+	 *    for venue rebrands).
+	 *  - Start an immediate run via `datamachine/run-flow` so the
 	 *    operator sees a real run on the next tick.
 	 *
 	 * Safe by design: only callers with a positive qualify result should
@@ -283,66 +276,34 @@ class FlowOps {
 	 * @return bool True on success.
 	 */
 	public static function resume_flow_from_qualified( int $flow_id, array $result ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		// Re-read the row directly here because we also need flow_config
-		// for the events_url propagation path. fetch_flow_row() returns
-		// scheduling_config only, and we keep its narrow contract intact
-		// so the recheck handler's other callers remain unchanged.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$row = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_id, scheduling_config, flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
-		);
+		$row = self::fetch_flow_row( $flow_id );
 		if ( ! $row ) {
 			return false;
 		}
 
-		$scheduling = json_decode( (string) ( $row['scheduling_config'] ?? '' ), true );
-		$scheduling = is_array( $scheduling ) ? $scheduling : array();
-
-		$flow_config = json_decode( (string) ( $row['flow_config'] ?? '' ), true );
-		$flow_config = is_array( $flow_config ) ? $flow_config : array();
+		$scheduling  = $row['scheduling_config'];
+		$flow_config = $row['flow_config'];
 
 		$prior_interval = (string) ( $scheduling['prior_interval'] ?? '' );
 		if ( '' === $prior_interval || 'manual' === $prior_interval ) {
 			$prior_interval = 'daily';
 		}
 
-		$scheduling['interval'] = $prior_interval;
-		unset(
-			$scheduling['prior_interval'],
-			$scheduling['paused_reason'],
-			$scheduling['paused_at'],
-			$scheduling['recheck_action_id'],
-			$scheduling['recheck_scheduled_for'],
-			$scheduling['stale_flag']
-		);
-		$scheduling['resumed_at']         = current_time( 'mysql' );
-		$scheduling['resumed_by_qualify'] = true;
-
 		// Decide whether to propagate a discovered events_url onto the
 		// flow's source_url. Same-host only — cross-host changes are
 		// operator review by design.
-		$update_data    = array( 'scheduling_config' => wp_json_encode( $scheduling ) );
-		$update_formats = array( '%s' );
-
 		$events_url        = isset( $result['events_url'] ) ? (string) $result['events_url'] : '';
 		$current_source    = self::extract_source_url_from_flow_config( $flow_config );
 		$source_url_change = null;
 
 		if ( '' !== $events_url && '' !== $current_source && $events_url !== $current_source ) {
 			if ( self::same_host( $events_url, $current_source ) ) {
-				$patched = self::patch_source_url_in_flow_config( $flow_config, $current_source, $events_url );
-				if ( $patched['changed'] > 0 ) {
-					$flow_config                = $patched['config'];
-					$update_data['flow_config'] = wp_json_encode( $flow_config );
-					$update_formats[]           = '%s';
-					$source_url_change          = array(
+				$changed = self::patch_source_url( $flow_config, $current_source, $events_url );
+				if ( $changed > 0 ) {
+					$source_url_change = array(
 						'old'           => $current_source,
 						'new'           => $events_url,
-						'steps_patched' => $patched['changed'],
+						'steps_patched' => $changed,
 					);
 				}
 			} else {
@@ -365,19 +326,21 @@ class FlowOps {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$ok = $wpdb->update(
-			$table,
-			$update_data,
-			array( 'flow_id' => $flow_id ),
-			$update_formats,
-			array( '%d' )
+		$ok = self::apply_scheduling(
+			$flow_id,
+			$scheduling,
+			array(
+				'resumed_at'         => current_time( 'mysql' ),
+				'resumed_by_qualify' => true,
+			),
+			self::PAUSE_KEYS,
+			$prior_interval
 		);
 
-		// Queue an immediate run so the operator sees a real result on the
-		// next tick rather than waiting for the next scheduled fire.
-		if ( $ok && function_exists( 'as_enqueue_async_action' ) ) {
-			as_enqueue_async_action( 'datamachine_run_flow_now', array( $flow_id ), 'data-machine' );
+		// Start a run now so the operator sees a real result on the next
+		// tick rather than waiting for the next scheduled fire.
+		if ( $ok ) {
+			self::gateway()->run_flow( $flow_id );
 		}
 
 		if ( null !== $source_url_change ) {
@@ -413,14 +376,14 @@ class FlowOps {
 			)
 		);
 
-		return false !== $ok;
+		return $ok;
 	}
 
 	/**
 	 * Apply an explicitly confirmed, same-host source URL repair only.
 	 *
 	 * Unlike resume_flow_from_qualified(), this does not alter scheduling or
-	 * enqueue a run. The caller must separately obtain operator confirmation.
+	 * start a run. The caller must separately obtain operator confirmation.
 	 *
 	 * @param int    $flow_id      Flow ID.
 	 * @param string $current_url  Source URL observed during diagnosis.
@@ -432,45 +395,19 @@ class FlowOps {
 			return false;
 		}
 
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$encoded = $wpdb->get_var(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
-				"SELECT flow_config FROM {$table} WHERE flow_id = %d",
-				$flow_id
-			)
-		);
-		$flow_config = json_decode( (string) $encoded, true );
-		if ( ! is_array( $flow_config ) || self::extract_source_url_from_flow_config( $flow_config ) !== $current_url ) {
+		$row = self::fetch_flow_row( $flow_id );
+		if ( ! $row || self::extract_source_url_from_flow_config( $row['flow_config'] ) !== $current_url ) {
 			return false;
 		}
 
-		$patched = self::patch_source_url_in_flow_config( $flow_config, $current_url, $proposed_url );
-		if ( 0 === $patched['changed'] ) {
-			return false;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$updated = $wpdb->update(
-			$table,
-			array( 'flow_config' => wp_json_encode( $patched['config'] ) ),
-			array(
-				'flow_id'     => $flow_id,
-				'flow_config' => (string) $encoded,
-			),
-			array( '%s' ),
-			array( '%d', '%s' )
-		);
-
-		return is_int( $updated ) && $updated > 0;
+		return self::patch_source_url( $row['flow_config'], $current_url, $proposed_url ) > 0;
 	}
 
 	/**
 	 * Extract the universal_web_scraper source_url from a decoded
-	 * flow_config array. Mirrors the parsing in FlowHelpers::extract_web_scraper_meta
-	 * but kept local here so FlowOps does not depend on the trait.
+	 * flow_config array. Mirrors the parsing in
+	 * \ExtraChillEvents\Core\FlowHelpers::extract_web_scraper_meta() but kept
+	 * local here so runtime code does not depend on the trait.
 	 *
 	 * Returns the first non-empty source_url found on an event_import
 	 * step whose handler is universal_web_scraper. Handles both the
@@ -507,48 +444,41 @@ class FlowOps {
 	}
 
 	/**
-	 * Walk flow_config and replace every universal_web_scraper
-	 * source_url that matches $old with $new.
+	 * Point every universal_web_scraper step whose source_url matches
+	 * $old_url at $new_url, through Data Machine.
 	 *
-	 * Only patches steps whose CURRENT source_url equals $old —
+	 * Only patches steps whose CURRENT source_url equals $old_url —
 	 * operator-set or already-divergent values are left untouched.
 	 *
 	 * @param array  $flow_config Decoded flow_config.
 	 * @param string $old_url     Pre-change source URL to match.
 	 * @param string $new_url     Replacement URL.
-	 * @return array{config:array,changed:int}
+	 * @return int Number of steps updated.
 	 */
-	private static function patch_source_url_in_flow_config( array $flow_config, string $old_url, string $new_url ): array {
+	private static function patch_source_url( array $flow_config, string $old_url, string $new_url ): int {
 		$changed = 0;
 		foreach ( $flow_config as $step_key => $step ) {
-			if ( ! is_array( $step ) ) {
-				continue;
-			}
-			if ( ( $step['step_type'] ?? '' ) !== 'event_import' ) {
+			if ( ! is_array( $step ) || ( $step['step_type'] ?? '' ) !== 'event_import' ) {
 				continue;
 			}
 
-			// Newer shape: handler_slug + handler_config.
-			if ( isset( $step['handler_slug'] )
-				&& 'universal_web_scraper' === $step['handler_slug']
-				&& isset( $step['handler_config']['source_url'] )
-				&& (string) $step['handler_config']['source_url'] === $old_url ) {
-				$flow_config[ $step_key ]['handler_config']['source_url'] = $new_url;
-				++$changed;
+			// Newer shape: handler_slug + handler_config. Older shape:
+			// handler_configs{slug: config}.
+			$matches = ( 'universal_web_scraper' === ( $step['handler_slug'] ?? '' )
+					&& (string) ( $step['handler_config']['source_url'] ?? '' ) === $old_url )
+				|| ( isset( $step['handler_configs']['universal_web_scraper']['source_url'] )
+					&& (string) $step['handler_configs']['universal_web_scraper']['source_url'] === $old_url );
+			if ( ! $matches ) {
+				continue;
 			}
 
-			// Older shape: handler_configs{slug: config}.
-			if ( isset( $step['handler_configs']['universal_web_scraper']['source_url'] )
-				&& (string) $step['handler_configs']['universal_web_scraper']['source_url'] === $old_url ) {
-				$flow_config[ $step_key ]['handler_configs']['universal_web_scraper']['source_url'] = $new_url;
+			$flow_step_id = (string) ( $step['flow_step_id'] ?? $step_key );
+			if ( self::gateway()->update_step_source_url( $flow_step_id, $new_url ) ) {
 				++$changed;
 			}
 		}
 
-		return array(
-			'config'  => $flow_config,
-			'changed' => $changed,
-		);
+		return $changed;
 	}
 
 	/**

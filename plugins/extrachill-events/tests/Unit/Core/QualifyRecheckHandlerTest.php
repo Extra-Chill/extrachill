@@ -2,7 +2,8 @@
 /**
  * Tests for QualifyRecheckHandler.
  *
- * Runs the real FlowOps implementation against a focused database double and
+ * Runs the real FlowOps implementation against an in-memory Data Machine
+ * gateway and
  * a controlled qualification ability. Validates the handler's branching:
  *
  *  - qualified_structured → resume + no further schedule.
@@ -17,25 +18,24 @@
 
 namespace ExtraChillEvents\Tests\Unit\Core;
 
+use ExtraChillEvents\Core\FlowOps;
 use ExtraChillEvents\Core\QualifyRecheckHandler;
 use ExtraChillEvents\Core\QualifyVerdict;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Stubs/recheck-handler-runtime-stubs.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Cli/FlowOps.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowOps.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/QualifyRecheckHandler.php';
 
 class QualifyRecheckHandlerTest extends TestCase {
-	private $original_wpdb;
+	private FakeFlowGateway $gateway;
 	private $original_log_hooks;
 	private $schedule_callback;
-	private $enqueue_callback;
 	private $original_ability_resolver;
 	private bool $registered_test_category = false;
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->original_wpdb                  = $GLOBALS['wpdb'] ?? null;
 		$this->original_log_hooks             = $GLOBALS['wp_filter']['datamachine_log'] ?? null;
 		$this->original_ability_resolver       = $GLOBALS['ec_test_ability_resolver'] ?? null;
 		$GLOBALS['ec_test_ability_resolver']   = static function ( string $name ) {
@@ -53,7 +53,8 @@ class QualifyRecheckHandlerTest extends TestCase {
 		if ( function_exists( 'remove_all_actions' ) ) {
 			remove_all_actions( 'datamachine_log' );
 		}
-		$GLOBALS['wpdb']                     = new QualifyRecheckWpdb();
+		$this->gateway                       = new FakeFlowGateway();
+		FlowOps::set_gateway( $this->gateway );
 		$GLOBALS['ec_test_action_scheduler'] = array();
 		$GLOBALS['ec_test_ability_result']   = null;
 		$this->schedule_callback             = static function ( $pre, int $timestamp, string $hook, array $args, string $group ) {
@@ -61,8 +62,6 @@ class QualifyRecheckHandlerTest extends TestCase {
 			return 12345;
 		};
 		add_filter( 'pre_as_schedule_single_action', $this->schedule_callback, 10, 5 );
-		$this->enqueue_callback = static fn() => 1;
-		add_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10, 1 );
 		$this->register_ability();
 	}
 
@@ -74,13 +73,12 @@ class QualifyRecheckHandlerTest extends TestCase {
 			wp_unregister_ability_category( 'extrachill-events-tests' );
 		}
 		remove_filter( 'pre_as_schedule_single_action', $this->schedule_callback, 10 );
-		remove_filter( 'pre_as_enqueue_async_action', $this->enqueue_callback, 10 );
 		if ( null === $this->original_log_hooks ) {
 			unset( $GLOBALS['wp_filter']['datamachine_log'] );
 		} else {
 			$GLOBALS['wp_filter']['datamachine_log'] = $this->original_log_hooks;
 		}
-		$GLOBALS['wpdb'] = $this->original_wpdb;
+		FlowOps::set_gateway( null );
 		if ( null === $this->original_ability_resolver ) {
 			unset( $GLOBALS['ec_test_ability_resolver'] );
 		} else {
@@ -133,18 +131,12 @@ class QualifyRecheckHandlerTest extends TestCase {
 	}
 
 	private function seed_paused_flow( int $flow_id ): void {
-		$GLOBALS['wpdb']->seed_row(
+		$this->gateway->seed(
 			$flow_id,
+			array(),
 			array(
-				'flow_id'           => $flow_id,
-				'flow_name'         => 'Test flow',
-				'flow_config'       => '{}',
-				'scheduling_config' => wp_json_encode(
-					array(
-						'interval'      => 'manual',
-						'paused_reason' => QualifyVerdict::EXTRACTION_GAP,
-					)
-				),
+				'interval'      => 'manual',
+				'paused_reason' => QualifyVerdict::EXTRACTION_GAP,
 			)
 		);
 	}
@@ -165,7 +157,8 @@ class QualifyRecheckHandlerTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 'daily', $GLOBALS['wpdb']->scheduling_config( 42 )['interval'] );
+		$this->assertSame( 'daily', $this->gateway->flows[42]['scheduling_config']['interval'] );
+		$this->assertCount( 1, $this->gateway->calls_to( 'run_flow' ), 'Resume starts a run through Data Machine' );
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'], 'No reschedule on resume' );
 	}
 
@@ -207,16 +200,12 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$this->assertSame( QualifyVerdict::RESERVATION_ONLY, $GLOBALS['wpdb']->scheduling_config( 44 )['paused_reason'] );
+		$this->assertSame( QualifyVerdict::RESERVATION_ONLY, $this->gateway->flows[44]['scheduling_config']['paused_reason'] );
 	}
 
 	public function test_unpaused_flow_is_noop(): void {
 		// Flow is no longer paused — handler must short-circuit.
-		$GLOBALS['wpdb']->seed_row( 45, array(
-			'flow_id'           => 45,
-			'flow_name'         => 'Already unpaused',
-			'scheduling_config' => wp_json_encode( array( 'interval' => 'daily' ) ),
-		) );
+		$this->gateway->seed( 45, array(), array( 'interval' => 'daily' ), 'Already unpaused' );
 
 		QualifyRecheckHandler::handle(
 			array(
@@ -228,7 +217,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$this->assertEmpty( $GLOBALS['wpdb']->updates );
+		$this->assertEmpty( $this->gateway->writes() );
 	}
 
 	public function test_consecutive_failures_threshold_flags_stale(): void {
@@ -247,7 +236,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 6, $GLOBALS['wpdb']->scheduling_config( 46 )['stale_flag']['consecutive_failures'] );
+		$this->assertSame( 6, $this->gateway->flows[46]['scheduling_config']['stale_flag']['consecutive_failures'] );
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'], 'No reschedule after stale flag' );
 	}
 
@@ -263,7 +252,7 @@ class QualifyRecheckHandlerTest extends TestCase {
 		);
 
 		$this->assertEmpty( $GLOBALS['ec_test_action_scheduler'] );
-		$this->assertEmpty( $GLOBALS['wpdb']->updates );
+		$this->assertEmpty( $this->gateway->writes() );
 	}
 
 	public function test_invalid_payload_is_noop(): void {

@@ -59,7 +59,7 @@ final class ExtraChillEvents {
 		}
 
 		try {
-			\ExtraChillEvents\Providers\ArtistUrlImportProvider::register();
+			\ExtraChillEvents\Providers\EventSourceIntakeProvider::register();
 		} catch ( \Throwable $error ) {
 			$this->provider_failed( 'artist-url-import', $error );
 		}

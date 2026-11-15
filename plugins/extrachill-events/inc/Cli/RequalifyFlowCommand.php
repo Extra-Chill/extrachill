@@ -14,6 +14,7 @@
 
 namespace ExtraChillEvents\Cli;
 
+use ExtraChillEvents\Core\FlowHelpers;
 use ExtraChillEvents\Core\QualifyVerdict;
 
 if ( ! defined( 'ABSPATH' ) ) {

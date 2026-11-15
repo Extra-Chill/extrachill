@@ -123,7 +123,7 @@ namespace {
 	\ExtraChillEvents\Providers\AdministrationProvider::register();
 	\ExtraChillEvents\Providers\LifecycleProvider::register();
 	\ExtraChillEvents\Providers\CoreRuntimeProvider::register();
-	\ExtraChillEvents\Providers\ArtistUrlImportProvider::register();
+	\ExtraChillEvents\Providers\EventSourceIntakeProvider::register();
 	\ExtraChillEvents\Providers\VenueProvider::register();
 	\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 	\ExtraChillEvents\Providers\AbilitiesProvider::register();

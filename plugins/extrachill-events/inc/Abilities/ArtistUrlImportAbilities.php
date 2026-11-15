@@ -27,6 +27,7 @@ namespace ExtraChillEvents\Abilities;
 use DataMachine\Core\Selection\SelectionMode;
 use DataMachine\Abilities\HandlerAbilities;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
+use ExtraChillEvents\Core\QualifyFingerprinter;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\VenueExpansionRunner;
 
@@ -465,7 +466,7 @@ class ArtistUrlImportAbilities {
 			return $url;
 		}
 
-		$qualification = ( new VenueQualificationAbilities() )->executeQualifyVenue(
+		$qualification = ( new VenueQualificationAbilities() )->qualifyWithPage(
 			array(
 				'url'             => $url,
 				'persist_verdict' => true,
@@ -474,13 +475,15 @@ class ArtistUrlImportAbilities {
 		if ( is_wp_error( $qualification ) ) {
 			return $qualification;
 		}
+		$fetched_page = (array) ( $qualification['page'] ?? array() );
+		unset( $qualification['page'] );
 
 		$events_url = $this->normalizeInputUrl( (string) ( $qualification['events_url'] ?? $url ) );
 		if ( is_wp_error( $events_url ) ) {
 			$events_url = $url;
 		}
 		$identity_url = ArtistUrlSubmissionsTable::normalize_url( $events_url );
-		$probe        = $this->probeUrl( $events_url );
+		$probe        = $this->probeUrl( $events_url, $fetched_page );
 		if ( is_wp_error( $probe ) ) {
 			return $probe;
 		}
@@ -1664,10 +1667,11 @@ class ArtistUrlImportAbilities {
 	 *
 	 * On infrastructure error returns a WP_Error.
 	 *
-	 * @param string $url Already-normalized URL.
+	 * @param string $url          Already-normalized URL.
+	 * @param array  $fetched_page Page qualification already fetched, if any.
 	 * @return array|\WP_Error
 	 */
-	private function probeUrl( string $url ) {
+	private function probeUrl( string $url, array $fetched_page = array() ) {
 		$results = $this->fetchScraperPackets( $url );
 		if ( is_wp_error( $results ) ) {
 			return $results;
@@ -1737,7 +1741,7 @@ class ArtistUrlImportAbilities {
 			'source_metadata' => $first_meta,
 			'raw_first_event' => $raw_first_event,
 			'raw_events'      => $raw_events,
-			'page_html'       => $this->fetchPageHtml( $url ),
+			'page_html'       => $this->fetchPageHtml( $url, $fetched_page ),
 		);
 	}
 
@@ -1813,50 +1817,55 @@ class ArtistUrlImportAbilities {
 	}
 
 	/**
-	 * Fetch the page HTML for metadata-based artist name detection.
+	 * Page HTML for metadata-based artist name detection.
+	 *
+	 * Reuses the page qualification already fetched when it is the same URL;
+	 * otherwise fetches through the shared qualification fetcher.
 	 * Best-effort, short-timeout, no caching — failure is non-fatal.
 	 *
-	 * @param string $url
+	 * @param string $url          Page URL.
+	 * @param array  $fetched_page Page qualification already fetched, if any.
 	 * @return string Raw HTML body, or '' on error.
 	 */
-	private function fetchPageHtml( string $url ): string {
-		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-		if ( '' === $host ) {
-			$host = 'localhost';
+	private function fetchPageHtml( string $url, array $fetched_page = array() ): string {
+		$reusable = ! empty( $fetched_page )
+			&& in_array( $url, array( (string) ( $fetched_page['url'] ?? '' ), (string) ( $fetched_page['final_url'] ?? '' ) ), true );
+		if ( ! $reusable ) {
+			$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+			if ( '' === $host ) {
+				$host = 'localhost';
+			}
+
+			$default_user_agent = sprintf(
+				'Mozilla/5.0 (compatible; ExtraChillEventsBot/1.0; +https://%s)',
+				$host
+			);
+
+			/**
+			 * Filter the User-Agent sent when fetching an artist's tour/events page.
+			 *
+			 * @param string $default_user_agent UA derived from the deploying site host.
+			 * @param string $url                The page URL being fetched.
+			 */
+			$user_agent = (string) apply_filters( 'extrachill_events_artist_url_fetch_user_agent', $default_user_agent, $url );
+
+			$fetched_page = QualifyFingerprinter::fetch_homepage(
+				$url,
+				array(
+					'timeout'            => 5,
+					'redirection'        => 3,
+					'user-agent'         => $user_agent,
+					'reject_unsafe_urls' => true,
+				)
+			);
 		}
 
-		$default_user_agent = sprintf(
-			'Mozilla/5.0 (compatible; ExtraChillEventsBot/1.0; +https://%s)',
-			$host
-		);
-
-		/**
-		 * Filter the User-Agent sent when fetching an artist's tour/events page.
-		 *
-		 * @param string $default_user_agent UA derived from the deploying site host.
-		 * @param string $url                The page URL being fetched.
-		 */
-		$user_agent = (string) apply_filters( 'extrachill_events_artist_url_fetch_user_agent', $default_user_agent, $url );
-
-		$response = wp_safe_remote_get(
-			$url,
-			array(
-				'timeout'     => 5,
-				'redirection' => 3,
-				'user-agent'  => $user_agent,
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return '';
-		}
-
-		$code = wp_remote_retrieve_response_code( $response );
+		$code = (int) ( $fetched_page['http_status'] ?? 0 );
 		if ( $code < 200 || $code >= 300 ) {
 			return '';
 		}
 
-		return (string) wp_remote_retrieve_body( $response );
+		return (string) ( $fetched_page['html'] ?? '' );
 	}
 
 	/**
@@ -2609,7 +2618,7 @@ class ArtistUrlImportAbilities {
 	 * Build the admin URL for the artist URL submissions moderation queue.
 	 *
 	 * Resolves the events post-type slug via data-machine-events' public
-	 * constant and the page slug from ArtistUrlSubmissionsAdmin when the
+	 * constant and the page slug from EventSourceSubmissionsAdmin when the
 	 * admin class is loaded (admin context). Falls back to the known slug
 	 * literal for non-admin contexts (REST/CLI) where the admin class may
 	 * not be loaded.
@@ -2619,8 +2628,8 @@ class ArtistUrlImportAbilities {
 	private function moderationQueueUrl(): string {
 		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
 
-		$page_slug = class_exists( '\ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin' )
-			? \ExtraChillEvents\Admin\ArtistUrlSubmissionsAdmin::PAGE_SLUG
+		$page_slug = class_exists( '\ExtraChillEvents\Admin\EventSourceSubmissionsAdmin' )
+			? \ExtraChillEvents\Admin\EventSourceSubmissionsAdmin::PAGE_SLUG
 			: 'extrachill-events-artist-url-submissions';
 
 		return admin_url( 'edit.php?post_type=' . $post_type . '&page=' . $page_slug );

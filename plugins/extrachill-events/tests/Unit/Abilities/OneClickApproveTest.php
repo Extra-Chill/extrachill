@@ -59,7 +59,7 @@ final class OneClickApproveTest extends TestCase {
 	}
 
 	public function test_approve_form_leads_with_one_button_and_hides_overrides(): void {
-		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/admin/ArtistUrlSubmissionsAdmin.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source read.
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/admin/EventSourceSubmissionsAdmin.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source read.
 
 		$button  = strpos( $source, "esc_html_e( 'Approve', 'extrachill-events' )" );
 		$details = strpos( $source, "esc_html_e( 'Change details', 'extrachill-events' )" );

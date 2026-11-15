@@ -1086,4 +1086,22 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$runner = new VenueExpansionRunner( null, null, static fn() => array( 'flow_id' => 99, 'flow_name' => 'Existing' ) );
 		$this->assertSame( 99, $runner->lookupExistingFlow( 'https://venue.test/calendar' )['flow_id'] );
 	}
+
+	public function test_page_html_reuses_the_page_qualification_already_fetched(): void {
+		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'fetchPageHtml' );
+		$method->setAccessible( true );
+		$page = array(
+			'url'         => 'https://venue.test',
+			'final_url'   => 'https://www.venue.test/',
+			'http_status' => 200,
+			'html'        => '<title>The Room</title>',
+		);
+
+		// No HTTP double is defined in this suite, so a second fetch would fatal.
+		$this->assertSame( '<title>The Room</title>', $method->invoke( $this->intake, 'https://venue.test', $page ) );
+		$this->assertSame( '<title>The Room</title>', $method->invoke( $this->intake, 'https://www.venue.test/', $page ) );
+
+		$page['http_status'] = 404;
+		$this->assertSame( '', $method->invoke( $this->intake, 'https://venue.test', $page ) );
+	}
 }
