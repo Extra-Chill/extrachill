@@ -198,90 +198,88 @@ function extrachill_users_ability_create_user( $input ) {
 		$switched = true;
 	}
 
-	$user_id = wp_create_user( $username, $password, $email );
+	try {
+		$user_id = wp_create_user( $username, $password, $email );
 
-	if ( ! is_wp_error( $user_id ) && $unclaimed ) {
-		update_user_meta( $user_id, 'ec_unclaimed', 1 );
+		if ( ! is_wp_error( $user_id ) && $unclaimed ) {
+			update_user_meta( $user_id, 'ec_unclaimed', 1 );
 
-		if ( '1' !== (string) get_user_meta( $user_id, 'ec_unclaimed', true ) ) {
-			$rolled_back = extrachill_users_rollback_created_user( $user_id );
+			if ( '1' !== (string) get_user_meta( $user_id, 'ec_unclaimed', true ) ) {
+				$rolled_back = extrachill_users_rollback_created_user( $user_id );
 
-			if ( $switched ) {
-				restore_current_blog();
-			}
+				if ( ! $rolled_back ) {
+					return new WP_Error(
+						'unclaimed_state_reconciliation_required',
+						'Unable to store the unclaimed account state or roll back the created account. Manual reconciliation is required.',
+						array(
+							'status'         => 500,
+							'classification' => 'manual_reconciliation',
+							'retryable'      => false,
+							'user_id'        => $user_id,
+						)
+					);
+				}
 
-			if ( ! $rolled_back ) {
 				return new WP_Error(
-					'unclaimed_state_reconciliation_required',
-					'Unable to store the unclaimed account state or roll back the created account. Manual reconciliation is required.',
+					'unclaimed_state_persistence_failed',
+					'Unable to store the unclaimed account state. The created account was rolled back.',
 					array(
 						'status'         => 500,
-						'classification' => 'manual_reconciliation',
+						'classification' => 'rolled_back',
 						'retryable'      => false,
-						'user_id'        => $user_id,
 					)
 				);
 			}
-
-			return new WP_Error(
-				'unclaimed_state_persistence_failed',
-				'Unable to store the unclaimed account state. The created account was rolled back.',
-				array(
-					'status'         => 500,
-					'classification' => 'rolled_back',
-					'retryable'      => false,
-				)
-			);
-		}
-	}
-
-	if ( ! is_wp_error( $user_id ) ) {
-		if ( ! empty( $registration_page ) ) {
-			update_user_meta( $user_id, 'registration_page', esc_url_raw( (string) $registration_page ) );
 		}
 
-		if ( ! empty( $registration_source ) ) {
-			update_user_meta( $user_id, 'registration_source', sanitize_text_field( (string) $registration_source ) );
+		if ( ! is_wp_error( $user_id ) ) {
+			if ( ! empty( $registration_page ) ) {
+				update_user_meta( $user_id, 'registration_page', esc_url_raw( (string) $registration_page ) );
+			}
+
+			if ( ! empty( $registration_source ) ) {
+				update_user_meta( $user_id, 'registration_source', sanitize_text_field( (string) $registration_source ) );
+			}
+
+			if ( ! empty( $registration_method ) ) {
+				update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
+			}
+
+			// Explicit role override. wp_create_user() assigns the blog default_role
+			// (subscriber on the community blog); callers that need a specific role —
+			// e.g. event-submission attribution creating a locked subscriber account —
+			// pass `role` to pin it. Runs in the switched (community) context so the
+			// role lands on the right blog's capabilities meta.
+			if ( ! empty( $role ) ) {
+				$user = new WP_User( $user_id );
+				$user->set_role( $role );
+			}
+
+			// Source attribution (last-touch): persist the external referrer and any
+			// UTM parameters captured at registration so new-member growth can be
+			// attributed to its traffic source. Both are optional and absent for
+			// legacy/internal-only signups.
+			if ( ! empty( $referrer ) ) {
+				update_user_meta( $user_id, 'registration_referrer', $referrer );
+			}
+
+			if ( ! empty( $utm ) ) {
+				update_user_meta( $user_id, 'registration_utm', $utm );
+			}
+
+			if ( function_exists( 'ec_mark_user_for_onboarding' ) ) {
+				ec_mark_user_for_onboarding( $user_id, $from_join );
+			} else {
+				update_user_meta( $user_id, 'onboarding_completed', '0' );
+				update_user_meta( $user_id, 'onboarding_from_join', $from_join ? '1' : '0' );
+			}
+
+			update_user_meta( $user_id, 'welcome_email_sent', '0' );
 		}
-
-		if ( ! empty( $registration_method ) ) {
-			update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
 		}
-
-		// Explicit role override. wp_create_user() assigns the blog default_role
-		// (subscriber on the community blog); callers that need a specific role —
-		// e.g. event-submission attribution creating a locked subscriber account —
-		// pass `role` to pin it. Runs in the switched (community) context so the
-		// role lands on the right blog's capabilities meta.
-		if ( ! empty( $role ) ) {
-			$user = new WP_User( $user_id );
-			$user->set_role( $role );
-		}
-
-		// Source attribution (last-touch): persist the external referrer and any
-		// UTM parameters captured at registration so new-member growth can be
-		// attributed to its traffic source. Both are optional and absent for
-		// legacy/internal-only signups.
-		if ( ! empty( $referrer ) ) {
-			update_user_meta( $user_id, 'registration_referrer', $referrer );
-		}
-
-		if ( ! empty( $utm ) ) {
-			update_user_meta( $user_id, 'registration_utm', $utm );
-		}
-
-		if ( function_exists( 'ec_mark_user_for_onboarding' ) ) {
-			ec_mark_user_for_onboarding( $user_id, $from_join );
-		} else {
-			update_user_meta( $user_id, 'onboarding_completed', '0' );
-			update_user_meta( $user_id, 'onboarding_from_join', $from_join ? '1' : '0' );
-		}
-
-		update_user_meta( $user_id, 'welcome_email_sent', '0' );
-	}
-
-	if ( $switched ) {
-		restore_current_blog();
 	}
 
 	if ( ! is_wp_error( $user_id ) ) {

@@ -28,7 +28,7 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 	 */
 	public static function wpSetUpBeforeClass(): void {
 		require_once dirname( __DIR__, 2 ) . '/inc/artist-dispatch-role.php';
-		ec_users_tests_ensure_site( ec_users_get_artist_dispatch_blog_id() );
+		ec_users_tests_ensure_site( (int) ec_get_blog_id( 'main' ) );
 		if ( function_exists( 'ec_get_blog_id' ) ) {
 			ec_users_tests_ensure_site( (int) ec_get_blog_id( 'artist' ) );
 		}
@@ -40,7 +40,7 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		require_once dirname( __DIR__, 2 ) . '/inc/artist-dispatch.php';
 		require_once dirname( __DIR__, 2 ) . '/inc/core/abilities/artist-dispatch.php';
 
-		$this->main_blog_id   = ec_users_get_artist_dispatch_blog_id();
+		$this->main_blog_id   = (int) ec_get_blog_id( 'main' );
 		$this->artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
 		$this->assertTrue( is_multisite(), 'Artist Dispatch tests require multisite.' );
 		$this->assertGreaterThan( 0, $this->artist_blog_id, 'The canonical artist-site map must be loaded.' );
