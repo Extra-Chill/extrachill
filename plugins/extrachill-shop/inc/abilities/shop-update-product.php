@@ -61,7 +61,7 @@ function extrachill_shop_register_update_product_ability(): void {
 					'status'         => array(
 						'type'        => 'string',
 						'enum'        => array( 'draft', 'publish' ),
-						'description' => 'Product status.',
+						'description' => 'Requested product status. When product approval is required, a seller\'s publish request leaves a new product pending review; already-published products stay published.',
 					),
 					'image_id'       => array(
 						'type'        => 'integer',
