@@ -76,7 +76,10 @@ function update_post_meta( ...$args ) { check( false, 'Unexpected direct post me
 function set_post_thumbnail( ...$args ) { check( false, 'Transport must not write artist thumbnail' ); }
 function delete_post_thumbnail( ...$args ) { check( false, 'Transport must not remove artist thumbnail' ); }
 function extrachill_artist_platform_ability_artist_permission( $input ) { return true; }
-function ec_artist_link_page_owner_reference( $id ) { return 'artist:4:' . $id; }
+final class Ec_Smoke_Artist_Link_Pages {
+	public static function owner_reference( $id ) { return 'artist:4:' . $id; }
+}
+class_alias( 'Ec_Smoke_Artist_Link_Pages', 'ExtraChillArtistPlatform\\Artist_Link_Pages' );
 function ec_get_link_page_id_for_owner( $reference ) { return 40; }
 function ec_save_link_page( $target, $data ) {
 	check( 13 === get_current_blog_id(), 'Save must run on storage blog' );

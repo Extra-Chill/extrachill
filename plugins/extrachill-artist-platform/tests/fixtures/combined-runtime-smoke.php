@@ -36,6 +36,9 @@ function get_post_status( $id ) { $post = get_post( $id );
 if ( ! ec_test_link_pages_bootstrap_defines( $standalone, 'maybe_unserialize' ) ) {
 	function maybe_unserialize( $value ) { return $value; }
 }
+define( 'EXTRACHILL_ARTIST_LOCAL_SCENE_META', '_artist_local_scene' );
+function wp_attachment_is_image( $id ) { return (bool) $id; }
+function get_attached_file( $id ) { return ''; }
 function get_current_user_id() { return 7; }
 function ec_user_can() { return true; }
 function ec_render_template( $template, $args = array() ) {
@@ -131,6 +134,7 @@ require_once $artist_root . '/inc/core/filters/data.php';
 require_once $artist_root . '/inc/core/artist-genres.php';
 require_once $artist_root . '/inc/core/filters/create.php';
 require_once $artist_root . '/inc/core/actions/save.php';
+require_once $artist_root . '/inc/core/actions/sync.php';
 require_once $artist_root . '/inc/abilities/helpers.php';
 require_once $artist_root . '/inc/abilities/handlers/save-link-page-links.php';
 require_once $artist_root . '/inc/abilities/handlers/save-link-page-styles.php';
@@ -191,13 +195,13 @@ $GLOBALS['ec_test']['blogs'][1] = array(
 $cross_blog_resolution          = array();
 foreach ( array( 1, 7 ) as $caller_blog_id ) {
 	switch_to_blog( $caller_blog_id );
-	$reference                                = ec_artist_link_page_owner_reference( 20 );
+	$reference                                = \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 20 );
 	$cross_blog_resolution[ $caller_blog_id ] = array(
 		'id'       => ec_get_link_page_id_for_owner( $reference ),
 		'read'     => ec_read_link_page_persistence( $created )['link_page_id'] ?? 0,
 		'urls'     => ec_link_page_public_urls( $created ),
 		'caller'   => get_current_blog_id(),
-		'existing' => ec_get_link_page_id_for_owner( ec_artist_link_page_owner_reference( 21 ) ),
+		'existing' => ec_get_link_page_id_for_owner( \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 21 ) ),
 	);
 	restore_current_blog();
 }
@@ -365,7 +369,7 @@ if ( 'separate-contention' === $mode ) {
 		},
 		'combined'
 	);
-	$separate_contention['during_separate'] = ec_artist_with_link_page_lock(
+	$separate_contention['during_separate'] = \ExtraChillArtistPlatform\Artist_Link_Pages::with_link_page_lock(
 		20,
 		static function () use ( $created ) {
 			return ec_save_link_page( $created, array( 'bio' => 'Blocked combined save' ) );
@@ -438,8 +442,13 @@ if ( in_array( $mode, array( 'cross-blog-1', 'cross-blog-7', 'cross-blog-failure
 	unset( $GLOBALS['probe_profile_context'] );
 }
 update_post_meta( 55, '_wp_attachment_image_alt', 'Combined Artist portrait' );
+// End of the mutation requests: snapshot refreshes queued under the artist
+// lock run, as they do at shutdown.
+\ExtraChillArtistPlatform\Artist_Link_Pages::flush_refreshes();
 if ( 'orphan-owner' === ( $argv[1] ?? '' ) ) {
 	$GLOBALS['ec_test']['blogs'][4]['posts'][20]->post_status = 'draft';
+	// The save_post_artist_profile refresh wp_update_post() triggers.
+	\ExtraChillArtistPlatform\Artist_Link_Pages::refresh_after_profile_update( 20 );
 } elseif ( 'deleted-owner' === ( $argv[1] ?? '' ) ) {
 	unset( $GLOBALS['ec_test']['blogs'][4]['posts'][20] );
 }
@@ -534,7 +543,7 @@ echo wp_json_encode(
 		'join_redirect'               => $join_redirect[0] ?? '',
 		'forced'                      => is_wp_error( $forced ) ? $forced->get_error_code() : $forced,
 		'force_hooks'                 => $force_hooks,
-		'force_restored_id'           => (int) ec_get_link_page_id_for_owner( ec_artist_link_page_owner_reference( 20 ) ),
+		'force_restored_id'           => (int) ec_get_link_page_id_for_owner( \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 20 ) ),
 		'force_restored_slug'         => get_post_field( 'post_name', $created ),
 		'force_new_count'             => count( get_posts( array(
 			'post_type'      => ec_link_page_post_type(),

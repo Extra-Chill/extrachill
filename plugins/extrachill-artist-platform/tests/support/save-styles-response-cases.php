@@ -6,7 +6,7 @@ $assert = static function ( $condition, $message ) {
 		throw new RuntimeException( $message );
 	}
 };
-$target = array( 'link_page_id' => $created, 'owner_reference' => ec_artist_link_page_owner_reference( 20 ) );
+$target = array( 'link_page_id' => $created, 'owner_reference' => \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 20 ) );
 
 // Simulate old metadata whose redundant styles disagree with canonical settings.
 update_post_meta( $created, '_link_page_custom_css_vars', array(

@@ -741,7 +741,7 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 
 		$this->assertSame( 1, get_current_blog_id() );
 		try {
-			$result           = ec_artist_with_link_page_lock(
+			$result           = \ExtraChillArtistPlatform\Artist_Link_Pages::with_link_page_lock(
 				$this->profile_id,
 				function ( $link_page_id ) {
 					return array(

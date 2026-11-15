@@ -523,4 +523,172 @@ final class ContentOwnershipTest extends TestCase {
 		$this->assertStringContainsString( 'extrch-social-icon', $prepared['_rendered_social_below'] );
 		$this->assertFalse( method_exists( Owned_Link_Pages::class, 'render_social_links' ) );
 	}
+
+	/**
+	 * Definition that reads its source live and opts into the transitional
+	 * fallback and owner visibility hooks.
+	 *
+	 * @param bool $fallback Whether the definition allows the live fallback.
+	 * @param bool $visible  Whether the snapshot reports a public owner.
+	 */
+	private function liveDefinition( bool $fallback, bool $visible ): Owned_Link_Pages {
+		static $definition = null;
+		if ( null === $definition ) {
+			$definition = new class() extends Owned_Link_Pages {
+				public const OWNER_KIND        = 'post';
+				public const KIND              = 'profile';
+				public const SNAPSHOT_META_KEY = '_ec_test_live_profile_snapshot';
+				public const ORPHAN_META_KEY   = '_ec_test_live_profile_orphan';
+				protected const SCHEMA_TYPE    = 'Person';
+
+				/**
+				 * Whether the live fallback is enabled.
+				 *
+				 * @var bool
+				 */
+				public static $fallback = false;
+
+				/**
+				 * Whether the owner is public.
+				 *
+				 * @var bool
+				 */
+				public static $visible = true;
+
+				/**
+				 * Canonical source description.
+				 *
+				 * @var string
+				 */
+				public static $description = 'Live description.';
+
+				/**
+				 * Owner page publishing the schema entity, or '' for the Link Page.
+				 *
+				 * @var string
+				 */
+				public static $entity_url = '';
+
+				protected static function owner_blog_id(): int {
+					return 4;
+				}
+
+				protected static function authorize_owner( int $owner_id ) {
+					unset( $owner_id );
+					return true;
+				}
+
+				protected static function read_source( $owner ) {
+					return array(
+						'id'           => (int) $owner->ID,
+						'name'         => 'Live Owner',
+						'slug'         => 'live-owner',
+						'description'  => self::$description,
+						'website'      => '',
+						'image_url'    => '',
+						'image_alt'    => '',
+						'social_links' => array(),
+						'source_url'   => 'https://owner.example/live',
+					);
+				}
+
+				public static function management_url( int $owner_id ): string {
+					return 'https://manage.example/profile/' . $owner_id;
+				}
+
+				protected static function live_snapshot_fallback(): bool {
+					return self::$fallback;
+				}
+
+				protected static function snapshot_is_public( array $snapshot ): bool {
+					unset( $snapshot );
+					return self::$visible;
+				}
+
+				protected static function schema_entity_node( array $snapshot, string $canonical ): array {
+					if ( '' === self::$entity_url ) {
+						return parent::schema_entity_node( $snapshot, $canonical );
+					}
+					return array(
+						'@id' => self::$entity_url . '#person',
+						'url' => self::$entity_url,
+					);
+				}
+			};
+		}
+		$definition::$fallback    = $fallback;
+		$definition::$visible     = $visible;
+		$definition::$description = 'Live description.';
+		$definition::$entity_url  = '';
+		return $definition;
+	}
+
+	public function test_missing_snapshot_fails_closed_without_the_live_fallback(): void {
+		$this->assertSame( 'profile_link_page_snapshot_invalid', $this->errorCode( $this->ownedProjection( $this->liveDefinition( false, true ) ) ) );
+	}
+
+	public function test_missing_snapshot_renders_from_a_read_only_live_source_read_when_allowed(): void {
+		$definition = $this->liveDefinition( true, true );
+		$projection = $this->ownedProjection( $definition );
+
+		$this->assertIsArray( $projection );
+		$this->assertSame( 'Live Owner', $projection['display_title'] );
+		$this->assertSame( 'Live description.', $projection['bio'] );
+		// The fallback never writes: the backfill owns snapshot creation.
+		$this->assertFalse( metadata_exists( 'post', 40, $definition::SNAPSHOT_META_KEY ) );
+
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'bio' => 'Page bio.' ) ) );
+		$this->assertSame( 'Page bio.', $this->ownedProjection( $definition )['bio'] );
+	}
+
+	public function test_live_fallback_never_masks_a_corrupt_snapshot(): void {
+		$definition = $this->liveDefinition( true, true );
+		update_post_meta( 40, $definition::SNAPSHOT_META_KEY, array( 'version' => 1 ) );
+
+		$this->assertSame( 'profile_link_page_snapshot_invalid', $this->errorCode( $this->ownedProjection( $definition ) ) );
+	}
+
+	public function test_live_fallback_reports_a_missing_owner(): void {
+		$definition = $this->liveDefinition( true, true );
+		unset( $GLOBALS['ec_test']['blogs'][4]['posts'][20] );
+
+		$this->assertSame( 'profile_link_page_owner_not_found', $this->errorCode( $this->ownedProjection( $definition ) ) );
+	}
+
+	public function test_snapshot_reporting_a_non_public_owner_is_unavailable(): void {
+		$result = $this->ownedProjection( $this->liveDefinition( true, false ) );
+
+		$this->assertSame( 'link_page_public_owner_unavailable', $this->errorCode( $result ) );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
+	}
+
+	public function test_schema_entity_defaults_to_the_link_page_and_may_name_the_owner_page(): void {
+		$definition = $this->liveDefinition( true, true );
+		$canonical  = ec_get_link_page_public_url( 40 );
+		$graph      = $this->ownedProjection( $definition )['seo']['schema'];
+
+		$this->assertSame( $canonical . '#profile', $graph[0]['@id'] );
+		$this->assertSame( $canonical, $graph[0]['url'] );
+		$this->assertSame( array( '@id' => $canonical . '#profile' ), $graph[1]['mainEntity'] );
+
+		$definition::$entity_url = 'https://owner.example/live';
+		$graph                   = $this->ownedProjection( $definition )['seo']['schema'];
+		$this->assertSame( 'https://owner.example/live#person', $graph[0]['@id'] );
+		$this->assertSame( 'https://owner.example/live', $graph[0]['url'] );
+		$this->assertSame( array( '@id' => 'https://owner.example/live#person' ), $graph[1]['mainEntity'] );
+		$this->assertSame( $canonical . '#profilepage', $graph[1]['@id'] );
+	}
+
+	public function test_long_source_description_fits_the_stored_schema_limit(): void {
+		$definition               = $this->liveDefinition( true, true );
+		$definition::$description = str_repeat( 'Dénouement ', 400 );
+		$projection               = $this->ownedProjection( $definition );
+		$description              = $projection['seo']['schema'][0]['description'];
+
+		$this->assertLessThanOrEqual( 2048, strlen( $description ) );
+		$this->assertStringEndsWith( 'Dénouement...', $description );
+		$this->assertTrue( ec_validate_link_page_public_schema_value( $projection['seo']['schema'] ) );
+		// The page-facing bio is not shortened.
+		$this->assertSame( trim( $definition::$description ), $projection['bio'] );
+	}
 }

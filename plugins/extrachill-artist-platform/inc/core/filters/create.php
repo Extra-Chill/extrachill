@@ -96,6 +96,10 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	if ( function_exists( 'ec_purge_link_page_after_mutation' ) ) {
 		ec_purge_link_page_after_mutation( $new_link_page_id );
 	}
+	if ( class_exists( \ExtraChillArtistPlatform\Artist_Link_Pages::class ) ) {
+		// Write the artist identity snapshot the public page renders from.
+		\ExtraChillArtistPlatform\Artist_Link_Pages::refresh_after_profile_update( $artist_id );
+	}
 	return $new_link_page_id;
 }
 

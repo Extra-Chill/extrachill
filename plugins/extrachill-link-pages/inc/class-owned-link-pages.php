@@ -99,6 +99,23 @@ abstract class Owned_Link_Pages {
 	}
 
 	/**
+	 * The schema.org entity node's `@id` and `url`. Defaults to the Link
+	 * Page itself; a kind whose owner publishes the same entity on its own
+	 * canonical page returns that node so both pages describe one entity.
+	 *
+	 * @param array  $snapshot  Validated snapshot.
+	 * @param string $canonical Canonical Link Page URL.
+	 * @return array<string, string> The `@id` and `url` keys.
+	 */
+	protected static function schema_entity_node( array $snapshot, string $canonical ): array {
+		unset( $snapshot );
+		return array(
+			'@id' => $canonical . '#' . static::KIND,
+			'url' => $canonical,
+		);
+	}
+
+	/**
 	 * Kind-specific schema.org entity properties.
 	 *
 	 * @param array $snapshot Validated snapshot.
@@ -132,6 +149,31 @@ abstract class Owned_Link_Pages {
 	protected static function slug_qualifier( array $source ): string {
 		unset( $source );
 		return '';
+	}
+
+	/**
+	 * Whether the snapshot's owner may be shown publicly. A kind whose owner
+	 * has a visibility lifecycle (e.g. a post status) records it in its
+	 * snapshot extras and answers here; an unavailable owner renders 404.
+	 *
+	 * @param array $snapshot Validated snapshot.
+	 */
+	protected static function snapshot_is_public( array $snapshot ): bool {
+		unset( $snapshot );
+		return true;
+	}
+
+	/**
+	 * Whether a page with no stored snapshot may project from a live source read.
+	 *
+	 * Transitional: a kind adopting the engine over pages that predate their
+	 * snapshots enables this so those pages keep rendering until a backfill
+	 * writes the snapshots. Only an absent snapshot falls back; a stale or
+	 * corrupt one still fails closed. Remove the override (and this hook) once
+	 * every adopting kind's backfill has run.
+	 */
+	protected static function live_snapshot_fallback(): bool {
+		return false;
 	}
 
 	/**
@@ -631,8 +673,35 @@ abstract class Owned_Link_Pages {
 		if ( ! self::is_owner( $context['owner'] ?? array() ) ) {
 			return null;
 		}
-		$snapshot = self::read_snapshot( (int) $context['link_page_id'], (string) $context['owner_reference'] );
-		return is_wp_error( $snapshot ) ? $snapshot : self::projection_from_snapshot( $snapshot, (int) $context['link_page_id'] );
+		$link_page_id = (int) $context['link_page_id'];
+		$snapshot     = self::read_snapshot( $link_page_id, (string) $context['owner_reference'] );
+		if ( is_wp_error( $snapshot ) && static::live_snapshot_fallback() && ! metadata_exists( 'post', $link_page_id, static::SNAPSHOT_META_KEY ) ) {
+			// Transitional, read-only: see live_snapshot_fallback().
+			$snapshot = self::build_snapshot( (int) $context['owner']['object_id'], (string) $context['owner_reference'] );
+		}
+		if ( is_wp_error( $snapshot ) ) {
+			return $snapshot;
+		}
+		if ( ! static::snapshot_is_public( $snapshot ) ) {
+			return new \WP_Error( 'link_page_public_owner_unavailable', __( 'The Link Page public owner is unavailable.', 'extrachill-link-pages' ), array( 'status' => 404 ) );
+		}
+		return self::projection_from_snapshot( $snapshot, $link_page_id );
+	}
+
+	/**
+	 * Fit free text inside the stored schema value limit (2048 bytes), cut
+	 * at a word boundary; shorter text is returned unchanged.
+	 *
+	 * @param string $text Plain text.
+	 */
+	private static function schema_text( string $text ): string {
+		if ( strlen( $text ) <= 2048 ) {
+			return $text;
+		}
+		// 510 characters of at most four bytes each, plus the ellipsis.
+		$cut   = mb_substr( $text, 0, 510 );
+		$space = strrpos( $cut, ' ' );
+		return rtrim( false === $space ? $cut : substr( $cut, 0, $space ) ) . '...';
 	}
 
 	/**
@@ -647,7 +716,8 @@ abstract class Owned_Link_Pages {
 	 */
 	private static function projection_from_snapshot( array $snapshot, int $link_page_id ): array {
 		$canonical = ec_get_link_page_public_url( $link_page_id );
-		$entity_id = $canonical . '#' . static::KIND;
+		$node      = static::schema_entity_node( $snapshot, $canonical );
+		$entity_id = (string) $node['@id'];
 		$owner_id  = (int) $snapshot['source'][ static::source_id_key() ];
 		$page      = ec_read_link_page_persistence( $link_page_id );
 		$page_bio  = is_wp_error( $page ) ? '' : trim( (string) ( $page['bio'] ?? '' ) );
@@ -658,8 +728,8 @@ abstract class Owned_Link_Pages {
 			'@type'       => static::SCHEMA_TYPE,
 			'@id'         => $entity_id,
 			'name'        => $snapshot['title'],
-			'url'         => $canonical,
-			'description' => $snapshot['description'],
+			'url'         => (string) $node['url'],
+			'description' => self::schema_text( $snapshot['description'] ),
 		);
 		if ( $snapshot['image_url'] ) {
 			$entity['image'] = $snapshot['image_url'];

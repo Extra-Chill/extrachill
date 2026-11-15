@@ -343,6 +343,37 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 500, $corrupt->get_error_data()['status'] );
 	}
 
+	public function test_stored_social_links_keep_custom_labels_and_reject_other_keys(): void {
+		$id      = ec_create_owned_link_page( 'term:7:place:30', 'Stored Place', 'stored-place' );
+		$project = static function ( array $social ) use ( $id ) {
+			return ec_save_link_page_public_projection_snapshot(
+				$id,
+				'term:7:place:30',
+				array(
+					'display_title' => 'Stored Place',
+					'social_links'  => array( $social ),
+				)
+			);
+		};
+		$merch   = array(
+			'type' => 'custom',
+			'url'  => 'https://merch.example',
+		);
+		$web     = array(
+			'type' => 'web',
+			'url'  => 'https://place.example',
+		);
+
+		$this->assertIsArray( $project( $merch + array( 'custom_label' => '<b>Merch</b>' ) ) );
+		$projection = ec_get_link_page_public_projection( $id );
+		$this->assertSame( array( $merch + array( 'custom_label' => 'Merch' ) ), $projection['social_links'] );
+		$this->assertStringContainsString( 'aria-label="Merch"', ec_render_link_page_social_links( $projection['social_links'] ) );
+
+		$this->assertIsArray( $project( $web + array( 'custom_label' => '' ) ) );
+		$this->assertSame( array( $web ), ec_get_link_page_public_projection( $id )['social_links'] );
+		$this->assertSame( 'invalid_link_page_public_snapshot', $project( $web + array( 'id' => 'social-1' ) )->get_error_code() );
+	}
+
 	public function test_stored_schema_rejects_invalid_utf8_controls_and_oversize_values(): void {
 		foreach ( array( "\xC3\x28", "unsafe\x01control", str_repeat( 'x', 2049 ) ) as $invalid ) {
 			$this->assertFalse( ec_validate_link_page_public_schema_value( array( 'description' => $invalid ) ) );

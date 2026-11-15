@@ -42,7 +42,7 @@ function extrachill_artist_platform_ability_artist_update_social( array $input )
 		return new WP_Error( 'dependency_missing', 'Social links manager not available.' );
 	}
 
-	return ec_artist_with_link_page_lock(
+	return \ExtraChillArtistPlatform\Artist_Link_Pages::with_link_page_lock(
 		$artist_id,
 		static function ( $link_page_id ) use ( $artist_id, $social_id, $input ) {
 			$social_manager = extrachill_artist_platform_social_links();

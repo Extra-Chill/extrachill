@@ -5,6 +5,12 @@
 define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
 
+// Owner definitions extend the runtime's real engine class; it has no side
+// effects at load time, so the fake ships it unchanged.
+require_once __DIR__ . '/link-pages-runtime-fixture.php';
+$ec_owned_link_pages_engine = ec_test_link_pages_runtime_path( dirname( __DIR__, 2 ) ) . '/inc/class-owned-link-pages.php';
+require_once $ec_owned_link_pages_engine;
+
 function ec_link_page_post_type( $blog_id = null ) {
 	return 'ec_link_page';
 }

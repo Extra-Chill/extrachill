@@ -51,6 +51,9 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 	if ( is_wp_error( $valid ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', $valid->get_error_message(), array( 'cause' => $valid->get_error_code() ) );
 	}
+	if ( ! class_exists( \ExtraChill\LinkPages\Owned_Link_Pages::class ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime does not provide the owned Link Page engine.' );
+	}
 	if ( ! function_exists( 'ec_link_pages_runtime_ready' ) || true !== ec_link_pages_runtime_ready() ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime reported that it is not ready.' );
 	}
@@ -77,21 +80,26 @@ function extrachill_artist_platform_register_link_page_adapters() {
 		return $valid;
 	}
 
-	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-operations.php';
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/class-artist-link-pages.php';
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/class-artist-link-page-snapshot-migration.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
 	add_filter( 'ec_link_page_public_query_var', 'ec_artist_link_page_public_query_var' );
 	add_filter( 'ec_link_page_public_query_vars', 'ec_artist_link_page_public_query_vars' );
 	add_filter( 'ec_link_page_public_exclusions', 'ec_artist_link_page_public_exclusions' );
 	add_filter( 'ec_link_page_public_special_route', 'ec_artist_link_page_public_special_route', 10, 2 );
 
-	$operation_result = ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
+	// One owner definition supplies both providers; public pages render from
+	// its stored snapshot plus page-owned content.
+	$definition       = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
+	$operation_result = ec_register_link_page_operation_provider( 'artist-platform', array( $definition, 'operation_provider' ) );
 	if ( is_wp_error( $operation_result ) ) {
 		return $operation_result;
 	}
-	$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', 'ec_artist_link_page_public_projection_provider' );
+	$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', array( $definition, 'public_projection_provider' ) );
 	if ( is_wp_error( $projection_result ) ) {
 		return $projection_result;
 	}
+	$definition::register_hooks();
 
 	$registered = true;
 	return true;

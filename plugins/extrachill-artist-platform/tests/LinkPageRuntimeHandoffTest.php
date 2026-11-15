@@ -192,7 +192,9 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'https://artist.extrachill.com/login/?from_join=true', $result['join_redirect'] );
 		$this->assertIsInt( $result['forced'] );
 		$this->assertTrue( $result['previous_detached'] );
-		$this->assertSame( 5, $result['final_hook_count'] );
+		// Five mutation saves plus three snapshot refreshes (creation, the
+		// end-of-request flush, and the forced re-creation).
+		$this->assertSame( 8, $result['final_hook_count'] );
 		$this->assertSame( 1, $result['delete_purge_delta'] );
 		$this->assertContains( 'https://extrachill.link/combined-artist/', $result['cache_deleted_urls'] );
 		$this->assertGreaterThanOrEqual( 7, $result['cache_action_count'] );
@@ -223,7 +225,9 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'combined-artist', $result['force_restored_slug'] );
 		$this->assertSame( 1, $result['force_new_count'] );
 		$this->assertFalse( $result['previous_detached'] );
-		$this->assertSame( 5, $result['final_hook_count'] );
+		// Five mutation saves plus the creation and end-of-request snapshot
+		// refreshes; the failed forced re-creation refreshes nothing.
+		$this->assertSame( 7, $result['final_hook_count'] );
 	}
 
 	/**
@@ -253,7 +257,9 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( array(), $result['save_hooks'] );
 		$this->assertSame( '', $result['persisted_bio'] );
 		$this->assertSame( 0, $result['social_count'] );
-		$this->assertSame( 0, $result['final_hook_count'] );
+		// Only the creation and end-of-request snapshot refreshes; the failed
+		// save fires no final hook (save_hooks above).
+		$this->assertSame( 2, $result['final_hook_count'] );
 		$this->assertSame( 0, $result['save_cache_delta'] );
 		$this->assertSame( 0, $result['ability_cache_delta'] );
 		$this->assertTrue( $result['owner_writes_locked'] );

@@ -141,7 +141,7 @@ function ec_sanitize_link_page_public_projection_snapshot( $projection ) {
 	}
 	$social_links = array();
 	foreach ( $projection['social_links'] ?? array() as $social ) {
-		if ( ! is_array( $social ) || array_diff( array_keys( $social ), array( 'type', 'url' ) ) ) {
+		if ( ! is_array( $social ) || array_diff( array_keys( $social ), array( 'type', 'url', 'custom_label' ) ) ) {
 			return new WP_Error( 'invalid_link_page_public_snapshot', 'A stored public social link is malformed.' );
 		}
 		$type = sanitize_key( (string) ( $social['type'] ?? '' ) );
@@ -149,10 +149,15 @@ function ec_sanitize_link_page_public_projection_snapshot( $projection ) {
 		if ( ! $type || ! $url ) {
 			return new WP_Error( 'invalid_link_page_public_snapshot', 'A stored public social link is invalid.' );
 		}
-		$social_links[] = array(
+		$stored = array(
 			'type' => $type,
 			'url'  => $url,
 		);
+		$label  = sanitize_text_field( (string) ( $social['custom_label'] ?? '' ) );
+		if ( '' !== $label ) {
+			$stored['custom_label'] = $label;
+		}
+		$social_links[] = $stored;
 	}
 	$attributes = array();
 	foreach ( $projection['body_attributes'] ?? array() as $key => $value ) {
