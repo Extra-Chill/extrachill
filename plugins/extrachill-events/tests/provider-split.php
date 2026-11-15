@@ -21,7 +21,6 @@ $required_venue = array(
 	'VenueMembershipRepository',
 	'TeamAuthorization',
 	'TeamCapabilities',
-	'VenueAuthorization',
 	'VenueOnboardingAdapter',
 	'VenueCalendarFeed',
 	'VenueCalendarFeedSync',

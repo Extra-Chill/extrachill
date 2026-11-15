@@ -201,7 +201,7 @@ if ( class_exists( '\\ExtraChillEvents\\Core\\VenueBookingConfig' ) ) {
 	 * That tier's bypass is `user_can( $id, 'manage_options' )` OR
 	 * `ec_is_team_member( $id )`. A plain `subscriber` satisfies neither, so
 	 * the active-member fixture needs the real `extra_chill_team` role --
-	 * verified empirically: without it, `VenueAuthorization::authorize()`
+	 * verified empirically: without it, `TeamCapabilities::authorize()`
 	 * fails the feature-tier gate even with an active membership row, and
 	 * the archive workspace action falls through to "non_member".
 	 */

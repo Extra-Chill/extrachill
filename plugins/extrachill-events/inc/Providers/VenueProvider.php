@@ -67,7 +67,6 @@ final class VenueProvider {
 			'VenueMembershipRepository',
 			'TeamAuthorization',
 			'TeamCapabilities',
-			'VenueAuthorization',
 			'ArtistMappingLock',
 			'ArtistAuthorization',
 			'VenueOnboardingAdapter',

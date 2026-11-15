@@ -162,8 +162,8 @@ if ( ! class_exists( '\\ExtraChillEvents\\Core\\VenueMembershipRepository' ) ) {
 if ( ! class_exists( '\\ExtraChillEvents\\Core\\BookingRepository' ) ) {
 	throw new RuntimeException( 'BookingRepository is unavailable after bootstrapping extrachill-events.' );
 }
-if ( ! class_exists( '\\ExtraChillEvents\\Core\\VenueAuthorization' ) ) {
-	throw new RuntimeException( 'VenueAuthorization is unavailable after bootstrapping extrachill-events.' );
+if ( ! class_exists( '\\ExtraChillEvents\\Core\\TeamCapabilities' ) ) {
+	throw new RuntimeException( 'TeamCapabilities is unavailable after bootstrapping extrachill-events.' );
 }
 if ( ! \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
 	throw new RuntimeException( 'The booking schema tables are not ready; the rig activation step failed to fire extrachill-events\' activation hook (BookingSchema::install()).' );
@@ -446,9 +446,8 @@ if ( $venue_settings_page instanceof WP_Post ) {
  * findings. Failing loudly here keeps environment defects from being
  * misreported as product defects.
  */
-$authorization = new \ExtraChillEvents\Core\VenueAuthorization();
-$feature_ready = $authorization->has_feature_access( GARDNER_VENUE_BOOKING_USER_ID );
-$can_access    = true === $authorization->authorize( GARDNER_VENUE_BOOKING_USER_ID, $venue_id, \ExtraChillEvents\Core\VenueAuthorization::ACTION_ACCESS_VENUE );
+$feature_ready = ( new \ExtraChillEvents\Core\TeamAuthorization() )->has_feature_access( GARDNER_VENUE_BOOKING_USER_ID );
+$can_access    = true === \ExtraChillEvents\Core\TeamCapabilities::authorize( 'ec_access_venue', $venue_id, GARDNER_VENUE_BOOKING_USER_ID );
 
 $evidence['steps']['feature_access'] = array(
 	'feature_available' => $feature_ready,
