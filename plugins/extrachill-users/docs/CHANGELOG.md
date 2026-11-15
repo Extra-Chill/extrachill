@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.65.1] - 2026-11-15
+
+### Fixed
+- register starting rollout tiers so promotion persists on multisite
+
 ## [0.65.0] - 2026-11-15
 
 ### Added
