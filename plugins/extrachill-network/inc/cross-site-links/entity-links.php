@@ -26,27 +26,39 @@ function extrachill_get_user_community_profile_url( $user_id, $user_email = '' )
 		return '';
 	}
 
-	$user_id        = absint( $user_id );
-	$community_user = null;
-
-	switch_to_blog( $community_blog_id );
-	try {
-		if ( ! empty( $user_email ) ) {
-			$community_user = get_user_by( 'email', $user_email );
-		}
-
-		if ( ! $community_user && $user_id > 0 ) {
-			$community_user = get_userdata( $user_id );
-		}
-	} finally {
-		restore_current_blog();
-	}
+	$community_user = extrachill_resolve_community_profile_user( $user_id, $user_email );
 
 	if ( ! $community_user || empty( $community_user->user_nicename ) ) {
 		return '';
 	}
 
 	return ec_get_site_url( 'community' ) . '/u/' . $community_user->user_nicename;
+}
+
+/**
+ * Resolve the user behind a Community profile link.
+ *
+ * Users live in the network-global users table, so the lookup needs no
+ * switch_to_blog(): get_user_by() and get_userdata() return the same row from
+ * every site.
+ *
+ * @param int    $user_id    User ID.
+ * @param string $user_email Optional. Email address for lookup (preferred).
+ * @return WP_User|false User object, or false when no user matches.
+ */
+function extrachill_resolve_community_profile_user( $user_id, $user_email = '' ) {
+	$user_id        = absint( $user_id );
+	$community_user = false;
+
+	if ( ! empty( $user_email ) ) {
+		$community_user = get_user_by( 'email', $user_email );
+	}
+
+	if ( ! $community_user && $user_id > 0 ) {
+		$community_user = get_userdata( $user_id );
+	}
+
+	return $community_user;
 }
 
 /**
@@ -62,29 +74,28 @@ function extrachill_get_user_community_profile_edit_url( $user_id, $user_email =
 		return '';
 	}
 
-	$community_blog_id = ec_get_blog_id( 'community' );
-	$user_id           = absint( $user_id );
-	$community_user    = null;
+	$community_blog_id = (int) ec_get_blog_id( 'community' );
+	$community_user    = extrachill_resolve_community_profile_user( $user_id, $user_email );
+	$fallback_url      = user_trailingslashit( trailingslashit( $profile_url ) . 'edit' );
 	$edit_url          = '';
-	$fallback_url      = '';
 
-	switch_to_blog( $community_blog_id );
-	try {
-		$fallback_url = user_trailingslashit( trailingslashit( $profile_url ) . 'edit' );
-
-		if ( ! empty( $user_email ) ) {
-			$community_user = get_user_by( 'email', $user_email );
+	// bbPress is only loaded on Community. Its URL API builds links from the
+	// current site, so switch only when bbPress is present but another blog is
+	// active (e.g. a Community request that has switched elsewhere).
+	if ( $community_user && function_exists( 'bbp_get_user_profile_edit_url' ) ) {
+		$switched = false;
+		if ( (int) get_current_blog_id() !== $community_blog_id ) {
+			switch_to_blog( $community_blog_id );
+			$switched = true;
 		}
 
-		if ( ! $community_user && $user_id > 0 ) {
-			$community_user = get_userdata( $user_id );
-		}
-
-		if ( $community_user && function_exists( 'bbp_get_user_profile_edit_url' ) ) {
+		try {
 			$edit_url = bbp_get_user_profile_edit_url( $community_user->ID, $community_user->user_nicename );
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
 		}
-	} finally {
-		restore_current_blog();
 	}
 
 	if ( ! empty( $edit_url ) ) {
