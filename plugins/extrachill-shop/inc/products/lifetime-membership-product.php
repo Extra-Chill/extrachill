@@ -40,10 +40,10 @@ function extrachill_shop_get_lifetime_membership_product_sync_transient_key() {
 function extrachill_shop_get_lifetime_membership_product_config() {
 	return array(
 		'sku'                   => extrachill_shop_get_lifetime_membership_sku(),
-		'name'                  => 'Lifetime Extra Chill Membership',
+		'name'                  => 'Extra Chill Supporter (Lifetime)',
 		'price'                 => '20',
 		'sold_individually'     => true,
-		'short_description'      => 'Support independent music journalism and enjoy an ad-free experience across the entire Extra Chill network. One-time payment, lifetime status.',
+		'short_description'      => 'Support independent music since 2011. Get the gold-heart Extra Chill Supporter badge and ad-free browsing on every Extra Chill site. One payment, yours for good.',
 		'option_key'            => extrachill_shop_get_lifetime_membership_product_option_key(),
 		'sync_flag_key'         => extrachill_shop_get_lifetime_membership_product_sync_flag_key(),
 		'sync_transient_key'    => extrachill_shop_get_lifetime_membership_product_sync_transient_key(),
