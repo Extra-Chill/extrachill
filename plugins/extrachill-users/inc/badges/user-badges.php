@@ -2,7 +2,7 @@
 /**
  * User Badges
  *
- * Centralized badge resolver for team members, artists, and professionals.
+ * Centralized badge resolver for team members, artists, professionals, and supporters.
  *
  * @package ExtraChillUsers
  */
@@ -52,6 +52,15 @@ function ec_get_user_badges( $user_id ) {
 			'icon'       => 'igloo',
 			'class_name' => 'extrachill-team-member',
 			'title'      => 'Extra Chill Team Member',
+		);
+	}
+
+	if ( function_exists( 'ec_is_supporter' ) && ec_is_supporter( $user_id ) ) {
+		$badges[] = array(
+			'key'        => 'supporter',
+			'icon'       => 'heart',
+			'class_name' => 'user-is-supporter',
+			'title'      => 'Extra Chill Supporter',
 		);
 	}
 

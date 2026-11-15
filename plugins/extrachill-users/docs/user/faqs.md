@@ -18,7 +18,7 @@ Select your avatar after signing in. **Edit Profile** opens profile changes, and
 
 ## What does lifetime membership include?
 
-It provides ad-free access across Extra Chill sites. Be sure to sign in with the account that has the membership.
+It's a one-time way to support Extra Chill. You get the gold-heart Extra Chill Supporter badge and ad-free browsing across every Extra Chill site. Be sure to sign in with the account that has the membership.
 
 ## Why did I not receive a digest email?
 

@@ -12,7 +12,7 @@ One Extra Chill account works across every Extra Chill site. Use these guides to
 
 - [Your profile and avatar](profile-and-avatar.md) — View and update your profile and account image.
 - [Badges and ranks](badges-and-ranks.md) — Understand role badges and community ranks.
-- [Lifetime membership](lifetime-membership.md) — Learn about ad-free access across Extra Chill sites.
+- [Lifetime membership](lifetime-membership.md) — Support Extra Chill and get the supporter badge and ad-free browsing.
 
 ## Account preferences
 

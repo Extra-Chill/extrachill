@@ -416,6 +416,11 @@ export const badge: Record< BadgeTokenKey, StaticToken > = {
 		value: '#9D1FE2',
 		description: 'Professional role badge color',
 	},
+	supporterBadgeColor: {
+		cssVar: '--supporter-badge-color',
+		value: '#E2A21F',
+		description: 'Supporter (lifetime membership) badge color',
+	},
 } as const;
 
 // ─── Taxonomy Badges ─────────────────────────────────────────────────────────
