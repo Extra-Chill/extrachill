@@ -166,6 +166,20 @@ dws_assert( str_contains( $yaml, 'resolve_command="${command} --dry-run"' ), 'ga
 // "deployed". Counting only "deployed" made the gate skip every run (#272).
 dws_assert( str_contains( $yaml, 'select(.status == "planned" or .status == "deployed")' ), 'the gate counts planned resolve results' );
 
+// #1501: bounded self-upgrade shares the deploy identity, never PATH binaries.
+$upgrade = (string) file_get_contents( $root . '/deploy/wp-coding-agents/upgrade.sh' );
+$host_conf = (string) file_get_contents( $root . '/deploy/wp-coding-agents/host.conf' );
+dws_assert( str_contains( $host_conf, 'SELF_UPGRADE_USERS=deploy' ), 'host opts deploy into bounded self-upgrade (#871)' );
+dws_assert( str_contains( $yaml, 'run: bash deploy/wp-coding-agents/upgrade.sh' ), 'workflow invokes the tested self-upgrade poller' );
+dws_assert( strpos( $yaml, '- name: Verify' ) < strpos( $yaml, 'id: coding_agents' ), 'self-upgrade follows plugin deploy/verify' );
+dws_assert( str_contains( $yaml, 'DRY_RUN: ${{ steps.plan.outputs.dry_run }}' ) && str_contains( $upgrade, 'would upgrade (dry run' ), 'self-upgrade honours plan dry_run' );
+dws_assert( str_contains( $upgrade, 'deploy/homeboy/servers/hetzner.json' ) && str_contains( $upgrade, 'StrictHostKeyChecking=yes' ), 'self-upgrade uses configured server and verified SSH' );
+dws_assert( str_contains( $upgrade, 'sudo -n /usr/local/sbin/wp-coding-agents-upgrade' ) && str_contains( $upgrade, 'attempt<60' ), 'self-upgrade uses only bounded sudo commands and polling' );
+dws_assert( str_contains( $upgrade, '::notice::Self-upgrade sudo grant unavailable' ), 'missing sudo grant is a notice until #871 lands' );
+dws_assert( str_contains( $upgrade, 'GITHUB_STEP_SUMMARY' ) && str_contains( $yaml, 'CODING_AGENTS_REPORT: ${{ steps.coding_agents.outputs.report }}' ), 'upgrade reports to summary and Discord' );
+dws_assert( str_contains( $yaml, '[ -z "${CODING_AGENTS_REPORT:-}" ]' ), 'upgrade-only ticks notify while no-op ticks stay silent' );
+dws_assert( ! str_contains( $upgrade, 'GITHUB_PATH' ), 'self-upgrade never adds an unreviewed binary to GITHUB_PATH (#369)' );
+
 // Checked-in Homeboy config.
 dws_assert( is_file( $project ), 'project config exists' );
 dws_assert( is_file( $server ), 'server config exists' );
