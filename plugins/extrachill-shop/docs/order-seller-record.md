@@ -31,7 +31,8 @@ Readers (all in `inc/core/order-seller-index.php`):
   `wc_get_orders()`: HPOS uses a native meta query, the post data store the
   `extrachill_seller` query var.
 
-Order listings, label abilities, refunds and seller order emails all read
+Order listings, label abilities, refunds, seller order emails and the buyer's
+seller-and-tracking block (`inc/core/buyer-order-details.php`) all read
 these; nothing else stores per-seller order data.
 
 ## Product seller
