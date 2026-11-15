@@ -265,23 +265,15 @@ function extrachill_get_cross_site_user_links( $user_id ) {
 	// Check artist profiles user manages.
 	if ( 'artist' !== $current_site_key && function_exists( 'ec_get_artists_for_user' ) ) {
 		$artist_ids = ec_get_artists_for_user( $user_id );
-		if ( ! empty( $artist_ids ) ) {
-			$artist_blog_id = ec_get_blog_id( 'artist' );
-			if ( $artist_blog_id ) {
-				switch_to_blog( $artist_blog_id );
-				try {
-					foreach ( $artist_ids as $artist_id ) {
-						$artist_post = get_post( $artist_id );
-						if ( $artist_post && 'publish' === $artist_post->post_status ) {
-							$links[] = array(
-								'type'  => 'artist_profile',
-								'url'   => get_permalink( $artist_id ),
-								'label' => $artist_post->post_title,
-							);
-						}
-					}
-				} finally {
-					restore_current_blog();
+		if ( ! empty( $artist_ids ) && ec_get_blog_id( 'artist' ) ) {
+			foreach ( $artist_ids as $artist_id ) {
+				$identity = ec_get_artist_identity( array( 'profile_id' => (int) $artist_id ) );
+				if ( null !== $identity && 'publish' === $identity['status'] ) {
+					$links[] = array(
+						'type'  => 'artist_profile',
+						'url'   => $identity['permalink'],
+						'label' => $identity['name'],
+					);
 				}
 			}
 		}
@@ -302,52 +294,15 @@ function extrachill_get_artist_profile_by_slug( $slug ) {
 		return false;
 	}
 
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	if ( ! $artist_blog_id ) {
+	$identity = ec_get_artist_identity( array( 'slug' => $slug ) );
+	if ( null === $identity || '' === $identity['permalink'] ) {
 		return false;
 	}
 
-	switch_to_blog( $artist_blog_id );
-	try {
-		$posts = get_posts(
-			array(
-				'post_type'      => 'artist_profile',
-				'post_status'    => 'publish',
-				'name'           => $slug,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			)
-		);
-
-		if ( empty( $posts ) ) {
-			return false;
-		}
-
-		$artist_id   = (int) $posts[0];
-		$artist_post = get_post( $artist_id );
-		$post_type   = get_post_type_object( 'artist_profile' );
-		$rewrite     = $post_type && ! empty( $post_type->rewrite['slug'] ) ? trim( $post_type->rewrite['slug'], '/' ) : 'artists';
-		$permalink   = $artist_post ? home_url( $rewrite . '/' . $artist_post->post_name ) : '';
-		// The artist CPT is not registered when switched from another blog, so
-		// get_permalink() yields ?p=. Build the pretty URL and apply the target
-		// blog's own trailing-slash rule (user_trailingslashit() would use the
-		// origin blog's $wp_rewrite and add a 301-ing slash).
-		if ( '' !== $permalink && function_exists( 'extrachill_normalize_url_for_blog' ) ) {
-			$permalink = extrachill_normalize_url_for_blog( $permalink, $artist_blog_id );
-		}
-
-		if ( ! $permalink ) {
-			return false;
-		}
-
-		return array(
-			'id'        => $artist_id,
-			'permalink' => $permalink,
-		);
-	} finally {
-		restore_current_blog();
-	}
+	return array(
+		'id'        => $identity['profile_id'],
+		'permalink' => $identity['permalink'],
+	);
 }
 
 /**

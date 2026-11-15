@@ -137,35 +137,9 @@ function extrachill_artist_profile_has_image( $slug ) {
 		return false;
 	}
 
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	if ( ! $artist_blog_id ) {
-		return false;
-	}
+	$identity = ec_get_artist_identity( array( 'slug' => $slug ) );
 
-	switch_to_blog( $artist_blog_id );
-	try {
-		$posts = get_posts(
-			array(
-				'post_type'      => 'artist_profile',
-				'post_status'    => 'publish',
-				'name'           => $slug,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-			)
-		);
-
-		if ( empty( $posts ) ) {
-			return false;
-		}
-
-		$artist_id    = (int) $posts[0];
-		$thumbnail_id = get_post_thumbnail_id( $artist_id );
-
-		return ! empty( $thumbnail_id );
-	} finally {
-		restore_current_blog();
-	}
+	return null !== $identity && 0 < $identity['thumbnail_id'];
 }
 
 /**

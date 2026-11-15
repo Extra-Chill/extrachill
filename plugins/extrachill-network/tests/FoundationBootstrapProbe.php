@@ -37,6 +37,8 @@ $required_functions = array(
 	'ec_cross_site_build_service_assertion_headers',
 	'ec_resolve_frontend_paths',
 	'ec_send_email',
+	'ec_get_artist_identity',
+	'ec_forget_artist_identity',
 );
 
 foreach ( $required_functions as $function ) {

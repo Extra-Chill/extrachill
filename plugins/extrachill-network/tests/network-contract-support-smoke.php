@@ -114,7 +114,15 @@ function ecn_contract_shape( string $file ): array {
 $source = ecn_contract_shape( $source_file );
 $stub   = ecn_contract_shape( __DIR__ . '/support/phpstan-network-contract.stub' );
 
-$assert( $source['functions'] === $stub['functions'], 'PHPStan stub declares the same functions and parameters as blog-ids.php' );
+// The stub also declares the public artist identity API; internal helpers stay out.
+$identity_shape = ecn_contract_shape( dirname( __DIR__ ) . '/inc/core/artist-identity.php' );
+foreach ( array( 'ec_get_artist_identity', 'ec_forget_artist_identity' ) as $identity_function ) {
+	$assert( isset( $identity_shape['functions'][ $identity_function ] ), "artist-identity.php defines {$identity_function}()" );
+	$source['functions'][ $identity_function ] = $identity_shape['functions'][ $identity_function ] ?? array();
+}
+ksort( $source['functions'] );
+
+$assert( $source['functions'] === $stub['functions'], 'PHPStan stub declares the same functions and parameters as blog-ids.php and the artist identity API' );
 
 // EC_PLATFORM_ARTIST_ID is dynamic in the source (network option with a
 // production fallback); compare the fallback literal instead.

@@ -46,22 +46,9 @@ function extrachill_network_resolve_bound_artist_slug( $artist_term_id ) {
 		return '';
 	}
 
-	$slug = '';
-	switch_to_blog( $main_blog_id );
-	try {
-		if ( ! taxonomy_exists( 'artist' ) ) {
-			return '';
-		}
+	$identity = ec_get_artist_identity( array( 'term_id' => $artist_term_id ) );
 
-		$term = get_term( $artist_term_id, 'artist' );
-		if ( $term instanceof WP_Term ) {
-			$slug = (string) $term->slug;
-		}
-	} finally {
-		restore_current_blog();
-	}
-
-	return $slug;
+	return null === $identity ? '' : $identity['term_slug'];
 }
 
 /**
