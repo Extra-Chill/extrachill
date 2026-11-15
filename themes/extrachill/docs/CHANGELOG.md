@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.18.1] - 2026-11-15
+
+### Changed
+- one ec_with_blog helper and restore-safe switches
+
 ## [2.18.0] - 2026-11-10
 
 ### Added
