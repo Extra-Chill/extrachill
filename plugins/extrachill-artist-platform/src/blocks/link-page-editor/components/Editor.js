@@ -4,8 +4,15 @@
  * Main editor layout with tab navigation, artist switcher, and save button.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback, useMemo, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
 import {
 	ActionRow,
 	BlockShell,
@@ -15,6 +22,10 @@ import {
 	Panel,
 	ResponsiveTabs,
 } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import { useEditor } from '../context/EditorContext';
 import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
 import Preview from './Preview';

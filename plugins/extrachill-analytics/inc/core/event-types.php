@@ -155,8 +155,8 @@ const EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN = 'studio_transcription_run';
  * would read `ability-search, ability-call` forever and teach nothing about
  * which capabilities are actually used.
  */
-const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED      = 'mcp_session_started';
-const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED         = 'mcp_tool_invoked';
+const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED = 'mcp_session_started';
+const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED    = 'mcp_tool_invoked';
 
 /**
  * The MCP usage event set.

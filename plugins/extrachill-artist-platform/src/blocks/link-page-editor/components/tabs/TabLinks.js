@@ -4,8 +4,15 @@
  * Sections and links management with drag-and-drop.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useCallback, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import { useEditor } from '../../context/EditorContext';
 import DraggableList from '../../../shared/components/DraggableList';
 
