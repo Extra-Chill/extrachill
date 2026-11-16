@@ -4,7 +4,9 @@
  * Mounts into the empty root emitted by render.php and renders the image,
  * vote badge, and voting form. State is managed in React; votes are submitted
  * via @wordpress/api-fetch against the content-blocks image-voting ability
- * route. The voter email is remembered in localStorage to suppress re-voting.
+ * route. The voter email is remembered in localStorage so later votes are one
+ * tap; a visible "Not you?" control forgets it on shared devices, and every
+ * email field discloses the mailing-list signup.
  *
  * Other voters' emails are never shipped to the client. Duplicate-vote
  * suppression relies on the saved localStorage email for instant UX plus the
@@ -19,6 +21,12 @@ import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
 const STORAGE_KEY = 'extrachill_voter_email';
+// Same-tab signal so every voting block on the page reflects a saved or
+// forgotten email (the native `storage` event only fires in other tabs).
+const EMAIL_CHANGE_EVENT = 'extrachill-voter-email-change';
+
+export const IMAGE_VOTING_EMAIL_DISCLOSURE =
+	"You'll get Extra Chill emails at this address. Unsubscribe anytime.";
 
 interface ImageVotingConfig {
 	title: string;
@@ -49,20 +57,34 @@ function getSavedEmail(): string {
 	}
 }
 
+function announceEmailChange(): void {
+	window.dispatchEvent( new Event( EMAIL_CHANGE_EVENT ) );
+}
+
 function saveEmail( email: string ): void {
 	try {
 		localStorage.setItem( STORAGE_KEY, email );
 	} catch {
 		// localStorage unavailable; ignore.
 	}
+	announceEmailChange();
+}
+
+export function forgetEmail(): void {
+	try {
+		localStorage.removeItem( STORAGE_KEY );
+	} catch {
+		// localStorage unavailable; ignore.
+	}
+	announceEmailChange();
 }
 
 function isValidEmail( email: string ): boolean {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( email );
 }
 
-function ImageVoting( config: ImageVotingConfig ) {
-	const savedEmail = getSavedEmail();
+export function ImageVoting( config: ImageVotingConfig ) {
+	const [ savedEmail, setSavedEmail ] = useState( getSavedEmail );
 
 	// Per-instance vote state is not known client-side (we no longer ship the
 	// voter list). Start un-voted; the server authoritatively rejects a repeat
@@ -89,6 +111,23 @@ function ImageVoting( config: ImageVotingConfig ) {
 			emailInputRef.current.focus();
 		}
 	}, [ showForm ] );
+
+	// Follow saves and "Not you?" from any voting block on the page. A
+	// forgotten email also clears this visit's "Voted" state so the next
+	// person on a shared device is asked for their own email.
+	useEffect( () => {
+		const sync = () => {
+			const current = getSavedEmail();
+			setSavedEmail( current );
+			if ( ! current ) {
+				setHasVoted( false );
+				setShowForm( false );
+				setEmail( '' );
+			}
+		};
+		window.addEventListener( EMAIL_CHANGE_EVENT, sync );
+		return () => window.removeEventListener( EMAIL_CHANGE_EVENT, sync );
+	}, [] );
 
 	useEffect( () => {
 		return () => {
@@ -177,6 +216,7 @@ function ImageVoting( config: ImageVotingConfig ) {
 		if ( stored ) {
 			submitVote( stored );
 		} else {
+			setEmail( '' );
 			setShowForm( true );
 		}
 	};
@@ -238,6 +278,18 @@ function ImageVoting( config: ImageVotingConfig ) {
 						>
 							{ voteButtonLabel }
 						</button>
+						{ savedEmail && (
+							<p>
+								Voting as { savedEmail }.{ ' ' }
+								<button
+									type="button"
+									className="button-3 button-small"
+									onClick={ forgetEmail }
+								>
+									Not you?
+								</button>
+							</p>
+						) }
 						{ showForm && ! hasVoted && (
 							<div
 								className="extrachill-blocks-image-voting-form"
@@ -260,6 +312,7 @@ function ImageVoting( config: ImageVotingConfig ) {
 									} }
 									required
 								/>
+								<p>{ IMAGE_VOTING_EMAIL_DISCLOSURE }</p>
 								<button
 									className="extrachill-blocks-submit-vote button-1 button-medium"
 									disabled={ isVoting }

@@ -16,6 +16,24 @@ export function saveEmail( email: string ): void {
 	}
 }
 
+/**
+ * Forget the remembered voter on this device ("Not you?").
+ *
+ * Clears the saved email and this contest's voted-entry hints so the next
+ * person on a shared phone is asked for their own email. The server still
+ * enforces one vote per email per entry.
+ *
+ * @param contestId Contest whose voted-entry hints should be cleared.
+ */
+export function forgetVoter( contestId: string ): void {
+	try {
+		localStorage.removeItem( EMAIL_STORAGE_KEY );
+		localStorage.removeItem( votedStorageKey( contestId ) );
+	} catch {
+		// localStorage unavailable; ignore.
+	}
+}
+
 export function entryStorageKey( contestId: string ): string {
 	return `extrachill_pc_entry_${ contestId }`;
 }
