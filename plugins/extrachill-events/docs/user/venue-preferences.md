@@ -1,6 +1,6 @@
 # Venue Preferences
 
-Venue preferences let you choose whether Extra Chill sends account notifications about events at a venue. Following a venue does not share the email address on your Extra Chill account or add you to a mailing list.
+Venue preferences let you choose whether Extra Chill sends account notifications about events at a venue. Turning these on does not share the email address on your Extra Chill account or add you to a mailing list.
 
 ## Event notifications
 

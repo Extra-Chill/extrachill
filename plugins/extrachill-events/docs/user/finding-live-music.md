@@ -8,7 +8,7 @@ Open [Live Music Near Me](https://events.extrachill.com/near-me/) and allow loca
 
 ## Browse a City
 
-Location pages collect upcoming shows for a city or region. They are useful for planning a night out, checking a destination before traveling, or following a scene outside your hometown.
+Location pages collect upcoming shows for a city or region. They are useful for planning a night out, checking a destination before traveling, or keeping up with a scene outside your hometown.
 
 ## Search the Network
 

@@ -25,7 +25,7 @@ When the show has a guest list, the top of the list shows the count, such as "12
 
 ## The Door View
 
-The show's guest list page, such as https://events.extrachill.com/events/your-show/guest-list/, turns into a door view when you open it logged in on the show's team. Tap **Open door view** in **Manage guest list** to get there. It has only what the door needs:
+The show's guest list page (the show's page address with "guest-list" on the end) turns into a door view when you open it logged in on the show's team. Tap **Open door view** in **Manage guest list** to get there. It has only what the door needs:
 
 - The show's title and pass image.
 - **Add names**: paste names or upload a CSV or TXT file, one name per line.

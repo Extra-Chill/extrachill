@@ -1,6 +1,6 @@
 # Artist Preferences
 
-Artist preferences let you choose whether Extra Chill sends account notifications about an artist. Following an artist does not share the email address on your Extra Chill account or add you to a mailing list.
+Artist preferences let you choose whether Extra Chill sends account notifications about an artist. Turning these on does not share the email address on your Extra Chill account or add you to a mailing list.
 
 ## Artist notifications
 

@@ -4,7 +4,7 @@ Invite band members or trusted helpers to share the work of keeping your artist 
 
 ## Invite a profile manager
 
-1. Sign in to the [profile manager](https://artist.extrachill.com/manage-artist-profiles/).
+1. Sign in to the [profile manager](https://artist.extrachill.com/manage-artist).
 2. Choose your artist and open **Profile Managers**.
 3. Enter the person's email address. Choose their account if it appears in the suggestions.
 4. Choose **Send Invite**.

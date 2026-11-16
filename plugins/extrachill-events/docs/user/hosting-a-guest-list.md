@@ -32,7 +32,7 @@ You can add names yourself in all three. Shows that had a guest list before this
 
 Once it's on, the panel shows how many passes are claimed, how many people are checked in, and how many spots are left. You also get:
 
-- A **Share link** to the show's guest list page, such as https://events.extrachill.com/events/your-show/guest-list/. Tap **Copy share link** to paste it anywhere.
+- A **Share link** to the show's guest list page. It's the show's page address with "guest-list" on the end. Tap **Copy share link** to paste it anywhere.
 - A QR code for the same page. Tap **Download share QR** to put it on a flyer or a post.
 - **Open door view**, which opens the same guest list page. When you're logged in on the show's team, that page shows you the door view instead of the guest form. See [Working the Door](working-the-door.md).
 
