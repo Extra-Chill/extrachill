@@ -153,5 +153,5 @@ Manage the relationship between users and artist profiles they manage. Control w
 - Uses `ec_get_blog_id( 'artist' )` to locate artist blog
 
 **Related Endpoints**:
-- [Artist Core Data](../artist/artist.md) - Get artist profile details
+- [Artist Core Data](../artists/artist.md) - Get artist profile details
 - [User Profile](users.md) - Get user information including artist count

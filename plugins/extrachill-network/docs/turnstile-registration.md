@@ -390,7 +390,7 @@ echo ec_render_turnstile_widget( array(
 
 ## Related Documentation
 
-- [extrachill-network CLAUDE.md - Turnstile Functions](../CLAUDE.md#cloudflare-turnstile-integration)
-- [extrachill-users CLAUDE.md - Registration Form](../extrachill-users/CLAUDE.md) - Uses Turnstile
-- [Root CLAUDE.md - Security Implementation](../../CLAUDE.md#security-first)
+- [extrachill-network overview](../README.md)
+- [extrachill-users authentication](../../extrachill-users/docs/authentication.md) - Uses Turnstile
+- [Network architecture](../../../docs/architecture.md)
 - [Cloudflare Turnstile Docs](https://developers.cloudflare.com/turnstile/)

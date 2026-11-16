@@ -168,7 +168,7 @@ See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.
 
 ## License
 
-GPL v2 or later - see [LICENSE](LICENSE) file for details.
+GPL v2 or later.
 
 ## Support
 

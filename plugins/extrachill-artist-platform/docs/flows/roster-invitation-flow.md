@@ -221,7 +221,7 @@ IF forum sync fails
 
 ## Related Documentation
 
-- [Artist Platform CLAUDE.md](../CLAUDE.md) - Complete architecture
-- [Roster Management System](../CLAUDE.md#roster-management-system) - Technical details
-- [Newsletter Integration](./artist-platform-with-newsletter.md) - Notify on roster changes
-- [Community Integration](./artist-platform-with-community.md) - Forum integration
+- [Artist Platform overview](../overview.md) - Complete architecture
+- [Roster Management System](../artist-profiles/roster-management.md) - Technical details
+- [Newsletter Integration](../integration-examples/artist-platform-with-newsletter.md) - Notify on roster changes
+- [Community Integration](../integration-examples/artist-platform-with-community.md) - Forum integration
