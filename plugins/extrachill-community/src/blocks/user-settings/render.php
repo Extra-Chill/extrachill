@@ -51,6 +51,24 @@ if ( function_exists( 'extrachill_users_can_delete_own_account' ) ) {
 	}
 }
 
+/*
+ * Result of a front-end email change confirmation link. extrachill-users owns
+ * the confirmation and the notice copy; this only renders it.
+ */
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only status flag.
+$email_change_status = isset( $_GET['ec_email_change'] ) ? sanitize_key( wp_unslash( $_GET['ec_email_change'] ) ) : '';
+$email_change_notice = ( '' !== $email_change_status && function_exists( 'extrachill_users_email_change_notice' ) )
+	? extrachill_users_email_change_notice( $email_change_status )
+	: null;
+if ( $email_change_notice ) {
+	printf(
+		'<div class="notice notice-%1$s" role="%2$s"><p>%3$s</p></div>',
+		esc_attr( $email_change_notice['type'] ),
+		'error' === $email_change_notice['type'] ? 'alert' : 'status',
+		esc_html( $email_change_notice['message'] )
+	);
+}
+
 printf(
 	'<div class="%1$s" data-artist-site-url="%2$s" data-has-artists="%3$s" data-can-create-artists="%4$s" data-user-id="%5$d" data-account-deletion="%6$s" data-home-url="%7$s"></div>',
 	esc_attr( $class ),

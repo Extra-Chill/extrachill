@@ -134,6 +134,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/wp-admin-permissions.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/moderation/bootstrap.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/email-change-confirmation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/last-login.php';
