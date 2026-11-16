@@ -9,15 +9,15 @@ Join music fans and artists for conversations, recommendations, and local music 
 3. Open a topic to read the conversation. Reply if you have something useful to add, or start a new topic for a new conversation.
 4. Upvote a topic or reply you appreciate.
 
-You need to be signed in to save profile changes, cast upvotes, and see your personal notifications. If a writing or voting option is missing, sign in and check whether that forum or topic is open for new posts.
+You need to be signed in to save profile changes, post, cast upvotes, and see your personal notifications. If a writing or voting option is missing, sign in and check whether that forum or topic is open for new posts.
 
 ## Make your profile yours
 
-Open your profile and choose **Edit Profile** to add a picture, a custom title, a short bio, and links. Choose **Save Profile Changes**, then **View Public Profile** to check what other members can see.
+Open your profile and choose **Edit Profile** to add a picture, a custom title, a short bio, and links. Save your changes, then choose **View Public Profile** to check what other members can see.
 
 ## Keep up with conversations
 
-The notification bell and **Notifications** page show activity that involves you, including replies, mentions, and topics about festivals you subscribe to. The notification page also links to notification settings.
+The notification bell and **Notifications** page show activity that involves you, including replies, mentions, and topics about festivals you subscribe to. Open the page to see recent items and manage what you have read.
 
 Keep posts respectful and on topic. Share only pictures and music you have permission to share, and do not post private information. For community help, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us/).
 
