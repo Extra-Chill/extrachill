@@ -27,10 +27,11 @@ function extrachill_shop_register_get_shipping_address_ability(): void {
 			'description'         => __( 'Retrieve an artist\'s shipping from-address.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller' => extrachill_shop_seller_input_schema(),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

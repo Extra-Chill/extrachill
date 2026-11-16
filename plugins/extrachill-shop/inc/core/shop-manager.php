@@ -215,11 +215,12 @@ function extrachill_shop_register_select_seller_ability(): void {
 			'description'         => __( 'Remember the seller the current user is managing in the shop manager.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller' => extrachill_shop_seller_input_schema(),
 				),
-				'required'   => array( 'seller' ),
+				'required'             => array( 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

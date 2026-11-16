@@ -25,15 +25,16 @@ function extrachill_shop_register_get_shipping_label_ability(): void {
 			'description'         => __( 'Retrieve a seller\'s existing shipping label for an order.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'order_id' => array(
 						'type'        => 'integer',
 						'description' => 'Order ID.',
 					),
 					'seller'   => extrachill_shop_seller_input_schema(),
 				),
-				'required'   => array( 'order_id', 'seller' ),
+				'required'             => array( 'order_id', 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

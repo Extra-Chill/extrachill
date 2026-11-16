@@ -29,10 +29,11 @@ function extrachill_shop_register_stripe_status_ability(): void {
 			'description'         => __( 'Get the Stripe Connect account status for a seller (artist, venue, or promoter).', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller' => extrachill_shop_seller_input_schema(),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

@@ -27,8 +27,8 @@ function extrachill_shop_register_update_product_ability(): void {
 			'description'         => __( 'Update an existing WooCommerce product — name, pricing, stock, status, images, sizes, and shipping.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id'             => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
@@ -93,7 +93,8 @@ function extrachill_shop_register_update_product_ability(): void {
 						'description' => 'Whether the product ships free.',
 					),
 				),
-				'required'   => array( 'id' ),
+				'required'             => array( 'id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

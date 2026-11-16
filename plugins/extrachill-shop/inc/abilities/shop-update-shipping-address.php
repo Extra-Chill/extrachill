@@ -27,8 +27,8 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 			'description'         => __( 'Update a seller\'s ship-from address and/or their published shipping times and return policy.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller'        => extrachill_shop_seller_input_schema(),
 					'name'          => array(
 						'type'        => 'string',
@@ -64,7 +64,8 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 						'description' => 'Shipping times and return policy shown on the storefront and product pages. Send alone to update only the policy.',
 					),
 				),
-				'required'   => array( 'seller' ),
+				'required'             => array( 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

@@ -27,14 +27,15 @@ function extrachill_shop_register_delete_product_ability(): void {
 			'description'         => __( 'Move a WooCommerce product to the trash.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id' => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
 					),
 				),
-				'required'   => array( 'id' ),
+				'required'             => array( 'id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

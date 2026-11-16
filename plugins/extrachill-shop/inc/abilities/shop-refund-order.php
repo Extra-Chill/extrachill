@@ -29,8 +29,8 @@ function extrachill_shop_register_refund_order_ability(): void {
 			'description'         => __( 'Refund a seller\'s order in full or in part. The platform application fee is returned in proportion.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id'     => array(
 						'type'        => 'integer',
 						'description' => 'Order ID.',
@@ -45,7 +45,8 @@ function extrachill_shop_register_refund_order_ability(): void {
 						'description' => 'Optional amount to refund in dollars. Defaults to everything still refundable; cannot exceed it.',
 					),
 				),
-				'required'   => array( 'id', 'seller' ),
+				'required'             => array( 'id', 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
