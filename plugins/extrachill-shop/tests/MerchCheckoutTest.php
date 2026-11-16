@@ -5,7 +5,7 @@ require_once __DIR__ . '/fixtures/woo-refunds.php';
 
 function wp_json_encode( $value ) { return json_encode( $value ); }
 function wc_get_cart_url() { return 'https://shop.example/cart'; }
-require_once dirname( __DIR__ ) . '/inc/stripe/payment-integration.php';
+require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 
 final class MerchCheckoutItem {
 	public function get_product_id() { return 10; }

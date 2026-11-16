@@ -60,7 +60,7 @@ Stripe-Signature: t=1234567890,v1=signature...
 **Implementation Details**:
 - Requires extrachill-shop plugin for webhook processing
 - Calls `extrachill_shop_handle_webhook()` function
-- Processes **destination charges** for artist marketplace payouts
+- Processes events for **direct charges** on sellers' connected accounts
 - Webhook signature verification handled by shop plugin
 - Supports all Stripe webhook event types
 - Returns success immediately after queuing for processing

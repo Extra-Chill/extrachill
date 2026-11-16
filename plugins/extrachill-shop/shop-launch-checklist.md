@@ -28,24 +28,21 @@ Must complete before any public transactions.
   - [ ] Verify account status updates via webhook
   - [ ] Create test product linked to artist
   - [ ] Complete purchase with real payment method
-  - [ ] Verify destination charge splits correctly (90% artist / 10% platform)
+  - [ ] Verify the direct charge lands on the seller's account and the platform fee arrives as the application fee
   - [ ] Verify payout appears in artist's Stripe dashboard
   - [ ] Test with Stripe CLI for webhook reliability
 
-- [ ] **Multi-Artist Cart Test**
-  - [ ] Add products from 2+ different artists to cart
-  - [ ] Complete checkout
-  - [ ] Verify separate destination charges per artist
-  - [ ] Verify correct commission applied to each
+- [ ] **Single-Seller Cart Test**
+  - [ ] Add a product from a second seller to a cart and confirm it is rejected
+  - [ ] Complete checkout for a one-seller cart
+  - [ ] Verify the correct commission is applied
 
 - [ ] **Refund Workflow Test**
-  - [ ] Process full refund for single-artist order
-  - [ ] Process full refund for multi-artist order
+  - [ ] Process full refund for an order
   - [ ] Verify refund reaches customer
   - [ ] Verify artist payout adjusted correctly
 
 - [ ] **Edge Cases**
-  - [ ] Cart with mixed artist products + platform products (ad-free license)
   - [ ] Artist with pending Stripe account attempts product publish (should block)
   - [ ] Order placed, artist Stripe account becomes restricted before fulfillment
 
@@ -70,19 +67,6 @@ Must complete before any public transactions.
   - [ ] Link to Terms of Service
   - [ ] Link to Privacy Policy
   - [ ] Block checkout if not checked
-
-### Tax Configuration
-
-- [ ] **WooCommerce Tax Setup**
-  - [ ] Enable taxes in WooCommerce settings
-  - [ ] Configure tax rates for nexus states (SC, TX if applicable)
-  - [ ] Decide: Tax on shipping? (varies by state)
-  - [ ] Test tax calculation on checkout
-  - [ ] Verify tax appears on order receipts
-
-- [ ] **Tax Documentation**
-  - [ ] Document tax strategy for artists (they handle their own)
-  - [ ] Include in Artist Platform Agreement
 
 ---
 
@@ -114,8 +98,6 @@ Should complete before launch, but not technically blocking.
   - [ ] Validate connection before allowing shipping
 
 - [ ] **Order Status Flow**
-  - [ ] Fix multi-artist order shipping (currently marks entire order complete)
-  - [ ] Per-artist shipping status tracking
   - [ ] Customer notification with tracking info
 
 ### GDPR Compliance
@@ -171,7 +153,6 @@ Can launch without, add post-launch.
 
 - [ ] Admin dashboard for all artist orders
 - [ ] Platform-wide sales analytics
-- [ ] Automated tax reporting/filing (TaxJar upgrade)
 - [ ] Customer support ticket system
 
 ---
@@ -206,7 +187,6 @@ One week before public launch:
 ### Business
 
 - [ ] Stripe account in live mode (not test mode)
-- [ ] Tax rates configured for live transactions
 - [ ] Customer support email/process defined
 - [ ] Refund policy understood by team
 - [ ] First artist(s) onboarded and ready

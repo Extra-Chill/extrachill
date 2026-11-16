@@ -65,12 +65,3 @@ add_filter( 'woocommerce_get_settings_products', 'extrachill_shop_add_settings_f
 function extrachill_shop_requires_product_approval() {
 	return 'yes' === get_option( 'extrachill_shop_require_approval', 'yes' );
 }
-
-/**
- * Get the default post status for new artist products.
- *
- * @return string Post status ('pending' or 'publish').
- */
-function extrachill_shop_get_new_product_status() {
-	return extrachill_shop_requires_product_approval() ? 'pending' : 'publish';
-}

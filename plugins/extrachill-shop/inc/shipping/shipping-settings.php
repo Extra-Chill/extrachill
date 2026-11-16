@@ -38,14 +38,3 @@ function extrachill_shop_is_shippo_configured() {
 function extrachill_shop_get_flat_rate_per_artist() {
 	return 5.00;
 }
-
-/**
- * Get supported carrier for shipping.
- *
- * MVP: USPS only.
- *
- * @return string Carrier identifier.
- */
-function extrachill_shop_get_shipping_carrier() {
-	return 'usps';
-}

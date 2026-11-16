@@ -97,18 +97,6 @@ function extrachill_shop_seller_from_input( array $input ) {
 }
 
 /**
- * Stable grouping key for a seller: the artist ID for artists, `type:id` otherwise.
- *
- * Artist keys stay integers so existing artist payout records keep their shape.
- *
- * @param array $seller Seller reference.
- * @return int|string
- */
-function extrachill_shop_seller_key( array $seller ) {
-	return 'artist' === $seller['type'] ? (int) $seller['id'] : $seller['type'] . ':' . (int) $seller['id'];
-}
-
-/**
  * Resolve a seller's canonical identity from its owning site.
  *
  * Artists resolve through the Artist owner; venues and promoters through the
@@ -345,38 +333,6 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 	$indexed = update_option( $index, $seller, false );
 	return ( $saved || get_option( $key, false ) === $stored )
 		&& ( $indexed || get_option( $index, false ) === $seller );
-}
-
-/**
- * Read one Shop-owned Stripe account projection.
- *
- * @param int $artist_id Canonical artist profile ID.
- * @return array|false
- */
-function extrachill_shop_get_stripe_account_record( $artist_id ) {
-	return extrachill_shop_get_seller_stripe_account_record(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist_id ),
-		)
-	);
-}
-
-/**
- * Persist one Shop-owned Stripe account projection.
- *
- * @param int   $artist_id Canonical artist profile ID.
- * @param array $record    Account projection.
- * @return bool
- */
-function extrachill_shop_set_stripe_account_record( $artist_id, array $record ) {
-	return extrachill_shop_set_seller_stripe_account_record(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist_id ),
-		),
-		$record
-	);
 }
 
 /**

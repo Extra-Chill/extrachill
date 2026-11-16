@@ -36,27 +36,6 @@ function extrachill_shop_get_seller_store_url( $seller ): string {
 }
 
 /**
- * Storefront URL for a canonical artist.
- *
- * @param int $artist_profile_id Canonical artist profile ID.
- * @return string|false
- */
-function extrachill_shop_get_artist_store_url( $artist_profile_id ) {
-	$artist = extrachill_shop_get_canonical_artist( $artist_profile_id );
-	if ( is_wp_error( $artist ) ) {
-		return false;
-	}
-
-	$url = extrachill_shop_get_seller_store_url(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist['id'] ),
-		)
-	);
-	return '' === $url ? false : $url;
-}
-
-/**
  * Public identity of a seller: name and public page.
  *
  * Cached across requests because storefronts, badges and the filter bar ask

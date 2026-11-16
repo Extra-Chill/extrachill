@@ -59,7 +59,3 @@ function extrachill_shop_get_priority_boost_product_id() {
 function extrachill_shop_maybe_sync_priority_boost_product() {
 	extrachill_shop_provision_maybe_sync_product( extrachill_shop_get_priority_boost_product_config() );
 }
-
-function extrachill_shop_ensure_priority_boost_product() {
-	return extrachill_shop_provision_ensure_product( extrachill_shop_get_priority_boost_product_config() );
-}
