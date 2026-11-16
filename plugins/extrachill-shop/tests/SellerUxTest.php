@@ -80,22 +80,25 @@ namespace {
 			$fees = extrachill_shop_seller_fee_rates();
 			$this->assertSame( 10.0, $fees['merch_percent'] );
 			$this->assertSame( 0.0, $fees['ticket_percent'] );
-			$this->assertSame( 'Extra Chill fee: 10% of the item price (shipping not included).', $fees['merch_summary'] );
+			$this->assertSame( 'Merch fee: 10% of the item price (shipping not included) + card processing on the whole order (about 2.9% + $0.30).', $fees['merch_summary'] );
 			$this->assertSame( 1.0, $fees['ticket_buyer_fee_per_ticket'] );
+			$this->assertSame( array( 2.9, 0.3 ), array( $fees['processing_percent'], $fees['processing_fixed'] ) );
 			$this->assertSame( 'Tickets: you keep the full ticket price. Extra Chill takes nothing from it. Buyers pay a service fee of $1.00 per ticket plus card processing, shown at checkout.', $fees['ticket_summary'] );
 		}
 
 		public function test_ticket_wording_without_a_buyer_fee(): void {
 			$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0 );
 			$this->assertSame( 'Tickets: you keep the full ticket price. Extra Chill takes nothing from it. Buyers pay a service fee that covers card processing, shown at checkout.', extrachill_shop_seller_fee_rates()['ticket_summary'] );
-			$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0, 'ticket_processing_percent' => 0, 'ticket_processing_fixed_minor' => 0 );
+			$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0, 'processing_percent' => 0, 'processing_fixed_minor' => 0 );
 			$this->assertSame( 'Tickets: you keep the full ticket price. Extra Chill takes nothing from it.', extrachill_shop_seller_fee_rates()['ticket_summary'] );
+			// Merch sellers still pay real card processing; only the estimate is hidden.
+			$this->assertSame( 'Merch fee: 10% of the item price (shipping not included) + card processing on the whole order.', extrachill_shop_seller_fee_rates()['merch_summary'] );
 		}
 
 		public function test_fee_rates_follow_the_network_setting_checkout_charges_with(): void {
 			$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'merch_percent' => 12.5, 'ticket_percent' => 2, 'ticket_buyer_fee_flat_minor' => 100, 'ticket_buyer_fee_percent' => 3 );
 			$fees = extrachill_shop_seller_fee_rates();
-			$this->assertSame( 'Extra Chill fee: 12.5% of the item price (shipping not included).', $fees['merch_summary'] );
+			$this->assertSame( 'Merch fee: 12.5% of the item price (shipping not included) + card processing on the whole order (about 2.9% + $0.30).', $fees['merch_summary'] );
 			$this->assertSame( 1.0, $fees['ticket_buyer_fee_flat'] );
 			$this->assertSame( 'Extra Chill fee on tickets: 2% of the ticket price. Buyers pay a service fee of $1.00 per ticket plus $1.00 per order plus 3% of the ticket price plus card processing, shown at checkout.', $fees['ticket_summary'] );
 			// The rate shown is the rate charged.
@@ -107,7 +110,7 @@ namespace {
 			$GLOBALS['test_stripe_status'] = array( 'success' => true, 'status' => 'active', 'can_receive_payments' => true, 'charges_enabled' => true, 'payouts_enabled' => true, 'details_submitted' => true );
 			$connected = extrachill_shop_ability_stripe_status( array( 'seller' => self::VENUE ) );
 			$this->assertTrue( $connected['connected'] );
-			$this->assertSame( 'Extra Chill fee: 10% of the item price (shipping not included).', $connected['fees']['merch_summary'] );
+			$this->assertSame( 'Merch fee: 10% of the item price (shipping not included) + card processing on the whole order (about 2.9% + $0.30).', $connected['fees']['merch_summary'] );
 		}
 
 		// ── Disputed orders ────────────────────────────────────────────────────

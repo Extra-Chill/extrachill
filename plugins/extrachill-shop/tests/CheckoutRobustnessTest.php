@@ -73,6 +73,8 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function test_starting_checkout_makes_no_live_account_call(): void {
+		// A stored payer (every account created or updated since #1560) needs no lookup.
+		extrachill_shop_set_seller_stripe_account_record( self::VENUE, array( 'account_id' => 'acct_merch', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00', 'fee_payer' => 'application_express' ) );
 		$this->assertFalse( is_wp_error( extrachill_shop_start_merch_checkout( $this->order() ) ) );
 		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'] );
 	}
@@ -165,16 +167,17 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$this->assertStringContainsString( 'extrachill_shop_new_stripe_account_record( $account )', file_get_contents( dirname( __DIR__ ) . '/inc/stripe/stripe-connect.php' ) );
 	}
 
-	public function test_merch_fee_does_not_depend_on_the_processing_payer(): void {
-		foreach ( array( 'account', 'application_express', '' ) as $payer ) {
+	public function test_merch_fee_adds_processing_only_when_the_platform_pays(): void {
+		// $20 items + $5 shipping = $25 charge. Commission $2.00, shipping hold
+		// $5.00; processing estimate 2.9% x $25 + 30c = $1.03 (73c rounded up + 30c).
+		foreach ( array( 'account' => 700, 'application_express' => 803, 'application' => 803 ) as $payer => $fee ) {
 			$GLOBALS['ticket_session_request'] = null;
 			$GLOBALS['test_options']           = array( 'admin_email' => 'admin@extrachill.com' );
 			extrachill_shop_set_seller_stripe_account_record( self::VENUE, array( 'account_id' => 'acct_merch', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00', 'fee_payer' => $payer ) );
 			$this->assertFalse( is_wp_error( extrachill_shop_start_merch_checkout( $this->order() ) ) );
-			// 10% of the $20 items plus the $5 shipping, which pays for the label.
-			$this->assertSame( 700, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'], "payer '$payer'" );
+			$this->assertSame( $fee, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'], "payer '$payer'" );
 		}
-		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'], 'Merch checkout never looks the payer up.' );
+		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'], 'A stored payer is never looked up.' );
 	}
 
 	public function test_account_updated_for_unknown_account_is_acknowledged_without_binding(): void {

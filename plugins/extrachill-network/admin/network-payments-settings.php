@@ -189,8 +189,8 @@ function ec_commerce_fee_labels() {
 		'ticket_buyer_fee_per_ticket_minor' => __( 'Ticket service fee per ticket (paid by the buyer)', 'extrachill-network' ),
 		'ticket_buyer_fee_flat_minor'       => __( 'Ticket service fee per order (paid by the buyer)', 'extrachill-network' ),
 		'ticket_buyer_fee_percent'          => __( 'Ticket service fee percentage (paid by the buyer)', 'extrachill-network' ),
-		'ticket_processing_percent'         => __( 'Card processing estimate, percentage (added to the ticket service fee)', 'extrachill-network' ),
-		'ticket_processing_fixed_minor'     => __( 'Card processing estimate, fixed per payment (added to the ticket service fee)', 'extrachill-network' ),
+		'processing_percent'                => __( 'Card processing estimate, percentage (added to the ticket service fee, and to the merch fee when Extra Chill pays processing)', 'extrachill-network' ),
+		'processing_fixed_minor'            => __( 'Card processing estimate, fixed per payment (added to the ticket service fee, and to the merch fee when Extra Chill pays processing)', 'extrachill-network' ),
 	);
 }
 
@@ -302,7 +302,7 @@ function ec_render_network_payments_page() {
 					<tr>
 						<th colspan="2" style="padding-top: 30px;">
 							<h2><?php esc_html_e( 'Fees', 'extrachill-network' ); ?></h2>
-							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Set the estimate at or above real processing costs; the venue absorbs any shortfall on pricier cards. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Merch sellers pay card processing: when Extra Chill pays a seller\'s processing, the merch fee adds the estimate on the whole charge. Set the estimate at or above real processing costs; the venue absorbs any shortfall on pricier cards. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
 						</th>
 					</tr>
 					<?php $fees = ec_commerce_fee_settings(); ?>

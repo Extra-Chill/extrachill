@@ -109,9 +109,15 @@ function extrachill_shop_start_merch_checkout( $order ) {
 	// Extra Chill buys the postage, so the buyer's shipping joins the fee. It
 	// goes back to the seller if they ship it themselves; see shipping-recovery.php.
 	$shipping_minor = $seller ? min( $total_minor - $items_minor, extrachill_shop_order_shipping_minor( $order ) ) : 0;
-	$fee            = $account ? min( $total_minor, extrachill_commerce_fee( 'extrachill_merch', $subtotal_minor, $seller )['application_fee'] + $shipping_minor ) : 0;
-	$sessions       = extrachill_shop_order_checkout_sessions( $order );
-	$closed         = extrachill_shop_expire_previous_checkout_session( $sessions );
+	// Merch sellers pay card processing. When Extra Chill pays it (Express
+	// accounts), the fee adds the processing estimate on the whole charge; an
+	// unknown payer counts as the seller paying (commission only), so the
+	// seller is never charged processing twice. See extrachill_commerce_merch_fee().
+	$fee_payer = $account ? extrachill_shop_get_seller_fee_payer( $seller ) : '';
+	$fee_parts = $account ? extrachill_commerce_merch_fee( $subtotal_minor, $total_minor, $seller, $fee_payer, $shipping_minor ) : extrachill_commerce_merch_fee( 0, 0, null );
+	$fee       = $fee_parts['application_fee'];
+	$sessions  = extrachill_shop_order_checkout_sessions( $order );
+	$closed    = extrachill_shop_expire_previous_checkout_session( $sessions );
 	if ( is_wp_error( $closed ) ) {
 		return $closed;
 	}
@@ -148,6 +154,10 @@ function extrachill_shop_start_merch_checkout( $order ) {
 		$order->update_meta_data( '_extrachill_seller', $seller ? $seller['type'] . ':' . (int) $seller['id'] : '' );
 		$order->update_meta_data( '_extrachill_application_fee', $fee );
 		$order->update_meta_data( EXTRACHILL_SHOP_SHIPPING_HOLD_META, $shipping_minor );
+		// The processing part of the fee, kept by Extra Chill on refunds
+		// because the processor does not return it (see refunds.php).
+		$order->update_meta_data( EXTRACHILL_SHOP_PROCESSING_FEE_META, $fee_parts['processing'] );
+		$order->update_meta_data( '_extrachill_processing_payer', $account ? $fee_parts['processing_payer'] : '' );
 		$order->save();
 		return $session;
 	} catch ( \Exception $e ) {

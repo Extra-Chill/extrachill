@@ -349,7 +349,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$total    = $subtotal + $fees['buyer_fee'];
 		// The estimate rounds the percentage up, so the venue nets exactly the
 		// subtotal at the estimate...
-		$estimate = extrachill_commerce_ticket_processing_estimate( $total, ec_commerce_fee_settings() );
+		$estimate = extrachill_commerce_processing_estimate( $total, ec_commerce_fee_settings() );
 		$this->assertSame( (int) ceil( $total * 0.029 ) + 30, $estimate );
 		$this->assertSame( $subtotal, $total - $estimate - $fees['application_fee'], 'Venue nets exactly the subtotal.' );
 		// ...and the same or a cent more when the processor rounds to the nearest cent.
@@ -368,7 +368,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				$subtotal = $price * $quantity;
 				$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity );
 				$total    = $subtotal + $fees['buyer_fee'];
-				$this->assertSame( $subtotal, $total - extrachill_commerce_ticket_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
+				$this->assertSame( $subtotal, $total - extrachill_commerce_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
 				$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
 			}
 		}
@@ -376,7 +376,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0 );
 		$fees = extrachill_commerce_fee( 'extrachill_ticket', 1000, array( 'type' => 'venue', 'id' => 9911 ), 1 );
 		$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
-		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_ticket_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
+		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
 	}
 
 	public function test_free_tickets_and_platform_tickets_have_no_fee(): void {
