@@ -251,7 +251,6 @@ require_once dirname( __DIR__ ) . '/inc/core/commerce-state.php';
 require_once dirname( __DIR__ ) . '/inc/core/seller-permissions.php';
 require_once dirname( __DIR__ ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__ ) . '/inc/products/priority-boost.php';
-require_once dirname( __DIR__ ) . '/inc/core/owned-state-migration.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-stripe-status.php';
 
 require_once __DIR__ . '/fixtures/class-priority-boost-test-item.php';
