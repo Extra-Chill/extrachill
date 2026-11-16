@@ -8,7 +8,8 @@
  * attributes.
  *
  * Votes are stored as image_vote comments (see index.php). The displayed
- * count is read from those comments, not from the legacy voteCount attribute.
+ * count combines those comments with any historical count still recorded in
+ * the legacy voteCount/voters attributes (issue #1541).
  * Voter emails are NOT emitted into the DOM — the previous `voters` array in
  * this config was a public PII leak and has been removed. Duplicate-vote
  * suppression is now authoritative server-side (the vote handler rejects with
@@ -35,13 +36,19 @@ if ( ! $post_id && is_admin() ) {
 
 $block_instance_id = isset( $attributes['uniqueBlockId'] ) ? $attributes['uniqueBlockId'] : '';
 
-// Authoritative count comes from image_vote comments. Fall back to the legacy
-// voteCount attribute only if the count helper is unavailable (e.g. block
-// rendered before business logic loaded) or pre-backfill on a fresh instance.
-if ( function_exists( 'extrachill_content_blocks_image_vote_count' ) && $post_id && '' !== $block_instance_id ) {
-	$vote_count = extrachill_content_blocks_image_vote_count( $post_id, $block_instance_id );
+// Displayed count = votes stored as image_vote comments plus the historical
+// count still recorded in the legacy voteCount/voters attributes (posts that
+// predate comment storage and have not been backfilled). See
+// extrachill_content_blocks_image_vote_total() for the reconciliation rule.
+$legacy_attrs      = isset( $attributes ) && is_array( $attributes ) ? $attributes : array();
+$legacy_vote_count = function_exists( 'extrachill_content_blocks_image_vote_legacy_count_from_attrs' )
+	? extrachill_content_blocks_image_vote_legacy_count_from_attrs( $legacy_attrs )
+	: ( isset( $legacy_attrs['voteCount'] ) ? (int) $legacy_attrs['voteCount'] : 0 );
+
+if ( function_exists( 'extrachill_content_blocks_image_vote_total' ) && $post_id && '' !== $block_instance_id ) {
+	$vote_count = extrachill_content_blocks_image_vote_total( $post_id, $block_instance_id, $legacy_vote_count );
 } else {
-	$vote_count = isset( $attributes['voteCount'] ) ? (int) $attributes['voteCount'] : 0;
+	$vote_count = $legacy_vote_count;
 }
 
 $config = array(

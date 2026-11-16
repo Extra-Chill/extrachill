@@ -14,6 +14,15 @@ declare(strict_types=1);
  * The command never strips voters/voteCount from post_content — that is a
  * documented manual follow-up to run after counts are verified in production.
  *
+ * OPTIONAL since issue #1541: the read path
+ * (extrachill_content_blocks_image_vote_total()) already renders the legacy
+ * attribute counts, so historical counts display without running this. Each
+ * inserted comment is tagged with the EXTRACHILL_IMAGE_VOTE_BACKFILL_META
+ * meta so the read path reconciles it against the legacy attributes instead
+ * of double counting. Note that WordPress core counts every approved comment
+ * type except 'note' in a post's comment_count, so --execute raises the
+ * comment_count of each migrated post by its backfilled vote total.
+ *
  * @package ExtraChillContentBlocks
  * @since   1.4.0
  */
@@ -67,7 +76,7 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 	public function __invoke( $args, $assoc_args ) {
 		$execute = isset( $assoc_args['execute'] );
 
-		if ( ! function_exists( 'extrachill_content_blocks_image_vote_count' ) ) {
+		if ( ! function_exists( 'extrachill_content_blocks_image_vote_total' ) ) {
 			\WP_CLI::error( 'Image voting business logic is not loaded; activate extrachill-content-blocks first.' );
 		}
 
@@ -162,6 +171,78 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 	}
 
 	/**
+	 * Plan the backfill for one post without writing anything.
+	 *
+	 * Walks every extrachill/image-voting block (including nested ones) and,
+	 * per instance, works out which legacy voter emails and how many
+	 * emailless placeholder votes still need an image_vote comment so the
+	 * backfilled comments reach the legacy total. Idempotency is keyed on
+	 * comments already tagged as backfilled, so votes cast after the move to
+	 * comment storage are never mistaken for migrated legacy votes.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array<int,array{instance_id:string,legacy_count:int,legacy_voters:int,backfilled:int,emails:array<int,string>,emailless:int}>|null
+	 *         Per-instance plan, or null when the post does not exist.
+	 */
+	public static function plan_post( int $post_id ): ?array {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return null;
+		}
+
+		$legacy = extrachill_content_blocks_image_vote_collect_legacy( parse_blocks( (string) $post->post_content ) );
+		$plan   = array();
+
+		foreach ( $legacy as $instance_id => $votes ) {
+			$instance_id = (string) $instance_id;
+			$backfilled  = extrachill_content_blocks_image_vote_backfilled_count( $post_id, $instance_id );
+			$existing    = self::existing_voter_emails( $post_id, $instance_id );
+
+			$emails = array();
+			foreach ( $votes['voters'] as $email ) {
+				$email = sanitize_email( $email );
+				if ( '' === $email || in_array( strtolower( $email ), $existing, true ) ) {
+					continue;
+				}
+				$emails[ strtolower( $email ) ] = $email;
+			}
+
+			$plan[] = array(
+				'instance_id'   => $instance_id,
+				'legacy_count'  => $votes['count'],
+				'legacy_voters' => count( $votes['voters'] ),
+				'backfilled'    => $backfilled,
+				'emails'        => array_values( $emails ),
+				'emailless'     => max( 0, $votes['count'] - $backfilled - count( $emails ) ),
+			);
+		}
+
+		return $plan;
+	}
+
+	/**
+	 * Insert the comments described by a plan_post() result.
+	 *
+	 * @param int                                                                                                               $post_id Post ID.
+	 * @param array<int,array{instance_id:string,legacy_count:int,legacy_voters:int,backfilled:int,emails:array<int,string>,emailless:int}> $plan    Plan from plan_post().
+	 * @return int Number of comments inserted.
+	 */
+	public static function apply_plan( int $post_id, array $plan ): int {
+		$inserted = 0;
+
+		foreach ( $plan as $instance ) {
+			foreach ( $instance['emails'] as $email ) {
+				$inserted += self::insert_vote_comment( $post_id, $instance['instance_id'], $email ) ? 1 : 0;
+			}
+			for ( $i = 0; $i < $instance['emailless']; $i++ ) {
+				$inserted += self::insert_vote_comment( $post_id, $instance['instance_id'], '' ) ? 1 : 0;
+			}
+		}
+
+		return $inserted;
+	}
+
+	/**
 	 * Process a single post, backfilling each image-voting block instance.
 	 *
 	 * @param int  $post_id Post ID.
@@ -169,104 +250,54 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 	 * @return array{emails_migrated:int,emailless_synthesized:int}|null
 	 */
 	private function process_post( int $post_id, bool $execute ): ?array {
-		$post = get_post( $post_id );
-		if ( ! $post ) {
+		$plan = self::plan_post( $post_id );
+		if ( null === $plan ) {
 			\WP_CLI::warning( sprintf( 'Post %d not found — skipping.', $post_id ) );
 			return null;
 		}
 
-		$blocks = parse_blocks( $post->post_content );
-
-		$block_count            = 0;
-		$emails_migrated        = 0;
-		$emailless_synthesized  = 0;
-		$expected_total         = 0;
-		$actual_total_after     = 0;
-
 		\WP_CLI::log( sprintf( '=== Post %d: %s ===', $post_id, get_the_title( $post_id ) ) );
 
-		foreach ( $blocks as $block ) {
-			if ( ( $block['blockName'] ?? '' ) !== 'extrachill/image-voting' ) {
-				continue;
-			}
+		$emails_migrated       = 0;
+		$emailless_synthesized = 0;
+		$legacy_total          = 0;
 
-			$instance_id = (string) ( $block['attrs']['uniqueBlockId'] ?? '' );
-			if ( '' === $instance_id ) {
-				\WP_CLI::warning( '  Block with empty uniqueBlockId — skipping (cannot key votes).' );
-				continue;
-			}
-
-			++$block_count;
-
-			$voters         = array_values( (array) ( $block['attrs']['voters'] ?? array() ) );
-			$voters         = array_filter( array_map( 'strval', $voters ) );
-			$recorded_count = (int) ( $block['attrs']['voteCount'] ?? 0 );
-			$expected_total += max( $recorded_count, count( $voters ) );
-
-			// Existing image_vote comments for this instance (idempotency).
-			$already_present = extrachill_content_blocks_image_vote_count( $post_id, $instance_id );
-
-			// Which emails already have an image_vote comment for this instance.
-			$existing_emails = $this->existing_voter_emails( $post_id, $instance_id );
-
-			// Emails to migrate that are not already present.
-			$emails_to_insert = array();
-			foreach ( $voters as $email ) {
-				$email = sanitize_email( $email );
-				if ( '' === $email ) {
-					continue;
-				}
-				if ( in_array( strtolower( $email ), $existing_emails, true ) ) {
-					continue;
-				}
-				$emails_to_insert[ strtolower( $email ) ] = $email; // dedupe within the array too.
-			}
-
-			// Emailless votes to synthesize so the historical COUNT survives.
-			// Total target = max(recorded_count, distinct voter emails).
-			$target_total      = max( $recorded_count, count( $voters ) );
-			$projected_present = $already_present + count( $emails_to_insert );
-			$emailless_needed  = max( 0, $target_total - $projected_present );
-
+		foreach ( $plan as $instance ) {
 			\WP_CLI::log(
 				sprintf(
-					'  instance %s: voteCount=%d voters=%d present=%d -> +%d emails, +%d emailless',
-					$instance_id,
-					$recorded_count,
-					count( $voters ),
-					$already_present,
-					count( $emails_to_insert ),
-					$emailless_needed
+					'  instance %s: legacy=%d voters=%d backfilled=%d -> +%d emails, +%d emailless',
+					$instance['instance_id'],
+					$instance['legacy_count'],
+					$instance['legacy_voters'],
+					$instance['backfilled'],
+					count( $instance['emails'] ),
+					$instance['emailless']
 				)
 			);
 
-			if ( $execute ) {
-				foreach ( $emails_to_insert as $email ) {
-					$this->insert_vote_comment( $post_id, $instance_id, $email );
-				}
-				for ( $i = 0; $i < $emailless_needed; $i++ ) {
-					$this->insert_vote_comment( $post_id, $instance_id, '' );
-				}
-			}
+			$emails_migrated       += count( $instance['emails'] );
+			$emailless_synthesized += $instance['emailless'];
+			$legacy_total          += $instance['legacy_count'];
+		}
 
-			$emails_migrated       += count( $emails_to_insert );
-			$emailless_synthesized += $emailless_needed;
+		if ( $execute ) {
+			self::apply_plan( $post_id, $plan );
+		}
 
-			$actual_total_after += $execute
-				? extrachill_content_blocks_image_vote_count( $post_id, $instance_id )
-				: $projected_present + $emailless_needed;
+		$displayed_total = 0;
+		foreach ( $plan as $instance ) {
+			$displayed_total += extrachill_content_blocks_image_vote_total( $post_id, $instance['instance_id'], $instance['legacy_count'] );
 		}
 
 		\WP_CLI::log(
 			sprintf(
-				'  SUMMARY post %d: blocks=%d, emails=%d, emailless=%d, expected=%d, %s=%d',
+				'  SUMMARY post %d: blocks=%d, emails=%d, emailless=%d, legacy=%d, displayed=%d',
 				$post_id,
-				$block_count,
+				count( $plan ),
 				$emails_migrated,
 				$emailless_synthesized,
-				$expected_total,
-				$execute ? 'actual' : 'projected',
-				$actual_total_after
+				$legacy_total,
+				$displayed_total
 			)
 		);
 		\WP_CLI::log( '' );
@@ -284,19 +315,22 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 	 * @param string $instance_id Block instance ID.
 	 * @return string[] Lowercased emails.
 	 */
-	private function existing_voter_emails( int $post_id, string $instance_id ): array {
+	private static function existing_voter_emails( int $post_id, string $instance_id ): array {
 		$comments = get_comments(
 			array(
 				'post_id'    => $post_id,
 				'type'       => EXTRACHILL_IMAGE_VOTE_COMMENT_TYPE,
-				'meta_key'   => 'instance_id',
-				'meta_value' => $instance_id,
+				'meta_key'   => 'instance_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Single post's votes.
+				'meta_value' => $instance_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Single post's votes.
 				'status'     => 'approve',
 			)
 		);
 
 		$emails = array();
 		foreach ( (array) $comments as $comment ) {
+			if ( ! is_object( $comment ) ) {
+				continue;
+			}
 			$email = strtolower( (string) $comment->comment_author_email );
 			if ( '' !== $email ) {
 				$emails[] = $email;
@@ -312,9 +346,9 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 	 * @param int    $post_id     Post ID.
 	 * @param string $instance_id Block instance ID.
 	 * @param string $email       Voter email (empty for synthesized votes).
-	 * @return void
+	 * @return bool Whether the comment was inserted.
 	 */
-	private function insert_vote_comment( int $post_id, string $instance_id, string $email ): void {
+	private static function insert_vote_comment( int $post_id, string $instance_id, string $email ): bool {
 		$comment_id = wp_insert_comment(
 			array(
 				'comment_post_ID'      => $post_id,
@@ -326,8 +360,13 @@ class Extrachill_Content_Blocks_Image_Votes_Backfill_Command {
 			)
 		);
 
-		if ( $comment_id ) {
-			add_comment_meta( $comment_id, 'instance_id', $instance_id );
+		if ( ! $comment_id ) {
+			return false;
 		}
+
+		add_comment_meta( $comment_id, 'instance_id', $instance_id );
+		add_comment_meta( $comment_id, EXTRACHILL_IMAGE_VOTE_BACKFILL_META, '1' );
+
+		return true;
 	}
 }
