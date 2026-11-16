@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.70.1] - 2026-11-16
+
+### Fixed
+- confirm email changes on the front-end Settings page
+
 ## [0.70.0] - 2026-11-16
 
 ### Added
