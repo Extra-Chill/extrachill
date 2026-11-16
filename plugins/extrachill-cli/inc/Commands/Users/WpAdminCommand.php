@@ -36,10 +36,12 @@ class WpAdminCommand {
 		}
 		$user = null;
 		if ( isset( $args[1] ) ) {
-			$user = get_user_by( is_numeric( $args[1] ) ? 'id' : ( is_email( $args[1] ) ? 'email' : 'login' ), $args[1] );
-			if ( ! $user ) {
+			$found = get_user_by( is_numeric( $args[1] ) ? 'id' : ( is_email( $args[1] ) ? 'email' : 'login' ), $args[1] );
+			if ( ! $found instanceof \WP_User ) {
 				WP_CLI::error( 'User not found.' );
+				return;
 			}
+			$user = $found;
 		}
 		if ( 'list' === $action ) {
 			$rows = array();
@@ -54,8 +56,9 @@ class WpAdminCommand {
 			WP_CLI\Utils\format_items( 'table', $rows, array( 'ID', 'user_login' ) );
 			return;
 		}
-		if ( ! $user ) {
+		if ( ! $user instanceof \WP_User ) {
 			WP_CLI::error( 'A user is required.' );
+			return;
 		}
 		$changed = 'grant' === $action ? ec_grant_wp_admin( $user->ID ) : ec_revoke_wp_admin( $user->ID );
 		WP_CLI::success( sprintf( 'Updated %d site(s).', count( $changed ) ) );
