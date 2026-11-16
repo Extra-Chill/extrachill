@@ -21,6 +21,10 @@ This plugin powers **events.extrachill.com** (site #7 in the multisite network) 
 - **Centralized Management**: Single source of truth for all network events
 - **Clean Separation**: Main site focuses on content, events site handles calendar functionality
 
+## Ability Reference
+
+See [Event abilities](abilities.md) for input/output schemas, permission checks, transport exposure and side effects.
+
 ## Core Components
 
 ### Template System
