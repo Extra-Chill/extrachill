@@ -37,7 +37,7 @@ $intros = array(
 	'venue-link-page'    => __( 'Venue Link Pages are set up with our team while we open the venue tools up. Tell us your venue\'s name and city and we\'ll get it ready for you.', 'extrachill-contact' ),
 	'promoter-link-page' => __( 'Promoter and collective Link Pages are set up with our team. Tell us who you are and the shows or series you run, and we\'ll get you set up.', 'extrachill-contact' ),
 );
-$intro = $intros[ $subject_key ] ?? '';
+$intro  = $intros[ $subject_key ] ?? '';
 
 $config = array(
 	'endpoint'         => rest_url( 'extrachill/v1/contact/submit' ),
@@ -46,7 +46,8 @@ $config = array(
 	'turnstileSiteKey' => $turnstile_site_key,
 	'subjects'         => array_values( $subjects ),
 	'initialSubject'   => $initial_subject,
-	'newsletterNotice' => "By submitting this form, you'll receive our newsletter with music news, festival coverage, and platform updates.",
+	// Unchecked by default: a contact message is not newsletter consent.
+	'newsletterOptIn'  => 'Also send me the Extra Chill newsletter',
 	'successMessage'   => "Your message has been sent successfully. We'll get back to you soon.",
 	'successAction'    => array(
 		'url'   => home_url( '/blog/' ),

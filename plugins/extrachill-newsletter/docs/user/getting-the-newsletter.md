@@ -21,7 +21,7 @@ These forms sign you up for the same Extra Chill newsletter. You only need to si
 ## Other ways to sign up
 
 - **When creating an Extra Chill account:** Select **Email me the Extra Chill newsletter** if you want to receive it. The box is optional and starts unchecked. The newsletter goes to the email address for your account.
-- **When sending a message through the [contact form](https://extrachill.com/contact-us/):** The form says that sending it will sign you up. Submitting the form adds your email address to the newsletter.
+- **When sending a message through the [contact form](https://extrachill.com/contact-us/):** Select **Also send me the Extra Chill newsletter** if you want to receive it. The box is optional and starts unchecked. Sending a message without it does not sign you up.
 
 ## Not getting the newsletter?
 

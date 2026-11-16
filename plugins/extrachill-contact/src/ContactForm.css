@@ -59,12 +59,6 @@
   min-height: 120px;
 }
 
-.ec-contact-form__notice {
-  font-size: var(--font-size-sm, 0.8125rem);
-  color: var(--muted-text, #6b7280);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
 .ec-contact-form__turnstile {
   margin: var(--spacing-md, 1rem) 0;
   display: flex;

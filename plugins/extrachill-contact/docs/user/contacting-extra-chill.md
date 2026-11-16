@@ -8,15 +8,16 @@ Have a question, an idea, or a problem? The contact form sends your message stra
 2. Enter your **Name** and **Email**. Use the email address on your Extra Chill account if your message is about your account.
 3. Pick a **Subject** that fits best: **General Inquiry**, **Partnership/Collaboration**, **Promoter or Collective Link Page**, **Venue Link Page**, **Shop/Store Support**, **Technical Issue**, or **Other**.
 4. Write your **Message**. Include links, order details, or the page where you saw a problem so the team can help faster.
-5. Send the form.
+5. If you want the newsletter too, check **Also send me the Extra Chill newsletter**. The box starts unchecked.
+6. Send the form.
 
-All four fields are required. A quick security check runs in the background before your message goes through.
+Name, Email, Subject, and Message are required. The newsletter box is optional. A quick security check runs in the background before your message goes through.
 
 ## What happens next
 
 When your message goes through, you see **Your message has been sent successfully. We'll get back to you soon.** You also get an email titled **Extra Chill Got Your Message** with a copy of what you wrote. The team aims to reply within 3–5 business days.
 
-Sending the form also adds you to the Extra Chill newsletter; you can unsubscribe anytime. Use the unsubscribe link at the bottom of any newsletter email. See [Newsletter help](https://docs.extrachill.com/newsletter).
+Sending a message does not sign you up for the newsletter. You only get it if you check **Also send me the Extra Chill newsletter**. You can unsubscribe anytime with the link at the bottom of any newsletter email. See [Newsletter help](https://docs.extrachill.com/newsletter).
 
 ## Common requests
 

@@ -7,7 +7,7 @@
  * The underlying extrachill/contact-submit ability (registered in the
  * extrachill-contact plugin) owns all of the contact-submission logic:
  * Cloudflare Turnstile verification, input sanitisation, admin + user
- * email dispatch, and Sendy newsletter sync.
+ * email dispatch, and newsletter sync when the sender opts in.
  *
  * Because the ability performs Turnstile verification itself, this route
  * does NOT verify Turnstile at the HTTP boundary — Turnstile tokens are
@@ -68,6 +68,12 @@ function extrachill_api_register_contact_submit_route() {
 					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'esc_url_raw',
 				),
+				// Unchecked opt-in box: absent means no newsletter signup.
+				'newsletter_opt_in'  => array(
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
+				),
 			),
 		)
 	);
@@ -89,6 +95,7 @@ function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
 		'subject'            => $request->get_param( 'subject' ),
 		'message'            => $request->get_param( 'message' ),
 		'turnstile_response' => $request->get_param( 'turnstile_response' ),
+		'newsletter_opt_in'  => true === $request->get_param( 'newsletter_opt_in' ),
 	);
 
 	// Only include source_url when the client sent it: forwarding a null

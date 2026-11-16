@@ -5,7 +5,8 @@ export interface ContactFormProps {
   subjects: string[];
   /** Subject preselected when the form loads (must be one of `subjects`). */
   initialSubject?: string;
-  newsletterNotice?: string;
+  /** Label for the unchecked newsletter opt-in box. Omit to hide the box. */
+  newsletterOptIn?: string;
   successMessage?: string;
   successAction?: {
     label: string;
@@ -21,6 +22,7 @@ export interface ContactFormData {
   email: string;
   subject: string;
   message: string;
+  newsletter_opt_in: boolean;
   turnstile_response?: string;
 }
 
