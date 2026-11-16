@@ -297,6 +297,15 @@ class VenueQualificationAbilities {
 			$fingerprint['platforms_detected'] = QualifyFingerprinter::build_platforms_list( $html, $origin );
 		}
 
+		$patronmanager = QualifyFingerprinter::build_patronmanager_hint(
+			$fingerprint['platforms_detected'],
+			$html,
+			(string) $fingerprint['final_url']
+		);
+		if ( null !== $patronmanager ) {
+			$fingerprint['patronmanager'] = $patronmanager;
+		}
+
 		// Event-page shape classification — drives per-shape thresholds in
 		// QualifyVerdictResolver. Always populated (even on fetch failure)
 		// so downstream code can rely on the key. See QualifyFingerprinter
@@ -326,6 +335,20 @@ class VenueQualificationAbilities {
 			$ran_any     = false;
 
 			$urls_to_try = $this->buildCandidateUrls( $url, $origin, $html );
+
+			// PatronManager: try the org's ticket site first so a qualifying
+			// verdict recommends it as the events URL. Skipped when the
+			// qualified URL already is the ticket site.
+			if ( null !== $patronmanager
+				&& '' === PlatformDetector::patronmanager_ticket_url_from_url( $url ) ) {
+				array_unshift(
+					$urls_to_try,
+					array(
+						'url'    => $patronmanager['ticket_url'],
+						'method' => 'patronmanager_ticket_site',
+					)
+				);
+			}
 
 			foreach ( $urls_to_try as $candidate ) {
 				if ( in_array( $candidate['url'], $urls_tested, true ) ) {
@@ -554,6 +577,10 @@ class VenueQualificationAbilities {
 		if ( '' !== ( $resolved['improvement_hint'] ?? '' )
 			&& ! QualifyVerdict::is_qualified( $resolved['verdict'] ) ) {
 			$warnings[] = $resolved['improvement_hint'];
+		}
+
+		if ( ! empty( $fingerprint['patronmanager']['note'] ) ) {
+			$warnings[] = (string) $fingerprint['patronmanager']['note'];
 		}
 
 		$repair_proposal = null;

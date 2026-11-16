@@ -60,6 +60,7 @@ class QualifyFingerprinter {
 		'MusicItemExtractor',
 		'NocodeflowExtractor',
 		'OpenDateExtractor',
+		'PatronManagerExtractor',
 		'PrekindleExtractor',
 		'RedRocksExtractor',
 		'RhpEventsExtractor',
@@ -93,6 +94,7 @@ class QualifyFingerprinter {
 		'eventbrite'          => 'EventbriteExtractor',
 		'wordpress_tribe'     => 'WordPressExtractor',
 		'wordpress_generic'   => 'GenericHtmlEventsExtractor',
+		'patronmanager'       => 'PatronManagerExtractor',
 		// reservation-only platforms have no extractor by design
 		'opentable'           => '',
 		'resy'                => '',
@@ -222,6 +224,48 @@ class QualifyFingerprinter {
 		}
 
 		return array_values( array_unique( $platforms ) );
+	}
+
+	/**
+	 * Build the PatronManager routing hint for a fingerprint.
+	 *
+	 * When the page is (or links to) a PatronManager ticket site, the
+	 * canonical events source is the org's `https://<org>.my.salesforce-sites.com/ticket/`
+	 * page — the PatronManagerExtractor reads it directly. Multi-venue orgs
+	 * (e.g. Iron Horse + Parlor Room share one ticket site) need a
+	 * `?patronmanager_venue=<venueId>` filter on the flow source URL; the
+	 * venue id is only knowable from the ticket API, so it is flagged as
+	 * required-if-multi-venue rather than guessed.
+	 *
+	 * @param array<int,string> $platforms Detected platforms.
+	 * @param string            $html      Page HTML.
+	 * @param string            $page_url  Final page URL.
+	 * @return array|null Hint, or null when PatronManager is not detected
+	 *                    or no single ticket-site URL can be resolved.
+	 */
+	public static function build_patronmanager_hint( array $platforms, string $html, string $page_url ): ?array {
+		if ( ! in_array( 'patronmanager', $platforms, true ) ) {
+			return null;
+		}
+
+		$ticket_url = PlatformDetector::patronmanager_ticket_url_from_url( $page_url );
+		if ( '' === $ticket_url ) {
+			$ticket_url = PlatformDetector::detect_patronmanager_ticket_url( $html );
+		}
+		if ( '' === $ticket_url ) {
+			return null;
+		}
+
+		return array(
+			'ticket_url'         => $ticket_url,
+			'venue_filter_param' => 'patronmanager_venue',
+			'venue_id'           => null,
+			'note'               => sprintf(
+				'PatronManager ticket site detected (%s). If this org sells tickets for more than one venue, a PatronManager venueId is needed: use %s?patronmanager_venue=<venueId> as the flow source URL. The venue id was not guessed.',
+				$ticket_url,
+				$ticket_url
+			),
+		);
 	}
 
 	/**
