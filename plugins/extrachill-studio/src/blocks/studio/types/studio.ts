@@ -14,6 +14,7 @@ export interface StudioContext {
 	socialPlatforms: string[];
 	/** Whether the user may access the shared brand social accounts. */
 	canBrandSocials: boolean;
+	canReviewSubmissions?: boolean;
 	networkSites: StudioSite[];
 }
 
