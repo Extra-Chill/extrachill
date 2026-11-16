@@ -1,4 +1,11 @@
+/**
+ * External dependencies
+ */
 import { useState, useEffect, useRef } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import type { ContactFormProps, ContactFormData, ContactFormStatus } from './types';
 import './ContactForm.css';
 
@@ -242,9 +249,10 @@ export function ContactForm({
 
         {newsletterOptIn && (
           <div className="ec-contact-form__group">
-            <label className="ec-checkbox-row">
+            <label htmlFor="ec-contact-newsletter-opt-in" className="ec-checkbox-row">
               <input
                 type="checkbox"
+                id="ec-contact-newsletter-opt-in"
                 name="newsletter_opt_in"
                 checked={formData.newsletter_opt_in}
                 onChange={handleOptInChange}

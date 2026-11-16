@@ -58,7 +58,7 @@ class Test_Contact_Form_Render extends WP_UnitTestCase {
 		$built  = (string) file_get_contents( $root . '/assets/contact-form.iife.js' );
 
 		$this->assertStringContainsString( 'newsletter_opt_in: false,', $source, 'The opt-in box must start unchecked.' );
-		$this->assertStringContainsString( '<label className="ec-checkbox-row">', $source );
+		$this->assertStringContainsString( '<label htmlFor="ec-contact-newsletter-opt-in" className="ec-checkbox-row">', $source );
 		$this->assertStringContainsString( 'type="checkbox"', $source );
 		$this->assertStringContainsString( 'newsletter_opt_in: Boolean(newsletterOptIn) && formData.newsletter_opt_in,', $source );
 		$this->assertStringNotContainsString( 'newsletterNotice', $source );
