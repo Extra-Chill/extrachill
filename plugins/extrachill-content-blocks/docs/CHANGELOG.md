@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.0] - 2026-11-16
+
+### Added
+- public QR generator for musicians, logged-out ads opt-in
+
 ## [1.13.4] - 2026-11-02
 
 ### Changed
