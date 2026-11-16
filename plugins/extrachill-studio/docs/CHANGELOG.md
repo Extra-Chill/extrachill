@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.29.0] - 2026-11-16
+
+### Added
+- add per-person read-only submission review tab
+
 ## [0.28.9] - 2026-11-15
 
 ### Changed
