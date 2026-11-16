@@ -66,22 +66,23 @@ function extrachill_content_blocks_generate_band_name( $input, $genre, $numberOf
 	}
 	$bandName = trim( $bandName );
 
-	if ( $numberOfWords == 4 && $addAndTheMiddle ) {
-		$tempArray     = explode( ' ', $bandName );
-		$tempArray[1] .= ' & The';
-		$bandName      = implode( ' ', $tempArray );
-		if ( $addTheStart ) {
-			$bandName = 'The ' . $bandName;
+	if ( $addAndTheMiddle ) {
+		if ( 4 === (int) $numberOfWords ) {
+			$tempArray     = explode( ' ', $bandName );
+			$tempArray[1] .= ' & The';
+			$bandName      = implode( ' ', $tempArray );
+		} else {
+			$bandName = preg_replace( '/ /', ' & The ', $bandName, 1 );
 		}
-	} elseif ( $addTheStart && ! $addAndTheMiddle ) {
-			$bandName = 'The ' . $bandName;
-	} elseif ( ! $addTheStart && $addAndTheMiddle ) {
-		$bandName = preg_replace( '/ /', ' & The ', $bandName, 1 );
-	} elseif ( $addTheStart && $addAndTheMiddle ) {
-		$bandName = 'The ' . preg_replace( '/ /', ' & The ', $bandName, 1 );
 	}
 
-	$bandName = $input . ' ' . $bandName;
+	$bandName = trim( $input . ' ' . $bandName );
+
+	// "The" must lead the whole name, so it is applied after the user's word is
+	// prepended. Skip it when the name already starts with "The" to avoid "The The".
+	if ( $addTheStart && ! preg_match( '/^the(\s|$)/i', $bandName ) ) {
+		$bandName = 'The ' . $bandName;
+	}
 
 	return $bandName;
 }
