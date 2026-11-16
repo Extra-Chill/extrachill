@@ -1,0 +1,13 @@
+{
+  "apiVersion": 3,
+  "name": "extrachill/qr-code-generator",
+  "title": "QR Code Generator",
+  "icon": "grid-view",
+  "category": "widgets",
+  "description": "Generate free static QR codes that never expire.",
+  "textdomain": "extrachill-content-blocks",
+  "supports": { "html": false },
+  "editorScript": "file:./index.js",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

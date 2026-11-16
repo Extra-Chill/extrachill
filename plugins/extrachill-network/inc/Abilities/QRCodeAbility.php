@@ -32,8 +32,8 @@ class QRCodeAbility {
 	 * Data Machine resolves `qr_url` through this filter and omits the QR
 	 * block when nothing answers. The returned temp PNG is owned and
 	 * deleted by the template. Calls this class's own generator directly:
-	 * drawing a QR into an image is not a privileged operation, so it
-	 * does not go through the REST permission gate.
+	 * generation is public and shares the same validation and rate limits
+	 * as the REST and CLI consumers.
 	 *
 	 * @param string|null $path Path from an earlier provider, if any.
 	 * @param mixed       $url  Unvalidated filter input for the URL to encode.
@@ -118,18 +118,53 @@ class QRCodeAbility {
 	}
 
 	/**
-	 * Preserve Admin Tools' automation and network-admin access contract.
+	 * Stateless generation is public; execution enforces resource limits.
 	 */
 	public function check_permission(): bool {
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			return true;
+		return true;
+	}
+
+	/**
+	 * Allow 30 requests per hour for both the source IP and signed-in user.
+	 *
+	 * Only REMOTE_ADDR is trusted, never caller-supplied forwarding headers.
+	 * Hash identifiers so transient names do not retain raw IP addresses.
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function check_rate_limit() {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- hashed only, never rendered or used as an address.
+		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) wp_unslash( $_SERVER['REMOTE_ADDR'] ) : 'unknown';
+		$keys = array( 'ec_qr_ip_' . hash( 'sha256', $ip ) );
+		$user = get_current_user_id();
+		if ( $user ) {
+			$keys[] = 'ec_qr_user_' . $user;
 		}
 
-		if ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) {
-			return true;
+		$buckets = array();
+		foreach ( $keys as $key ) {
+			$bucket = get_transient( $key );
+			if ( ! is_array( $bucket ) || $bucket['expires'] <= time() ) {
+				$bucket = array(
+					'count'   => 0,
+					'expires' => time() + HOUR_IN_SECONDS,
+				);
+			}
+			if ( $bucket['count'] >= 30 ) {
+				return new \WP_Error(
+					'qr_rate_limited',
+					__( 'You can generate 30 QR codes per hour. Please try again later.', 'extrachill-network' ),
+					array( 'status' => 429 )
+				);
+			}
+			$buckets[ $key ] = $bucket;
 		}
 
-		return current_user_can( 'manage_network_options' );
+		foreach ( $buckets as $key => $bucket ) {
+			++$bucket['count'];
+			set_transient( $key, $bucket, max( 1, (int) $bucket['expires'] - time() ) );
+		}
+		return true;
 	}
 
 	/**
@@ -139,12 +174,23 @@ class QRCodeAbility {
 	 * @return array|\WP_Error
 	 */
 	public function execute( array $input ) {
-		if ( ! class_exists( '\\Endroid\\QrCode\\QrCode' ) ) {
-			return new \WP_Error( 'dependency_missing', 'Endroid QR Code library not available.' );
+		if ( ! isset( $input['url'] ) || ! is_string( $input['url'] ) ) {
+			return new \WP_Error( 'invalid_url', 'Please provide a valid HTTP or HTTPS URL.', array( 'status' => 400 ) );
+		}
+		if ( strlen( $input['url'] ) > self::MAX_URL_LENGTH ) {
+			return new \WP_Error( 'url_too_long', 'URL cannot exceed 2048 characters.', array( 'status' => 400 ) );
+		}
+		if ( ! filter_var( $input['url'], FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) wp_parse_url( $input['url'], PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
+			return new \WP_Error( 'invalid_url', 'Please provide a valid HTTP or HTTPS URL.', array( 'status' => 400 ) );
 		}
 
-		if ( strlen( $input['url'] ) > self::MAX_URL_LENGTH ) {
-			return new \WP_Error( 'url_too_long', 'URL cannot exceed 2048 characters.' );
+		$allowed = $this->check_rate_limit();
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		if ( ! class_exists( '\\Endroid\\QrCode\\QrCode' ) ) {
+			return new \WP_Error( 'dependency_missing', 'Endroid QR Code library not available.' );
 		}
 
 		$size = isset( $input['size'] ) ? absint( $input['size'] ) : 1000;
