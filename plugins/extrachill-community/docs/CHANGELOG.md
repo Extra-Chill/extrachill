@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.31.1] - 2026-11-16
+
+### Changed
+- Run Docs Agent
+
 ## [1.31.0] - 2026-11-15
 
 ### Added
