@@ -1,23 +1,20 @@
 # Venue Preferences
 
-Venue preferences let you choose whether Extra Chill sends account notifications about events at a venue. Following a venue does not share the email address on your Extra Chill account or add you to a mailing list.
+Want to keep up with shows at the venues you love? Extra Chill does not have venue preferences or alerts for a single venue. Here is what you can use instead.
 
-## Event notifications
+## Get a weekly email of shows near you
 
-Turn on event notifications to get an Extra Chill account notification when a new event is published for that venue.
+The weekly Local Scene digest sends you one email a week with upcoming shows in your city, including shows at your favorite venues.
 
-Turning this off stops those notifications.
+1. Set your [Local Scene](https://docs.extrachill.com/accounts/local-scene) to the city where the venue is.
+2. Turn on the weekly Local Scene digest in your account settings.
 
-## Subscriptions are separate
+See [Notifications and email digests](https://docs.extrachill.com/accounts/notifications-and-digests) for the full steps. You can also sign up from an event page that offers **Get this week's shows** in that city **by email**.
 
-Venue event notifications do not subscribe you to a venue mailing list or an Extra Chill newsletter. If you submit an Extra Chill newsletter form, that subscription belongs to Extra Chill and remains separate from your venue preferences.
+## Check the venue's calendar
 
-Changing your venue preferences does not change any subscription you joined through a separate signup form.
+Every venue on the [events calendar](https://events.extrachill.com) has its own page listing its upcoming shows. Open any event and select the venue name to get there, or use the calendar filters to narrow down to one venue. See [Using calendar filters](https://docs.extrachill.com/events-calendar/using-calendar-filters).
 
-## Change your preferences
+## Save the shows you want
 
-1. Log in to Extra Chill.
-2. Open the venue's event page.
-3. Use the controls under **Venue preferences**.
-
-You can turn venue event notifications on or off at any time.
+When you find a show you want to see, mark it in [My Shows](https://events.extrachill.com/my-shows) to keep your plans in one place. See [Getting started with My Shows](https://docs.extrachill.com/events-calendar/getting-started-with-my-shows).

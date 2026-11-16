@@ -1,6 +1,6 @@
 # Share music
 
-Share a song, release, or recommendation and invite other fans into the conversation. **Music Discussion** is a good place for music posts. Choose **Local Scenes** when your post is about music or artists in your area.
+Share a song, release, or recommendation and invite other fans into the conversation. **Music Discussion** is a good place for music posts. Choose **Live Shows & Scenes** when your post is about shows or artists in your area.
 
 ## Start a music post
 

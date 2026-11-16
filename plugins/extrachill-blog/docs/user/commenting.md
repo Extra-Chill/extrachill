@@ -1,15 +1,24 @@
 # Join the conversation
 
-The article page is the place to check whether you can leave a comment. The controls shown there determine what you can do.
+Have a take on an article? Leave a comment below the story to share it with other readers and the writer.
 
-## Check the article page
+## Leave a comment
 
-Open the article and look below the story for a comment form. If one is shown, follow its on-screen prompts, including any sign-in or required details it asks for. After submitting, follow the page message to see whether your comment was received.
+1. Sign in to your Extra Chill account. If you are signed out, the article shows **Log in to leave a comment.** where the comment form would be.
+2. Open the article and scroll below the story to the comment form.
+3. Write your comment and submit it.
 
-If no comment form appears, the page does not offer a way to comment at that time. Availability can differ by article, so check the article itself.
+Comments from signed-in members appear right away, with no wait for review. To answer someone else, choose **Reply** under their comment.
+
+If an article says **Comments are closed.**, you can still read the comments already there, but you cannot add new ones.
+
+## Where your comments show up
+
+- **On the article.** Your comment shows your picture, your name, and the date you posted it.
+- **On your community profile.** Once you have commented, your profile shows how many blog comments you have left. Select that count to open your comments feed, which lists every comment you have left on Extra Chill articles. Anyone who visits your profile can open it.
 
 ## If you cannot post
 
-- If the page asks you to sign in, sign in and return to the article.
-- Check that you have completed every required field shown in the form.
-- If there is no comment form, you cannot add a comment to that article from the page as it is currently shown.
+- If you do not see a comment form, make sure you are signed in, then return to the article.
+- Check whether the article says **Comments are closed.**
+- If something still looks wrong, [contact Extra Chill](https://extrachill.com/contact-us).
