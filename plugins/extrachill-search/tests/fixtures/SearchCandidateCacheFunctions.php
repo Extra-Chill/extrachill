@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- Standalone test stubs mirror WordPress core signatures and globals.
 /**
  * Object-cache and post hydration stubs for standalone search tests.
  *

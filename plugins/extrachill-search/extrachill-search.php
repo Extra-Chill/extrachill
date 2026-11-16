@@ -23,30 +23,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class ExtraChill_Search_Plugin {
 
-    const VERSION = '0.2.1';
+	const VERSION = '0.2.1';
 
-    private static $instance = null;
+	/**
+	 * Singleton instance.
+	 *
+	 * @var self|null
+	 */
+	private static $instance = null;
 
-    public static function get_instance() {
-        if ( null === self::$instance ) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
 
-    private function __construct() {
-        $this->init_hooks();
-        $this->includes();
-    }
+	private function __construct() {
+		$this->init_hooks();
+		$this->includes();
+	}
 
-    private function init_hooks() {
-        register_activation_hook( __FILE__, array( $this, 'activate' ) );
-        register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	private function init_hooks() {
+		register_activation_hook( __FILE__, array( $this, 'activate' ) );
+		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
 
-        add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
-        add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
-        add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
-        add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
+		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_filter( 'extrachill_template_search', array( $this, 'override_search_template' ), 10 );
+		add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
+		add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
 		add_action( 'extrachill_search_performed', array( $this, 'track_search_analytics' ), 10, 3 );
 		add_action( 'pre_get_posts', 'extrachill_route_frontend_search', 20 );
 		add_filter( 'posts_pre_query', 'extrachill_short_circuit_frontend_search', 10, 2 );
@@ -54,7 +59,7 @@ class ExtraChill_Search_Plugin {
 		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
 		add_filter( 'posts_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );
 		add_filter( 'site_status_tests', 'extrachill_register_search_site_health_test' );
-    }
+	}
 
 	/**
 	 * Write a `search` analytics event for genuine frontend human searches only.
@@ -108,31 +113,31 @@ class ExtraChill_Search_Plugin {
 		);
 	}
 
-    /**
-     * Inject inline JS that adds source_page hidden field to all search forms.
-     *
-     * Captures the current page URL so analytics can reliably track where
-     * searches originate, instead of relying on wp_get_referer().
-     */
-    public function inject_search_source_tracking() {
-        ?>
-        <script>
-        document.querySelectorAll('form[role="search"], form.search-form').forEach(function(form) {
-            if (!form.querySelector('input[name="source_page"]')) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'source_page';
-                input.value = window.location.href;
-                form.appendChild(input);
-            }
-        });
-        </script>
-        <?php
-    }
+	/**
+	 * Inject inline JS that adds source_page hidden field to all search forms.
+	 *
+	 * Captures the current page URL so analytics can reliably track where
+	 * searches originate, instead of relying on wp_get_referer().
+	 */
+	public function inject_search_source_tracking() {
+		?>
+		<script>
+		document.querySelectorAll('form[role="search"], form.search-form').forEach(function(form) {
+			if (!form.querySelector('input[name="source_page"]')) {
+				var input = document.createElement('input');
+				input.type = 'hidden';
+				input.name = 'source_page';
+				input.value = window.location.href;
+				form.appendChild(input);
+			}
+		});
+		</script>
+		<?php
+	}
 
-    private function includes() {
-        $includes_dir = plugin_dir_path( __FILE__ ) . 'inc/';
-        $templates_dir = plugin_dir_path( __FILE__ ) . 'templates/';
+	private function includes() {
+		$includes_dir  = plugin_dir_path( __FILE__ ) . 'inc/';
+		$templates_dir = plugin_dir_path( __FILE__ ) . 'templates/';
 
 		require_once $includes_dir . 'core/search-functions.php';
 		require_once $includes_dir . 'core/search-scope.php';
@@ -140,13 +145,13 @@ class ExtraChill_Search_Plugin {
 		require_once $includes_dir . 'core/search-algorithm.php';
 		require_once $includes_dir . 'core/taxonomy-functions.php';
 
-        if ( version_compare( get_bloginfo( 'version' ), '6.9', '>=' ) ) {
-            require_once $includes_dir . 'core/abilities.php';
-        }
+		if ( version_compare( get_bloginfo( 'version' ), '6.9', '>=' ) ) {
+			require_once $includes_dir . 'core/abilities.php';
+		}
 
-        require_once $templates_dir . 'template-functions.php';
-        require_once $templates_dir . 'site-badge.php';
-    }
+		require_once $templates_dir . 'template-functions.php';
+		require_once $templates_dir . 'site-badge.php';
+	}
 
 	public function activate( $network_wide = false ) {
 		if ( is_multisite() && $network_wide ) {
@@ -183,38 +188,38 @@ class ExtraChill_Search_Plugin {
 		}
 	}
 
-    public function deactivate() {
-        flush_rewrite_rules();
-    }
+	public function deactivate() {
+		flush_rewrite_rules();
+	}
 
-    public function load_textdomain() {
-        load_plugin_textdomain( 'extrachill-search', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
-    }
+	public function load_textdomain() {
+		load_plugin_textdomain( 'extrachill-search', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+	}
 
-    public function override_search_template( $template ) {
-        $plugin_template = plugin_dir_path( __FILE__ ) . 'templates/search.php';
-        if ( file_exists( $plugin_template ) ) {
-            return $plugin_template;
-        }
-        return $template;
-    }
+	public function override_search_template( $template ) {
+		$plugin_template = plugin_dir_path( __FILE__ ) . 'templates/search.php';
+		if ( file_exists( $plugin_template ) ) {
+			return $plugin_template;
+		}
+		return $template;
+	}
 
-    /**
-     * Prevent 404 errors on paginated multisite search when current site has no results
-     */
-    public function fix_search_404() {
-        if ( ! is_404() ) {
-            return;
-        }
+	/**
+	 * Prevent 404 errors on paginated multisite search when current site has no results
+	 */
+	public function fix_search_404() {
+		if ( ! is_404() ) {
+			return;
+		}
 
-        $search_term = get_query_var( 's' );
-        if ( empty( $search_term ) || ! function_exists( 'extrachill_network_search' ) ) {
-            return;
-        }
+		$search_term = get_query_var( 's' );
+		if ( empty( $search_term ) || ! function_exists( 'extrachill_network_search' ) ) {
+			return;
+		}
 
-        $paged = max( 1, get_query_var( 'paged', 1 ) );
-        $posts_per_page = (int) get_option( 'posts_per_page', 10 );
-        $offset = ( $paged - 1 ) * $posts_per_page;
+		$paged          = max( 1, get_query_var( 'paged', 1 ) );
+		$posts_per_page = (int) get_option( 'posts_per_page', 10 );
+		$offset         = ( $paged - 1 ) * $posts_per_page;
 
 		$site_urls = function_exists( 'extrachill_search_scope_site_urls' )
 			? extrachill_search_scope_site_urls()
@@ -230,13 +235,13 @@ class ExtraChill_Search_Plugin {
 			)
 		);
 
-        if ( ! empty( $search_data['results'] ) ) {
-            global $wp_query;
-            $wp_query->is_404 = false;
-            $wp_query->is_search = true;
-            status_header( 200 );
-        }
-    }
+		if ( ! empty( $search_data['results'] ) ) {
+			global $wp_query;
+			$wp_query->is_404    = false;
+			$wp_query->is_search = true;
+			status_header( 200 );
+		}
+	}
 }
 
 ExtraChill_Search_Plugin::get_instance();
