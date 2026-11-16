@@ -606,8 +606,11 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
  * @return array Hydrated search result.
  */
 function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
-	$post_title = get_the_title();
-	$permalink  = get_permalink();
+	// Pass the post explicitly: callers only run setup_postdata(), which does
+	// not set the global $post these template tags fall back to.
+	$post_title = get_the_title( $post );
+	$permalink  = get_permalink( $post );
+	$content    = get_the_content( null, false, $post );
 
 	if ( 'reply' === $post->post_type && ! empty( $post->post_parent ) ) {
 		$topic_id    = $post->post_parent;
@@ -646,8 +649,8 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
 	return array(
 		'ID'            => $post->ID,
 		'post_title'    => $post_title,
-		'post_content'  => get_the_content(),
-		'post_excerpt'  => has_excerpt() ? get_the_excerpt() : wp_trim_words( get_the_content(), 30 ),
+		'post_content'  => $content,
+		'post_excerpt'  => has_excerpt( $post ) ? get_the_excerpt( $post ) : wp_trim_words( $content, 30 ),
 		'post_date'     => $post->post_date,
 		'post_modified' => $post->post_modified,
 		'post_type'     => $post->post_type,
