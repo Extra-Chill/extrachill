@@ -376,8 +376,8 @@ function add_comment_meta( $comment_id, $key, $value ) {
 }
 
 /**
- * Supports: post_id, type, meta_key/meta_value, status=approve, count,
- * author_email — the exact shape the image-voting backend uses.
+ * Supports: post_id, type, meta_key/meta_value, AND-only meta_query
+ * (key/value equality), status=approve, count, author_email — the exact shape the image-voting backend uses.
  */
 function get_comments( array $args ) {
 	$results = array();
@@ -400,6 +400,17 @@ function get_comments( array $args ) {
 			$like = 'LIKE' === ( $args['meta_compare'] ?? '=' );
 			if ( $like ? ! str_contains( (string) $meta[ $args['meta_key'] ], (string) $args['meta_value'] ) : (string) $meta[ $args['meta_key'] ] !== (string) $args['meta_value'] ) {
 				continue;
+			}
+		}
+		if ( ! empty( $args['meta_query'] ) && is_array( $args['meta_query'] ) ) {
+			$meta = $GLOBALS['wp_test_comment_meta'][ (int) $comment->comment_ID ] ?? array();
+			foreach ( $args['meta_query'] as $clause ) {
+				if ( ! is_array( $clause ) ) {
+					continue;
+				}
+				if ( ! isset( $meta[ $clause['key'] ] ) || (string) $meta[ $clause['key'] ] !== (string) $clause['value'] ) {
+					continue 2;
+				}
 			}
 		}
 		$results[] = $comment;

@@ -36,3 +36,7 @@ require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-list.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-entry-qr.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-top.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/image-voting-list.php';
+
+// Legacy image-vote backfill planner (CLI output paths are not exercised).
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/cli/class-image-votes-backfill-command.php';
