@@ -79,7 +79,6 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/stripe-connect.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/checkout-handler.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/webhooks.php';
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/payment-integration.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/refunds.php';
 
 		// Shipping integration

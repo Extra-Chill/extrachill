@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for Shop-owned state migration and architecture boundaries.
+ * Tests for Shop-owned commerce state and architecture boundaries.
  *
  * @package ExtraChillShop
  */
@@ -22,6 +22,13 @@ final class CommerceStateMigrationTest extends TestCase {
 		};
 	}
 
+	private static function artist( int $id ): array {
+		return array(
+			'type' => 'artist',
+			'id'   => $id,
+		);
+	}
+
 	public function test_typed_seller_records_do_not_collide(): void {
 		foreach ( array( 'artist', 'venue', 'promoter' ) as $type ) {
 			$seller = array(
@@ -33,14 +40,14 @@ final class CommerceStateMigrationTest extends TestCase {
 			$this->assertTrue( extrachill_shop_update_stripe_account_by_id( 'acct_' . $type, 'active', true ) );
 			$this->assertSame( 'active', extrachill_shop_get_seller_stripe_account_record( $seller )['status'] );
 		}
-		$this->assertSame( 'acct_artist', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
+		$this->assertSame( 'acct_artist', extrachill_shop_get_seller_stripe_account_record( self::artist( 9 ) )['account_id'] );
 	}
 
 	public function test_artist_era_option_and_integer_index_are_ignored(): void {
 		// The legacy per-artist option and integer reverse index are gone (#1401).
 		update_option( 'extrachill_shop_stripe_artist_9', array( 'account_id' => 'acct_old', 'status' => 'pending' ) );
 		update_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', 'acct_old' ), 9 );
-		$this->assertFalse( extrachill_shop_get_stripe_account_record( 9 ) );
+		$this->assertFalse( extrachill_shop_get_seller_stripe_account_record( self::artist( 9 ) ) );
 		$this->assertFalse( get_option( 'extrachill_shop_stripe_seller_artist:9', false ) );
 		$this->assertFalse( extrachill_shop_update_stripe_account_by_id( 'acct_old', 'active', true ) );
 	}
@@ -65,45 +72,13 @@ final class CommerceStateMigrationTest extends TestCase {
 			$this->assertInstanceOf( WP_Error::class, extrachill_shop_validate_seller_ref( $seller ) );
 			$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_invalid' ) ) );
 		}
-		$this->assertTrue( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_one' ) ) );
+		$this->assertTrue( extrachill_shop_set_seller_stripe_account_record( self::artist( 9 ), array( 'account_id' => 'acct_one' ) ) );
 		$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( array(
 			'type' => 'venue',
 			'id'   => 9,
 		), array( 'account_id' => 'acct_one' ) ) );
-		$this->assertFalse( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_two' ) ) );
-		$this->assertSame( 'acct_one', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
-	}
-
-	public function test_stripe_migration_is_dry_run_then_idempotent(): void {
-		$legacy = array(
-			'account_id'          => 'acct_legacy',
-			'status'              => 'active',
-			'onboarding_complete' => true,
-		);
-
-		$this->assertSame( 'pending', extrachill_shop_migrate_stripe_record( 9, $legacy, false ) );
-		$this->assertFalse( extrachill_shop_get_stripe_account_record( 9 ) );
-		$this->assertSame( 'imported', extrachill_shop_migrate_stripe_record( 9, $legacy, true ) );
-		$this->assertSame( 'unchanged', extrachill_shop_migrate_stripe_record( 9, $legacy, true ) );
-		$this->assertSame( 'acct_legacy', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
-	}
-
-	public function test_stripe_migration_rejects_conflicting_replay(): void {
-		extrachill_shop_migrate_stripe_record( 9, array( 'account_id' => 'acct_one' ), true );
-
-		$this->assertSame( 'conflict', extrachill_shop_migrate_stripe_record( 9, array( 'account_id' => 'acct_two' ), true ) );
-		$this->assertSame( 'acct_one', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
-	}
-
-	public function test_paid_boost_migration_uses_owner_contract(): void {
-		$order = new PriorityBoostTestOrder( 44, array() );
-		$item  = new PriorityBoostTestItem( 10, 101, '', 'Legacy event' );
-
-		$this->assertSame( 'pending', extrachill_shop_migrate_priority_boost_item( $order, $item, false ) );
-		$this->assertSame( 'migrated', extrachill_shop_migrate_priority_boost_item( $order, $item, true ) );
-		$this->assertSame( 'unchanged', extrachill_shop_migrate_priority_boost_item( $order, $item, true ) );
-		$this->assertSame( '101', $GLOBALS['test_owner_calls'][0]['args']['body']['input']['event'] );
-		$this->assertSame( EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_SCOPE, $GLOBALS['test_owner_calls'][0]['args']['service_assertion']['scope'] );
+		$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( self::artist( 9 ), array( 'account_id' => 'acct_two' ) ) );
+		$this->assertSame( 'acct_one', extrachill_shop_get_seller_stripe_account_record( self::artist( 9 ) )['account_id'] );
 	}
 
 	public function test_source_grant_is_exact_and_configuration_driven(): void {
@@ -165,7 +140,7 @@ final class CommerceStateMigrationTest extends TestCase {
 	}
 
 	public function test_public_stripe_status_omits_raw_account_reference(): void {
-		extrachill_shop_set_stripe_account_record( 12, array( 'account_id' => 'acct_sensitive' ) );
+		extrachill_shop_set_seller_stripe_account_record( self::artist( 12 ), array( 'account_id' => 'acct_sensitive' ) );
 		$GLOBALS['test_stripe_status'] = array(
 			'success'              => true,
 			'status'               => 'active',

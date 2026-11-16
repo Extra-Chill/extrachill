@@ -59,7 +59,3 @@ function extrachill_shop_get_lifetime_membership_product_id() {
 function extrachill_shop_maybe_sync_lifetime_membership_product() {
 	extrachill_shop_provision_maybe_sync_product( extrachill_shop_get_lifetime_membership_product_config() );
 }
-
-function extrachill_shop_ensure_lifetime_membership_product() {
-	return extrachill_shop_provision_ensure_product( extrachill_shop_get_lifetime_membership_product_config() );
-}
