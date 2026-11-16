@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.13.0] - 2026-11-16
+
+### Added
+- per-ticket service fee that keeps venues at full ticket price
+
 ## [0.12.6] - 2026-11-15
 
 ### Fixed
