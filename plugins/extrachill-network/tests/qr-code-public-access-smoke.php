@@ -18,6 +18,7 @@ function wp_unslash( $value ) { return $value; }
 function get_current_user_id() { return $GLOBALS['qr_user']; }
 function wp_parse_url( $url, $component ) { return parse_url( $url, $component ); }
 function absint( $value ) { return abs( (int) $value ); }
+function did_action( $hook ) { return 0; }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function get_transient( $key ) {
 	$entry = $GLOBALS['qr_transients'][ $key ] ?? null;
