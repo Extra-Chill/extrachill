@@ -1,5 +1,6 @@
 # The events/venues/artists operator adapters call extrachill-events services
 # and the extrachill-network genre resolver, which load on the owner site.
+# The users wp-admin adapter calls the extrachill-users grant API.
 parameters:
 	scanFiles:
 		- ../extrachill-events/inc/core/genre-sync.php
@@ -16,3 +17,4 @@ parameters:
 		- ../extrachill-events/inc/Core/VenueRequalifier.php
 		- ../extrachill-events/inc/Core/VenueTierClassifier.php
 		- ../extrachill-network/inc/taxonomy/genre.php
+		- ../extrachill-users/inc/wp-admin-permissions.php

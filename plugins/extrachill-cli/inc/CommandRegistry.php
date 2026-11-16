@@ -99,6 +99,7 @@ class CommandRegistry {
 			'extrachill users'                            => Commands\Users\BanCommand::class,
 			'extrachill users access'                     => Commands\Users\ArtistAccessCommand::class,
 			'extrachill users team'                       => Commands\Users\TeamCommand::class,
+			'extrachill users wp-admin'                   => Commands\Users\WpAdminCommand::class,
 			'extrachill users settings'                   => Commands\Users\SettingsCommand::class,
 			'extrachill users profile'                    => Commands\Users\ProfileCommand::class,
 			'extrachill users avatar-snapshot'            => Commands\Users\AvatarSnapshotCommand::class,
