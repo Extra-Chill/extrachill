@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import type { ContestConfig, Entry, SubmitResponse } from '../types';
 import { getSavedEmail, saveEmail } from '../storage';
-import { isValidEmail } from '../utils';
+import { isValidEmail, PHOTO_CONTEST_EMAIL_DISCLOSURE } from '../utils';
 import { ContestDialog } from './ContestDialog';
 import { shrinkPhoto } from '../image';
 import { SharePanel } from './SharePanel';
@@ -302,6 +302,7 @@ export function SubmissionForm( {
 									? "So we can reach you if you win. We'll email you your entry link. One entry per email."
 									: 'So we can reach you if you win. One entry per email.' }
 							</p>
+							<p>{ PHOTO_CONTEST_EMAIL_DISCLOSURE }</p>
 							<label>
 								Instagram (optional)
 								<input

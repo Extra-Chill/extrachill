@@ -34,8 +34,13 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				'account_id'       => 'acct_venue',
 				'status'           => 'active',
 				'status_synced_at' => '2026-11-01T00:00:00+00:00',
+				// The venue pays processing (a Standard account): #1553's math.
+				'fee_payer'        => 'account',
 			),
 		);
+		$GLOBALS['test_transients']          = array();
+		$GLOBALS['test_stripe_status']       = null;
+		$GLOBALS['test_stripe_status_calls'] = array();
 		$GLOBALS['test_user_id']           = 551;
 		$GLOBALS['test_site_options']      = array();
 		$GLOBALS['test_blog_options']      = array();
@@ -204,6 +209,122 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller, 2 ) );
 	}
 
+	/** @return array<string,array{int,int,string,int,int}> */
+	public static function payer_orders(): array {
+		// price, quantity, Stripe controller.fees.payer, service fee, application fee.
+		return array(
+			'account pays, $20 x 1'      => array( 2000, 1, 'account', 194, 100 ),
+			'account pays, $20 x 4'      => array( 2000, 4, 'account', 682, 400 ),
+			'Express pays, $20 x 1'      => array( 2000, 1, 'application_express', 194, 194 ),
+			'Express pays, $20 x 4'      => array( 2000, 4, 'application_express', 682, 682 ),
+			'application pays, $20 x 1'  => array( 2000, 1, 'application', 194, 194 ),
+			'application pays, $20 x 4'  => array( 2000, 4, 'application', 682, 682 ),
+		);
+	}
+
+	/**
+	 * The buyer pays the same either way; the application fee follows who
+	 * Stripe debits for processing, so the venue nets the subtotal and Extra
+	 * Chill about $1 per ticket in both cases.
+	 *
+	 * @dataProvider payer_orders
+	 */
+	public function test_application_fee_follows_the_processing_fee_payer( int $price, int $quantity, string $payer, int $service_fee, int $application_fee ): void {
+		$subtotal = $price * $quantity;
+		$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity, $payer );
+		$this->assertSame( array(
+			'buyer_fee'       => $service_fee,
+			'application_fee' => $application_fee,
+		), $fees );
+		$total = $subtotal + $fees['buyer_fee'];
+		// What Stripe takes (2.9% + 30¢, nearest cent) and from whom.
+		$processing = (int) round( $total * 0.029 ) + 30;
+		if ( 'account' === $payer ) {
+			$venue_net    = $total - $processing - $fees['application_fee'];
+			$platform_net = $fees['application_fee'];
+		} else {
+			$venue_net    = $total - $fees['application_fee'];
+			$platform_net = $fees['application_fee'] - $processing;
+		}
+		$this->assertSame( $subtotal, $venue_net, 'Venue nets exactly the subtotal.' );
+		$this->assertSame( 100 * $quantity, $platform_net, 'Extra Chill nets $1 per ticket.' );
+	}
+
+	public function test_unknown_payer_uses_the_venue_safe_account_math(): void {
+		$seller  = array( 'type' => 'venue', 'id' => 9911 );
+		$account = extrachill_commerce_fee( 'extrachill_ticket', 8000, $seller, 4, 'account' );
+		foreach ( array( '', 'something_new' ) as $payer ) {
+			$this->assertSame( 'account', extrachill_commerce_processing_payer( $payer ) );
+			$this->assertSame( $account, extrachill_commerce_fee( 'extrachill_ticket', 8000, $seller, 4, $payer ), "payer '$payer'" );
+		}
+		$this->assertSame( $account, extrachill_commerce_fee( 'extrachill_ticket', 8000, $seller, 4 ) );
+		foreach ( array( 'application', 'application_express', 'application_custom' ) as $payer ) {
+			$this->assertSame( 'platform', extrachill_commerce_processing_payer( $payer ) );
+		}
+		// Whoever really pays, the venue never nets less than the subtotal.
+		$total      = 8000 + $account['buyer_fee'];
+		$processing = (int) round( $total * 0.029 ) + 30;
+		$this->assertSame( 8000, $total - $processing - $account['application_fee'] );
+		$this->assertGreaterThanOrEqual( 8000, $total - $account['application_fee'] );
+	}
+
+	public function test_seller_fee_is_still_taken_from_the_venue_when_the_platform_pays(): void {
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_percent' => 5 );
+		$fees = extrachill_commerce_fee( 'extrachill_ticket', 2000, array( 'type' => 'venue', 'id' => 9911 ), 1, 'application_express' );
+		$this->assertSame( 2000 - 100, 2000 + $fees['buyer_fee'] - $fees['application_fee'] );
+	}
+
+	public function test_express_checkout_charges_the_full_service_fee_as_application_fee(): void {
+		$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['fee_payer'] = 'application_express';
+		$this->assertSame( 'cs_ticket', $this->checkout()['session_id'] );
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		// The buyer pays the same $22.97; the whole $2.97 Service fee is the application fee.
+		$this->assertSame( 297, $params['line_items'][1]['price_data']['unit_amount'] );
+		$this->assertSame( 297, $params['payment_intent_data']['application_fee_amount'] );
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( 2297, $order['amounts']['total_minor'] );
+		$this->assertSame( 297, $order['amounts']['application_fee_minor'] );
+		$this->assertSame( 'platform', $order['amounts']['processing_payer'] );
+		$this->assertSame( 297, $order['sales']['fees_minor'] );
+		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'], 'A stored payer needs no Stripe call.' );
+		// A full refund returns the application fee actually charged.
+		extrachill_shop_route_webhook_event( $this->event() );
+		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) ) );
+		list( $refund ) = $GLOBALS['ticket_refunds'][0];
+		$this->assertArrayNotHasKey( 'amount', $refund );
+		$this->assertTrue( $refund['refund_application_fee'] );
+		$this->assertSame( '297', $refund['metadata']['application_fee_minor'] );
+	}
+
+	public function test_unknown_payer_is_looked_up_once_and_cached(): void {
+		unset( $GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['fee_payer'] );
+		$GLOBALS['test_stripe_status'] = array(
+			'success'   => true,
+			'fee_payer' => 'application_express',
+		);
+		$this->checkout();
+		$this->assertSame( 297, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9911 ) )['fee_payer'] );
+		// The status Stripe reported earlier is kept.
+		$this->assertSame( 'active', extrachill_shop_get_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9911 ) )['status'] );
+		$this->checkout();
+		$this->assertSame( array( 'acct_venue' ), $GLOBALS['test_stripe_status_calls'] );
+	}
+
+	public function test_failed_payer_lookup_falls_back_to_the_venue_safe_fee(): void {
+		unset( $GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['fee_payer'] );
+		$GLOBALS['test_stripe_status'] = array(
+			'success' => false,
+			'error'   => 'timeout',
+		);
+		$this->checkout();
+		$this->assertSame( 200, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$this->assertSame( 'account', $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['amounts']['processing_payer'] );
+		// The miss is remembered briefly: the next checkout does not ask again.
+		$this->checkout();
+		$this->assertSame( array( 'acct_venue' ), $GLOBALS['test_stripe_status_calls'] );
+	}
+
 	/** @return array<string,array{int,int}> */
 	public static function ticket_orders(): array {
 		$cases = array();
@@ -228,7 +349,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$total    = $subtotal + $fees['buyer_fee'];
 		// The estimate rounds the percentage up, so the venue nets exactly the
 		// subtotal at the estimate...
-		$estimate = extrachill_commerce_ticket_processing_estimate( $total, ec_commerce_fee_settings() );
+		$estimate = extrachill_commerce_processing_estimate( $total, ec_commerce_fee_settings() );
 		$this->assertSame( (int) ceil( $total * 0.029 ) + 30, $estimate );
 		$this->assertSame( $subtotal, $total - $estimate - $fees['application_fee'], 'Venue nets exactly the subtotal.' );
 		// ...and the same or a cent more when the processor rounds to the nearest cent.
@@ -247,7 +368,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				$subtotal = $price * $quantity;
 				$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity );
 				$total    = $subtotal + $fees['buyer_fee'];
-				$this->assertSame( $subtotal, $total - extrachill_commerce_ticket_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
+				$this->assertSame( $subtotal, $total - extrachill_commerce_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
 				$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
 			}
 		}
@@ -255,7 +376,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0 );
 		$fees = extrachill_commerce_fee( 'extrachill_ticket', 1000, array( 'type' => 'venue', 'id' => 9911 ), 1 );
 		$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
-		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_ticket_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
+		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
 	}
 
 	public function test_free_tickets_and_platform_tickets_have_no_fee(): void {
@@ -295,6 +416,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			'total_minor'           => 2297,
 			'application_fee_minor' => 200,
 			'currency'              => 'usd',
+			'processing_payer'      => 'account',
 		), $order['amounts'] );
 		$this->assertSame( 2297, $order['sales']['gross_minor'] );
 		$this->assertSame( 200, $order['sales']['fees_minor'] );

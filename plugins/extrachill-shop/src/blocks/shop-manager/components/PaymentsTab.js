@@ -52,11 +52,12 @@ const PaymentsTab = ( {
 						{ sellsTickets && <li>{ fees.ticket_summary }</li> }
 					</ul>
 					<p className="ec-asm__muted">
-						The fee is taken automatically when the buyer pays.
-						Payment processing fees on merch come out of your payout
-						account separately.
+						The fee is taken automatically when the buyer pays. On
+						merch, you also pay card processing on the whole order
+						(item price plus shipping); it is taken at the same
+						time.
 						{ sellsTickets &&
-							' On tickets, the buyer’s service fee covers them.' }
+							' On tickets, the buyer’s service fee covers card processing.' }
 					</p>
 				</div>
 			) }

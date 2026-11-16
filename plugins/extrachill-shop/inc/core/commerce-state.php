@@ -319,6 +319,13 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 	if ( is_array( $existing ) && ( $existing['account_id'] ?? '' ) !== $account_id ) {
 		return false;
 	}
+	// Who pays card processing on direct charges (Stripe's
+	// `controller.fees.payer`). Callers that only know the status pass no
+	// payer, so a known payer is kept rather than wiped.
+	$fee_payer = sanitize_key( (string) ( $record['fee_payer'] ?? '' ) );
+	if ( '' === $fee_payer && is_array( $existing ) ) {
+		$fee_payer = sanitize_key( (string) ( $existing['fee_payer'] ?? '' ) );
+	}
 	$stored = array(
 		'version'             => 2,
 		'seller'              => $seller,
@@ -327,6 +334,8 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
 		// Set only when `status` came from Stripe (account.updated or a live read).
 		'status_synced_at'    => (string) ( $record['status_synced_at'] ?? '' ),
+		// Stripe controller.fees.payer as reported; empty when not known yet.
+		'fee_payer'           => $fee_payer,
 		'updated_at'          => gmdate( 'c' ),
 	);
 	if ( 'artist' === $seller['type'] ) {
@@ -371,14 +380,91 @@ function extrachill_shop_set_stripe_account_record( $artist_id, array $record ) 
 }
 
 /**
+ * Who pays card processing on a Stripe account's direct charges.
+ *
+ * Reads Stripe's `controller.fees.payer` from an Account object, a webhook
+ * payload, or the same shape as an array. `account` means the connected
+ * account pays; `application`, `application_express` and
+ * `application_custom` mean the platform (Extra Chill) pays.
+ *
+ * @param object|array|null $account Stripe Account (or its array form).
+ * @return string Sanitized payer, or '' when the account does not say.
+ */
+function extrachill_shop_stripe_fee_payer( $account ): string {
+	$value = $account;
+	foreach ( array( 'controller', 'fees', 'payer' ) as $field ) {
+		if ( is_array( $value ) ) {
+			$value = $value[ $field ] ?? null;
+		} elseif ( is_object( $value ) ) {
+			$value = $value->$field ?? null;
+		} else {
+			return '';
+		}
+	}
+	return is_scalar( $value ) ? sanitize_key( (string) $value ) : '';
+}
+
+/**
+ * The record saved for a newly created connected account.
+ *
+ * @param object|array $account `\Stripe\Account::create()` response.
+ * @return array Account projection for `extrachill_shop_set_seller_stripe_account_record()`.
+ */
+function extrachill_shop_new_stripe_account_record( $account ): array {
+	return array(
+		'account_id'          => (string) ( is_array( $account ) ? ( $account['id'] ?? '' ) : ( $account->id ?? '' ) ),
+		'status'              => 'pending',
+		'onboarding_complete' => false,
+		'fee_payer'           => extrachill_shop_stripe_fee_payer( $account ),
+	);
+}
+
+/**
+ * Who pays card processing on a seller's direct charges.
+ *
+ * Reads the stored payer, which account creation, `account.updated` and
+ * status refreshes keep. A record saved before the payer was stored is
+ * looked up from Stripe once and the answer is saved. A failed lookup is
+ * remembered briefly so a busy checkout does not ask Stripe every time; the
+ * ticket fee treats '' as "the account pays", which keeps the venue whole
+ * (see `extrachill_commerce_processing_payer()`).
+ *
+ * @param array $seller Seller reference.
+ * @return string Payer, or '' when unknown.
+ */
+function extrachill_shop_get_seller_fee_payer( $seller ): string {
+	$record = extrachill_shop_get_seller_stripe_account_record( $seller );
+	if ( ! $record || empty( $record['account_id'] ) ) {
+		return '';
+	}
+	if ( ! empty( $record['fee_payer'] ) ) {
+		return sanitize_key( (string) $record['fee_payer'] );
+	}
+	$key = 'extrachill_shop_stripe_fee_payer_miss_' . hash( 'sha256', (string) $record['account_id'] );
+	if ( false !== get_transient( $key ) ) {
+		return '';
+	}
+	$status = function_exists( 'extrachill_shop_get_account_status' ) ? extrachill_shop_get_account_status( $record['account_id'] ) : array( 'success' => false );
+	$payer  = ! empty( $status['success'] ) ? sanitize_key( (string) ( $status['fee_payer'] ?? '' ) ) : '';
+	if ( '' === $payer ) {
+		set_transient( $key, 1, EXTRACHILL_SHOP_STRIPE_LIVE_STATUS_TTL );
+		return '';
+	}
+	$record['fee_payer'] = $payer;
+	extrachill_shop_set_seller_stripe_account_record( $seller, $record );
+	return $payer;
+}
+
+/**
  * Update status fields for a connected account webhook.
  *
- * @param string $account_id Stripe account ID.
- * @param string $status Account status.
+ * @param string $account_id          Stripe account ID.
+ * @param string $status              Account status.
  * @param bool   $onboarding_complete Whether onboarding is complete.
+ * @param string $fee_payer           Stripe `controller.fees.payer`; '' keeps the stored one.
  * @return bool
  */
-function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onboarding_complete ) {
+function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onboarding_complete, $fee_payer = '' ) {
 	$seller = extrachill_shop_validate_seller_ref(
 		get_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', (string) $account_id ), false )
 	);
@@ -390,6 +476,9 @@ function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onb
 	$record['status']              = sanitize_key( $status );
 	$record['onboarding_complete'] = (bool) $onboarding_complete;
 	$record['status_synced_at']    = gmdate( 'c' );
+	if ( '' !== (string) $fee_payer ) {
+		$record['fee_payer'] = (string) $fee_payer;
+	}
 	return extrachill_shop_set_seller_stripe_account_record( $seller, $record );
 }
 
@@ -399,7 +488,8 @@ function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onb
  * Stripe account status is cached in Shop-owned storage.
  *
  * @param string $account_id Stripe account ID.
- * @param array  $account_data Account data from webhook.
+ * @param array  $account_data Account data from webhook (`charges_enabled`,
+ *                             `payouts_enabled`, `details_submitted`, `fee_payer`).
  * @return bool False when no seller is bound to the account.
  */
 function extrachill_shop_update_account_status_cache( $account_id, $account_data ) {
@@ -410,7 +500,7 @@ function extrachill_shop_update_account_status_cache( $account_id, $account_data
 		$status = 'restricted';
 	}
 
-	return extrachill_shop_update_stripe_account_by_id( $account_id, $status, ! empty( $account_data['details_submitted'] ) );
+	return extrachill_shop_update_stripe_account_by_id( $account_id, $status, ! empty( $account_data['details_submitted'] ), (string) ( $account_data['fee_payer'] ?? '' ) );
 }
 
 /**

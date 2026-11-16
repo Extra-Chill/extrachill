@@ -14,6 +14,11 @@
  * those stores never had (the per-ticket service fee and the card processing
  * estimate) use the shipped defaults in `ec_commerce_fee_new_defaults()`.
  *
+ * The card processing estimate (`processing_percent`, `processing_fixed_minor`)
+ * is shared by tickets and merch. It was first saved as
+ * `ticket_processing_percent` / `ticket_processing_fixed_minor`; those keys
+ * are still read when the new ones are missing (`ec_commerce_fee_legacy_keys()`).
+ *
  * @package ExtraChillNetwork
  */
 
@@ -32,8 +37,23 @@ function ec_commerce_fee_fields() {
 		'ticket_buyer_fee_per_ticket_minor' => false,
 		'ticket_buyer_fee_flat_minor'       => false,
 		'ticket_buyer_fee_percent'          => true,
-		'ticket_processing_percent'         => true,
-		'ticket_processing_fixed_minor'     => false,
+		'processing_percent'                => true,
+		'processing_fixed_minor'            => false,
+	);
+}
+
+/**
+ * Renamed keys: current key => the key it was saved under before.
+ *
+ * The processing estimate started as a ticket-only setting (#1553) and now
+ * also sets the merch application fee (#1563).
+ *
+ * @return array<string,string>
+ */
+function ec_commerce_fee_legacy_keys() {
+	return array(
+		'processing_percent'     => 'ticket_processing_percent',
+		'processing_fixed_minor' => 'ticket_processing_fixed_minor',
 	);
 }
 
@@ -46,24 +66,25 @@ function ec_commerce_fee_fields() {
  * @return array<string,float>
  */
 function ec_commerce_fee_percent_caps() {
-	return array( 'ticket_processing_percent' => 50.0 );
+	return array( 'processing_percent' => 50.0 );
 }
 
 /**
  * Shipped defaults for keys the legacy stores never had.
  *
  * - `ticket_buyer_fee_per_ticket_minor`: $1 per ticket, paid by the buyer.
- * - `ticket_processing_percent` / `ticket_processing_fixed_minor`: the card
- *   processing estimate (2.9% + 30¢) the ticket service fee is grossed up by,
- *   so the venue nets the full ticket subtotal.
+ * - `processing_percent` / `processing_fixed_minor`: the card processing
+ *   estimate (2.9% + 30¢). The ticket service fee is grossed up by it, so the
+ *   venue nets the full ticket subtotal; the merch application fee adds it
+ *   when Extra Chill pays the seller's processing.
  *
  * @return array<string,float|int>
  */
 function ec_commerce_fee_new_defaults() {
 	return array(
 		'ticket_buyer_fee_per_ticket_minor' => 100,
-		'ticket_processing_percent'         => 2.9,
-		'ticket_processing_fixed_minor'     => 30,
+		'processing_percent'                => 2.9,
+		'processing_fixed_minor'            => 30,
 	);
 }
 
@@ -93,7 +114,8 @@ function ec_commerce_fee_defaults() {
 /**
  * Clamp fee values: percentages to 0-100 (or a lower cap from
  * `ec_commerce_fee_percent_caps()`), flat amounts to whole minor units of at
- * least 0. A missing or non-numeric value keeps its fallback.
+ * least 0. A missing or non-numeric value keeps its fallback. A key saved
+ * under its old name (`ec_commerce_fee_legacy_keys()`) is read from there.
  *
  * @param array $values   Submitted or stored values.
  * @param array $fallback Values used for missing or invalid keys.
@@ -102,6 +124,11 @@ function ec_commerce_fee_defaults() {
 function ec_commerce_fee_sanitize( array $values, array $fallback ) {
 	$clean = array();
 	$caps  = ec_commerce_fee_percent_caps();
+	foreach ( ec_commerce_fee_legacy_keys() as $key => $legacy ) {
+		if ( ! isset( $values[ $key ] ) && isset( $values[ $legacy ] ) ) {
+			$values[ $key ] = $values[ $legacy ];
+		}
+	}
 	foreach ( ec_commerce_fee_fields() as $key => $is_percent ) {
 		$value         = isset( $values[ $key ] ) && is_numeric( $values[ $key ] ) ? (float) $values[ $key ] : (float) ( $fallback[ $key ] ?? 0 );
 		$value         = max( 0.0, $value );

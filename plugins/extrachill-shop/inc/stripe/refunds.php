@@ -12,8 +12,13 @@
  * because the fee also holds the buyer's shipping, and shipping already spent
  * on an Extra Chill label is not given back:
  *
- * - Commission (fee minus shipping hold) is returned in proportion to the
- *   share of the charge refunded so far.
+ * - Commission (fee minus shipping hold and processing) is returned in
+ *   proportion to the share of the charge refunded so far.
+ * - Processing: when Extra Chill pays the seller's card processing, the fee
+ *   includes the processing estimate (`EXTRACHILL_SHOP_PROCESSING_FEE_META`,
+ *   see `extrachill_commerce_merch_fee()`). It is never returned, not even on
+ *   a full refund: the processor keeps its fee on a refund, Extra Chill paid
+ *   it, and a seller who pays processing themselves is in the same place.
  * - Shipping hold: no label bought, returned when the order is fully refunded;
  *   label bought, kept (it paid for the postage); returned to the seller
  *   already when they shipped themselves, so nothing more.
@@ -26,6 +31,9 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+/** Order meta: card processing (minor units) included in the application fee at checkout. */
+const EXTRACHILL_SHOP_PROCESSING_FEE_META = '_extrachill_processing_fee_minor';
 
 /**
  * Payout record for one seller on an order.
@@ -192,7 +200,8 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
  * seller once the order's refunds so far are applied.
  *
  * Cumulative, so every refund (and a retry) tops the fee refund up to this
- * target instead of adding to it.
+ * target instead of adding to it. The processing part of the fee is never
+ * part of the target.
  *
  * @param WC_Order $order     Order. Its total refunded already includes the refund being processed.
  * @param int      $fee_minor Application fee collected on the charge.
@@ -201,7 +210,9 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 function extrachill_shop_merch_fee_refund_target( $order, $fee_minor ) {
 	$fee_minor  = max( 0, (int) $fee_minor );
 	$hold_minor = min( $fee_minor, max( 0, (int) $order->get_meta( EXTRACHILL_SHOP_SHIPPING_HOLD_META ) ) );
-	$commission = $fee_minor - $hold_minor;
+	// Processing Extra Chill paid stays with it (orders from before #1563 have none).
+	$processing = min( $fee_minor - $hold_minor, max( 0, (int) $order->get_meta( EXTRACHILL_SHOP_PROCESSING_FEE_META ) ) );
+	$commission = $fee_minor - $hold_minor - $processing;
 	$total      = max( 0, (int) round( (float) $order->get_total() * 100 ) );
 	$refunded   = min( $total, max( 0, (int) round( (float) $order->get_total_refunded() * 100 ) ) );
 	$full       = $total > 0 && $refunded >= $total;

@@ -83,8 +83,7 @@ const ShowList = ( {
 		<div className="ec-concert-stats__show-list">
 			{ canRate && pastIds.length > 0 && (
 				<p className="ec-concert-stats__ratings-note">
-					Only you see your ratings. They help us suggest shows
-					you&rsquo;ll like.
+					Only you see your ratings.
 				</p>
 			) }
 			{ shows.map( ( show ) => (

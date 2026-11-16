@@ -169,6 +169,7 @@ describe( 'ShowList', () => {
 			'Only you see your ratings.'
 		);
 		expect( container.textContent ).not.toContain( 'need' );
+		expect( container.textContent ).not.toContain( 'suggest' );
 		await act( async () => root.unmount() );
 	} );
 

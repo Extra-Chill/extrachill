@@ -14,6 +14,7 @@ Your vote counts right away. The vote count on the photo goes up and the button 
 
 - **One vote per email per photo.** You can vote for as many different photos as you like.
 - **After your first vote, voting is one tap.** Your email is remembered on that device, so the next **Vote** button you select counts your vote right away.
+- **Sharing a phone?** After you vote, **Voting as** shows the remembered email. Select **Not you?** to have the device forget it, so the next person is asked for their own email.
 - **Already voted for a photo?** The button changes to **Voted ✓** and your vote isn't counted twice.
 
 ## Which photos show first
@@ -22,7 +23,7 @@ Photos with the most votes move to the top each time the page loads. Photos with
 
 ## What happens with your email
 
-Your email is used to make sure each person votes only once per photo. It is never shown on the page. Voting may also add your email to an Extra Chill mailing list. You can unsubscribe at any time. See [Unsubscribing from the Newsletter](https://docs.extrachill.com/newsletter/unsubscribing).
+Your email is used to make sure each person votes only once per photo. It is never shown on the page. Voting signs your email up for Extra Chill emails, and the voting form says so. You can unsubscribe at any time. See [Unsubscribing from the Newsletter](https://docs.extrachill.com/newsletter/unsubscribing).
 
 ## If something goes wrong
 

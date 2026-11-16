@@ -59,7 +59,7 @@ The buyer's email doesn't include tracking, so if they ask, send them the tracki
 
 The money goes back the way the buyer paid. A full refund includes shipping and changes the order to **refunded**. After a partial refund, the order shows **Refunded so far**, and you can refund more later, up to what's left.
 
-Extra Chill's fee is returned to you in proportion. Refund $10 of a $25 order and you get back $10/$25 of the fee. On a full refund the buyer's shipping charge comes back to you too, unless it already paid for an Extra Chill label. In that case the postage was spent, so that part stays with Extra Chill.
+Extra Chill's fee is returned to you in proportion. Refund $10 of a $25 order and you get back $10/$25 of the fee. On a full refund the buyer's shipping charge comes back to you too, unless it already paid for an Extra Chill label. In that case the postage was spent, so that part stays with Extra Chill. Card processing on the original payment doesn't come back on any refund. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
 
 Refund from the shop manager when you can. If you refund from your payout dashboard instead, we record the refund on the order, add a note, and return the same share of Extra Chill's fee.
 

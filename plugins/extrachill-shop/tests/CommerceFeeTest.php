@@ -16,7 +16,7 @@ final class CommerceFeeTest extends TestCase {
 		$GLOBALS['test_blog_options'][3]['extrachill_shop_commission_rate'] = '10';
 		$GLOBALS['test_site_options']['extrachill_ticket_fees']            = array( 'buyer_fee_flat_minor' => 0, 'buyer_fee_percent' => 0, 'seller_fee_percent' => 0 );
 		$this->assertSame(
-			array( 'merch_percent' => 10.0, 'ticket_percent' => 0.0, 'ticket_buyer_fee_per_ticket_minor' => 100, 'ticket_buyer_fee_flat_minor' => 0, 'ticket_buyer_fee_percent' => 0.0, 'ticket_processing_percent' => 2.9, 'ticket_processing_fixed_minor' => 30 ),
+			array( 'merch_percent' => 10.0, 'ticket_percent' => 0.0, 'ticket_buyer_fee_per_ticket_minor' => 100, 'ticket_buyer_fee_flat_minor' => 0, 'ticket_buyer_fee_percent' => 0.0, 'processing_percent' => 2.9, 'processing_fixed_minor' => 30 ),
 			ec_commerce_fee_settings()
 		);
 		$this->assertSame( array( 'buyer_fee' => 0, 'application_fee' => 200 ), extrachill_commerce_fee( 'extrachill_merch', 2000, self::VENUE ) );
@@ -30,6 +30,11 @@ final class CommerceFeeTest extends TestCase {
 		$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE ) );
 		$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE, 4 ) );
 		$this->assertSame( array( 'buyer_fee' => 0, 'application_fee' => 0 ), extrachill_commerce_fee( 'extrachill_merch', 2500, null, 4 ) );
+		// The commission is the same whoever pays processing; checkout adds
+		// processing through extrachill_commerce_merch_fee().
+		foreach ( array( 'account', 'application', 'application_express', '' ) as $payer ) {
+			$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE, 1, $payer ) );
+		}
 	}
 
 	public function test_missing_shop_option_defaults_to_ten_percent(): void {
@@ -46,7 +51,7 @@ final class CommerceFeeTest extends TestCase {
 		$settings = ec_commerce_fee_settings();
 		$this->assertSame( array( 100, 3.0, 5.0 ), array( $settings['ticket_buyer_fee_flat_minor'], $settings['ticket_buyer_fee_percent'], $settings['ticket_percent'] ) );
 		// New keys the legacy store never had take the shipped defaults.
-		$this->assertSame( array( 100, 2.9, 30 ), array( $settings['ticket_buyer_fee_per_ticket_minor'], $settings['ticket_processing_percent'], $settings['ticket_processing_fixed_minor'] ) );
+		$this->assertSame( array( 100, 2.9, 30 ), array( $settings['ticket_buyer_fee_per_ticket_minor'], $settings['processing_percent'], $settings['processing_fixed_minor'] ) );
 	}
 
 	public function test_network_setting_overrides_the_legacy_stores(): void {
@@ -75,14 +80,29 @@ final class CommerceFeeTest extends TestCase {
 	}
 
 	public function test_sanitize_clamps_and_keeps_fallback_for_invalid_values(): void {
-		$fallback = array( 'merch_percent' => 10, 'ticket_percent' => 1, 'ticket_buyer_fee_per_ticket_minor' => 100, 'ticket_buyer_fee_flat_minor' => 50, 'ticket_buyer_fee_percent' => 2, 'ticket_processing_percent' => 2.9, 'ticket_processing_fixed_minor' => 30 );
+		$fallback = array( 'merch_percent' => 10, 'ticket_percent' => 1, 'ticket_buyer_fee_per_ticket_minor' => 100, 'ticket_buyer_fee_flat_minor' => 50, 'ticket_buyer_fee_percent' => 2, 'processing_percent' => 2.9, 'processing_fixed_minor' => 30 );
 		$this->assertSame(
-			array( 'merch_percent' => 100.0, 'ticket_percent' => 0.0, 'ticket_buyer_fee_per_ticket_minor' => 0, 'ticket_buyer_fee_flat_minor' => 50, 'ticket_buyer_fee_percent' => 2.0, 'ticket_processing_percent' => 50.0, 'ticket_processing_fixed_minor' => 30 ),
-			ec_commerce_fee_sanitize( array( 'merch_percent' => '250', 'ticket_percent' => '-3', 'ticket_buyer_fee_per_ticket_minor' => '-5', 'ticket_buyer_fee_flat_minor' => 'abc', 'ticket_buyer_fee_percent' => '', 'ticket_processing_percent' => '99', 'ticket_processing_fixed_minor' => 'x' ), $fallback )
+			array( 'merch_percent' => 100.0, 'ticket_percent' => 0.0, 'ticket_buyer_fee_per_ticket_minor' => 0, 'ticket_buyer_fee_flat_minor' => 50, 'ticket_buyer_fee_percent' => 2.0, 'processing_percent' => 50.0, 'processing_fixed_minor' => 30 ),
+			ec_commerce_fee_sanitize( array( 'merch_percent' => '250', 'ticket_percent' => '-3', 'ticket_buyer_fee_per_ticket_minor' => '-5', 'ticket_buyer_fee_flat_minor' => 'abc', 'ticket_buyer_fee_percent' => '', 'processing_percent' => '99', 'processing_fixed_minor' => 'x' ), $fallback )
 		);
 		$this->assertSame( 125, ec_commerce_fee_sanitize( array( 'ticket_buyer_fee_flat_minor' => '124.6' ), $fallback )['ticket_buyer_fee_flat_minor'] );
 		$this->assertSame( 150, ec_commerce_fee_sanitize( array( 'ticket_buyer_fee_per_ticket_minor' => '150' ), $fallback )['ticket_buyer_fee_per_ticket_minor'] );
-		$this->assertSame( 3.49, ec_commerce_fee_sanitize( array( 'ticket_processing_percent' => '3.49' ), $fallback )['ticket_processing_percent'] );
+		$this->assertSame( 3.49, ec_commerce_fee_sanitize( array( 'processing_percent' => '3.49' ), $fallback )['processing_percent'] );
+	}
+
+	public function test_processing_estimate_saved_under_the_ticket_keys_is_still_read(): void {
+		// #1563 renamed ticket_processing_* to the shared processing_* keys.
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_processing_percent' => 3.5, 'ticket_processing_fixed_minor' => 40 );
+		$settings = ec_commerce_fee_settings();
+		$this->assertSame( array( 3.5, 40 ), array( $settings['processing_percent'], $settings['processing_fixed_minor'] ) );
+		$this->assertArrayNotHasKey( 'ticket_processing_percent', $settings );
+		// A value saved under the new key wins.
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_processing_percent' => 3.5, 'processing_percent' => 2.5 );
+		$this->assertSame( 2.5, ec_commerce_fee_settings()['processing_percent'] );
+		// The renamed keys drive both tickets and merch.
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_processing_percent' => 0, 'ticket_processing_fixed_minor' => 0, 'ticket_buyer_fee_per_ticket_minor' => 0 );
+		$this->assertSame( array( 'buyer_fee' => 0, 'application_fee' => 0 ), extrachill_commerce_fee( 'extrachill_ticket', 2000, self::VENUE, 1, 'application_express' ) );
+		$this->assertSame( 0, extrachill_commerce_merch_fee( 2500, 3000, self::VENUE, 'application_express' )['processing'] );
 	}
 
 	public function test_no_duplicate_fee_math_remains(): void {

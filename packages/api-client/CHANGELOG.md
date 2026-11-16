@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.1] - 2026-11-16
+
+### Fixed
+- merch sellers pay card processing
+
 ## [0.13.0] - 2026-11-16
 
 ### Added

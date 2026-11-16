@@ -1,12 +1,17 @@
 # Deleting Your Account
 
-You can ask Extra Chill to permanently delete your account at any time. One account works across every Extra Chill site, so deleting it removes you from all of them at once.
+You can permanently delete your account yourself at any time. One account works across every Extra Chill site, so deleting it removes you from all of them at once.
 
 ## How to Delete Your Account
 
-Send a request through the [contact form](https://extrachill.com/contact-us) from the email address on your account, and say you want your account deleted. The Extra Chill team will confirm and take care of it.
+1. Sign in and open your [account settings](https://community.extrachill.com/settings). You can also get there from **Settings** in your account menu.
+2. Stay on the **Account Details** tab and scroll to **Delete account** at the bottom.
+3. Read what will be deleted, then type **DELETE** in the box. The **Delete my account** button only turns on once you have typed it exactly.
+4. Select **Delete my account**. You are signed out and taken back to the home page.
 
-If you run an artist profile, a venue, or a shop, mention that in your request. The team can help you hand those over to someone else first, so your band or venue doesn't lose its page.
+If you run an artist profile, a venue, or a shop, sort that out before you delete. [Contact the Extra Chill team](https://extrachill.com/contact-us) and they can help you hand it over to someone else first, so your band or venue doesn't lose its page.
+
+Extra Chill team accounts can't be deleted this way. If you work with the team, ask the Extra Chill team to close your account for you.
 
 ## What Gets Deleted
 
@@ -17,7 +22,7 @@ Deleting your account is permanent and can't be undone. It removes:
 - Posts you wrote, including forum topics and replies.
 - Your concert history in My Shows, including ratings.
 
-To stop newsletter emails as well, use the unsubscribe link at the bottom of any newsletter, or ask for it in your request.
+Deleting your account also stops Extra Chill newsletter emails to that address.
 
 If you bought a [lifetime membership](lifetime-membership.md), it ends with the account.
 

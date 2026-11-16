@@ -148,7 +148,8 @@ function extrachill_shop_route_checkout_session_event( $event_type, $session, $a
  * Handle account.updated webhook event.
  *
  * Stores the seller's payability, which checkout reads instead of asking
- * Stripe on every cart render.
+ * Stripe on every cart render, and who pays card processing on its direct
+ * charges (`controller.fees.payer`), which sets the ticket application fee.
  *
  * @param object $account Stripe account object.
  * @return bool True on success.
@@ -160,6 +161,7 @@ function extrachill_shop_handle_account_updated( $account ) {
 			'charges_enabled'   => $account->charges_enabled,
 			'payouts_enabled'   => $account->payouts_enabled,
 			'details_submitted' => $account->details_submitted,
+			'fee_payer'         => extrachill_shop_stripe_fee_payer( $account ),
 		)
 	);
 	if ( ! $updated ) {

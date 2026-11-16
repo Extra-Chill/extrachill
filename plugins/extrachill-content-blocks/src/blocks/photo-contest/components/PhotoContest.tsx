@@ -7,7 +7,12 @@ import type {
 	EntriesResponse,
 } from '../types';
 import { runAbility, runReadonlyAbility } from '../api';
-import { getSavedEntryId, saveEntryId } from '../storage';
+import {
+	getSavedEntryId,
+	saveEntryId,
+	getSavedEmail,
+	forgetVoter,
+} from '../storage';
 import { isClosed, hasOpened } from '../schedule';
 import { shuffle, selectHotEntries } from '../utils';
 import { selectFocusedEntry } from '../focused-entry';
@@ -17,6 +22,7 @@ import { HotStrip } from './HotStrip';
 import { PhotoQr } from './PhotoQr';
 import { EntryCard } from './EntryCard';
 import { SubmissionForm } from './SubmissionForm';
+import { VoterIdentity } from './VoterIdentity';
 
 export function PhotoContest( config: ContestConfig ) {
 	const [ entries, setEntries ] = useState< Entry[] | null >( null );
@@ -38,6 +44,17 @@ export function PhotoContest( config: ContestConfig ) {
 			setMyEntryId( null );
 		}
 	}, [ entries, myEntryId, myEntry, config.contestId ] );
+	// Who votes on this device: the remembered email, else the signed-in
+	// account email. voterSession remounts the cards after "Not you?" so
+	// their per-device "Voted" state resets for the next person.
+	const [ savedVoterEmail, setSavedVoterEmail ] = useState( getSavedEmail );
+	const [ voterSession, setVoterSession ] = useState( 0 );
+	const votingEmail = savedVoterEmail || config.voterEmail || '';
+	const handleForgetVoter = () => {
+		forgetVoter( config.contestId );
+		setSavedVoterEmail( '' );
+		setVoterSession( ( n ) => n + 1 );
+	};
 	const [ loadError, setLoadError ] = useState( '' );
 	const [ phase, setPhase ] = useState< PhaseState | null >( null );
 	const [ refresh, setRefresh ] = useState( 0 );
@@ -151,6 +168,7 @@ export function PhotoContest( config: ContestConfig ) {
 	}, [ config.postId, config.contestId, refresh ] );
 
 	const handleVoted = ( entryId: number, voteCount: number ) => {
+		setSavedVoterEmail( getSavedEmail() );
 		setEntries( ( prev ) =>
 			prev
 				? prev.map( ( e ) =>
@@ -261,14 +279,26 @@ export function PhotoContest( config: ContestConfig ) {
 		</div>
 	);
 
+	const voterIdentity = votingOpened && ! votingClosed && (
+		<VoterIdentity
+			email={ votingEmail }
+			canForget={
+				'' !== savedVoterEmail &&
+				savedVoterEmail !== ( config.voterEmail || '' )
+			}
+			onForget={ handleForgetVoter }
+		/>
+	);
+
 	if ( focusedEntry ) {
 		const galleryUrl = new URL( window.location.href );
 		galleryUrl.searchParams.delete( 'entry' );
 		return (
 			<div className="extrachill-blocks-photo-contest-focused">
 				{ phaseControls }
+				{ voterIdentity }
 				<EntryCard
-					key={ focusedEntry.id }
+					key={ `${ focusedEntry.id }-${ voterSession }` }
 					entry={ focusedEntry }
 					config={ config }
 					votingClosed={ votingClosed }
@@ -404,6 +434,7 @@ export function PhotoContest( config: ContestConfig ) {
 						) }
 				/>
 			) }
+			{ ! showFinalists && entries !== null && voterIdentity }
 			{ ! showFinalists && entries !== null && (
 				<div className="extrachill-blocks-photo-contest-grid">
 					{ entries.length === 0 && (
@@ -415,7 +446,7 @@ export function PhotoContest( config: ContestConfig ) {
 					) }
 					{ entries.map( ( entry ) => (
 						<EntryCard
-							key={ entry.id }
+							key={ `${ entry.id }-${ voterSession }` }
 							entry={ entry }
 							config={ config }
 							votingClosed={ votingClosed }

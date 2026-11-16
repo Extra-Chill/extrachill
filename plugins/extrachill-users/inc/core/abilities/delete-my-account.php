@@ -135,7 +135,7 @@ function extrachill_users_is_protected_from_self_deletion( int $user_id ): bool 
 function extrachill_users_self_deletion_refused_error(): WP_Error {
 	return new WP_Error(
 		'account_deletion_refused',
-		__( 'Staff accounts cannot be deleted from the app. Please contact the Extra Chill team.', 'extrachill-users' ),
+		__( 'Staff accounts can\'t be deleted here. Please contact the Extra Chill team.', 'extrachill-users' ),
 		array( 'status' => 403 )
 	);
 }

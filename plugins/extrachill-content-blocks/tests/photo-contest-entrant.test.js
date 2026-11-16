@@ -116,8 +116,18 @@ function harness() {
 				'../src/blocks/photo-contest/components/SharePanel.tsx'
 			)
 		),
+		...load(
+			path.join(
+				__dirname,
+				'../src/blocks/photo-contest/components/VoterIdentity.tsx'
+			)
+		),
 	};
+	const { PHOTO_CONTEST_EMAIL_DISCLOSURE } = load(
+		path.join( __dirname, '../src/blocks/photo-contest/utils.ts' )
+	);
 	return {
+		disclosure: PHOTO_CONTEST_EMAIL_DISCLOSURE,
 		storage,
 		requests,
 		poll: () => poll(),
@@ -190,6 +200,14 @@ for ( const saved of [ false, true ] ) {
 				nodes( dialog ).some( ( node ) =>
 					node.children.includes( 'Vote for ' )
 				)
+			);
+			assert.ok(
+				nodes( dialog ).some(
+					( node ) =>
+						node.type === 'p' &&
+						node.children.includes( h.disclosure )
+				),
+				'vote email field discloses the signup'
 			);
 			nodes( dialog )
 				.find( ( node ) => node.props.type === 'email' )
@@ -304,6 +322,13 @@ for ( const duplicate of [ false, true ] ) {
 			).props.open,
 			true
 		);
+		assert.ok(
+			nodes( form ).some(
+				( node ) =>
+					node.type === 'p' && node.children.includes( h.disclosure )
+			),
+			'entry email field discloses the signup'
+		);
 		nodes( form )
 			.find( ( node ) => node.props.type === 'email' )
 			.props.onChange( { target: { value: 'entrant@example.com' } } );
@@ -416,4 +441,98 @@ test( 'reload shows own photo and live count, hides form, and clears a stale or 
 			)
 		);
 	}
+} );
+
+test( 'photo contest disclosure names the emails, the account, and unsubscribe', () => {
+	const { disclosure } = harness();
+	assert.equal(
+		disclosure,
+		"You'll get Extra Chill photo contest emails and an Extra Chill account linked to this email. Unsubscribe anytime."
+	);
+} );
+
+test( '"Not you?" forgets the remembered voter so the next person is asked', async () => {
+	const h = harness();
+	h.storage.set( 'extrachill_voter_email', 'first@example.com' );
+	h.storage.set( 'extrachill_pc_voted_test', JSON.stringify( [ 7 ] ) );
+	h.response( { entries: [ entry ] } );
+	h.render( h.components.PhotoContest, config );
+	await tick();
+	let tree = h.render( h.components.PhotoContest, config );
+	let identity = nodes( tree ).find(
+		( node ) => node.type === h.components.VoterIdentity
+	);
+	assert.equal( identity.props.email, 'first@example.com' );
+	assert.equal( identity.props.canForget, true );
+	const card = nodes( tree ).find(
+		( node ) => node.type === h.components.EntryCard
+	);
+	const firstKey = card.props.key;
+
+	const line = h.components.VoterIdentity( identity.props );
+	assert.ok( line.children.includes( 'first@example.com' ) );
+	const notYou = nodes( line ).find( ( node ) => node.type === 'button' );
+	assert.ok( notYou.children.includes( 'Not you?' ) );
+
+	notYou.props.onClick();
+	assert.equal( h.storage.has( 'extrachill_voter_email' ), false );
+	assert.equal( h.storage.has( 'extrachill_pc_voted_test' ), false );
+	tree = h.render( h.components.PhotoContest, config );
+	identity = nodes( tree ).find(
+		( node ) => node.type === h.components.VoterIdentity
+	);
+	assert.equal( identity.props.email, '' );
+	assert.equal( h.components.VoterIdentity( identity.props ), null );
+	assert.notEqual(
+		nodes( tree ).find( ( node ) => node.type === h.components.EntryCard )
+			.props.key,
+		firstKey,
+		'cards remount so the next person can vote'
+	);
+} );
+
+test( 'signed-in voter sees which email votes, with nothing to forget', async () => {
+	const h = harness();
+	const signedIn = { ...config, voterEmail: 'member@example.com' };
+	h.response( { entries: [ entry ] } );
+	h.render( h.components.PhotoContest, signedIn );
+	await tick();
+	const tree = h.render( h.components.PhotoContest, signedIn );
+	const identity = nodes( tree ).find(
+		( node ) => node.type === h.components.VoterIdentity
+	);
+	assert.equal( identity.props.email, 'member@example.com' );
+	assert.equal( identity.props.canForget, false );
+	const line = h.components.VoterIdentity( identity.props );
+	assert.ok( line.children.includes( 'member@example.com' ) );
+	assert.equal(
+		nodes( line ).some( ( node ) => node.type === 'button' ),
+		false
+	);
+} );
+
+test( 'vote form after a forgotten voter starts empty, not prefilled', async () => {
+	const h = harness();
+	h.storage.set( 'extrachill_voter_email', 'first@example.com' );
+	const props = {
+		config,
+		entry,
+		votingClosed: false,
+		highlighted: false,
+		onVoted() {},
+		onHiddenChange() {},
+	};
+	let tree = h.render( h.components.EntryCard, props );
+	h.storage.delete( 'extrachill_voter_email' );
+	nodes( tree )
+		.find( ( node ) => node.children.includes( 'Vote' ) )
+		.props.onClick();
+	await tick();
+	tree = h.render( h.components.EntryCard, props );
+	assert.equal( h.requests.length, 0 );
+	assert.equal(
+		nodes( tree ).find( ( node ) => node.props.type === 'email' ).props
+			.value,
+		''
+	);
 } );

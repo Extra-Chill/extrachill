@@ -73,6 +73,8 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function test_starting_checkout_makes_no_live_account_call(): void {
+		// A stored payer (every account created or updated since #1560) needs no lookup.
+		extrachill_shop_set_seller_stripe_account_record( self::VENUE, array( 'account_id' => 'acct_merch', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00', 'fee_payer' => 'application_express' ) );
 		$this->assertFalse( is_wp_error( extrachill_shop_start_merch_checkout( $this->order() ) ) );
 		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'] );
 	}
@@ -107,6 +109,75 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( extrachill_shop_seller_can_receive_payments( $seller ) );
 		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'] );
 		$this->assertNotSame( '', extrachill_shop_get_seller_stripe_account_record( $seller )['status_synced_at'] );
+	}
+
+	public function test_account_updated_stores_who_pays_processing(): void {
+		$seller = array( 'type' => 'venue', 'id' => 4545 );
+		extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_express', 'status' => 'pending' ) );
+		$this->assertSame( '', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		$account = (object) array(
+			'id'                => 'acct_express',
+			'charges_enabled'   => true,
+			'payouts_enabled'   => true,
+			'details_submitted' => true,
+			'controller'        => (object) array(
+				'type' => 'application',
+				'fees' => (object) array( 'payer' => 'application_express' ),
+			),
+		);
+		$event = (object) array( 'type' => 'account.updated', 'account' => 'acct_express', 'data' => (object) array( 'object' => $account ) );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $event ) );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_fee_payer( $seller ) );
+		// A later payload without the controller hash keeps the known payer.
+		unset( $account->controller );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $event ) );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		// So does a status refresh that does not report it.
+		extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_express', 'status' => 'active', 'status_synced_at' => gmdate( 'c' ) ) );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		// A payer Stripe reports replaces the stored one.
+		extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_express', 'status' => 'active', 'fee_payer' => 'account' ) );
+		$this->assertSame( 'account', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'] );
+	}
+
+	public function test_new_account_record_keeps_the_payer_from_the_create_response(): void {
+		// Account::create() responses carry controller.fees.payer (Express: the platform).
+		$created = (object) array(
+			'id'         => 'acct_created',
+			'type'       => 'express',
+			'controller' => (object) array(
+				'type' => 'application',
+				'fees' => (object) array( 'payer' => 'application_express' ),
+			),
+		);
+		$this->assertSame(
+			array( 'account_id' => 'acct_created', 'status' => 'pending', 'onboarding_complete' => false, 'fee_payer' => 'application_express' ),
+			extrachill_shop_new_stripe_account_record( $created )
+		);
+		$seller = array( 'type' => 'promoter', 'id' => 77 );
+		$this->assertTrue( extrachill_shop_set_seller_stripe_account_record( $seller, extrachill_shop_new_stripe_account_record( $created ) ) );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( $seller )['fee_payer'] );
+		// Standard accounts report the account, arrays work too, and a response without it is unknown.
+		$this->assertSame( 'account', extrachill_shop_stripe_fee_payer( array( 'controller' => array( 'fees' => array( 'payer' => 'account' ) ) ) ) );
+		$this->assertSame( '', extrachill_shop_stripe_fee_payer( (object) array( 'id' => 'acct_old' ) ) );
+		$this->assertSame( '', extrachill_shop_stripe_fee_payer( (object) array( 'controller' => (object) array( 'fees' => null ) ) ) );
+		// The create path uses the helper.
+		$this->assertStringContainsString( 'extrachill_shop_new_stripe_account_record( $account )', file_get_contents( dirname( __DIR__ ) . '/inc/stripe/stripe-connect.php' ) );
+	}
+
+	public function test_merch_fee_adds_processing_only_when_the_platform_pays(): void {
+		// $20 items + $5 shipping = $25 charge. Commission $2.00, shipping hold
+		// $5.00; processing estimate 2.9% x $25 + 30c = $1.03 (73c rounded up + 30c).
+		foreach ( array( 'account' => 700, 'application_express' => 803, 'application' => 803 ) as $payer => $fee ) {
+			$GLOBALS['ticket_session_request'] = null;
+			$GLOBALS['test_options']           = array( 'admin_email' => 'admin@extrachill.com' );
+			extrachill_shop_set_seller_stripe_account_record( self::VENUE, array( 'account_id' => 'acct_merch', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00', 'fee_payer' => $payer ) );
+			$this->assertFalse( is_wp_error( extrachill_shop_start_merch_checkout( $this->order() ) ) );
+			$this->assertSame( $fee, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'], "payer '$payer'" );
+		}
+		$this->assertSame( array(), $GLOBALS['test_stripe_status_calls'], 'A stored payer is never looked up.' );
 	}
 
 	public function test_account_updated_for_unknown_account_is_acknowledged_without_binding(): void {

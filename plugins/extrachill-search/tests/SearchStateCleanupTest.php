@@ -14,6 +14,7 @@ if ( ! function_exists( 'get_current_blog_id' ) ) :
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'MINUTE_IN_SECONDS', 60 );
+define( 'HOUR_IN_SECONDS', 3600 );
 
 $current_blog_id = 1;
 $blog_stack      = array();
@@ -21,6 +22,7 @@ $filters         = array();
 $content_queries = array();
 $query_vars      = array();
 $search_scope    = 'site';
+$search_sort     = 'relevance';
 $object_cache    = array();
 $cache_expiries  = array();
 $cache_adds      = array();
@@ -249,13 +251,14 @@ function assert_same( $expected, $actual, $message ) {
 }
 
 function reset_search_state() {
-	global $blog_stack, $cache_adds, $cache_expiries, $content_queries, $current_blog_id, $filters, $logged_in, $object_cache, $posts_generation, $query_vars, $search_scope, $wpdb;
+	global $blog_stack, $cache_adds, $cache_expiries, $content_queries, $current_blog_id, $filters, $logged_in, $object_cache, $posts_generation, $query_vars, $search_scope, $search_sort, $wpdb;
 	$blog_stack       = array();
 	$content_queries  = array();
 	$current_blog_id  = 1;
 	$filters          = array();
 	$query_vars       = array();
 	$search_scope     = 'site';
+	$search_sort      = 'relevance';
 	$object_cache     = array();
 	$cache_expiries   = array();
 	$cache_adds       = array();
@@ -421,6 +424,31 @@ try {
 assert_same( 1, get_current_blog_id(), 'Fallback failure leaked the switched blog context.' );
 assert_same( array(), $blog_stack, 'Fallback failure left entries on the blog stack.' );
 assert_same( array( $unrelated_filter ), $filters['posts_search'][10], 'Fallback cleanup removed an unrelated posts_search callback.' );
+
+// The requested sort reorders rendered results and keeps pagination exact (#1539).
+reset_search_state();
+$dated_post = static function ( $id, $date ) {
+	$post            = search_test_post( $id );
+	$post->post_date = $date;
+	return $post;
+};
+WP_Query::$posts_by_blog = array(
+	2 => array(
+		$dated_post( 41, '2025-06-01 12:00:00' ),
+		$dated_post( 42, '2019-01-01 12:00:00' ),
+		$dated_post( 43, '2026-02-01 12:00:00' ),
+	),
+);
+$query_vars  = array( 's' => 'needlefest', 'paged' => 1 );
+$search_sort = 'oldest';
+$oldest_page = extrachill_get_search_results();
+assert_same( array( 42, 41 ), wp_list_pluck( $oldest_page['results'], 'ID' ), 'Oldest sort did not order results oldest first.' );
+assert_same( 3, $oldest_page['total'], 'Sorting changed the rendered total.' );
+$query_vars['paged'] = 2;
+assert_same( array( 43 ), wp_list_pluck( extrachill_get_search_results()['results'], 'ID' ), 'Oldest sort broke pagination.' );
+$query_vars['paged'] = 1;
+$search_sort = 'recent';
+assert_same( array( 43, 41 ), wp_list_pluck( extrachill_get_search_results()['results'], 'ID' ), 'Recent sort did not order results newest first.' );
 
 fwrite( STDOUT, "Search state cleanup tests passed.\n" );
 

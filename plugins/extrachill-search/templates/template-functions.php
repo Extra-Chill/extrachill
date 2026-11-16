@@ -18,12 +18,17 @@ function extrachill_get_search_results() {
 			? extrachill_search_scope_site_urls()
 			: array();
 
+		$sort = function_exists( 'extrachill_resolve_search_sort' )
+			? extrachill_resolve_search_sort()
+			: 'relevance';
+
 		$search_data = extrachill_network_search(
 			$search_term,
 			$site_urls,
 			array(
 				'limit'        => $posts_per_page,
 				'offset'       => $offset,
+				'sort'         => $sort,
 				'return_count' => true,
 			)
 		);

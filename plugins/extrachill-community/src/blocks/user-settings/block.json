@@ -6,7 +6,7 @@
   "title": "User Settings",
   "category": "widgets",
   "icon": "admin-generic",
-  "description": "Account settings page: name, display name, email, password, subscriptions, and artist platform access.",
+  "description": "Account settings page: name, display name, email, password, subscriptions, artist platform access, and account deletion.",
   "supports": {
     "html": false,
     "anchor": true
