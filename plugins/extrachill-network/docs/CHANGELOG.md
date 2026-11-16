@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.14] - 2026-11-16
+
+### Fixed
+- restore current blog after leaked switch before templates render
+
 ## [2.39.13] - 2026-11-15
 
 ### Fixed
