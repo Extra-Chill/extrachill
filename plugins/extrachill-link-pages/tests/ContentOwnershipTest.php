@@ -665,8 +665,8 @@ final class ContentOwnershipTest extends TestCase {
 		$definition               = $this->liveDefinition( true );
 		$definition::$description = str_repeat( 'Dénouement ', 400 );
 		$this->storeLiveSnapshot( $definition );
-		$projection               = $this->ownedProjection( $definition );
-		$description              = $projection['seo']['schema'][0]['description'];
+		$projection  = $this->ownedProjection( $definition );
+		$description = $projection['seo']['schema'][0]['description'];
 
 		$this->assertLessThanOrEqual( 2048, strlen( $description ) );
 		$this->assertStringEndsWith( 'Dénouement...', $description );
