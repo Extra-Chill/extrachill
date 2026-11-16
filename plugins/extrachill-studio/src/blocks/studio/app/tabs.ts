@@ -17,12 +17,13 @@ export interface StudioTabOptions {
 	 * so unconfigured callers see the full surface.
 	 */
 	canBrandSocials?: boolean;
+	canReviewSubmissions?: boolean;
 }
 
 export const getStudioTabs = (
 	options: StudioTabOptions = {}
 ): StudioTab[] => {
-	const { canBrandSocials = true } = options;
+	const { canBrandSocials = true, canReviewSubmissions = false } = options;
 
 	const tabs: StudioTab[] = [
 		{
@@ -74,6 +75,15 @@ export const getStudioTabs = (
 			),
 		},
 	];
+
+	if ( canReviewSubmissions ) {
+		tabs.push( {
+			id: 'review',
+			pane: 'review',
+			label: __( 'Review', 'extrachill-studio' ),
+			preview: __( 'Read pending article submissions.', 'extrachill-studio' ),
+		} );
+	}
 
 	return tabs.filter( ( tab ) => tab.id !== 'socials' || canBrandSocials );
 };

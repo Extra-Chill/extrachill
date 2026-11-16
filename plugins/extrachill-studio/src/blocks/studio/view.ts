@@ -22,6 +22,7 @@ import { getStudioTabs } from './app/tabs';
 import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
 import NetworkPane from './tabs/network';
+import ReviewPane from './tabs/review';
 import QrCodesPane from './tabs/qr-codes';
 import SocialsPane from './tabs/socials';
 import TranscribePane from './tabs/transcribe';
@@ -31,13 +32,14 @@ const ROOT_SELECTOR = '[data-ec-studio-root]';
 const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
 	network: NetworkPane,
+	review: ReviewPane,
 	'qr-codes': QrCodesPane,
 	socials: SocialsPane,
 	transcribe: TranscribePane,
 };
 
 const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
-	const tabs = getStudioTabs( { canBrandSocials: context.canBrandSocials } );
+	const tabs = getStudioTabs( { canBrandSocials: context.canBrandSocials, canReviewSubmissions: context.canReviewSubmissions } );
 	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'compose' );
 	const renderPanel = ( id: string ): ReactElement => {
 		const ActivePane = STUDIO_PANES[ id ] || ComposePane;
@@ -103,6 +105,7 @@ const initRoot = ( root: HTMLElement ): void => {
 		description: root.dataset.description || '',
 		socialPlatforms,
 		canBrandSocials: root.dataset.canBrandSocials === 'true',
+		canReviewSubmissions: root.dataset.canReviewSubmissions === 'true',
 		networkSites,
 	};
 

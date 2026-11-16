@@ -38,6 +38,7 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/rest.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/notify-on-publish.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/strand-detector.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/review-queue.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/review-submissions.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
