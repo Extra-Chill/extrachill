@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.14.1] - 2026-11-16
+
+### Fixed
+- disclose contest email signup and add "Not you?" for remembered voters
+- render legacy image-voting counts until backfilled
+- put 'The' at the start of generated band names
+
 ## [1.14.0] - 2026-11-16
 
 ### Added
