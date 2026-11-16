@@ -22,7 +22,11 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 ?>
 
 <?php if ( ! empty( $search_results ) ) : ?>
-	<?php if ( function_exists( 'extrachill_breadcrumbs' ) ) { extrachill_breadcrumbs(); } ?>
+	<?php
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		extrachill_breadcrumbs();
+	}
+	?>
 
 	<?php do_action( 'extrachill_search_header' ); ?>
 
@@ -66,9 +70,17 @@ $posts_per_page = get_option( 'posts_per_page', 10 );
 	</div><!-- .full-width-breakout -->
 
 <?php else : ?>
-	<?php if ( function_exists( 'extrachill_breadcrumbs' ) ) { extrachill_breadcrumbs(); } ?>
+	<?php
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		extrachill_breadcrumbs();
+	}
+	?>
 	<?php do_action( 'extrachill_search_header' ); ?>
-	<?php if ( function_exists( 'extrachill_no_results' ) ) { extrachill_no_results(); } ?>
+	<?php
+	if ( function_exists( 'extrachill_no_results' ) ) {
+		extrachill_no_results();
+	}
+	?>
 <?php endif; ?>
 
 <?php do_action( 'extrachill_after_body_content' ); ?>

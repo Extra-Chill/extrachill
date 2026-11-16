@@ -28,6 +28,7 @@ class HydrateSearchResultTest extends WP_UnitTestCase {
 			array(
 				'post_title'   => 'Phish at the Gorge',
 				'post_content' => 'A long night of improvisation under the stars.',
+				'post_excerpt' => '',
 				'post_status'  => 'publish',
 			)
 		);
