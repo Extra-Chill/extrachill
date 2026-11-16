@@ -52,7 +52,9 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /artists/{id}/permissions` - Check artist permissions
 - `GET/POST/DELETE /artists/{id}/roster` - Roster member management
 - `GET /artists/{id}/subscribers` - List subscribers with pagination
-- `GET /artists/{id}/subscribers/export` - Export subscribers as CSV
+- `GET /artists/{id}/subscribers/export` - Export subscribers as CSV (with a personal `unsubscribe_url` per row)
+- `GET|POST /artists/subscribers/unsubscribe` - Signed one-click unsubscribe page
+- `GET /artists/me/subscriptions`, `DELETE /artists/me/subscriptions/{subscriber_id}` - Member's own artist list subscriptions
 - `POST /artists/{id}/subscribe` - Public subscription signup
 
 ### Block Generators (3)

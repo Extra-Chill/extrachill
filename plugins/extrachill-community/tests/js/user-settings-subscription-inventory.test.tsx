@@ -1,3 +1,4 @@
+import apiFetch from '@wordpress/api-fetch';
 import { createRoot } from '@wordpress/element';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { act } from 'react';
@@ -35,6 +36,7 @@ jest.mock( '@extrachill/components', () => ( {
 		renderPanel: ( id: string ) => React.ReactNode;
 	} ) => <div>{ renderPanel( 'subscriptions' ) }</div>,
 } ) );
+jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( '@wordpress/components', () => ( {
 	ComboboxControl: () => <div />,
 } ) );
@@ -45,6 +47,22 @@ import { UserSettingsApp } from '../../src/blocks/user-settings/view';
 const { mockExecute } = jest.requireMock( '../../src/abilities' ) as {
 	mockExecute: jest.Mock;
 };
+
+const mockApiFetch = apiFetch as unknown as jest.Mock;
+
+function installArtistLists( lists: Array< Record< string, unknown > > ) {
+	mockApiFetch.mockImplementation(
+		( options: { path: string; method: string } ) => {
+			if ( options.method === 'GET' ) {
+				return Promise.resolve( { subscriptions: lists } );
+			}
+			return Promise.resolve( {
+				removed: true,
+				subscriber_id: Number( options.path.split( '/' ).pop() ),
+			} );
+		}
+	);
+}
 
 const settings = {
 	user_id: 7,
@@ -131,8 +149,12 @@ describe( 'subscription inventory', () => {
 			}
 		 ).IS_REACT_ACT_ENVIRONMENT = true;
 	} );
+	beforeEach( () => {
+		installArtistLists( [] );
+	} );
 	afterEach( () => {
 		mockExecute.mockReset();
+		mockApiFetch.mockReset();
 		document.body.innerHTML = '';
 	} );
 
@@ -222,11 +244,10 @@ describe( 'subscription inventory', () => {
 			container.querySelector( 'a[href="#tab-notifications"]' )
 		).not.toBeNull();
 		const buttons = Array.from( container.querySelectorAll( 'button' ) );
-		await act(
-			async () =>
-				buttons
-					.find( ( button ) => button.textContent === 'Unsubscribe' )
-					?.click()
+		await act( async () =>
+			buttons
+				.find( ( button ) => button.textContent === 'Unsubscribe' )
+				?.click()
 		);
 		expect( mockExecute ).toHaveBeenCalledWith(
 			'extrachill/entity-unsubscribe',
@@ -262,5 +283,83 @@ describe( 'subscription inventory', () => {
 			rendered.container.querySelector( '[role="alert"]' )?.textContent
 		).toContain( 'Inventory unavailable' );
 		act( () => rendered.root.unmount() );
+	} );
+	it( 'lists artist mailing lists in the same inventory and removes them', async () => {
+		installMocks( [
+			{ entity_type: 'artist', taxonomy: 'artist', slug: 'kid-lake' },
+		] );
+		installArtistLists( [
+			{
+				subscriber_id: 12,
+				artist_id: 40,
+				artist_name: 'Futurebirds',
+				artist_url: 'https://artist.example.com/futurebirds/',
+				subscribed_at: '2026-11-14 04:01:11',
+			},
+		] );
+		const { container, root } = await renderInventory();
+
+		expect( mockApiFetch ).toHaveBeenCalledWith( {
+			path: 'extrachill/v1/artists/me/subscriptions',
+			method: 'GET',
+		} );
+		const list = container.querySelector( 'ul' );
+		expect( list?.textContent ).toContain( 'kid lake' );
+		expect( list?.textContent ).toContain( 'Futurebirds' );
+		expect( list?.textContent ).toContain( 'Artist mailing list' );
+		expect( container.querySelectorAll( 'ul' ) ).toHaveLength( 1 );
+
+		const row = Array.from( container.querySelectorAll( 'li' ) ).find(
+			( item ) => item.textContent?.includes( 'Futurebirds' )
+		);
+		await act( async () => row?.querySelector( 'button' )?.click() );
+
+		expect( mockApiFetch ).toHaveBeenCalledWith( {
+			path: 'extrachill/v1/artists/me/subscriptions/12',
+			method: 'DELETE',
+		} );
+		expect( mockExecute ).not.toHaveBeenCalledWith(
+			'extrachill/entity-unsubscribe',
+			expect.anything()
+		);
+		expect( container.textContent ).toContain(
+			"You left Futurebirds's mailing list."
+		);
+		expect( container.textContent ).toContain( 'kid lake' );
+		expect(
+			Array.from( container.querySelectorAll( 'li' ) ).some( ( item ) =>
+				item.textContent?.includes( 'Futurebirds' )
+			)
+		).toBe( false );
+		act( () => root.unmount() );
+	} );
+
+	it( 'reports a failed artist list removal without hiding the row', async () => {
+		installMocks( [] );
+		installArtistLists( [
+			{
+				subscriber_id: 3,
+				artist_id: 40,
+				artist_name: 'Futurebirds',
+				artist_url: '',
+				subscribed_at: '2026-11-14 04:01:11',
+			},
+		] );
+		const { container, root } = await renderInventory();
+		mockApiFetch.mockRejectedValueOnce(
+			new Error( 'That subscription was not found.' )
+		);
+
+		await act( async () =>
+			container
+				.querySelector( 'li button' )
+				?.dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) )
+		);
+
+		expect(
+			container.querySelector( '[role="alert"]' )?.textContent
+		).toContain( 'That subscription was not found.' );
+		expect( container.textContent ).toContain( 'Futurebirds' );
+		act( () => root.unmount() );
 	} );
 } );

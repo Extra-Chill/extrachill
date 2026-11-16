@@ -759,16 +759,49 @@ function SecurityTab( {
 	);
 }
 
+/** One artist mailing list the member is on (extrachill-artist-platform). */
+interface ArtistMailingSubscription {
+	subscriber_id: number;
+	artist_id: number;
+	artist_name: string;
+	artist_url: string;
+	subscribed_at: string;
+}
+
+const ARTIST_SUBSCRIPTIONS_PATH = 'extrachill/v1/artists/me/subscriptions';
+
 function SubscriptionsTab() {
 	const [ subscriptions, setSubscriptions ] = useState<
 		ResolvedSubscriptionEntity[]
 	>( [] );
+	const [ artistLists, setArtistLists ] = useState<
+		ArtistMailingSubscription[]
+	>( [] );
+	const [ artistListsError, setArtistListsError ] = useState( '' );
 	const [ loading, setLoading ] = useState( true );
 	const [ removing, setRemoving ] = useState< string | null >( null );
 	const [ notice, setNotice ] = useState< {
 		type: 'success' | 'error';
 		message: string;
 	} | null >( null );
+	useEffect( () => {
+		apiFetch< { subscriptions: ArtistMailingSubscription[] } >( {
+			path: ARTIST_SUBSCRIPTIONS_PATH,
+			method: 'GET',
+		} )
+			.then( ( result ) =>
+				setArtistLists(
+					Array.isArray( result?.subscriptions )
+						? result.subscriptions
+						: []
+				)
+			)
+			.catch( () =>
+				setArtistListsError(
+					'Artist mailing lists could not be loaded.'
+				)
+			);
+	}, [] );
 	useEffect( () => {
 		const load = async () => {
 			try {
@@ -901,6 +934,38 @@ function SubscriptionsTab() {
 		[]
 	);
 
+	const removeArtistList = useCallback(
+		async ( item: ArtistMailingSubscription ) => {
+			const key = `artist-list/${ item.subscriber_id }`;
+			setRemoving( key );
+			setNotice( null );
+			try {
+				await apiFetch( {
+					path: `${ ARTIST_SUBSCRIPTIONS_PATH }/${ item.subscriber_id }`,
+					method: 'DELETE',
+				} );
+				setArtistLists( ( current ) =>
+					current.filter(
+						( candidate ) =>
+							candidate.subscriber_id !== item.subscriber_id
+					)
+				);
+				setNotice( {
+					type: 'success',
+					message: `You left ${ item.artist_name }'s mailing list.`,
+				} );
+			} catch ( err ) {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error ? err.message : 'Update failed.',
+				} );
+			}
+			setRemoving( null );
+		},
+		[]
+	);
+
 	if ( loading ) {
 		return (
 			<div className="notice notice-info">
@@ -946,6 +1011,33 @@ function SubscriptionsTab() {
 		);
 	};
 
+	const renderArtistList = ( item: ArtistMailingSubscription ) => {
+		const key = `artist-list/${ item.subscriber_id }`;
+		return (
+			<li key={ key } style={ styles.checkboxItem }>
+				<div style={ { flex: 1 } }>
+					<strong>
+						{ item.artist_url ? (
+							<a href={ item.artist_url }>{ item.artist_name }</a>
+						) : (
+							item.artist_name
+						) }
+					</strong>
+					<div style={ styles.mutedText }>
+						Artist mailing list. Emails come from the artist.
+					</div>
+				</div>
+				<button
+					className="button-3 button-small"
+					disabled={ removing === key }
+					onClick={ () => removeArtistList( item ) }
+				>
+					{ removing === key ? 'Removing...' : 'Unsubscribe' }
+				</button>
+			</li>
+		);
+	};
+
 	return (
 		<Panel>
 			<PanelHeader description="Review your private Extra Chill notification subscriptions." />
@@ -955,16 +1047,21 @@ function SubscriptionsTab() {
 			<h3>Extra Chill update subscriptions</h3>
 			<p style={ styles.mutedText }>
 				Private subscriptions used by Extra Chill to send updates you
-				explicitly requested.
+				explicitly requested, plus artist mailing lists you joined with
+				your account email.
 			</p>
-			{ subscriptions.length === 0 ? (
+			{ subscriptions.length === 0 && artistLists.length === 0 ? (
 				<p style={ styles.mutedText }>
 					You are not subscribed to any entity updates.
 				</p>
 			) : (
 				<ul style={ styles.checkboxList }>
 					{ subscriptions.map( renderEntity ) }
+					{ artistLists.map( renderArtistList ) }
 				</ul>
+			) }
+			{ artistListsError && (
+				<p style={ styles.mutedText }>{ artistListsError }</p>
 			) }
 		</Panel>
 	);

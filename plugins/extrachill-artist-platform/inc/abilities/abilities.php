@@ -40,6 +40,7 @@ require_once __DIR__ . '/handlers/artist-delete-social.php';
 require_once __DIR__ . '/handlers/artist-subscribe.php';
 require_once __DIR__ . '/handlers/artist-list-subscribers.php';
 require_once __DIR__ . '/handlers/artist-export-subscribers.php';
+require_once __DIR__ . '/handlers/artist-subscriber-unsubscribe.php';
 require_once __DIR__ . '/handlers/artist-get-analytics.php';
 require_once __DIR__ . '/handlers/get-artist-platform-stats.php';
 require_once __DIR__ . '/handlers/artist-local-support.php';

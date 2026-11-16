@@ -58,10 +58,12 @@ function extrachill_artist_platform_ability_artist_export_subscribers( array $in
 		$is_exported = isset( $subscriber->exported ) && 1 === (int) $subscriber->exported;
 
 		$export_data[] = array(
-			'email'         => $subscriber->subscriber_email,
-			'username'      => $subscriber->username ?? '',
-			'subscribed_at' => $subscriber->subscribed_at,
-			'exported'      => $is_exported,
+			'email'           => $subscriber->subscriber_email,
+			'username'        => $subscriber->username ?? '',
+			'subscribed_at'   => $subscriber->subscribed_at,
+			'exported'        => $is_exported,
+			// Personal one-click link the artist includes in their own emails.
+			'unsubscribe_url' => extrachill_artist_subscriber_unsubscribe_url( $artist_id, (string) $subscriber->subscriber_email, (int) $subscriber->subscriber_id ),
 		);
 
 	}

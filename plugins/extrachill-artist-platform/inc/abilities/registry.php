@@ -1545,6 +1545,135 @@ function extrachill_artist_platform_register_abilities() {
 	);
 
 	wp_register_ability(
+		'extrachill/artist-subscriber-unsubscribe',
+		array(
+			'label'               => __( 'Unsubscribe from an artist by link', 'extrachill-artist-platform' ),
+			'description'         => __( 'Resolve a signed artist subscriber unsubscribe link. Without confirm it returns a scanner-safe confirmation page and changes nothing; with confirm it removes that email from the artist\'s list.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'properties'           => array(
+					'token'   => array(
+						'type'        => 'string',
+						'description' => __( 'Signed unsubscribe token.', 'extrachill-artist-platform' ),
+					),
+					'confirm' => array(
+						'type'        => 'boolean',
+						'description' => __( 'Perform the unsubscribe (POST) instead of rendering the confirmation (GET).', 'extrachill-artist-platform' ),
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'status'  => array(
+						'type' => 'string',
+						'enum' => array( 'confirm', 'unsubscribed', 'invalid', 'unavailable' ),
+					),
+					'title'   => array( 'type' => 'string' ),
+					'message' => array( 'type' => 'string' ),
+					'html'    => array( 'type' => 'string' ),
+				),
+				'required'   => array( 'status', 'title', 'message', 'html' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_subscriber_unsubscribe',
+			// The signed link is the authorization; the public transport is the
+			// extrachill-api artists/subscribers/unsubscribe route.
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/list-my-artist-subscriptions',
+		array(
+			'label'               => __( 'List my artist subscriptions', 'extrachill-artist-platform' ),
+			'description'         => __( 'Lists the artist mailing lists the current member is on, matched by account or account email.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'properties'           => array(),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'subscriptions' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'subscriber_id' => array( 'type' => 'integer' ),
+								'artist_id'     => array( 'type' => 'integer' ),
+								'artist_name'   => array( 'type' => 'string' ),
+								'artist_url'    => array( 'type' => 'string' ),
+								'subscribed_at' => array( 'type' => 'string' ),
+							),
+						),
+					),
+				),
+				'required'   => array( 'subscriptions' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_list_my_artist_subscriptions',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/remove-my-artist-subscription',
+		array(
+			'label'               => __( 'Remove my artist subscription', 'extrachill-artist-platform' ),
+			'description'         => __( 'Removes the current member from one artist mailing list they are on.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'subscriber_id' ),
+				'properties'           => array(
+					'subscriber_id' => array(
+						'type'        => 'integer',
+						'minimum'     => 1,
+						'description' => __( 'Subscription ID from list-my-artist-subscriptions.', 'extrachill-artist-platform' ),
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'removed'       => array( 'type' => 'boolean' ),
+					'subscriber_id' => array( 'type' => 'integer' ),
+				),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_remove_my_artist_subscription',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'destructive' => true,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/artist-get-analytics',
 		array(
 			'label'               => __( 'Get artist analytics', 'extrachill-artist-platform' ),
