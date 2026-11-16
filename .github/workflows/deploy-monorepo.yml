@@ -131,7 +131,12 @@ jobs:
               dry_run=false
             fi
           fi
-          settings="$(jq -cn --arg source "${GITHUB_WORKSPACE}" '{extrachill_monorepo_source:$source}')"
+          # The gate reuses component builds whose tracked sources are unchanged.
+          # The directory lives inside the Homeboy build cache restored and
+          # saved by this job, so it persists across runs.
+          settings="$(jq -cn --arg source "${GITHUB_WORKSPACE}" \
+            --arg cache "${RUNNER_TEMP}/homeboy-build-cache/network-gate" \
+            '{extrachill_monorepo_source:$source, extrachill_build_cache:$cache}')"
           {
             echo "sha=${SHA}"
             echo "deploy_count=${deploy_count}"
