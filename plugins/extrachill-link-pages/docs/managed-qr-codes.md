@@ -1,6 +1,6 @@
-# Managed QR backend
+# Managed QR codes
 
-Backend partial for Extra-Chill/extrachill#1530. The generator block's management panel, onboarding pitches, `?view=mine` handling, and team analytics UI are not implemented here.
+The public QR generator block at `/qr-code-generator` includes a team-grouped “My QR codes” panel. `?view=mine` opens it directly; anonymous visitors receive join/login links with a return URL. Active team members can create, rename, retarget, copy, download and delete codes. The static generator remains available to everyone. Scan counts are presented as fan reach over the last 90 days, not lifetime analytics.
 
 ## Storage and authorization
 
@@ -27,5 +27,7 @@ The existing public runtime's special-route filter resolves `/q/<code>` to a non
 Scans use Analytics' existing link-page click writer and daily table, keyed by QR post ID and immutable short URL. No new table or post-meta counter. `scans` sums retained daily rows (currently 90 days), not lifetime scans. QR IDs occupy the same storage-site posts namespace as link-page IDs and cannot collide with a link-page post. Counts are stable through destination and label changes. The later team analytics UI can group QR records using their team fields. Analytics must be active for recording/reporting; redirects remain available if it is not.
 
 ## Tests
+
+UI tests: run `node --test tests/qr-code-generator.test.js` from `plugins/extrachill-content-blocks`. They cover the static generator, onboarding states, team grouping, core ability mutations, confirmation and errors.
 
 Run `php tests/managed-qr-codes-smoke.php`, or `composer test` from `tools/`. The standalone smoke exits nonzero on failure and covers the issue's backend gate plus cross-blog isolation, list visibility, anonymous access, trash fallback and core ability registration. It stubs WordPress, membership persistence and the analytics writer; real WordPress/database integration is not claimed.
