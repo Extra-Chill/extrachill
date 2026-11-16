@@ -420,7 +420,7 @@ The issue’s literal `extrachill/` is a dynamic-registration scanner artifact, 
 
 ### `extrachill/toggle-event-mark`
 
-- **Purpose:** Mark or unmark an event for the current user. Returns new state and attendee count. See [API reference](../../../extrachill-api/docs/routes/concert-tracking/tracking.md).
+- **Purpose:** Mark or unmark an event for the current user. Returns new state and attendee count. See [API reference](../../extrachill-api/docs/routes/concert-tracking/tracking.md).
 - **Input:** `event_id` (integer, **required**); `blog_id` (integer; default 0, optional).
 - **Output:** `object {marked: boolean, count: integer, count_label: string, timing: string}`.
 - **Permission:** Requires a logged-in user.
@@ -437,7 +437,7 @@ The issue’s literal `extrachill/` is a dynamic-registration scanner artifact, 
 
 ### `extrachill/get-user-concert-stats`
 
-- **Purpose:** Get aggregate concert stats: total shows, unique venues/artists/cities, top lists, shows by year. See [API reference](../../../extrachill-api/docs/routes/concert-tracking/tracking.md).
+- **Purpose:** Get aggregate concert stats: total shows, unique venues/artists/cities, top lists, shows by year. See [API reference](../../extrachill-api/docs/routes/concert-tracking/tracking.md).
 - **Input:** `user_id` (integer; default 0, optional); `year` (integer; default 0, optional); `date_from` (string; default "", optional); `date_to` (string; default "", optional).
 - **Output:** `object {total_shows: integer, unique_venues: integer, unique_artists: integer, unique_cities: integer, top_artists: array, top_venues: array, top_cities: array, shows_by_year: object}`.
 - **Permission:** Always allows (`__return_true`); no authentication or capability check in the permission callback. Trusted callers must enforce their own admission policy. Execute enforces concert-history visibility; non-owner public reads are past-only.
