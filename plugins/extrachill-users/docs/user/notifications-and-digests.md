@@ -28,11 +28,13 @@ Get one email a week with upcoming shows in your [Local Scene](https://docs.extr
 
 The email part also needs **Email notifications** turned on. You can also sign up from an event page that offers **Get this week's shows** in that city **by email**. If you have no Local Scene yet, signing up there also makes that city your Local Scene.
 
-To stop the digest, uncheck it in the **Notifications** tab, choose **Unsubscribe** next to it in the **Subscriptions** tab, or use the unsubscribe link at the bottom of the email. Unsubscribing stops the weekly email and its in-app notice for that Local Scene only. Your saved Local Scene and your other choices stay the same. Unsubscribe links in these emails stop working after 30 days, so use **Settings** for older emails.
+The digest always covers the city you signed up for, even if your Local Scene is a different city. Changing your Local Scene later doesn't stop or move a digest you already have. To switch cities, unsubscribe from the old city and turn the digest on for your new one.
+
+To stop the digest, uncheck it in the **Notifications** tab, choose **Unsubscribe** next to it in the **Subscriptions** tab, or use the unsubscribe link at the bottom of the email. Unsubscribing stops the weekly email and its in-app notice for that city only. Your saved Local Scene and your other choices stay the same. Unsubscribe links in these emails stop working after 30 days, so use **Settings** for older emails.
 
 ## Your subscriptions
 
-The **Subscriptions** tab in **Settings** lists the updates you asked Extra Chill to send you, such as your weekly Local Scene digest. Only you can see this list. Choose **Unsubscribe** next to anything you no longer want.
+The **Subscriptions** tab in **Settings** lists the updates you asked Extra Chill to send you, such as your weekly Local Scene digest for each city you signed up for. Only you can see this list. Choose **Unsubscribe** next to anything you no longer want.
 
 ## On-site and device notifications
 

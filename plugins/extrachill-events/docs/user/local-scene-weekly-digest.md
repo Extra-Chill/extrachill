@@ -28,7 +28,7 @@ If you're new to Extra Chill, the confirmation email also has a **Set your passw
 
 ## Sign Up When You're Signed In
 
-The weekly email is always for your Local Scene, the city you've picked as home on Extra Chill. Learn how to pick it in [Your Local Scene](https://docs.extrachill.com/accounts/local-scene).
+When you're signed in, these buttons sign you up for your Local Scene, the city you've picked as home on Extra Chill. Learn how to pick it in [Your Local Scene](https://docs.extrachill.com/accounts/local-scene).
 
 **From a show:** open any show in your city and tap **Email me the weekly shows**. If you haven't picked a Local Scene yet, this also saves that city as yours. If your Local Scene is a different city, the offer doesn't appear on that show.
 
@@ -47,7 +47,7 @@ If you haven't picked a Local Scene yet, the Notifications tab asks you to choos
 ## Make Sure the Email Arrives
 
 - **Email notifications need to be on.** In [account settings](https://community.extrachill.com/settings) under **Notifications**, keep **Email notifications** checked. With it off, you still get the notification on Extra Chill but not the email.
-- **Your Local Scene has to match.** The weekly email only goes out for the city that's your Local Scene. If you change your Local Scene to a new city, the old city's email stops. Turn it on again for your new city.
+- **The email follows the city you signed up for.** Each weekly email covers the city you signed up for, even if your Local Scene is a different city. Changing your Local Scene doesn't stop or move it. To switch cities, unsubscribe from the old city and sign up for the new one. Your signed-up cities are listed under **Subscriptions** in your settings.
 - **Check your spam folder** if you confirmed but don't see the email after a week.
 
 ## Unsubscribe

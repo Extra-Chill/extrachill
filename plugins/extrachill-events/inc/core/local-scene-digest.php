@@ -72,7 +72,6 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		'candidate_query_failures'    => 0,
 		'candidate_queries_truncated' => 0,
 		'recipients'                  => 0,
-		'scene_mismatches'            => 0,
 		'notifications_inserted'      => 0,
 		'notifications_existing'      => 0,
 		'notifications_released'      => 0,
@@ -82,7 +81,7 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		'retryable_failures'          => 0,
 	);
 
-	if ( ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'extrachill_users_get_local_scene' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
+	if ( ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
 		$counts['retryable_failures'] = 1;
 		return array(
 			'dry_run'           => $dry_run,
@@ -140,15 +139,16 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 			continue;
 		}
 
+		/*
+		 * The digest is keyed on the subscribed city (#1569). The subscription
+		 * is the recipient's explicit consent for this city; their profile
+		 * Local Scene is a separate field that email-only signup never
+		 * overwrites and members can change at any time, so it must not
+		 * silently veto delivery. Each subscribed city gets its own digest,
+		 * claimed once per user, ISO week, and city by the receipt below.
+		 */
 		$email_ids = array_fill_keys( array_map( 'absint', $email_ids ), true );
-		foreach ( array_values( array_unique( array_map( 'absint', $recipient_ids ) ) ) as $user_id ) {
-			$scene      = extrachill_users_get_local_scene( $user_id );
-			$scene_slug = is_array( $scene ) ? sanitize_title( $scene['slug'] ?? '' ) : '';
-			if ( $scene_slug !== $term->slug ) {
-				++$counts['scene_mismatches'];
-				continue;
-			}
-
+		foreach ( array_values( array_unique( array_filter( array_map( 'absint', $recipient_ids ) ) ) ) as $user_id ) {
 			++$counts['recipients'];
 			$selected = extrachill_events_select_local_scene_digest_events( $candidates, $user_id, $limit );
 			if ( empty( $selected ) || $dry_run ) {
@@ -539,7 +539,8 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 				'body_html'      => $email['body_html'],
 				'cta_url'        => $link,
 				'cta_label'      => __( 'See Every Show', 'extrachill-events' ),
-				'preheader'      => __( 'Upcoming shows picked for your Local Scene.', 'extrachill-events' ),
+				/* translators: %s: subscribed city name. */
+				'preheader'      => sprintf( __( 'Upcoming shows picked for you in %s.', 'extrachill-events' ), $location->name ),
 			),
 		)
 	);

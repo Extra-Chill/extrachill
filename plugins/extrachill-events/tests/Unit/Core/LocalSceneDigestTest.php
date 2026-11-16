@@ -210,6 +210,9 @@ if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) ) {
 			return $GLOBALS['festival_notification_recipients'][ $slug ] ?? array();
 		}
 		$GLOBALS['local_scene_recipient_resolutions'][] = compact( 'producer', 'type', 'taxonomy', 'slug', 'delivery' );
+		if ( isset( $GLOBALS['local_scene_recipients_by_slug'] ) ) {
+			return $GLOBALS['local_scene_recipients_by_slug'][ $slug ][ $delivery ] ?? array();
+		}
 		return $GLOBALS['local_scene_recipients'][ $delivery ] ?? array();
 	}
 }
@@ -248,6 +251,7 @@ class LocalSceneDigestTest extends TestCase {
 		$GLOBALS['local_scene_filters']         = array();
 		unset( $GLOBALS['ec_test_filters']['extrachill_local_scene_digest_now'], $GLOBALS['ec_test_filters']['extrachill_local_scene_digest_candidate_cap'] );
 		unset( $GLOBALS['local_scene_query_result'], $GLOBALS['local_scene_query_total'] );
+		unset( $GLOBALS['local_scene_recipients_by_slug'] );
 		$GLOBALS['local_scene_event_data']      = array();
 		$GLOBALS['local_scene_terms']           = array();
 		$GLOBALS['local_scene_priority_events'] = array();
@@ -705,28 +709,125 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertStringContainsString( 'Mon, Jul 15 at 8:00 PM - 10:00 PM', $html );
 	}
 
-	public function test_scene_mismatch_does_not_deliver_and_empty_scene_does_nothing(): void {
+	public function test_empty_scene_does_nothing_and_evidence_stays_privacy_safe(): void {
 		$empty = extrachill_events_run_local_scene_digest();
 		$this->assertSame( 0, $empty['counts']['recipients'] );
 		$this->assertEmpty( $GLOBALS['local_scene_recipient_resolutions'], 'Empty scenes do not resolve or deliver to an audience.' );
 
-		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
-		$GLOBALS['local_scene_posts'] = array( new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Qualified Show' ) ) );
-		$GLOBALS['local_scene_terms'][8] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( 3 ) );
-		$GLOBALS['local_scene_event_data'][8] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		$this->qualify_show( 8, 44 );
 		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
-		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'denver' );
+		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
 
-		$mismatch = extrachill_events_run_local_scene_digest();
-		$this->assertSame( 1, $mismatch['counts']['scene_mismatches'] );
-		$this->assertSame( 0, $mismatch['counts']['notifications_inserted'] );
-		$this->assertEmpty( $GLOBALS['local_scene_notifications'] );
+		$result = extrachill_events_run_local_scene_digest();
+		$this->assertArrayNotHasKey( 'scene_mismatches', $result['counts'], 'Profile Local Scene no longer gates delivery (#1569).' );
 		$this->assertSame( array( 'local_scene_digest', 'local_scene_digest' ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'type' ) );
 		$this->assertSame( array( 'location', 'location' ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'taxonomy' ) );
-		$evidence = json_encode( $mismatch );
+		$evidence = json_encode( $result );
 		$this->assertStringNotContainsString( 'austin', $evidence );
 		$this->assertStringNotContainsString( 'denver', $evidence );
 		$this->assertStringNotContainsString( 'fan@example.com', $evidence );
+	}
+
+	/**
+	 * #1569: an email-only signup for Austin on an account whose Local Scene is
+	 * Denver still receives Austin's digest; the subscription is the consent.
+	 */
+	public function test_guest_subscriber_with_different_local_scene_receives_subscribed_city_digest(): void {
+		$this->qualify_show( 8, 44 );
+		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
+
+		$result = extrachill_events_run_local_scene_digest();
+
+		$this->assertSame( 1, $result['counts']['recipients'] );
+		$this->assertSame( 1, $result['counts']['notifications_inserted'] );
+		$this->assertSame( 1, $result['counts']['emails_queued'] );
+		$this->assertCount( 1, $GLOBALS['local_scene_notifications'] );
+		$this->assertSame( array( 7 ), $GLOBALS['local_scene_notifications'][0]['ids'] );
+		$this->assertStringEndsWith( ':austin', $GLOBALS['local_scene_notifications'][0]['payload']['idempotency_key'] );
+		$this->assertCount( 1, $GLOBALS['local_scene_emails'] );
+		$email = $GLOBALS['local_scene_emails'][0];
+		$this->assertSame( 'fan@example.com', $email['to'] );
+		$this->assertStringContainsString( 'happening in Austin this week', $email['context']['body_html'] );
+		$this->assertStringContainsString( 'Austin', $email['context']['preheader'] );
+		$this->assertStringNotContainsString( 'Denver', $email['context']['body_html'] );
+	}
+
+	/**
+	 * #1569: a member who subscribed to Austin and later changed or cleared
+	 * their Local Scene keeps receiving Austin, matching Settings → Subscriptions.
+	 */
+	public function test_member_who_changed_or_cleared_local_scene_keeps_subscribed_city(): void {
+		$this->qualify_show( 8, 44 );
+		$GLOBALS['local_scene_users'][12]  = new WP_User( 'cleared@example.com' );
+		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7, 12 ), 'email' => array( 7, 12 ) );
+		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'chicago' );
+		unset( $GLOBALS['local_scene_scenes'][12] );
+
+		$result = extrachill_events_run_local_scene_digest();
+
+		$this->assertSame( 2, $result['counts']['recipients'] );
+		$this->assertSame( 2, $result['counts']['notifications_inserted'] );
+		$this->assertSame( 2, $result['counts']['emails_queued'] );
+		$this->assertSame( array( 'fan@example.com', 'cleared@example.com' ), array_column( $GLOBALS['local_scene_emails'], 'to' ) );
+		foreach ( $GLOBALS['local_scene_notifications'] as $notification ) {
+			$this->assertStringEndsWith( ':austin', $notification['payload']['idempotency_key'] );
+		}
+	}
+
+	/**
+	 * One send per user per subscribed city: duplicate recipient rows collapse,
+	 * and a user subscribed to two cities gets each city's own digest once.
+	 */
+	public function test_multiple_subscriptions_send_once_per_city_without_duplicates(): void {
+		$denver = $this->term( 55, 'denver', 'Denver' );
+		$GLOBALS['local_scene_locations'] = array( $this->location, $denver );
+		$this->qualify_show( 8, 44 );
+		$this->qualify_show( 9, 55 );
+		$GLOBALS['local_scene_recipients_by_slug'] = array(
+			'austin' => array( 'notification' => array( 7, 7, '7' ), 'email' => array( 7, 7 ) ),
+			'denver' => array( 'notification' => array( 7 ), 'email' => array( 7 ) ),
+		);
+		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'austin' );
+
+		$result = extrachill_events_run_local_scene_digest();
+
+		$this->assertSame( 2, $result['counts']['recipients'] );
+		$this->assertSame( 2, $result['counts']['notifications_inserted'] );
+		$this->assertSame( 2, $result['counts']['emails_queued'] );
+		$keys = array_map( static fn( $notification ) => substr( strrchr( $notification['payload']['idempotency_key'], ':' ), 1 ), $GLOBALS['local_scene_notifications'] );
+		$this->assertSame( array( 'austin', 'denver' ), $keys );
+		$this->assertStringContainsString( 'happening in Austin', $GLOBALS['local_scene_emails'][0]['context']['body_html'] );
+		$this->assertStringContainsString( 'happening in Denver', $GLOBALS['local_scene_emails'][1]['context']['body_html'] );
+		$this->assertStringContainsString( 'Show 9', $GLOBALS['local_scene_emails'][1]['context']['body_html'] );
+		$this->assertStringNotContainsString( 'Show 8', $GLOBALS['local_scene_emails'][1]['context']['body_html'] );
+	}
+
+	/**
+	 * The Email notifications master toggle still gates the email: with it
+	 * off, the user is absent from the email audience and only the in-app
+	 * update is recorded, whatever their Local Scene.
+	 */
+	public function test_master_email_toggle_off_sends_no_email_for_subscribed_city(): void {
+		$this->qualify_show( 8, 44 );
+		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array() );
+		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
+
+		$result = extrachill_events_run_local_scene_digest();
+
+		$this->assertSame( 1, $result['counts']['notifications_inserted'] );
+		$this->assertSame( 0, $result['counts']['emails_queued'] );
+		$this->assertSame( 0, $result['counts']['email_failures'] );
+		$this->assertEmpty( $GLOBALS['local_scene_emails'] );
+		$this->assertEmpty( $GLOBALS['local_scene_releases'] );
+		$this->assertSame( array( 'notification', 'email' ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'delivery' ) );
+	}
+
+	private function qualify_show( int $id, int $location_id ): void {
+		$tomorrow                              = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		$GLOBALS['local_scene_posts'][]        = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Show ' . $id ) );
+		$GLOBALS['local_scene_terms'][ $id ]   = array( 'location' => array( $location_id ), 'venue' => array( $this->term( 100 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
+		$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
 	}
 
 	public function test_unsubscribe_get_is_scanner_safe_and_post_is_location_scoped(): void {

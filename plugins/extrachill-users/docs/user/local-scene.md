@@ -7,7 +7,7 @@ Your Local Scene is the city or region you call home for live music. Setting one
 - **Meet people nearby.** Every Local Scene has its own **People in** page on the community site, such as [People in Charleston, South Carolina](https://community.extrachill.com/local-scene/charleston). It lists members who share that Local Scene publicly, with their picture and title. Each page also links to live music in that city on the events calendar.
 - **Show where you are from.** When your Local Scene is public, your profile shows **Local Scene:** with your city. Your city also appears beside your forum posts. Both link to that city's **People in** page.
 - **Find shows faster.** The [events calendar](https://events.extrachill.com) can focus on your city and show **Showing events for** your Local Scene. Choose **Explore all locations** to look elsewhere, then **Use my Local Scene** to come back. This works on any device where you are signed in.
-- **Get weekly picks.** You can turn on a weekly email of upcoming shows in your Local Scene. See [Notifications and email digests](https://docs.extrachill.com/accounts/notifications-and-digests).
+- **Get weekly picks.** You can turn on a weekly email of upcoming shows in your Local Scene. The email stays with the city you signed up for, so changing your Local Scene later doesn't stop or move it. See [Notifications and email digests](https://docs.extrachill.com/accounts/notifications-and-digests).
 
 ## Public or private
 
