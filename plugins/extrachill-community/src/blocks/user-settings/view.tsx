@@ -1367,6 +1367,158 @@ function ArtistPlatformTab( {
 	);
 }
 
+export type AccountDeletionStatus = 'allowed' | 'staff' | 'unavailable';
+
+const ACCOUNT_DELETION_CONFIRMATION = 'DELETE';
+
+/**
+ * Human-readable message from a failed ability call. Core's REST transport
+ * rejects with a plain `{ code, message }` object rather than an Error.
+ *
+ * @param err      Rejection value.
+ * @param fallback Message used when the rejection carries none.
+ * @return Message to show the member.
+ */
+function failureMessage( err: unknown, fallback: string ): string {
+	if ( err instanceof Error && err.message ) {
+		return err.message;
+	}
+	if (
+		err &&
+		typeof err === 'object' &&
+		'message' in err &&
+		typeof ( err as { message: unknown } ).message === 'string' &&
+		( err as { message: string } ).message
+	) {
+		return ( err as { message: string } ).message;
+	}
+	return fallback;
+}
+
+export function DeleteAccountSection( {
+	status,
+	homeUrl,
+	redirect = ( url: string ) => window.location.assign( url ),
+	redirectDelayMs = 2000,
+}: {
+	status: AccountDeletionStatus;
+	homeUrl: string;
+	redirect?: ( url: string ) => void;
+	redirectDelayMs?: number;
+} ) {
+	const [ confirmation, setConfirmation ] = useState( '' );
+	const [ deleting, setDeleting ] = useState( false );
+	const [ deleted, setDeleted ] = useState( false );
+	const [ error, setError ] = useState< string | null >( null );
+
+	const confirmed = confirmation === ACCOUNT_DELETION_CONFIRMATION;
+
+	const handleDelete = useCallback( async () => {
+		if ( ! confirmed ) {
+			return;
+		}
+		setDeleting( true );
+		setError( null );
+		try {
+			await client.execute< { deleted: boolean } >(
+				'extrachill/delete-my-account',
+				{ confirm: ACCOUNT_DELETION_CONFIRMATION }
+			);
+			// The server already signed this browser out.
+			setDeleted( true );
+			window.setTimeout( () => redirect( homeUrl ), redirectDelayMs );
+		} catch ( err ) {
+			setError(
+				failureMessage(
+					err,
+					'Your account could not be deleted. Please try again or contact the Extra Chill team.'
+				)
+			);
+			setDeleting( false );
+		}
+	}, [ confirmed, homeUrl, redirect, redirectDelayMs ] );
+
+	if ( status === 'unavailable' ) {
+		return null;
+	}
+
+	return (
+		<Panel>
+			<section aria-labelledby="ec-delete-account-title">
+				<h3 id="ec-delete-account-title">Delete account</h3>
+				{ status === 'staff' ? (
+					<p style={ styles.mutedText }>
+						Staff accounts can&apos;t be deleted here. Please
+						contact the Extra Chill team.
+					</p>
+				) : (
+					<>
+						<p>
+							Deleting your account is permanent and can&apos;t be
+							undone. It removes your account from every Extra
+							Chill site, not just this one.
+						</p>
+						<p>This deletes:</p>
+						<ul>
+							<li>Your profile</li>
+							<li>Your sign-in on every Extra Chill site</li>
+							<li>Your posts, forum topics and replies</li>
+							<li>Your concert history and ratings</li>
+						</ul>
+						<p style={ styles.mutedText }>
+							You&apos;ll also stop getting the Extra Chill
+							newsletter.
+						</p>
+						{ error && <Notice type="error" message={ error } /> }
+						{ deleted ? (
+							<Notice
+								type="success"
+								message="Your account has been deleted. Taking you to the home page..."
+							/>
+						) : (
+							<>
+								<FieldGroup
+									label="Type DELETE to confirm"
+									htmlFor="ec-delete-account-confirm"
+								>
+									<input
+										id="ec-delete-account-confirm"
+										type="text"
+										value={ confirmation }
+										autoComplete="off"
+										spellCheck={ false }
+										onChange={ ( e ) =>
+											setConfirmation( e.target.value )
+										}
+										disabled={ deleting }
+									/>
+								</FieldGroup>
+								<ActionRow>
+									<button
+										type="button"
+										className="button-danger button-medium"
+										style={
+											! confirmed || deleting
+												? styles.button
+												: undefined
+										}
+										onClick={ handleDelete }
+										disabled={ ! confirmed || deleting }
+									>
+										{ deleting
+											? 'Deleting...'
+											: 'Delete my account' }
+									</button>
+								</ActionRow>
+							</>
+						) }
+					</>
+				) }
+			</section>
+		</Panel>
+	);
+}
+
 type TabId =
 	| 'account-details'
 	| 'security'
@@ -1379,11 +1531,15 @@ export function UserSettingsApp( {
 	hasArtists,
 	canCreateArtists,
 	userId,
+	accountDeletion = 'unavailable',
+	homeUrl = '/',
 }: {
 	artistSiteUrl: string;
 	hasArtists: boolean;
 	canCreateArtists: boolean;
 	userId: number;
+	accountDeletion?: AccountDeletionStatus;
+	homeUrl?: string;
 } ) {
 	const [ activeTab, setActiveTab ] = useState< TabId >( 'account-details' );
 	const [ settings, setSettings ] = useState< UserSettings | null >( null );
@@ -1453,10 +1609,16 @@ export function UserSettingsApp( {
 		switch ( id as TabId ) {
 			case 'account-details':
 				return (
-					<AccountTab
-						settings={ settings }
-						onUpdate={ setSettings }
-					/>
+					<>
+						<AccountTab
+							settings={ settings }
+							onUpdate={ setSettings }
+						/>
+						<DeleteAccountSection
+							status={ accountDeletion }
+							homeUrl={ homeUrl }
+						/>
+					</>
 				);
 			case 'security':
 				return (
@@ -1517,6 +1679,12 @@ function init(): void {
 			const hasArtists = container.dataset.hasArtists === '1';
 			const canCreateArtists = container.dataset.canCreateArtists === '1';
 			const userId = Number( container.dataset.userId || '0' );
+			const deletionData = container.dataset.accountDeletion;
+			const accountDeletion: AccountDeletionStatus =
+				deletionData === 'allowed' || deletionData === 'staff'
+					? deletionData
+					: 'unavailable';
+			const homeUrl = container.dataset.homeUrl || '/';
 			const root = createRoot( container );
 			root.render(
 				<UserSettingsApp
@@ -1524,6 +1692,8 @@ function init(): void {
 					hasArtists={ hasArtists }
 					canCreateArtists={ canCreateArtists }
 					userId={ userId }
+					accountDeletion={ accountDeletion }
+					homeUrl={ homeUrl }
 				/>
 			);
 		} );
