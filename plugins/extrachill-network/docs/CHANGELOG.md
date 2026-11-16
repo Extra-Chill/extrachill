@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.41.2] - 2026-11-16
+
+### Fixed
+- say who absorbs processing above the estimate
+
 ## [2.41.1] - 2026-11-16
 
 ### Fixed
