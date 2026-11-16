@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.55.0] - 2026-11-16
+
+### Added
+- public QR generator for musicians, logged-out ads opt-in
+
 ## [0.54.4] - 2026-11-15
 
 ### Fixed
