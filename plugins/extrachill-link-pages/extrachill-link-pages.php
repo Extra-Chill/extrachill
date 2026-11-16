@@ -828,6 +828,8 @@ if ( is_wp_error( $ec_link_pages_section_sources_result ) ) {
 	ec_record_link_pages_runtime_error( $ec_link_pages_section_sources_result );
 }
 
+require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/managed-qr/codes.php';
+
 // Owner-definition engine: owner plugins extend it instead of hand-wiring providers.
 require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/class-owned-link-pages.php';
 

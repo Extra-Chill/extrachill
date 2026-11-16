@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:disable -- Test doubles and WordPress stubs.
 
 use PHPUnit\Framework\TestCase;
 
@@ -43,10 +43,12 @@ final class PackageContractTest extends TestCase {
 				'assets/js/link-page-subscribe.js',
 				'assets/js/link-page-youtube-embed.js',
 				'extrachill-link-pages.php',
+				'homeboy-test-manifest.json',
 				'inc/class-owned-link-pages.php',
 				'inc/compatibility.php',
 				'inc/edit-entry.php',
 				'inc/fonts.php',
+				'inc/managed-qr/codes.php',
 				'inc/operations.php',
 				'inc/owner-reference.php',
 				'inc/post-type.php',
