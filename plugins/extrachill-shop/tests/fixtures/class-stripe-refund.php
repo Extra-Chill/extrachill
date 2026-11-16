@@ -14,7 +14,8 @@ class Refund {
 		$GLOBALS['ticket_refunds'][] = array( $params, $options );
 		return (object) array(
 			'id'       => 're_ticket',
-			'amount'   => 2000,
+			// No `amount` refunds the whole charge, Service fee included.
+			'amount'   => $params['amount'] ?? ( $GLOBALS['ticket_charge_amount'] ?? 2000 ),
 			'created'  => 1700000000,
 			'metadata' => (object) $params['metadata'],
 		);
