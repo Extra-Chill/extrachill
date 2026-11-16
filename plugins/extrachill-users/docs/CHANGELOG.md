@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.69.0] - 2026-11-16
+
+### Added
+- public QR generator for musicians, logged-out ads opt-in
+
 ## [0.68.0] - 2026-11-16
 
 ### Added
