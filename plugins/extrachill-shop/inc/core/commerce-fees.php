@@ -102,7 +102,8 @@ function extrachill_commerce_merch_fee( $subtotal_minor, $total_minor, $seller, 
 		);
 	}
 	$hold       = min( $total, max( 0, (int) $hold_minor ) );
-	$processing = 'platform' === $payer ? min( $total - $hold, extrachill_commerce_processing_estimate( $total, ec_commerce_fee_settings() ) ) : 0;
+	$settings   = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings() : array();
+	$processing = 'platform' === $payer ? min( $total - $hold, extrachill_commerce_processing_estimate( $total, $settings ) ) : 0;
 	$commission = min( $total - $hold - $processing, extrachill_commerce_fee( 'extrachill_merch', $subtotal_minor, $seller )['application_fee'] );
 	return array(
 		'commission'       => $commission,
