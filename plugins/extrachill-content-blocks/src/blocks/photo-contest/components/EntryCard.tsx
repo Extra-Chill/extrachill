@@ -9,7 +9,7 @@ import {
 	getVotedEntries,
 	rememberVote,
 } from '../storage';
-import { isValidEmail } from '../utils';
+import { isValidEmail, PHOTO_CONTEST_EMAIL_DISCLOSURE } from '../utils';
 import { hasOpened } from '../schedule';
 import { ContestDialog } from './ContestDialog';
 
@@ -137,6 +137,8 @@ export function EntryCard( {
 		if ( stored ) {
 			submitVote( stored );
 		} else {
+			// Never prefill a previous voter's email after "Not you?".
+			setEmail( '' );
 			setShowForm( true );
 		}
 	};
@@ -274,11 +276,12 @@ export function EntryCard( {
 									/>
 								</label>
 								<p>
-									We'll remember it, so every other vote is
-									one tap.
+									We'll remember it on this device, so every
+									other vote is one tap.
 									{ config.welcomeVoter &&
 										" We'll send you a quick thank-you email." }
 								</p>
+								<p>{ PHOTO_CONTEST_EMAIL_DISCLOSURE }</p>
 								<button
 									className="button-1 button-large"
 									disabled={ isVoting }

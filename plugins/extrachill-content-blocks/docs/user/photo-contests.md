@@ -43,6 +43,8 @@ Your vote counts right away and the button changes to **Voted ✓**.
 
 - **One vote per email per entry.** You can vote for as many different entries as you like.
 - **After your first vote, voting is one tap.** Your email is remembered on that device, so other **Vote** buttons count your vote right away. If you're signed in to your Extra Chill account, your account email is used.
+- **You can see who is voting.** Above the entries, a line shows **Voting as** with the email that votes on that device.
+- **Sharing a phone?** Select **Not you?** next to the email. The device forgets it, so the next person is asked for their own email.
 - **Some contests send a quick thank-you email** after your first vote.
 
 Entries appear in a fresh, shuffled order each time the page loads, so everyone gets a fair look. A **Leading right now** row near the top shows the entries with the most votes so far.
@@ -65,7 +67,7 @@ Contest moderators can hide entries that break the rules or don't belong. A hidd
 
 ## What happens with your email
 
-When you enter or vote, Extra Chill uses your email in a few ways:
+When you enter or vote, the form tells you how your email is used. Extra Chill uses your email in a few ways:
 
 - **Photo contest emails.** Your email is added to Extra Chill's photo contest mailing list.
 - **Your Extra Chill account.** Your email is linked to an Extra Chill account. If you already have one, it's used. If not, a new account is set up for you that you can claim later. You may get an email with a link to set a password and claim it. To learn more about accounts, see [Create an account or sign in](https://docs.extrachill.com/accounts/account-access).
