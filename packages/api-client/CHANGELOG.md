@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.0] - 2026-11-16
+
+### Added
+- per-ticket service fee that keeps venues at full ticket price
+
 ## [0.12.0] - 2026-11-15
 
 ### Added
