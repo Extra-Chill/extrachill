@@ -724,6 +724,10 @@ export interface ShopSellerFeeRates {
   ticket_buyer_fee_flat: number;
   /** Buyer service fee per ticket, in dollars. */
   ticket_buyer_fee_per_ticket: number;
+  /** Card processing estimate, percent of the whole charge. */
+  processing_percent: number;
+  /** Card processing estimate per payment, in dollars. */
+  processing_fixed: number;
   merch_summary: string;
   ticket_summary: string;
 }

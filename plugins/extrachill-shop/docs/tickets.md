@@ -3,7 +3,7 @@
 Tickets use direct Stripe Checkout charges with `stripe_account`. The connected
 seller is merchant of record; Extra Chill receives only the application fee.
 There is no Woo order, Stripe Tax, or Woo tax calculation. Prices include tax;
-the seller is responsible for tax. Merch checkout is unchanged.
+the seller is responsible for tax.
 
 ## Fees: the venue keeps the full ticket price
 
@@ -16,8 +16,8 @@ which delegates to `extrachill_commerce_ticket_fee()` and reads the network
 | `ticket_buyer_fee_per_ticket_minor` | `100` | Buyer service fee per ticket, cents |
 | `ticket_buyer_fee_flat_minor` | `0` | Buyer service fee per order, cents |
 | `ticket_buyer_fee_percent` | `0` | Buyer service fee, % of the ticket subtotal |
-| `ticket_processing_percent` | `2.9` | Card processing estimate, % (capped at 50) |
-| `ticket_processing_fixed_minor` | `30` | Card processing estimate per payment, cents |
+| `processing_percent` | `2.9` | Card processing estimate, % (capped at 50). Shared with merch (#1563); read from the old `ticket_processing_percent` key when missing |
+| `processing_fixed_minor` | `30` | Card processing estimate per payment, cents. Shared with merch; old key `ticket_processing_fixed_minor` |
 | `ticket_percent` | `0` | Fee taken from the seller, % of the subtotal (keep 0) |
 
 Checkout is a direct charge on the venue's account. The Service fee is grossed
@@ -85,13 +85,14 @@ isn't known yet. It is written:
   ability and product publish pass it through).
 
 A save that doesn't report a payer keeps the stored one. Records saved before
-the field existed are backfilled lazily: ticket checkout calls
+the field existed are backfilled lazily: ticket and merch checkout call
 `extrachill_shop_get_seller_fee_payer()`, which retrieves the account once,
 saves the payer, and remembers a failed lookup for
 `EXTRACHILL_SHOP_STRIPE_LIVE_STATUS_TTL` (2 minutes) so a busy checkout does not
 ask Stripe on every attempt. `extrachill_shop_stripe_fee_payer()` reads the
 field from an Account object, a webhook payload, or an array. Merch checkout
-never reads the payer.
+uses the payer too since #1563 (see
+[ecommerce-integration.md](ecommerce-integration.md#4-merch-fee-sellers-pay-card-processing-1563)).
 
 The ticket order row (`extrachill_ticket_order_<session>`) stores the split under
 `amounts`: `subtotal_minor`, `service_fee_minor`, `total_minor`,
