@@ -302,7 +302,7 @@ function ec_render_network_payments_page() {
 					<tr>
 						<th colspan="2" style="padding-top: 30px;">
 							<h2><?php esc_html_e( 'Fees', 'extrachill-network' ); ?></h2>
-							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Merch sellers pay card processing: when Extra Chill pays a seller\'s processing, the merch fee adds the estimate on the whole charge. Set the estimate at or above real processing costs; the venue absorbs any shortfall on pricier cards. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Merch sellers pay card processing: when Extra Chill pays a seller\'s processing, the merch fee adds the estimate on the whole charge. Set the estimate at or above real processing costs. When a card costs more than the estimate, whoever pays processing absorbs the difference: Extra Chill for Express sellers, or the seller when their own account pays processing. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
 						</th>
 					</tr>
 					<?php $fees = ec_commerce_fee_settings(); ?>
