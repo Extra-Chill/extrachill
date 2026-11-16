@@ -14,6 +14,7 @@ require_once dirname( __DIR__ ) . '/inc/stripe/webhooks.php';
 require_once dirname( __DIR__ ) . '/inc/core/legal-documents.php';
 require_once dirname( __DIR__ ) . '/inc/core/account-tickets.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/tickets.php';
+require_once dirname( __DIR__ ) . '/inc/core/seller-order-notifications.php';
 // Ticket orders are option rows; the show-wide refund scans them by prefix.
 // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test double for the options table scan.
 $GLOBALS['wpdb'] = new class() {
@@ -82,6 +83,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				); }
 			if ( str_contains( $route, 'record-checkout-ticket-sales' ) ) {
 				return array( 'recorded' => true ); }
+			if ( str_contains( $route, 'restore-ticket-passes' ) ) {
+				return $GLOBALS['ticket_restore'] ?? array( 'restored' => 2 ); }
+			if ( str_contains( $route, 'notify-commerce-seller' ) ) {
+				return array( 'sent' => 1 ); }
 			if ( $GLOBALS['ticket_redeemed'] ) {
 				return new WP_Error( 'ticket_already_redeemed', 'Already redeemed.' ); }
 			return array( 'revoked' => true );
@@ -268,7 +273,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		add_filter( 'extrachill_shop_ticket_service_assertion_active_key_id', static function () { return 'test';
 		} );
 		$grants = extrachill_shop_register_ticket_source_grants( array() );
-		$this->assertCount( 5, $grants );
+		$this->assertCount( 6, $grants );
 		foreach ( $grants as $grant ) {
 			$this->assertSame( 'POST', $grant['method'] );
 			$this->assertSame( 'events.extrachill.com', $grant['target_host'] );
@@ -342,21 +347,108 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'owner_runtime_unavailable', extrachill_shop_route_webhook_event( $this->dispute() )->get_error_code() );
 		$this->assertSame( 'issued', $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['status'] );
 	}
-	public function test_closed_ticket_dispute_records_the_outcome_only(): void {
+	private function closed_dispute( string $status ) {
+		$closed                       = $this->dispute();
+		$closed->type                 = 'charge.dispute.closed';
+		$closed->data->object->status = $status;
+		$closed->data->object->amount = 2000;
+		return $closed;
+	}
+	private function disputed_order(): void {
 		$this->checkout();
 		extrachill_shop_route_webhook_event( $this->event() );
 		extrachill_shop_route_webhook_event( $this->dispute() );
 		$GLOBALS['test_owner_calls'] = array();
-		$closed                      = $this->dispute();
-		$closed->type                = 'charge.dispute.closed';
-		$closed->data->object->status = 'lost';
-		$this->assertTrue( extrachill_shop_route_webhook_event( $closed ) );
-		$this->assertTrue( extrachill_shop_route_webhook_event( $closed ) );
+	}
+	private function routes(): array {
+		return array_map( static fn( $call ) => basename( dirname( $call['route'] ) ), $GLOBALS['test_owner_calls'] );
+	}
+	public function test_won_ticket_dispute_restores_passes_and_unblocks_refunds(): void {
+		$this->disputed_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) ) );
+		$this->assertSame( array( 'restore-ticket-passes', 'notify-commerce-seller' ), $this->routes() );
+		$restore = $GLOBALS['test_owner_calls'][0]['args']['body']['input'];
+		$this->assertSame(
+			array(
+				'order_reference' => 'cs_ticket',
+				'reason'          => 'dispute',
+				'email'           => 'buyer@example.com',
+			),
+			$restore,
+			'Only dispute-cancelled passes come back, emailed to the buyer.'
+		);
+		$seller = $GLOBALS['test_owner_calls'][1]['args']['body']['input'];
+		$this->assertSame( 9911, $seller['seller']['id'] );
+		$this->assertSame( 'venue', $seller['seller']['type'] );
+		$this->assertStringContainsString( 'settled in your favor', $seller['subject'] );
+		$this->assertStringContainsString( 'passes work again', $seller['body_html'] );
+
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( 'issued', $order['status'] );
+		$this->assertSame( 'won', $order['dispute_outcome'] );
+		$this->assertCount( 1, $order['notes'] );
+		$this->assertStringContainsString( '2 pass(es) cancelled by the dispute work again', $order['notes'][0]['note'] );
+
+		// Replay: no second restore, so no second buyer email, and no second note.
+		$GLOBALS['test_owner_calls'] = array();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) ) );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+		$this->assertCount( 1, $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['notes'] );
+
+		// A late `created` for the same, now closed, dispute does not cancel them again.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->dispute() ) );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+		$this->assertSame( 'issued', $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['status'] );
+
+		// Refunds work again.
+		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) ) );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
+	}
+	public function test_warning_closed_inquiry_counts_as_won(): void {
+		$this->disputed_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'warning_closed' ) ) );
+		$this->assertSame( 'restore-ticket-passes', $this->routes()[0] );
+		$this->assertSame( 'issued', $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket']['status'] );
+	}
+	public function test_won_dispute_after_check_in_restores_nothing_but_unblocks_refunds(): void {
+		$this->disputed_order();
+		$GLOBALS['ticket_restore'] = array( 'restored' => 0 );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) ) );
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( 'issued', $order['status'] );
+		$this->assertStringContainsString( 'No passes needed restoring', $order['notes'][0]['note'] );
+		$this->assertStringNotContainsString( 'passes work again', $GLOBALS['test_owner_calls'][1]['args']['body']['input']['body_html'] );
+	}
+	public function test_failed_restore_is_retried_without_recording_the_outcome(): void {
+		$this->disputed_order();
+		$GLOBALS['test_owner_callback'] = static fn() => new WP_Error( 'owner_runtime_unavailable', 'Events unreachable.' );
+		$this->assertSame( 'owner_runtime_unavailable', extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) )->get_error_code() );
+
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( 'disputed', $order['status'] );
+		$this->assertArrayNotHasKey( 'dispute_outcome', $order );
+	}
+	public function test_lost_ticket_dispute_keeps_passes_cancelled_and_records_the_returned_money(): void {
+		$this->disputed_order();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'lost' ) ) );
+		$this->assertSame( array( 'record-checkout-ticket-sales', 'notify-commerce-seller' ), $this->routes() );
+		$input = $GLOBALS['test_owner_calls'][0]['args']['body']['input'];
+		$this->assertSame( 'dp_ticket', $input['external_report_id'] );
+		$this->assertSame( -2000, $input['gross_minor'] );
+		$this->assertSame( -2, $input['tickets_sold'] );
+		$this->assertSame( 0, $input['fees_minor'], 'The platform fee is not returned on a lost dispute.' );
+		$this->assertStringContainsString( 'dispute', $GLOBALS['test_owner_calls'][1]['args']['body']['input']['subject'] );
+
 		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
 		$this->assertSame( 'lost', $order['dispute_outcome'] );
 		$this->assertSame( 'disputed', $order['status'] );
-		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
+		$this->assertStringContainsString( 'passes stay cancelled', $order['notes'][0]['note'] );
+		$this->assertSame( 'ticket_disputed', extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) )->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+
+		$GLOBALS['test_owner_calls'] = array();
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'lost' ) ) );
+		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
 	}
 	public function test_show_refund_refunds_open_orders_and_counts_check_ins(): void {
 		$this->checkout();

@@ -48,7 +48,14 @@ Ticket payments and payouts also show in your payout dashboard.
 
 Refunded passes stop working at the door. Extra Chill's fee on a refunded order is returned to you. If you cancel a show, the [Seller Agreement](https://extrachill.com/seller-agreement/) asks you to refund every ticket holder.
 
-If a buyer disputes a ticket payment with their bank, you can't refund it from Extra Chill. Respond from your payout dashboard. If they already checked in, say so in your response.
+### If a Buyer Disputes a Ticket Payment
+
+If a buyer disputes a ticket payment with their bank, their passes stop working, the order shows as **Refunded** under **Ticket sales** (unless someone on it already checked in), and you can't refund it from Extra Chill. We email you when it happens. Respond from your payout dashboard before the deadline shown there. If they already checked in, say so in your response.
+
+When the bank decides, we email you again:
+
+- **You win:** you keep the payment. The buyer's passes work again, with the same codes, and we email them to the buyer. The order shows as **Paid** again. You can refund the order again until someone on it checks in.
+- **The buyer wins:** the bank gives the money back to the buyer. Their passes stay cancelled, the order still can't be refunded, and it stays **Refunded** under **Ticket sales**. Extra Chill's fee isn't returned when a dispute is lost.
 
 ## Fees and Taxes
 

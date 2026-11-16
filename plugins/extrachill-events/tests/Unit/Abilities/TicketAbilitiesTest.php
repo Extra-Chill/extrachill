@@ -24,7 +24,11 @@ function ec_cross_site_request_has_service_grant( string $service_id, string $sc
 	return false;
 }
 function extrachill_events_guest_list_pass_link( $id, $code, $name = '' ) { return 'https://events.test/' . $id . '/guest-list/?pass=' . $code; }
-function extrachill_events_send_guest_list_pass_email( $id, $email, $code, $name = '' ) { $GLOBALS['ticket_emails'][] = $code; return true; }
+function extrachill_events_send_guest_list_pass_email( $id, $email, $code, $name = '', $subject = '' ) {
+	$GLOBALS['ticket_emails'][]     = $code;
+	$GLOBALS['ticket_email_args'][] = array( $email, $code, $subject );
+	return true;
+}
 function datamachine_get_event_timing( int $id ): string { return $GLOBALS['ticket_timing'][ $id ] ?? 'past'; }
 function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['ticket_meta'][$id][$key] ?? ''; }
 function get_post( $id ) { return (object) array( 'ID' => (int) $id, 'post_type' => 'data_machine_events', 'post_status' => 'publish', 'post_title' => 'Test show' ); }
@@ -93,7 +97,8 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ticket_request'] = null;
 		$GLOBALS['ticket_claims'] = array();
-		$GLOBALS['ticket_emails'] = array();
+		$GLOBALS['ticket_emails']     = array();
+		$GLOBALS['ticket_email_args'] = array();
 		$GLOBALS['dispute_mail'] = array();
 		$GLOBALS['wpdb'] = new TicketWpdb();
 		$GLOBALS['ticket_timing'] = array( 10 => 'upcoming' );
@@ -239,7 +244,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_service_grant_covers_every_ticket_route_and_nothing_else(): void {
 		$this->service_context();
-		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) as $ability ) {
+		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'restore-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) as $ability ) {
 			$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/' . $ability . '/run';
 			$this->assertTrue( extrachill_events_ticket_has_service_authority(), $ability );
 		}
@@ -257,6 +262,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'ticket_service_required', $abilities->order_status( array( 'order_reference' => 'cs_123' ) )->get_error_code() );
 		$this->assertSame( 'ticket_service_required', $abilities->issue( array() )->get_error_code() );
 		$this->assertSame( 'ticket_service_required', $abilities->revoke( array() )->get_error_code() );
+		$this->assertSame( 'ticket_service_required', $abilities->restore( array() )->get_error_code() );
 	}
 	public function test_dispute_revokes_and_emails_the_seller(): void {
 		$this->service_context();
@@ -299,5 +305,67 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( '<p>Order</p>', $mail['context']['body_html'] );
 		$this->assertSame( 'https://shop.test/manage/', $mail['context']['cta_url'] );
 		$this->assertArrayNotHasKey( 'preheader', $mail['context'] );
+	}
+
+	private function restore( string $email = 'buyer@example.com' ) {
+		$input = array(
+			'order_reference' => 'cs_123',
+			'reason'          => 'dispute',
+		);
+		if ( '' !== $email ) {
+			$input['email'] = $email;
+		}
+		return ( new TicketAbilities() )->restore( $input );
+	}
+	private function revoke( string $reason ) {
+		return ( new TicketAbilities() )->revoke(
+			array(
+				'order_reference' => 'cs_123',
+				'reason'          => $reason,
+			)
+		);
+	}
+	public function test_revoke_records_the_reason_on_each_pass(): void {
+		$this->issue();
+		RsvpPassesTable::revoke_ticket_order( 'cs_123', 'dispute' );
+		$this->assertSame( array( 'dispute', 'dispute' ), array_column( $GLOBALS['wpdb']->rows, 'revoke_reason' ) );
+	}
+	public function test_won_dispute_restores_only_dispute_revoked_passes_and_keeps_codes(): void {
+		$this->service_context();
+		$this->issue( 3 );
+		$codes = array_column( $GLOBALS['wpdb']->rows, 'code' );
+		// A host removed the third pass by hand before the dispute.
+		$GLOBALS['wpdb']->rows[2]['status'] = 'revoked';
+		$this->revoke( 'dispute' );
+		$this->assertSame( array( 'revoked', 'revoked', 'revoked' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
+
+		$this->assertSame( array( 'restored' => 2 ), $this->restore() );
+		$this->assertSame( array( 'active', 'active', 'revoked' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
+		$this->assertSame( $codes, array_column( $GLOBALS['wpdb']->rows, 'code' ), 'Restored passes keep their codes.' );
+		$this->assertNull( $GLOBALS['wpdb']->rows[0]['revoked_at'] );
+		$this->assertNull( $GLOBALS['wpdb']->rows[0]['revoke_reason'] );
+		$this->assertSame( array( $codes[0], $codes[1] ), $GLOBALS['ticket_emails'] );
+		$this->assertSame( 'buyer@example.com', $GLOBALS['ticket_email_args'][0][0] );
+		$this->assertStringContainsString( 'works again', $GLOBALS['ticket_email_args'][0][2] );
+
+		// Replay: nothing left to restore, no second email.
+		$this->assertSame( array( 'restored' => 0 ), $this->restore() );
+		$this->assertCount( 2, $GLOBALS['ticket_emails'] );
+	}
+	public function test_restore_never_reverses_a_refund(): void {
+		$this->service_context();
+		$this->issue();
+		$this->revoke( 'seller_refund' );
+		$this->assertSame( array( 'restored' => 0 ), $this->restore() );
+		$this->assertSame( array( 'revoked', 'revoked' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
+		$this->assertCount( 0, $GLOBALS['ticket_emails'] );
+	}
+	public function test_restore_after_check_in_dispute_leaves_the_check_in(): void {
+		$this->service_context();
+		$this->issue();
+		$GLOBALS['wpdb']->rows[0]['status'] = 'redeemed';
+		$this->revoke( 'dispute' );
+		$this->assertSame( array( 'restored' => 0 ), $this->restore( '' ) );
+		$this->assertSame( array( 'redeemed', 'active' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
 	}
 }

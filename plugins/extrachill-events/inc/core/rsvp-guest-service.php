@@ -568,9 +568,10 @@ function extrachill_events_remove_guest_list_name( int $event_id, string $code )
  * @param string $email    Recipient.
  * @param string $code     Pass code.
  * @param string $name     Guest name.
+ * @param string $subject  Subject override, e.g. when a cancelled pass works again.
  * @return bool Whether the email was queued.
  */
-function extrachill_events_send_guest_list_pass_email( int $event_id, string $email, string $code, string $name = '' ): bool {
+function extrachill_events_send_guest_list_pass_email( int $event_id, string $email, string $code, string $name = '', string $subject = '' ): bool {
 	$post = get_post( $event_id );
 	if ( ! $post || ! function_exists( 'ec_send_email_queued' ) ) {
 		return false;
@@ -580,7 +581,7 @@ function extrachill_events_send_guest_list_pass_email( int $event_id, string $em
 		array(
 			'to'        => $email,
 			/* translators: %s: Event title. */
-			'subject'   => sprintf( __( 'Your guest list pass for %s', 'extrachill-events' ), extrachill_events_rsvp_pass_event_title( $post ) ),
+			'subject'   => '' !== $subject ? $subject : sprintf( __( 'Your guest list pass for %s', 'extrachill-events' ), extrachill_events_rsvp_pass_event_title( $post ) ),
 			'from_name' => 'Extra Chill Events',
 			'template'  => 'extrachill/branded',
 			'context'   => array(

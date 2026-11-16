@@ -354,7 +354,8 @@ function extrachill_shop_ticket_charge_disputed( $dispute, $account ) {
 	$order     = $reference ? get_option( 'extrachill_ticket_order_' . $reference ) : false;
 	if ( ! $order || $order['account'] !== $account ) {
 		return new WP_Error( 'ticket_account_mismatch', 'Ticket account mismatch.' ); }
-	if ( 'disputed' === $order['status'] ) {
+	// A replay, or a `created` that arrives after the dispute closed.
+	if ( 'disputed' === $order['status'] || ( ! empty( $order['dispute_outcome'] ) && ( $order['dispute'] ?? '' ) === (string) ( $dispute->id ?? '' ) ) ) {
 		return true; }
 	// Revoke before marking, so a failed revoke is retried by Stripe.
 	$result = extrachill_shop_execute_ticket_owner_ability( 'revoke-ticket-passes', array(
@@ -372,15 +373,24 @@ function extrachill_shop_ticket_charge_disputed( $dispute, $account ) {
 /**
  * A dispute on a ticket payment closed (`charge.dispute.closed`).
  *
- * The outcome is recorded on the order (`dispute_outcome`: `won` or
- * `lost`) and nothing else changes: the passes were revoked when the
- * dispute opened and Events has no ability to reissue them, and refunds
- * stay blocked. A won dispute is logged so an operator can reissue the
- * buyer's tickets by hand. Replays are no-ops.
+ * - Won (`won`, or `warning_closed` for an inquiry that never became a
+ *   chargeback): Events restores the passes the dispute cancelled, keeping
+ *   their codes, and emails them to the buyer again. The order goes back to
+ *   `issued`, so the seller can refund it again.
+ * - Lost: the bank returned the disputed amount to the buyer. The passes stay
+ *   cancelled and refunds stay blocked. The returned amount is recorded with
+ *   Events as a refund observation tagged with the dispute ID, so ticket
+ *   sales stop counting money the seller no longer has. The platform fee is
+ *   not returned on a lost dispute, so no fee reversal is recorded.
+ *
+ * Either way the outcome is recorded on the order (`dispute_outcome`), a note
+ * is appended to `notes`, and the seller is emailed. A failed Events call
+ * returns an error so Stripe retries; replays are no-ops, and the restore
+ * itself is idempotent, so the buyer is emailed once.
  *
  * @param object $dispute Stripe dispute.
  * @param string $account Connected account the charge is on.
- * @return true
+ * @return true|WP_Error WP_Error asks Stripe to retry.
  */
 function extrachill_shop_ticket_dispute_closed( $dispute, $account ) {
 	$reference = get_option( 'extrachill_ticket_payment_' . $account . '_' . (string) ( $dispute->payment_intent ?? '' ) );
@@ -389,10 +399,71 @@ function extrachill_shop_ticket_dispute_closed( $dispute, $account ) {
 	$outcome   = in_array( $status, array( 'won', 'warning_closed' ), true ) ? 'won' : ( 'lost' === $status ? 'lost' : '' );
 	if ( ! is_array( $order ) || ( $order['account'] ?? '' ) !== $account || '' === $outcome || ( $order['dispute_outcome'] ?? '' ) === $outcome ) {
 		return true; }
-	$order['dispute_outcome'] = $outcome;
-	update_option( 'extrachill_ticket_order_' . $reference, $order, false );
+	$dispute_id = (string) ( $dispute->id ?? '' );
+	$minor      = (int) ( $dispute->amount ?? 0 );
+	$amount     = number_format( $minor / 100, 2 );
+	$was_open   = 'disputed' === ( $order['status'] ?? '' );
+
+	$restored = 0;
 	if ( 'won' === $outcome ) {
-		error_log( 'Extra Chill ticket dispute won; passes stay revoked until reissued by hand: ' . $reference ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator alert: the buyer paid but has no working passes.
+		if ( $was_open ) {
+			$result = extrachill_shop_execute_ticket_owner_ability( 'restore-ticket-passes', array_filter( array(
+				'order_reference' => $reference,
+				'reason'          => 'dispute',
+				'email'           => (string) ( $order['buyer_email'] ?? '' ),
+			) ) );
+			if ( is_wp_error( $result ) ) {
+				return $result; }
+			$restored        = (int) ( $result['restored'] ?? 0 );
+			$order['status'] = 'issued';
+		}
+		$note = sprintf( 'The dispute was settled in the seller\'s favor (Stripe dispute %1$s, %2$s). ', $dispute_id, $status )
+			. ( $restored > 0 ? sprintf( '%d pass(es) cancelled by the dispute work again and were emailed to the buyer.', $restored ) : 'No passes needed restoring.' )
+			. ( $was_open ? ' The order can be refunded again.' : '' );
+	} else {
+		if ( $was_open && $minor > 0 ) {
+			// Recorded like a refund, keyed by the dispute ID so a retry is
+			// the same observation. The application fee is not returned.
+			$result = extrachill_shop_record_ticket_sales( $reference, $order, (object) array(
+				'id'       => $dispute_id,
+				'amount'   => $minor,
+				'created'  => (int) ( $dispute->created ?? time() ),
+				'metadata' => (object) array( 'application_fee_minor' => 0 ),
+			) );
+			if ( is_wp_error( $result ) ) {
+				return $result; }
+		}
+		$note = sprintf( 'The dispute was lost (Stripe dispute %1$s): the bank returned $%2$s to the buyer. The passes stay cancelled and the order can\'t be refunded.', $dispute_id, $amount );
+	}
+
+	$order['dispute']         = '' !== $dispute_id ? $dispute_id : (string) ( $order['dispute'] ?? '' );
+	$order['dispute_outcome'] = $outcome;
+	$order['notes']           = array_merge( (array) ( $order['notes'] ?? array() ), array(
+		array(
+			'at'   => gmdate( 'Y-m-d\TH:i:s\Z' ),
+			'note' => $note,
+		),
+	) );
+	update_option( 'extrachill_ticket_order_' . $reference, $order, false );
+
+	if ( ! empty( $order['seller'] ) && function_exists( 'extrachill_shop_notify_seller' ) ) {
+		$show = (string) ( $order['event_title'] ?? 'your show' );
+		if ( 'won' === $outcome ) {
+			$message = array(
+				'subject'   => sprintf( 'Ticket dispute for %s settled in your favor', $show ),
+				'body_html' => '<p>' . esc_html( sprintf( 'The bank settled a ticket dispute for %1$s in your favor. You keep the $%2$s payment.', $show, $amount ) ) . '</p>'
+					. '<p>' . esc_html( ( $restored > 0 ? 'The buyer\'s passes work again and we emailed them to the buyer. ' : '' ) . 'You can refund the order again until someone on it checks in.' ) . '</p>',
+				'preheader' => 'You keep the payment.',
+			);
+		} else {
+			$message = array(
+				'subject'   => sprintf( 'Ticket dispute for %s lost', $show ),
+				'body_html' => '<p>' . esc_html( sprintf( 'The bank settled a ticket dispute for %1$s in the buyer\'s favor and returned $%2$s to them.', $show, $amount ) ) . '</p>'
+					. '<p>' . esc_html( 'Their passes stay cancelled. The disputed amount and the dispute fee stay out of your balance.' ) . '</p>',
+				'preheader' => 'The buyer won the ticket dispute.',
+			);
+		}
+		extrachill_shop_notify_seller( $order['seller'], $message );
 	}
 	return true;
 }

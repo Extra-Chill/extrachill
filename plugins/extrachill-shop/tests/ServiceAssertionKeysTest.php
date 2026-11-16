@@ -48,10 +48,11 @@ final class ServiceAssertionKeysTest extends TestCase {
 		$sources = extrachill_shop_register_ticket_source_grants( array() );
 		$targets = extrachill_events_ticket_target_grants();
 
-		$this->assertCount( 5, $sources );
-		$this->assertCount( 5, $targets );
+		$this->assertCount( 6, $sources );
+		$this->assertCount( 6, $targets );
 		$this->assertSame( $sources[0]['keys'], $targets[0]['keys'] );
 		$this->assertContains( '/wp-abilities/v1/abilities/extrachill/notify-commerce-seller/run', array_column( $sources, 'route' ) );
+		$this->assertContains( '/wp-abilities/v1/abilities/extrachill/restore-ticket-passes/run', array_column( $targets, 'route' ) );
 	}
 
 	public function test_keyring_is_provisioned_once_and_reused(): void {
