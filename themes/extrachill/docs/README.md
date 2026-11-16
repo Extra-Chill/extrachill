@@ -309,6 +309,16 @@ When extending the theme:
 4. Test on both extrachill.com and community.extrachill.com
 5. Document custom hooks and filters
 
+### Contribution guardrails
+
+- Escape rendered output for its context (`esc_html()`, `esc_attr()`, `esc_url()`); protect state-changing requests with the appropriate authentication, nonce and capability checks.
+- Keep theme presentation separate from plugin-owned forums, commerce, newsletter and taxonomy registration. Guard optional plugin helpers rather than assuming they are active.
+- Preserve conditional, individually enqueued assets and `filemtime()` cache busting; styles using root variables depend on `extrachill-root`. Do not restore the removed CSS concatenation/inline optimization.
+- Use the locally hosted fonts in `assets/fonts/`, not an external font CDN. Check the theme's registered image sizes before relying on WordPress or commerce defaults.
+- Do not flush rewrite rules on every request. If a routing change needs a flush, document a one-time `wp rewrite flush` deployment step.
+
+See [asset loading](asset-loading.md) and [quick reference](quick-reference.md) for implementation patterns. Build and test commands are defined in the theme's `package.json` and `composer.json`; do not assume this is a standalone repository without a toolchain.
+
 ## Credits
 
 **Developer**: Chris Huber (Chubes)

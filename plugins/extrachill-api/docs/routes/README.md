@@ -1,4 +1,52 @@
-# Ability-backed route contracts
+# REST route reference
+
+Paths in this reference use the `/wp-json/extrachill/v1` namespace. Route-level admission and ability-level authorization are separate checks. `EDITABLE` registrations accept POST, PUT and PATCH.
+
+## Route index
+
+### Events
+
+- [Calendar, filters, geocoding and venues](events/calendar-discovery.md)
+- [Guest digest signup and ticket refunds](events/guest-digest-and-refunds.md)
+- [Internal attachment handoff and delivery](events/internal-attachment-callbacks.md)
+- [Booking transport](events/booking-transport.md)
+- [Booking availability and ticket redirect](events/availability-and-ticket-redirect.md)
+- [Event source moderation](events/event-source.md)
+- [Event submissions](events/event-submissions.md)
+- [Guest RSVP](events/guest-rsvp.md)
+- [Guest list pass](events/guest-list-pass.md)
+- [Digest unsubscribe](events/local-scene-digest-unsubscribe.md)
+- [Ticket checkout](events/ticket-checkout.md)
+- [Upcoming counts](events/upcoming-counts.md)
+
+### Community and accounts
+
+- [Forums, stats, taxonomy counts and notifications](community/discovery-and-notifications.md)
+- [Topics and replies](community/topics-and-replies.md)
+- [Topic and reply editors](community/editors.md)
+- [Drafts](community/drafts.md)
+- [Upvotes](community/upvote.md)
+- [Current-user profile, settings, email, password, subscriptions and artist access](users/account.md)
+- [Concert tracking](concert-tracking/tracking.md)
+- [Concert import](concert-import/import.md)
+- [Comment editor](comments/editor.md)
+- [Link Page editor configuration](link-pages/editor-configuration.md)
+
+### Content and operations
+
+- [Content-block generators and image voting](content-blocks/generators-and-image-voting.md)
+- [Photo contest](content-blocks/photo-contest.md)
+- [Analytics reports](analytics/reports.md)
+- [Bridge impressions](analytics/impression.md)
+- [Apple authentication](auth/apple.md)
+- [Newsletter management](newsletter/management.md)
+- [Admin artist relationships](admin/artist-relationships.md)
+- [Giveaway execution and scheduling](giveaway/giveaway.md)
+- [Instagram media resolution](instagram/resolve.md)
+
+Other existing per-route references are organized in the sibling segment directories (artists, auth, blog, config, contact, docs, media, newsletter, SEO, shop, tools, users and wire).
+
+## Ability-backed route contracts
 
 Every REST callback that executes a WordPress ability is an adapter. Its route arguments must remain aligned with the backing ability's `input_schema`.
 
