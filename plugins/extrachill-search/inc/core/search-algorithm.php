@@ -849,9 +849,9 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
  * @return int Relevance score.
  */
 function extrachill_calculate_search_score( $result, $search_term ) {
-	$score         = 0;
-	$term_lower    = strtolower( extrachill_normalize_search_term( $search_term ) );
-	$title_lower   = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
+	$score       = 0;
+	$term_lower  = strtolower( extrachill_normalize_search_term( $search_term ) );
+	$title_lower = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Preserve the established relevance input exactly.
 	$content_lower = strtolower( extrachill_normalize_search_term( strip_tags( $result['post_content'] ) ) );
 

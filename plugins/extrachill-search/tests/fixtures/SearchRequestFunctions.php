@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- Standalone test stubs mirror WordPress core signatures and globals.
 /**
  * WordPress function stubs used by the standalone request regression.
  *

@@ -31,48 +31,48 @@ function extrachill_register_abilities() {
 	wp_register_ability(
 		'extrachill/multisite-search',
 		array(
-			'label'        => __( 'Multisite Search', 'extrachill-search' ),
-			'description'  => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
-			'category'     => 'extrachill-search',
-			'input_schema' => array(
+			'label'               => __( 'Multisite Search', 'extrachill-search' ),
+			'description'         => __( 'Search across all network sites in the WordPress multisite installation with relevance scoring.', 'extrachill-search' ),
+			'category'            => 'extrachill-search',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'search_term' => array(
+					'search_term'  => array(
 						'type'        => 'string',
 						'description' => __( 'The search query to find matching content across network sites.', 'extrachill-search' ),
 					),
-					'site_urls'   => array(
+					'site_urls'    => array(
 						'type'        => 'array',
 						'items'       => array( 'type' => 'string' ),
 						'description' => __( 'Optional array of specific site URLs/domains to search. If empty, searches all network sites.', 'extrachill-search' ),
 					),
-					'limit'       => array(
+					'limit'        => array(
 						'type'        => 'integer',
 						'description' => __( 'Maximum number of results to return.', 'extrachill-search' ),
 						'default'     => 10,
 					),
-					'offset'      => array(
+					'offset'       => array(
 						'type'        => 'integer',
 						'description' => __( 'Number of results to skip for pagination.', 'extrachill-search' ),
 						'default'     => 0,
 					),
-					'post_status' => array(
+					'post_status'  => array(
 						'type'        => 'array',
 						'items'       => array( 'type' => 'string' ),
 						'description' => __( 'Array of post statuses to include in search results.', 'extrachill-search' ),
 						'default'     => array( 'publish' ),
 					),
-					'orderby'     => array(
+					'orderby'      => array(
 						'type'        => 'string',
 						'description' => __( 'Field to sort results by.', 'extrachill-search' ),
 						'default'     => 'date',
 					),
-					'order'       => array(
+					'order'        => array(
 						'type'        => 'string',
 						'description' => __( 'Sort direction (ASC or DESC).', 'extrachill-search' ),
 						'default'     => 'DESC',
 					),
-					'return_count'=> array(
+					'return_count' => array(
 						'type'        => 'boolean',
 						'description' => __( 'If true, returns array with results and total count keys. If false, returns results array only.', 'extrachill-search' ),
 						'default'     => false,
@@ -80,7 +80,7 @@ function extrachill_register_abilities() {
 				),
 				'required'   => array( 'search_term' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'oneOf' => array(
 					array(
 						'type'        => 'array',
@@ -88,27 +88,66 @@ function extrachill_register_abilities() {
 						'items'       => array(
 							'type'       => 'object',
 							'properties' => array(
-								'ID'            => array( 'type' => 'integer', 'description' => 'Post ID' ),
-								'post_title'    => array( 'type' => 'string', 'description' => 'Post title' ),
-								'post_content'  => array( 'type' => 'string', 'description' => 'Full post content' ),
-								'post_excerpt'  => array( 'type' => 'string', 'description' => 'Post excerpt' ),
-								'post_date'     => array( 'type' => 'string', 'description' => 'Post publication date' ),
-								'post_modified' => array( 'type' => 'string', 'description' => 'Post last modified date' ),
-								'post_type'     => array( 'type' => 'string', 'description' => 'Post type' ),
-								'post_name'     => array( 'type' => 'string', 'description' => 'Post slug' ),
-								'post_author'   => array( 'type' => 'integer', 'description' => 'Author ID' ),
-								'site_id'       => array( 'type' => 'integer', 'description' => 'Source blog ID' ),
-								'site_name'     => array( 'type' => 'string', 'description' => 'Source site name' ),
-								'site_url'      => array( 'type' => 'string', 'description' => 'Source site URL (host only)' ),
-								'permalink'     => array( 'type' => 'string', 'description' => 'Full post URL' ),
+								'ID'            => array(
+									'type'        => 'integer',
+									'description' => 'Post ID',
+								),
+								'post_title'    => array(
+									'type'        => 'string',
+									'description' => 'Post title',
+								),
+								'post_content'  => array(
+									'type'        => 'string',
+									'description' => 'Full post content',
+								),
+								'post_excerpt'  => array(
+									'type'        => 'string',
+									'description' => 'Post excerpt',
+								),
+								'post_date'     => array(
+									'type'        => 'string',
+									'description' => 'Post publication date',
+								),
+								'post_modified' => array(
+									'type'        => 'string',
+									'description' => 'Post last modified date',
+								),
+								'post_type'     => array(
+									'type'        => 'string',
+									'description' => 'Post type',
+								),
+								'post_name'     => array(
+									'type'        => 'string',
+									'description' => 'Post slug',
+								),
+								'post_author'   => array(
+									'type'        => 'integer',
+									'description' => 'Author ID',
+								),
+								'site_id'       => array(
+									'type'        => 'integer',
+									'description' => 'Source blog ID',
+								),
+								'site_name'     => array(
+									'type'        => 'string',
+									'description' => 'Source site name',
+								),
+								'site_url'      => array(
+									'type'        => 'string',
+									'description' => 'Source site URL (host only)',
+								),
+								'permalink'     => array(
+									'type'        => 'string',
+									'description' => 'Full post URL',
+								),
 								'taxonomies'    => array(
-									'type' => 'object',
+									'type'        => 'object',
 									'description' => 'Taxonomy terms organized by taxonomy name',
 								),
 								'thumbnail'     => array(
 									'type'        => 'object',
 									'description' => 'Featured image data',
-									'properties' => array(
+									'properties'  => array(
 										'thumbnail_id'     => array( 'type' => 'integer' ),
 										'thumbnail_url'    => array( 'type' => 'string' ),
 										'thumbnail_srcset' => array( 'type' => 'string' ),
@@ -116,16 +155,25 @@ function extrachill_register_abilities() {
 										'thumbnail_alt'    => array( 'type' => 'string' ),
 									),
 								),
-								'_search_score' => array( 'type' => 'integer', 'description' => 'Relevance score (when searching)' ),
+								'_search_score' => array(
+									'type'        => 'integer',
+									'description' => 'Relevance score (when searching)',
+								),
 							),
 						),
 					),
 					array(
 						'type'        => 'object',
 						'description' => __( 'Paginated results with total count when return_count is true.', 'extrachill-search' ),
-						'properties' => array(
-							'results' => array( 'type' => 'array', 'description' => 'Array of search results' ),
-							'total'   => array( 'type' => 'integer', 'description' => 'Total number of matching results' ),
+						'properties'  => array(
+							'results' => array(
+								'type'        => 'array',
+								'description' => 'Array of search results',
+							),
+							'total'   => array(
+								'type'        => 'integer',
+								'description' => 'Total number of matching results',
+							),
 						),
 					),
 				),
@@ -139,8 +187,8 @@ function extrachill_register_abilities() {
 				'annotations'  => array(
 					'readonly'     => true,
 					'idempotent'   => true,
-					'destructive'   => false,
-					'instructions'  => __( 'Search across all network sites using the provided search term. Returns paginated results sorted by relevance score and date.', 'extrachill-search' ),
+					'destructive'  => false,
+					'instructions' => __( 'Search across all network sites using the provided search term. Returns paginated results sorted by relevance score and date.', 'extrachill-search' ),
 				),
 			),
 		)
@@ -157,8 +205,8 @@ function extrachill_ability_multisite_search( $input = array() ) {
 	}
 
 	$search_term = $input['search_term'];
-	$site_urls = isset( $input['site_urls'] ) ? $input['site_urls'] : array();
-	$args = array(
+	$site_urls   = isset( $input['site_urls'] ) ? $input['site_urls'] : array();
+	$args        = array(
 		'limit'        => isset( $input['limit'] ) ? (int) $input['limit'] : 10,
 		'offset'       => isset( $input['offset'] ) ? (int) $input['offset'] : 0,
 		'post_status'  => isset( $input['post_status'] ) ? $input['post_status'] : array( 'publish' ),
@@ -175,11 +223,5 @@ function extrachill_ability_multisite_search( $input = array() ) {
 		);
 	}
 
-	$results = extrachill_network_search( $search_term, $site_urls, $args );
-
-	if ( is_wp_error( $results ) ) {
-		return $results;
-	}
-
-	return $results;
+	return extrachill_network_search( $search_term, $site_urls, $args );
 }

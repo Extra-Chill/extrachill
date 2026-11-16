@@ -49,7 +49,7 @@ function extrachill_get_network_search_excluded_blog_ids() {
 function extrachill_get_network_site_map() {
 	static $site_map = null;
 
-	if ( $site_map !== null ) {
+	if ( null !== $site_map ) {
 		return $site_map;
 	}
 
@@ -93,7 +93,7 @@ function extrachill_get_network_site_map() {
 function extrachill_get_network_sites() {
 	static $sites_cache = null;
 
-	if ( $sites_cache !== null ) {
+	if ( null !== $sites_cache ) {
 		return $sites_cache;
 	}
 
@@ -102,7 +102,7 @@ function extrachill_get_network_sites() {
 	}
 
 	$site_map = extrachill_get_network_site_map();
-	$sites = array();
+	$sites    = array();
 
 	foreach ( $site_map as $blog_id => $site ) {
 		$sites[] = array(
@@ -149,14 +149,14 @@ function extrachill_resolve_site_urls( $site_urls ) {
 			$normalized_url = 'https://' . $normalized_url;
 		}
 
-		$host = parse_url( $normalized_url, PHP_URL_HOST );
+		$host = wp_parse_url( $normalized_url, PHP_URL_HOST );
 
 		if ( ! $host ) {
 			$host = strtolower( preg_replace( '#^https?://#', '', trim( $url ) ) );
 			$host = preg_replace( '#/.*$#', '', $host );
 		}
 
-		$host = trim( $host, " /" );
+		$host = trim( $host, ' /' );
 
 		if ( isset( $host_index[ $host ] ) ) {
 			$blog_ids[] = $host_index[ $host ];
@@ -206,4 +206,3 @@ function extrachill_normalize_search_term( $term ) {
 	$term = str_replace( array( "\xE2\x80\x93", "\xE2\x80\x94" ), '-', $term );
 	return $term;
 }
-
