@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.55.1] - 2026-11-16
+
+### Fixed
+- close ability input schemas
+
 ## [0.55.0] - 2026-11-16
 
 ### Added
