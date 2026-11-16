@@ -674,7 +674,8 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
  *
  * @param string $search_term Search query.
  * @param array  $site_urls   Optional site URL/domain list to restrict search.
- * @param array  $args        Optional overrides (limit, offset, filters).
+ * @param array  $args        Optional overrides (limit, offset, filters, and
+ *                            sort: 'relevance' (default), 'recent' or 'oldest').
  * @return array<int, array<string, mixed>>|array{results: array<int, array<string, mixed>>, total: int} Either results array or paginated data.
  */
 function extrachill_network_search( $search_term, $site_urls = array(), $args = array() ) {
@@ -691,6 +692,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 		'meta_query'   => null,
 		'orderby'      => 'date',
 		'order'        => 'DESC',
+		'sort'         => 'relevance',
 		'return_count' => false,
 		'tax_query'    => null,
 	);
@@ -776,30 +778,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 		$all_results = extrachill_word_level_search_fallback( $search_term, $blog_ids, $args );
 	}
 
-	if ( ! empty( $search_term ) ) {
-		foreach ( $all_results as $index => $result ) {
-			$all_results[ $index ]['_search_score'] = extrachill_calculate_search_score( $result, $search_term );
-		}
-
-		usort(
-			$all_results,
-			function ( $a, $b ) {
-				$score_diff = $b['_search_score'] <=> $a['_search_score'];
-				if ( 0 !== $score_diff ) {
-					return $score_diff;
-				}
-				return strtotime( $b['post_date'] ) <=> strtotime( $a['post_date'] );
-			}
-		);
-	} elseif ( 'date' === $args['orderby'] ) {
-		usort(
-			$all_results,
-			function ( $a, $b ) use ( $args ) {
-				$comparison = strtotime( $b['post_date'] ) <=> strtotime( $a['post_date'] );
-				return 'ASC' === $args['order'] ? -$comparison : $comparison;
-			}
-		);
-	}
+	$all_results = extrachill_order_search_results( $all_results, (string) $search_term, $args );
 
 	$total_results = count( $all_results );
 	$all_results   = array_slice( $all_results, $args['offset'], $args['limit'] );
@@ -837,6 +816,66 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 	}
 
 	return $all_results;
+}
+
+/**
+ * Order merged search results.
+ *
+ * - 'recent' / 'oldest' order by post date.
+ * - 'relevance' (default) orders by weighted score when a term is present,
+ *   newest first on ties. Without a term, the legacy `orderby`/`order`
+ *   date arguments apply.
+ *
+ * @param array<int, array<string, mixed>> $results     Hydrated search results.
+ * @param string                           $search_term Search term.
+ * @param array<string, mixed>             $args        Search arguments (sort, orderby, order).
+ * @return array<int, array<string, mixed>> Ordered results.
+ */
+function extrachill_order_search_results( array $results, $search_term, array $args ) {
+	$sort = isset( $args['sort'] ) ? (string) $args['sort'] : 'relevance';
+
+	if ( 'recent' === $sort || 'oldest' === $sort ) {
+		$direction = 'oldest' === $sort ? 1 : -1;
+		usort(
+			$results,
+			static function ( $a, $b ) use ( $direction ) {
+				$comparison = strtotime( (string) $a['post_date'] ) <=> strtotime( (string) $b['post_date'] );
+				return $direction * $comparison;
+			}
+		);
+		return $results;
+	}
+
+	if ( '' !== (string) $search_term ) {
+		foreach ( $results as $index => $result ) {
+			$results[ $index ]['_search_score'] = extrachill_calculate_search_score( $result, $search_term );
+		}
+
+		usort(
+			$results,
+			static function ( $a, $b ) {
+				$score_diff = $b['_search_score'] <=> $a['_search_score'];
+				if ( 0 !== $score_diff ) {
+					return $score_diff;
+				}
+				return strtotime( (string) $b['post_date'] ) <=> strtotime( (string) $a['post_date'] );
+			}
+		);
+		return $results;
+	}
+
+	if ( isset( $args['orderby'] ) && 'date' === $args['orderby'] ) {
+		$ascending = isset( $args['order'] ) && 'ASC' === $args['order'];
+		usort(
+			$results,
+			static function ( $a, $b ) use ( $ascending ) {
+				$comparison = strtotime( (string) $b['post_date'] ) <=> strtotime( (string) $a['post_date'] );
+				return $ascending ? -$comparison : $comparison;
+			}
+		);
+	}
+
+	return $results;
 }
 
 /**

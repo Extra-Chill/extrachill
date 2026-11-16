@@ -215,7 +215,7 @@ function extrachill_build_artist_dropdown() {
  */
 function extrachill_build_sort_dropdown() {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Reading a GET param for display; no state change occurs.
-	$current_sort = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
+	$current_sort = isset( $_GET['sort'] ) ? sanitize_key( wp_unslash( $_GET['sort'] ) ) : '';
 
 	$options = apply_filters(
 		'extrachill_filter_bar_sort_options',
@@ -226,6 +226,12 @@ function extrachill_build_sort_dropdown() {
 			'popular' => __( 'Sort by Popular', 'extrachill' ),
 		)
 	);
+
+	// Unknown or missing sort selects the first (default) option, so the
+	// control reflects the ordering actually applied.
+	if ( ! isset( $options[ $current_sort ] ) ) {
+		$current_sort = (string) array_key_first( $options );
+	}
 
 	return array(
 		'type'    => 'dropdown',

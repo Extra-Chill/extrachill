@@ -69,8 +69,10 @@ function extrachill_pagination( $query_or_data = null, $context = 'default', $it
 		$count_html = sprintf( 'Viewing %s %s-%s of %s total', $item_plural, number_format( $start ), number_format( $end ), number_format( $total_items ) );
 	}
 
-	$big      = 999999999;
-	$base_url = str_replace( (string) $big, '%#%', esc_url( get_pagenum_link( $big ) ) );
+	$big = 999999999;
+	// Raw URL: paginate_links() re-parses the base's query args (search scope,
+	// sort) and escapes its own output, so an entity-encoded base corrupts them.
+	$base_url = str_replace( (string) $big, '%#%', esc_url_raw( get_pagenum_link( $big ) ) );
 
 	$links_html = paginate_links(
 		array(
