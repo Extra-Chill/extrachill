@@ -37,8 +37,9 @@ runs inside the owner lock immediately before lookup or creation; the historical
 create wrapper continues returning only the integer ID.
 
 On multisite, canonical storage resolves in this order: a valid
-`EC_LINK_PAGE_STORAGE_BLOG_ID` configuration constant, the
-`ec_link_page_storage_blog_id` filter, then the persisted network option. The
+`EC_LINK_PAGE_STORAGE_BLOG_ID` configuration constant, then the
+`ec_link_page_storage_blog_id` filter (registered by extrachill-network, which
+returns `EC_BLOG_ID_LINK_PAGES`). With neither, storage is unavailable. The
 constant supports fresh network activation before host plugins can register
 runtime filters.
 
@@ -125,10 +126,9 @@ priority 20 after validating this runtime's contract.
 
 ## Multisite lifecycle
 
-Successful activation persists the explicitly resolved canonical storage blog
-in the network option `ec_link_page_storage_blog_id`. Runtime resolution checks
-an explicit filter first and then that validated option. Network activation with
-neither source fails closed. Activation and deactivation touch only that storage
+Storage is never persisted: activation and runtime resolve it from the
+`EC_LINK_PAGE_STORAGE_BLOG_ID` constant or the `ec_link_page_storage_blog_id`
+filter. Network activation with neither source fails closed. Activation and deactivation touch only that storage
 site and restore the caller's exact multisite context. Query, switch, callback,
 context-restoration, and runtime-contract failures are exposed as `WP_Error`,
 logged, published through `ec_link_pages_runtime_error`, and shown in site and
@@ -137,6 +137,4 @@ not report a broken runtime as successfully activated.
 
 Deactivation unregisters the standalone-owned storage type before
 flushing affected sites, so standalone rewrites are removed rather than
-re-created. Deactivation deliberately preserves the canonical storage option so
-a later activation rediscovers the same storage site; silently deleting it
-could fork subsequent storage ownership.
+re-created.
