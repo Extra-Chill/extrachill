@@ -27,8 +27,8 @@ function extrachill_shop_register_list_products_ability(): void {
 			'description'         => __( 'List products belonging to a seller (artist, venue or promoter).', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller'   => extrachill_shop_seller_input_schema(),
 					'page'     => array(
 						'type'    => 'integer',
@@ -39,6 +39,7 @@ function extrachill_shop_register_list_products_ability(): void {
 						'default' => 20,
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'  => 'array',

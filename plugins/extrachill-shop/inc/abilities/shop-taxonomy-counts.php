@@ -27,8 +27,8 @@ function extrachill_shop_register_taxonomy_counts_ability(): void {
 			'description' => __( 'Return taxonomy term counts for shop products. Supports querying by slug or bulk listing.', 'extrachill-shop' ),
 			'category'    => 'extrachill-shop',
 			'input_schema' => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'taxonomy' => array(
 						'type'        => 'string',
 						'enum'        => array( 'artist' ),
@@ -46,7 +46,8 @@ function extrachill_shop_register_taxonomy_counts_ability(): void {
 						'description' => 'Max terms to return for bulk queries.',
 					),
 				),
-				'required' => array( 'taxonomy' ),
+				'required'             => array( 'taxonomy' ),
+				'additionalProperties' => false,
 			),
 			'output_schema' => array(
 				'anyOf' => array(

@@ -27,8 +27,8 @@ function extrachill_shop_register_list_orders_ability(): void {
 			'description'         => __( 'List orders containing products from a specific seller, with filtering and pagination.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller'   => extrachill_shop_seller_input_schema(),
 					'status'   => array(
 						'type'        => 'string',
@@ -47,6 +47,7 @@ function extrachill_shop_register_list_orders_ability(): void {
 						'description' => 'Items per page.',
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

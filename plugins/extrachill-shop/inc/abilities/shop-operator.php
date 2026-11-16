@@ -47,14 +47,15 @@ function extrachill_shop_register_operator_abilities(): void {
 			'description'         => __( 'List every seller that has Shop products or a Stripe Connect record, with cached payment and ship-from state.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'type' => array(
 						'type'        => 'string',
 						'enum'        => array( 'artist', 'venue', 'promoter' ),
 						'description' => 'Only list sellers of this type.',
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
@@ -78,8 +79,8 @@ function extrachill_shop_register_operator_abilities(): void {
 			'description'         => __( 'List orders across all sellers, optionally filtered by seller and WooCommerce status.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller'   => extrachill_shop_seller_input_schema(),
 					'status'   => array(
 						'type'    => 'string',
@@ -98,6 +99,7 @@ function extrachill_shop_register_operator_abilities(): void {
 						'maximum' => 100,
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
@@ -124,14 +126,15 @@ function extrachill_shop_register_operator_abilities(): void {
 			'description'         => __( 'Read one order with its seller, Stripe references, refunds and Priority Boost receipts.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id' => array(
 						'type'    => 'integer',
 						'minimum' => 1,
 					),
 				),
-				'required'   => array( 'id' ),
+				'required'             => array( 'id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_shop_ability_get_order',
@@ -147,8 +150,8 @@ function extrachill_shop_register_operator_abilities(): void {
 			'description'         => __( 'Fetch a Stripe event from the Stripe API and route it through the Shop webhook router again. Handlers are idempotent.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'event_id' => array(
 						'type'    => 'string',
 						'pattern' => '^evt_[A-Za-z0-9]+$',
@@ -159,7 +162,8 @@ function extrachill_shop_register_operator_abilities(): void {
 						'description' => 'Connected account the event belongs to (Connect events only).',
 					),
 				),
-				'required'   => array( 'event_id' ),
+				'required'             => array( 'event_id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
@@ -191,14 +195,15 @@ function extrachill_shop_register_operator_abilities(): void {
 			'description'         => __( 'Grant every Priority Boost item on a paid order that has no receipt yet. Receipted items are skipped; the Events owner is idempotent per item.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'order_id' => array(
 						'type'    => 'integer',
 						'minimum' => 1,
 					),
 				),
-				'required'   => array( 'order_id' ),
+				'required'             => array( 'order_id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

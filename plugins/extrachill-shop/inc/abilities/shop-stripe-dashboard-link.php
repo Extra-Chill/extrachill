@@ -27,10 +27,11 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 			'description'         => __( 'Generate a Stripe Express dashboard login link for a seller\'s connected account (artist, venue, or promoter).', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller' => extrachill_shop_seller_input_schema(),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

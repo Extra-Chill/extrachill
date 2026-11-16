@@ -89,8 +89,7 @@ function extrachill_api_shop_product_images_upload_handler( WP_REST_Request $req
 	return extrachill_api_shop_run_ability(
 		'extrachill/shop-upload-product-image',
 		array(
-			'id'      => absint( $request->get_param( 'id' ) ),
-			'request' => $request,
+			'id' => absint( $request->get_param( 'id' ) ),
 		)
 	);
 }

@@ -28,8 +28,8 @@ function extrachill_shop_register_update_order_status_ability(): void {
 			'description'         => __( 'Update the status of an order, optionally adding a tracking number.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id'              => array(
 						'type'        => 'integer',
 						'description' => 'Order ID.',
@@ -45,7 +45,8 @@ function extrachill_shop_register_update_order_status_ability(): void {
 						'description' => 'Optional tracking number.',
 					),
 				),
-				'required'   => array( 'id', 'seller', 'status' ),
+				'required'             => array( 'id', 'seller', 'status' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

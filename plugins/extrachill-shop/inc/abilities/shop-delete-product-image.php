@@ -27,8 +27,8 @@ function extrachill_shop_register_delete_product_image_ability(): void {
 			'description'         => __( 'Remove a single image from a product. Products must keep at least one image.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id'            => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
@@ -38,7 +38,8 @@ function extrachill_shop_register_delete_product_image_ability(): void {
 						'description' => 'Attachment ID of the image to delete.',
 					),
 				),
-				'required'   => array( 'id', 'attachment_id' ),
+				'required'             => array( 'id', 'attachment_id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

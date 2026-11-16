@@ -27,8 +27,8 @@ function extrachill_shop_register_upload_product_image_ability(): void {
 			'description'         => __( 'Upload one or more images to a product (max 5 total). First image becomes the featured image; the rest go to the gallery.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id'    => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
@@ -39,7 +39,8 @@ function extrachill_shop_register_upload_product_image_ability(): void {
 						'items'       => array( 'type' => 'object' ),
 					),
 				),
-				'required'   => array( 'id' ),
+				'required'             => array( 'id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

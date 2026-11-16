@@ -27,8 +27,8 @@ function extrachill_shop_register_create_product_ability(): void {
 			'description'         => __( 'Create a new WooCommerce product for a seller (artist, venue or promoter) with pricing, stock, sizes, and image associations.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller'         => extrachill_shop_seller_input_schema(),
 					'name'           => array(
 						'type'        => 'string',
@@ -78,8 +78,14 @@ function extrachill_shop_register_create_product_ability(): void {
 						'type'        => 'boolean',
 						'description' => 'Whether the product ships free.',
 					),
+					'status'         => array(
+						'type'        => 'string',
+						'enum'        => array( 'draft' ),
+						'description' => 'New products always start as drafts. Publish afterwards with extrachill/shop-update-product.',
+					),
 				),
-				'required'   => array( 'seller', 'name', 'price' ),
+				'required'             => array( 'seller', 'name', 'price' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

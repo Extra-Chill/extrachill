@@ -28,8 +28,8 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 			'description'         => __( 'Purchase a USPS shipping label via Shippo for a seller\'s portion of an order. Quotes the cheapest rate for the confirmed parcel (defaults from product weights and dimensions), compares it with the buyer\'s shipping charge, then buys the label, updates order status, and emails it. Pass quote=true to price the label without buying it.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'order_id'        => array(
 						'type'        => 'integer',
 						'description' => 'WooCommerce order ID.',
@@ -45,7 +45,8 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 						'description' => 'Shop managers only: buy a label that costs more than the shipping the buyer paid. Extra Chill pays the difference.',
 					),
 				),
-				'required'   => array( 'order_id', 'seller' ),
+				'required'             => array( 'order_id', 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

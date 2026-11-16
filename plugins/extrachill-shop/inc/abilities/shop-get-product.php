@@ -27,14 +27,15 @@ function extrachill_shop_register_get_product_ability(): void {
 			'description'         => __( 'Get a single product by ID with full details.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'id' => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
 					),
 				),
-				'required'   => array( 'id' ),
+				'required'             => array( 'id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

@@ -25,11 +25,12 @@ function extrachill_shop_register_list_shipping_labels_ability(): void {
 			'description'         => __( 'List all shipping labels purchased for a seller across their orders.', 'extrachill-shop' ),
 			'category'            => 'extrachill-shop',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'seller' => extrachill_shop_seller_input_schema(),
 				),
-				'required'   => array( 'seller' ),
+				'required'             => array( 'seller' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
