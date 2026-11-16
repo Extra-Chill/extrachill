@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.70.2] - 2026-11-16
+
+### Fixed
+- link internal pages at their canonical slashless URL
+
 ## [0.70.1] - 2026-11-16
 
 ### Fixed
