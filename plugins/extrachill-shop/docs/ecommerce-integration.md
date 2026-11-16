@@ -26,12 +26,30 @@ The platform uses Stripe Connect Express. Every seller (artist, venue, or promot
 - Checkout creates a Stripe Checkout Session as a **direct charge** on the seller's connected account (`stripe_account`), with Extra Chill's commission as the `application_fee_amount`
 - The money settles on the seller's account and Stripe moves the application fee to the platform. No transfers are made after payment.
 - Platform products (no payout seller) are charged on the platform account with no application fee
+- Who pays card processing on a direct charge is the connected account's `controller.fees.payer`, stored as `fee_payer` on the seller's Stripe account record (see [tickets.md](tickets.md#where-the-payer-is-stored)). Express accounts, which the shop creates, report `application_express`: Stripe debits processing from **Extra Chill's** balance. Standard accounts report `account`: the seller pays it
 - WooCommerce tax calculation is off. The seller, as merchant of record, is responsible for any sales tax.
 
 ### 3. API Endpoints
 - `GET /shop/stripe-connect/status`: Checks account status and capabilities
 - `POST /shop/stripe-connect/onboarding-link`: Generates URL for Stripe Express setup
 - `POST /shop/stripe-connect/dashboard-link`: Generates URL for artist's Stripe dashboard
+
+### 4. What Extra Chill Nets on Merch
+
+The merch application fee is `merch_percent` (10%) of the item subtotal plus the buyer's shipping charge, which is held to buy the label (`checkout-handler.php`). It does not depend on who pays processing; the payer only changes what Extra Chill keeps:
+
+- **`account` pays (Standard):** the seller pays processing on the whole charge. Extra Chill nets the full 10% of the items; the shipping hold pays for the label.
+- **Platform pays (Express, `application*`):** Extra Chill pays processing on the whole charge (items, shipping and order fees) out of its fee. It nets `10% × items − (2.9% × charge + 30¢)` on a US card, and the seller nets the item price minus 10% with no processing deducted.
+
+| Order (US card) | Charge | Processing | Extra Chill nets, `account` pays | Extra Chill nets, platform pays |
+| --- | --- | --- | --- | --- |
+| $25 shirt + $5 shipping | $30.00 | $1.17 | $2.50 | $1.33 |
+| $20 item + $5 shipping | $25.00 | $1.03 | $2.00 | $0.97 |
+| $10 item + $5 shipping | $15.00 | $0.74 | $1.00 | $0.26 |
+| $5 Ships Free sticker | $5.00 | $0.45 | $0.50 | $0.05 |
+| $3 Ships Free sticker | $3.00 | $0.39 | $0.30 | −$0.09 |
+
+When the platform pays, Extra Chill breaks even at about a $6.27 item with $5 shipping, or $4.23 with free shipping, and loses money below that. A refund returns the application fee to the seller but not the processing, so on a platform-pays account Extra Chill is out the processing on every refunded order. The merch math is unchanged (#1555): this is a pricing decision, not a calculation bug.
 
 ## Shipping Label System (Shippo)
 

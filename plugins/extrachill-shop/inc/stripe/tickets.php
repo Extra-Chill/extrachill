@@ -37,9 +37,12 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments.', array( 'status' => 409 ) ); }
 	if ( ! is_int( $offer['price_minor'] ) || $offer['price_minor'] < 1 ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
-	// The buyer pays the Service fee; the venue nets the subtotal (see extrachill_commerce_ticket_fee()).
-	$subtotal = $offer['price_minor'] * $input['quantity'];
-	$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'] );
+	// The buyer pays the Service fee; the venue nets the subtotal. The
+	// application fee depends on who pays processing (see extrachill_commerce_ticket_fee()).
+	$subtotal  = $offer['price_minor'] * $input['quantity'];
+	$fee_payer = extrachill_shop_get_seller_fee_payer( $seller );
+	$fees      = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'], $fee_payer );
+
 	$metadata = array(
 		'event_id'    => (string) $offer['event_id'],
 		'quantity'    => (string) $input['quantity'],
@@ -104,6 +107,8 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 				'total_minor'           => $subtotal + $fees['buyer_fee'],
 				'application_fee_minor' => $fees['application_fee'],
 				'currency'              => $offer['currency'],
+				// Who the application fee assumed pays processing: `account` or `platform`.
+				'processing_payer'      => extrachill_commerce_processing_payer( $fee_payer ),
 			),
 			'sales'          => array(
 				'event_id'     => (int) $offer['event_id'],

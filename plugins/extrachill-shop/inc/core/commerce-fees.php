@@ -21,6 +21,8 @@ defined( 'ABSPATH' ) || exit;
  * - `extrachill_ticket`: see `extrachill_commerce_ticket_fee()`. The buyer
  *   pays one service fee (per ticket, per order, an optional percentage, and
  *   the card processing estimate), so the venue nets the ticket subtotal.
+ *   `$fee_payer` (the seller account's `controller.fees.payer`) decides how
+ *   much of the service fee is the application fee.
  *
  * Platform-owned products (no seller) are charged on the platform account, so
  * there is no application fee. Free sales have no fee.
@@ -29,10 +31,12 @@ defined( 'ABSPATH' ) || exit;
  * @param int        $subtotal_minor Item subtotal in minor units.
  * @param array|null $seller         Seller reference, or null for platform products.
  * @param int        $quantity       Tickets in the order (tickets only).
+ * @param string     $fee_payer      Who pays card processing on the seller's direct
+ *                                   charges (tickets only); '' when unknown.
  * @return array{buyer_fee:int,application_fee:int} Minor units.
  * @throws InvalidArgumentException For an unknown kind.
  */
-function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1 ) {
+function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1, $fee_payer = '' ) {
 	if ( ! in_array( $kind, array( 'extrachill_merch', 'extrachill_ticket' ), true ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Programming error, never shown to users.
 		throw new InvalidArgumentException( 'Unknown commerce fee kind: ' . $kind );
@@ -51,37 +55,73 @@ function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1
 			'application_fee' => min( $subtotal, (int) round( $subtotal * $settings['merch_percent'] / 100 ) ),
 		);
 	}
-	return extrachill_commerce_ticket_fee( $subtotal, max( 1, (int) $quantity ), $settings );
+	return extrachill_commerce_ticket_fee( $subtotal, max( 1, (int) $quantity ), $settings, $fee_payer );
+}
+
+/**
+ * Who bears card processing on a direct charge: `account` or `platform`.
+ *
+ * Stripe reports `controller.fees.payer` as `account` (the connected account
+ * pays, as on Standard accounts) or `application`, `application_express`,
+ * `application_custom` (the platform pays, as on the Express accounts Extra
+ * Chill creates).
+ *
+ * Anything else, including '' (not known yet), counts as `account`. That is
+ * the fail-safe for the venue: with the account-pays application fee the
+ * venue nets at least the ticket subtotal whoever really pays processing
+ * (if the platform pays, the venue nets the subtotal plus processing and
+ * Extra Chill keeps only the rounding). The platform-pays fee would leave an
+ * account-pays venue short by the processing. Guessing wrong costs Extra
+ * Chill its share of that sale, never the venue, so the payer is stored and
+ * backfilled before checkout to keep '' rare.
+ *
+ * @param string $fee_payer Stripe `controller.fees.payer`, or ''.
+ * @return string `account` or `platform`.
+ */
+function extrachill_commerce_processing_payer( $fee_payer ): string {
+	return str_starts_with( (string) $fee_payer, 'application' ) ? 'platform' : 'account';
 }
 
 /**
  * Ticket fees: the buyer pays a service fee, the venue keeps the subtotal.
  *
- * Ticket checkout is a direct charge on the venue's payout account, so the
- * card processor takes its fee out of the venue's side of the whole charge.
- * The service fee is grossed up to cover that:
+ * Ticket checkout is a direct charge on the venue's payout account. The
+ * service fee is grossed up to cover card processing on the whole charge:
  *
  *     base  = subtotal + per_ticket × quantity + per_order
  *             + buyer_percent × subtotal + processing_fixed
  *     total = ceil( base / (1 − processing_percent) )
  *     service fee      = total − subtotal
  *     processing (est) = ceil( total × processing_percent ) + processing_fixed
- *     application fee  = total − subtotal − processing (est) + seller fee
  *
- * so the venue nets `total − processing − application fee = subtotal − seller
- * fee` at the estimate (the seller fee is `ticket_percent`, default 0). The
- * estimate rounds up, and the total is nudged up a cent at a time until the
- * application fee is not negative, so the venue never nets less than that at
- * the estimate. Real processing can differ (international or currency
- * converted cards cost more); the estimate is a setting so it can be set
- * conservatively.
+ * The buyer's total and service fee are the same whoever pays processing.
+ * The application fee depends on who Stripe debits for processing
+ * (`extrachill_commerce_processing_payer()`):
  *
- * @param int   $subtotal Ticket subtotal in minor units (price × quantity), above 0.
- * @param int   $quantity Tickets in the order, at least 1.
- * @param array $settings `ec_commerce_fee_settings()`.
+ * - `account` (the venue pays processing, e.g. Standard accounts, and the
+ *   fail-safe when the payer is unknown):
+ *       application fee = total − subtotal − processing (est) + seller fee
+ *   so the venue nets `total − processing − application fee = subtotal −
+ *   seller fee` at the estimate.
+ * - `platform` (Extra Chill pays processing, e.g. Express accounts):
+ *       application fee = total − subtotal + seller fee
+ *   so the venue nets `total − application fee = subtotal − seller fee`
+ *   exactly, and Extra Chill pays the real processing out of the service fee.
+ *
+ * The seller fee is `ticket_percent`, default 0. The estimate rounds up, and
+ * the total is nudged up a cent at a time until the account-pays application
+ * fee is not negative, so the venue never nets less than that at the
+ * estimate. Real processing can differ (international or currency converted
+ * cards cost more); the estimate is a setting so it can be set conservatively.
+ * When the platform pays, that difference comes out of Extra Chill's share.
+ *
+ * @param int    $subtotal  Ticket subtotal in minor units (price × quantity), above 0.
+ * @param int    $quantity  Tickets in the order, at least 1.
+ * @param array  $settings  `ec_commerce_fee_settings()`.
+ * @param string $fee_payer Stripe `controller.fees.payer` of the venue's account, or '' when unknown.
  * @return array{buyer_fee:int,application_fee:int} Minor units. `buyer_fee` is the Service fee line.
  */
-function extrachill_commerce_ticket_fee( $subtotal, $quantity, array $settings ) {
+function extrachill_commerce_ticket_fee( $subtotal, $quantity, array $settings, $fee_payer = '' ) {
 	$per_ticket = (int) ( $settings['ticket_buyer_fee_per_ticket_minor'] ?? 0 );
 	$per_order  = (int) ( $settings['ticket_buyer_fee_flat_minor'] ?? 0 );
 	$fixed      = (int) ( $settings['ticket_processing_fixed_minor'] ?? 0 );
@@ -100,7 +140,9 @@ function extrachill_commerce_ticket_fee( $subtotal, $quantity, array $settings )
 	while ( $total - $subtotal - extrachill_commerce_ticket_processing_estimate( $total, $settings ) < 0 ) {
 		++$total;
 	}
-	$application = $total - $subtotal - extrachill_commerce_ticket_processing_estimate( $total, $settings ) + $seller_fee;
+	$application = 'account' === extrachill_commerce_processing_payer( $fee_payer )
+		? $total - $subtotal - extrachill_commerce_ticket_processing_estimate( $total, $settings ) + $seller_fee
+		: $total - $subtotal + $seller_fee;
 	return array(
 		'buyer_fee'       => $total - $subtotal,
 		'application_fee' => min( $total, $application ),
