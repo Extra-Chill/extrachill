@@ -115,7 +115,7 @@ $data = ec_get_artist_profile_data($artist_id, $overrides);
 
 ```php
 // Get artist profile IDs for user
-$artist_ids = ec_get_user_artist_ids($user_id);
+$artist_ids = ec_get_artists_for_user($user_id);
 
 // Get full artist profile objects
 $profiles = ec_get_user_artist_profiles($user_id);

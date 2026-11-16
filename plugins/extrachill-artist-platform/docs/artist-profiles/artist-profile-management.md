@@ -179,8 +179,8 @@ $user_artists = ec_get_user_artist_profiles($user_id);
 // Check membership
 $is_member = ec_is_user_artist_member($user_id, $artist_id);
 
-// Get all owned artist IDs
-$artist_ids = ec_get_user_artist_ids($user_id);
+// Get all owned (published) artist IDs — canonical resolver in extrachill-users
+$artist_ids = ec_get_artists_for_user($user_id);
 ```
 
 ## Profile Permissions
@@ -207,7 +207,7 @@ Users can create multiple artist profiles with configurable limits:
 $can_create = ec_can_create_artist_profiles($user_id);
 
 // Get current profile count
-$current_count = count(ec_get_user_artist_ids($user_id));
+$current_count = count(ec_get_artists_for_user($user_id));
 ```
 
 ## Integration Points
