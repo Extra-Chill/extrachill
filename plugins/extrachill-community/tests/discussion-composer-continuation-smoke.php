@@ -102,6 +102,9 @@ function home_url( $path = '' ) {
 function trailingslashit( $value ) {
 	return rtrim( $value, '/' ) . '/';
 }
+function untrailingslashit( $value ) {
+	return rtrim( $value, '/' );
+}
 function add_query_arg( $args, $url = '' ) {
 	// Match WordPress: newly assigned values must already be URL-encoded.
 	if ( ! is_array( $args ) ) {
@@ -166,7 +169,7 @@ check(
 );
 $login_url = extrachill_community_get_discussion_composer_login_url( 'artist', 'phish' );
 parse_str( (string) parse_url( $login_url, PHP_URL_QUERY ), $login_query );
-check( 'logged-out continuation uses the canonical login path', 'https://community.extrachill.com/login/' === strtok( $login_url, '?' ) );
+check( 'logged-out continuation uses the canonical login path', 'https://community.extrachill.com/login' === strtok( $login_url, '?' ) );
 check(
 	'logged-out continuation preserves the validated composer URL',
 	'https://community.extrachill.com/?compose=discussion&entity_taxonomy=artist&entity_slug=phish' === ( $login_query['redirect_to'] ?? '' )

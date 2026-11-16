@@ -228,7 +228,7 @@ function extrachill_events_home_search_redirect(): void {
 		'' === $query ? array() : extrachill_events_home_search_term_candidates( $query ),
 		array(
 			'home'      => home_url( '/' ),
-			'directory' => extrachill_events_location_directory_enabled() ? home_url( '/location/' ) : '',
+			'directory' => extrachill_events_location_directory_enabled() ? home_url( '/location' ) : '',
 			'all'       => home_url( '/all' ),
 		),
 		$normalize

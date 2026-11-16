@@ -102,6 +102,16 @@ function trailingslashit( $value ) {
 }
 
 /**
+ * Untrailing slash double.
+ *
+ * @param string $value URL.
+ * @return string
+ */
+function untrailingslashit( $value ) {
+	return rtrim( $value, '/\\' );
+}
+
+/**
  * Current user double.
  *
  * @return int

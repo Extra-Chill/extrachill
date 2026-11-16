@@ -77,19 +77,19 @@ final class SubmitCtasTest extends TestCase {
 	}
 
 	public function test_submit_url_carries_encoded_context(): void {
-		$this->assertSame( 'https://events.example/submit/', extrachill_events_submit_url() );
-		$this->assertSame( 'https://events.example/submit/?submit_venue=The%20Pour%20House&submit_city=Charleston', extrachill_events_submit_url( 'The Pour House', 'Charleston' ) );
-		$this->assertSame( 'https://events.example/submit/?submit_city=Austin', extrachill_events_submit_url( '', 'Austin' ) );
+		$this->assertSame( 'https://events.example/submit', extrachill_events_submit_url() );
+		$this->assertSame( 'https://events.example/submit?submit_venue=The%20Pour%20House&submit_city=Charleston', extrachill_events_submit_url( 'The Pour House', 'Charleston' ) );
+		$this->assertSame( 'https://events.example/submit?submit_city=Austin', extrachill_events_submit_url( '', 'Austin' ) );
 	}
 
 	public function test_submit_url_carries_encoded_lineup(): void {
 		$lineup = 'Björk & Friends, The "Band"';
 		$this->assertSame(
-			'https://events.example/submit/?submit_lineup=' . rawurlencode( $lineup ),
+			'https://events.example/submit?submit_lineup=' . rawurlencode( $lineup ),
 			extrachill_events_submit_url( '', '', $lineup )
 		);
 		$this->assertSame(
-			'https://events.example/submit/?submit_venue=The%20Pour%20House&submit_city=Charleston&submit_lineup=' . rawurlencode( $lineup ),
+			'https://events.example/submit?submit_venue=The%20Pour%20House&submit_city=Charleston&submit_lineup=' . rawurlencode( $lineup ),
 			extrachill_events_submit_url( 'The Pour House', 'Charleston', $lineup )
 		);
 
@@ -117,7 +117,7 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_archive' );
 
 		$this->assertStringContainsString( 'Playing in Atlanta?', $html );
-		$this->assertStringContainsString( '/submit/?submit_city=Atlanta', $html );
+		$this->assertStringContainsString( '/submit?submit_city=Atlanta', $html );
 		$this->assertStringContainsString( 'data-ec-track-placement="location_archive"', $html );
 	}
 
@@ -145,7 +145,7 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_single', 502, '' );
 
 		$this->assertStringContainsString( '>Add a show<', $html );
-		$this->assertStringContainsString( '/submit/?submit_city=Oakland', $html );
+		$this->assertStringContainsString( '/submit?submit_city=Oakland', $html );
 	}
 
 	public function test_prefill_is_sanitized_and_capped(): void {

@@ -72,7 +72,7 @@ function ec_community_my_shows_url( int $user_id ): string {
 		return '';
 	}
 
-	$base = get_home_url( $events_blog_id, '/my-shows/' );
+	$base = get_home_url( $events_blog_id, '/my-shows' );
 
 	// Own profile links to the bare page; viewing someone else's appends the
 	// user_id so the My Shows block renders their history.

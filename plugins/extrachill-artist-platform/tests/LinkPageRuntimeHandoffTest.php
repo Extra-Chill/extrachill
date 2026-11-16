@@ -189,7 +189,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( $result['rendered_subscribe'] );
 		$this->assertTrue( $result['snapshot_parity'] );
 		$this->assertTrue( $result['head_hook'] );
-		$this->assertSame( 'https://artist.extrachill.com/login/?from_join=true', $result['join_redirect'] );
+		$this->assertSame( 'https://artist.extrachill.com/login?from_join=true', $result['join_redirect'] );
 		$this->assertIsInt( $result['forced'] );
 		$this->assertTrue( $result['previous_detached'] );
 		// Five mutation saves plus three snapshot refreshes (creation, the

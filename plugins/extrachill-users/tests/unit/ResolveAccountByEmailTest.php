@@ -67,7 +67,7 @@ class Test_Resolve_Account_By_Email extends WP_UnitTestCase {
 		$this->assertSame( 'event_rsvp', get_user_meta( $user->ID, 'registration_source', true ) );
 		$this->assertSame( 'https://events.example/location/charleston/', get_user_meta( $user->ID, 'registration_page', true ) );
 
-		$this->assertStringContainsString( '/reset-password/', $result['claim_url'] );
+		$this->assertStringContainsString( '/reset-password?', $result['claim_url'] );
 		$this->assertStringContainsString( 'action=reset', $result['claim_url'] );
 		$this->assertStringContainsString( 'login=' . rawurlencode( $user->user_login ), $result['claim_url'] );
 		$this->assertInstanceOf( WP_User::class, check_password_reset_key( $this->claim_key( $result['claim_url'] ), $user->user_login ) );
@@ -175,7 +175,8 @@ class Test_Resolve_Account_By_Email extends WP_UnitTestCase {
 		$user = get_userdata( self::factory()->user->create() );
 		$url  = ec_users_build_account_claim_url( $user );
 
-		$this->assertStringContainsString( '/reset-password/', $url );
+		$this->assertStringContainsString( '/reset-password?', $url );
+		$this->assertStringNotContainsString( '/reset-password/', $url );
 		$this->assertInstanceOf( WP_User::class, check_password_reset_key( $this->claim_key( $url ), $user->user_login ) );
 	}
 }

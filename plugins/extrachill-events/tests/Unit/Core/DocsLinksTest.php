@@ -9,6 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $value ) { return rtrim( (string) $value, '/\\' ) . '/'; }
 }
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	function untrailingslashit( $value ) { return rtrim( (string) $value, '/\\' ); }
+}
 if ( ! function_exists( 'sanitize_title' ) ) {
 	function sanitize_title( $title ) { return strtolower( trim( preg_replace( '/[^A-Za-z0-9]+/', '-', (string) $title ), '-' ) ); }
 }
@@ -20,11 +23,11 @@ final class DocsLinksTest extends TestCase {
 
 	public function test_builds_events_calendar_doc_url(): void {
 		$url = extrachill_events_docs_url( 'add-your-tour' );
-		$this->assertMatchesRegularExpression( '#^https://[^/]+/events-calendar/add-your-tour/$#', $url );
+		$this->assertMatchesRegularExpression( '#^https://[^/]+/events-calendar/add-your-tour$#', $url );
 	}
 
 	public function test_slug_is_sanitized(): void {
-		$this->assertStringEndsWith( '/events-calendar/venue-booking-inquiries/', extrachill_events_docs_url( 'Venue Booking Inquiries' ) );
+		$this->assertStringEndsWith( '/events-calendar/venue-booking-inquiries', extrachill_events_docs_url( 'Venue Booking Inquiries' ) );
 	}
 
 	/** @dataProvider screen_links */

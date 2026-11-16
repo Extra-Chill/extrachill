@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-$join_url = home_url( '/login/#tab-register' );
+$join_url = home_url( '/login#tab-register' );
 ?>
 <section class="community-newcomer-welcome" aria-labelledby="community-welcome-heading">
 	<p class="community-newcomer-welcome__eyebrow"><?php esc_html_e( 'The Online Music Scene', 'extra-chill-community' ); ?></p>

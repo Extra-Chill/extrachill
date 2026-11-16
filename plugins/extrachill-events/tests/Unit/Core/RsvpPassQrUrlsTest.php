@@ -57,7 +57,7 @@ final class RsvpPassQrUrlsTest extends PHPUnit\Framework\TestCase {
 		$url = extrachill_events_rsvp_verify_url( 'ABCDE-FGH2J-K3LMN' );
 
 		$this->assertSame(
-			'https://events.extrachill.com/rsvp-verify/?code=ABCDE-FGH2J-K3LMN',
+			'https://events.extrachill.com/rsvp-verify?code=ABCDE-FGH2J-K3LMN',
 			$url
 		);
 	}

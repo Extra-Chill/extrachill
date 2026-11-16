@@ -157,12 +157,12 @@ defined( 'ABSPATH' ) || exit;
 						? extrachill_community_get_artist_memberships( bbp_get_displayed_user_id() )
 						: array();
 						if ( ! empty( $ec_hero_memberships ) ) {
-							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/manage-artist/';
+							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/manage-artist';
 							$ec_artist_action_label = 1 === count( $ec_hero_memberships )
 							? __( 'Manage Artist', 'extra-chill-community' )
 							: __( 'Manage Artists', 'extra-chill-community' );
 						} else {
-							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/create-artist/';
+							$ec_artist_action_url   = ec_get_site_url( 'artist' ) . '/create-artist';
 							$ec_artist_action_label = __( 'Create Artist Profile', 'extra-chill-community' );
 						}
 						?>

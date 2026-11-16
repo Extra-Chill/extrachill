@@ -205,7 +205,7 @@ function extrachill_events_render_account_market_context(): void {
 	}
 
 	$community_url = ec_get_site_url( 'community' );
-	$settings_url  = trailingslashit( $community_url ) . 'settings/#tab-account-details';
+	$settings_url  = untrailingslashit( $community_url ) . '/settings#tab-account-details';
 	$current_url   = remove_query_arg( 'explore_all' );
 	$explore_url   = add_query_arg( 'explore_all', '1', $current_url );
 	$market        = extrachill_events_get_account_market();
@@ -262,7 +262,7 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 	}
 
 	$community_url = ec_get_site_url( 'community' );
-	$settings_url  = trailingslashit( $community_url ) . 'settings/#tab-account-details';
+	$settings_url  = untrailingslashit( $community_url ) . '/settings#tab-account-details';
 	$market        = extrachill_events_get_account_market();
 	$is_logged_in  = is_user_logged_in();
 	$market_count  = 0;
@@ -324,8 +324,8 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 					<?php endif; ?>
 				</div>
 				<nav class="events-primary-market__links" aria-label="<?php esc_attr_e( 'Local Scene event views', 'extrachill-events' ); ?>">
-					<a href="<?php echo esc_url( trailingslashit( $market['url'] ) . 'tonight/' ); ?>"><?php esc_html_e( 'Tonight', 'extrachill-events' ); ?></a>
-					<a href="<?php echo esc_url( trailingslashit( $market['url'] ) . 'this-weekend/' ); ?>"><?php esc_html_e( 'This Weekend', 'extrachill-events' ); ?></a>
+					<a href="<?php echo esc_url( trailingslashit( $market['url'] ) . 'tonight' ); ?>"><?php esc_html_e( 'Tonight', 'extrachill-events' ); ?></a>
+					<a href="<?php echo esc_url( trailingslashit( $market['url'] ) . 'this-weekend' ); ?>"><?php esc_html_e( 'This Weekend', 'extrachill-events' ); ?></a>
 					<a href="<?php echo esc_url( $market['url'] ); ?>"><?php esc_html_e( 'City calendar', 'extrachill-events' ); ?></a>
 					<a href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'Change Local Scene', 'extrachill-events' ); ?></a>
 				</nav>
@@ -344,9 +344,9 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 		<?php endif; ?>
 
 		<div class="events-home-router__paths">
-			<a href="<?php echo esc_url( home_url( '/near-me/' ) ); ?>"><?php esc_html_e( 'Shows near me', 'extrachill-events' ); ?> &rarr;</a>
-			<a href="<?php echo esc_url( home_url( '/location/' ) ); ?>"><?php esc_html_e( 'Browse all locations', 'extrachill-events' ); ?> &rarr;</a>
-			<a href="<?php echo esc_url( home_url( '/all/' ) ); ?>"><?php esc_html_e( 'See every event', 'extrachill-events' ); ?> &rarr;</a>
+			<a href="<?php echo esc_url( home_url( '/near-me' ) ); ?>"><?php esc_html_e( 'Shows near me', 'extrachill-events' ); ?> &rarr;</a>
+			<a href="<?php echo esc_url( home_url( '/location' ) ); ?>"><?php esc_html_e( 'Browse all locations', 'extrachill-events' ); ?> &rarr;</a>
+			<a href="<?php echo esc_url( home_url( '/all' ) ); ?>"><?php esc_html_e( 'See every event', 'extrachill-events' ); ?> &rarr;</a>
 		</div>
 	</section>
 	<?php

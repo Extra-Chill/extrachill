@@ -132,7 +132,7 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 	public function test_canonical_signin_url_omits_param_when_empty(): void {
 		$url = ec_users_canonical_google_signin_url( '' );
 		$this->assertStringNotContainsString( EC_USERS_GOOGLE_REDIRECT_PARAM, $url );
-		$this->assertStringContainsString( '/login/', $url );
+		$this->assertStringEndsWith( '/login', $url, 'Canonical login URL must match the slashless permalink form.' );
 	}
 
 	public function test_canonical_signin_url_preserves_join_requirement(): void {
@@ -145,7 +145,7 @@ class Test_Google_Canonical_Origin extends WP_UnitTestCase {
 	public function test_canonical_signin_url_appends_encoded_return_to(): void {
 		$url = ec_users_canonical_google_signin_url( 'https://studio.extrachill.com/compose?draft=42' );
 
-		$this->assertStringContainsString( '/login/', $url );
+		$this->assertStringContainsString( '/login?', $url );
 		$this->assertStringContainsString( EC_USERS_GOOGLE_REDIRECT_PARAM . '=', $url );
 
 		// Verify the param round-trips cleanly.

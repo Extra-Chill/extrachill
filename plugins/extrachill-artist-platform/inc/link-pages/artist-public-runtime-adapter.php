@@ -46,7 +46,7 @@ function ec_artist_link_page_public_special_route( $route, $path ) {
 		return $route;
 	}
 	return array(
-		'url'    => ec_get_site_url( 'artist' ) . '/login/?from_join=true',
+		'url'    => ec_get_site_url( 'artist' ) . '/login?from_join=true',
 		'status' => 301,
 		'safe'   => false,
 	);

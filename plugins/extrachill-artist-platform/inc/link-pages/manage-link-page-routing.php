@@ -22,7 +22,7 @@ function ec_manage_link_page_route_to_editor() {
 		return;
 	}
 	$url = ec_get_user_link_page_manage_url( get_current_user_id() );
-	if ( '' === $url || false !== strpos( $url, '/manage-link-page/' ) ) {
+	if ( '' === $url || false !== strpos( $url, '/manage-link-page' ) ) {
 		return;
 	}
 	// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- network editor host resolved from site options.
@@ -67,7 +67,7 @@ function ec_manage_link_page_create_prompt( $content, $block ) {
 		return '<div class="notice notice-info"><p>'
 			. esc_html__( 'Create an artist profile to get your free link-in-bio.', 'extrachill-artist-platform' )
 			. '</p>'
-			. ( $can_create ? '<a class="button-1 button-medium" href="' . esc_url( home_url( '/create-artist/' ) ) . '">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>' : '' )
+			. ( $can_create ? '<a class="button-1 button-medium" href="' . esc_url( home_url( '/create-artist' ) ) . '">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>' : '' )
 			. '</div>';
 	}
 	$missing = ec_manage_link_page_artists_without_page();
@@ -108,10 +108,10 @@ function ec_manage_link_page_handle_create() {
 		if ( function_exists( 'extrachill_set_notice' ) ) {
 			extrachill_set_notice( __( 'We couldn\'t create your Link Page. Please try again.', 'extrachill-artist-platform' ), 'error' );
 		}
-		wp_safe_redirect( home_url( '/manage-link-page/' ) );
+		wp_safe_redirect( home_url( '/manage-link-page' ) );
 		exit;
 	}
-	$target = ! empty( $result['edit_url'] ) ? (string) $result['edit_url'] : home_url( '/manage-link-page/' );
+	$target = ! empty( $result['edit_url'] ) ? (string) $result['edit_url'] : home_url( '/manage-link-page' );
 	// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- network editor host resolved from site options.
 	wp_redirect( $target );
 	exit;

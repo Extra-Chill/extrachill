@@ -247,6 +247,12 @@ if ( ! function_exists( 'trailingslashit' ) ) {
 	}
 }
 
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	function untrailingslashit( $value ) {
+		return rtrim( $value, '/' );
+	}
+}
+
 if ( ! function_exists( 'ec_get_site_url' ) ) {
 	function ec_get_site_url() {
 		return 'https://community.example';

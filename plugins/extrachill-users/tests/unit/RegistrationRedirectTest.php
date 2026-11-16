@@ -43,7 +43,7 @@ class Test_Registration_Redirect extends WP_UnitTestCase {
 		$redirect_url = ec_users_post_registration_redirect_url( true, false, 'https://artist.extrachill.com/login/' );
 		$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
 
-		$this->assertSame( untrailingslashit( $community_url ) . '/onboarding/', $redirect_url );
+		$this->assertSame( untrailingslashit( $community_url ) . '/onboarding', $redirect_url );
 	}
 
 	public function test_completed_join_user_returns_to_artist_flow(): void {
@@ -80,7 +80,7 @@ class Test_Registration_Redirect extends WP_UnitTestCase {
 		$redirect     = $this->capture_browser_registration_redirect( $user_id, $calendar_url );
 
 		$this->assertStringStartsWith( $calendar_url, $redirect );
-		$this->assertStringNotContainsString( '/onboarding/', $redirect );
+		$this->assertStringNotContainsString( '/onboarding', $redirect );
 		$this->assertStringContainsString( EC_USERS_ACCOUNT_CREATED_PARAM, $redirect );
 	}
 
@@ -90,7 +90,8 @@ class Test_Registration_Redirect extends WP_UnitTestCase {
 
 		$redirect = $this->capture_browser_registration_redirect( $user_id, 'https://artist.extrachill.com/login/' );
 
-		$this->assertStringContainsString( '/onboarding/', $redirect );
+		$this->assertStringContainsString( '/onboarding', $redirect );
+		$this->assertStringNotContainsString( '/onboarding/', $redirect );
 	}
 
 	private function capture_browser_registration_redirect( int $user_id, string $success_redirect_url ): string {

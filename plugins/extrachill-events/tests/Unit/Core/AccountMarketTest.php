@@ -821,7 +821,8 @@ final class AccountMarketTest extends TestCase {
 		$this->assertStringNotContainsString( 'alert(1)', $output );
 		$this->assertStringNotContainsString( '<script', $output );
 		$this->assertStringNotContainsString( '</script>', $output );
-		$this->assertStringContainsString( '/settings/#tab-account-details', $output );
+		$this->assertStringContainsString( '/settings#tab-account-details', $output );
+		$this->assertStringNotContainsString( '/settings/#', $output );
 		$this->assertStringContainsString( 'explore_all=1', $output );
 	}
 
@@ -897,13 +898,13 @@ final class AccountMarketTest extends TestCase {
 		$this->assertStringContainsString( '>Charleston</a>', $output );
 		$this->assertDoesNotMatchRegularExpression( '/<h3>\s*<a[^>]+location-charleston/s', $output );
 		$this->assertStringNotContainsString( 'Charleston, South Carolina', $output );
-		$this->assertStringContainsString( 'href="https://events.example/location/charleston/tonight/"', $output );
-		$this->assertStringContainsString( 'href="https://events.example/location/charleston/this-weekend/"', $output );
+		$this->assertStringContainsString( 'href="https://events.example/location/charleston/tonight"', $output );
+		$this->assertStringContainsString( 'href="https://events.example/location/charleston/this-weekend"', $output );
 		$this->assertStringContainsString( 'href="https://events.example/location/charleston/">City calendar</a>', $output );
 		$this->assertStringContainsString( '883 upcoming events', $output );
 		$this->assertStringContainsString( 'Austin (1,458)', $output );
 		$this->assertStringNotContainsString( 'Austin, Texas', $output );
-		$this->assertStringContainsString( 'href="' . esc_url( home_url( '/near-me/' ) ) . '">Shows near me', $output );
+		$this->assertStringContainsString( 'href="' . esc_url( home_url( '/near-me' ) ) . '">Shows near me', $output );
 		$this->assertStringContainsString( 'Browse all locations', $output );
 		$this->assertStringNotContainsString( 'Showing events for', $output );
 	}

@@ -67,7 +67,7 @@ function ec_users_consume_account_created_token( string $token, int $user_id ): 
  */
 function ec_users_post_registration_redirect_url( $from_join, $onboarding_completed, $success_redirect_url, $account_created_token = '' ) {
 	if ( $from_join && ! $onboarding_completed ) {
-		$redirect_url = ec_get_site_url( 'community' ) . '/onboarding/';
+		$redirect_url = ec_get_site_url( 'community' ) . '/onboarding';
 	} elseif ( '' !== (string) $success_redirect_url
 		&& function_exists( 'ec_users_is_valid_return_to_url' )
 		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {

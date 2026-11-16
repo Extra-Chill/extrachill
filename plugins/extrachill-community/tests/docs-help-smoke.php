@@ -28,6 +28,16 @@ function trailingslashit( $url ) {
 }
 
 /**
+ * Strip a trailing slash test double.
+ *
+ * @param string $url URL.
+ * @return string
+ */
+function untrailingslashit( $url ) {
+	return rtrim( $url, '/' );
+}
+
+/**
  * Sanitize a slug test double.
  *
  * @param string $slug Slug.
@@ -49,7 +59,7 @@ $placements = array(
 );
 
 foreach ( $placements as $file => $slug ) {
-	$expected = 'https://docs.example.test/community/' . $slug . '/';
+	$expected = 'https://docs.example.test/community/' . $slug;
 	if ( extrachill_community_docs_url( $slug ) !== $expected ) {
 		throw new RuntimeException( 'Incorrect docs URL.' );
 	}
@@ -65,14 +75,14 @@ $helpers = array(
 	'events-calendar' => 'extrachill_events_docs_url',
 );
 foreach ( $helpers as $section => $helper ) {
-	$expected = 'https://docs.example.test/' . $section . '/getting-started/';
+	$expected = 'https://docs.example.test/' . $section . '/getting-started';
 	if ( $helper( 'getting-started' ) !== $expected ) {
 		throw new RuntimeException( 'Incorrect section URL.' );
 	}
 }
 putenv( 'EC_DOCS_TEST_URL' );
 foreach ( $helpers as $section => $helper ) {
-	$expected = 'https://docs.extrachill.com/' . $section . '/getting-started/';
+	$expected = 'https://docs.extrachill.com/' . $section . '/getting-started';
 	if ( $helper( 'getting-started' ) !== $expected ) {
 		throw new RuntimeException( 'Incorrect fallback URL.' );
 	}

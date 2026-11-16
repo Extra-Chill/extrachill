@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 /** Build the canonical venue workspace URL with optional tab context. */
 function ec_events_get_venue_settings_url( int $venue_term_id = 0, string $tab = '' ): string {
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
-	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings/' ) : home_url( '/venue-settings/' );
+	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings' ) : home_url( '/venue-settings' );
 	if ( $venue_term_id > 0 ) {
 		$base_url = add_query_arg( array( 'venue_id' => $venue_term_id ), $base_url );
 	}
@@ -20,7 +20,7 @@ function ec_events_get_venue_settings_url( int $venue_term_id = 0, string $tab =
 /** Build the Venue Settings URL that opens a promoter workspace. */
 function ec_events_get_promoter_settings_url( int $promoter_term_id ): string {
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
-	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings/' ) : home_url( '/venue-settings/' );
+	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings' ) : home_url( '/venue-settings' );
 	return add_query_arg( array( 'identity' => 'promoter:' . $promoter_term_id ), $base_url );
 }
 

@@ -147,7 +147,9 @@ class Test_Email_Change_Confirmation extends WP_UnitTestCase {
 		$this->assertSame( 'new-address@example.com', $email['to'] );
 		$cta = $email['context']['cta_url'];
 		$this->assertSame( extrachill_users_settings_url() . '?ec_confirm_email=abc123hash', $cta );
-		$this->assertStringEndsWith( '/settings/?ec_confirm_email=abc123hash', $cta );
+		$this->assertStringEndsWith( '/settings?ec_confirm_email=abc123hash', $cta );
+		$this->assertStringNotContainsString( '/?', $cta, 'Settings link must match the slashless permalink form (no redirect hop).' );
+		$this->assertStringEndsWith( '/settings', extrachill_users_settings_url() );
 		$this->assertStringNotContainsString( 'profile.php', $cta );
 		$this->assertStringNotContainsString( 'newuseremail', $cta );
 	}

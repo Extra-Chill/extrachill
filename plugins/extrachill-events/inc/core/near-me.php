@@ -325,7 +325,7 @@ function extrachill_events_near_me_header_item( array $items ): array {
 	}
 
 	$items[] = array(
-		'url'      => home_url( '/near-me/' ),
+		'url'      => home_url( '/near-me' ),
 		'label'    => __( 'Near Me', 'extrachill-events' ),
 		'priority' => 5,
 	);

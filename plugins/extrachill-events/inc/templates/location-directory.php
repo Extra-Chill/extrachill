@@ -119,7 +119,7 @@ unset( $region );
 				<?php esc_html_e( 'Every city with upcoming live music. Pick a city to see its calendar.', 'extrachill-events' ); ?>
 			</p>
 		</header>
-		<form class="events-location-search" role="search" method="get" action="<?php echo esc_url( home_url( '/location/' ) ); ?>">
+		<form class="events-location-search" role="search" method="get" action="<?php echo esc_url( home_url( '/location' ) ); ?>">
 			<label for="location-directory-search"><?php esc_html_e( 'Search cities', 'extrachill-events' ); ?></label>
 			<div class="events-location-search__controls">
 				<input id="location-directory-search" name="search" type="search" value="<?php echo esc_attr( $directory_search ); ?>" placeholder="<?php esc_attr_e( 'City or state', 'extrachill-events' ); ?>">

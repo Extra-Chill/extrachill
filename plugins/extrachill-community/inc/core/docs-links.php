@@ -19,5 +19,5 @@ function extrachill_community_docs_url( string $slug ): string {
 		$base = 'https://docs.extrachill.com';
 	}
 
-	return trailingslashit( $base ) . 'community/' . trim( sanitize_title( $slug ), '/' ) . '/';
+	return untrailingslashit( $base ) . '/community/' . trim( sanitize_title( $slug ), '/' );
 }

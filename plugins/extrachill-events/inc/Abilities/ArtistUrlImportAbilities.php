@@ -1938,7 +1938,7 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$submit_page_link = home_url( '/submit/' );
+		$submit_page_link = home_url( '/submit' );
 
 		$this->notifySubmitter(
 			$submission,

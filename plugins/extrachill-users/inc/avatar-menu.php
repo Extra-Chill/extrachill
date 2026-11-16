@@ -15,8 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Display user avatar dropdown menu with plugin extensibility.
  */
 function extrachill_display_user_avatar_menu() {
-	$login_url    = home_url( '/login/' );
-	$register_url = trailingslashit( $login_url ) . '#tab-register';
+	$login_url    = home_url( user_trailingslashit( '/login' ) );
+	$register_url = $login_url . '#tab-register';
 
 	$is_logged_in    = is_user_logged_in();
 	$current_user_id = $is_logged_in ? get_current_user_id() : 0;

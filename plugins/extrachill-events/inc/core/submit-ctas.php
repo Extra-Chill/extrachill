@@ -55,7 +55,7 @@ function extrachill_events_submit_url( string $venue = '', string $city = '', st
 		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['lineup'] ] = $lineup;
 	}
 
-	$url = home_url( '/submit/' );
+	$url = home_url( '/submit' );
 	return $args ? add_query_arg( array_map( 'rawurlencode', $args ), $url ) : $url;
 }
 

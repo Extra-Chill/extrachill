@@ -552,7 +552,7 @@ export function EditProfileApp( {
 										{ hasArtists && (
 											<ActionRow>
 												<a
-													href={ `${ artistSiteUrl }/manage-artist/` }
+													href={ `${ artistSiteUrl }/manage-artist` }
 													className="button-2 button-small"
 													style={
 														styles.inlineButtonLink
@@ -565,7 +565,7 @@ export function EditProfileApp( {
 										{ ! hasArtists && canCreateArtists && (
 											<ActionRow>
 												<a
-													href={ `${ artistSiteUrl }/create-artist/` }
+													href={ `${ artistSiteUrl }/create-artist` }
 													className="button-2 button-small"
 													style={
 														styles.inlineButtonLink

@@ -38,6 +38,7 @@ function ec_get_blog_id( $name ) { return array(
 	'studio' => 42,
 )[ $name ]; }
 function ec_get_site_url( $name ) { return 'https://' . $name . '.test'; }
+function untrailingslashit( $value ) { return rtrim( $value, '/\\' ); }
 function get_home_url( $id, $path ) { return 'https://site' . $id . '.test' . $path; }
 function home_url( $path ) { return 'https://local.test' . $path; }
 function get_current_blog_id() { return $GLOBALS['site']; }
@@ -62,6 +63,7 @@ function wp_redirect( $url ) { throw new AdminRedirect( $url ); }
 function get_queried_object() { return $GLOBALS['object']; }
 require dirname( __DIR__ ) . '/inc/team-members/role.php';
 require dirname( __DIR__ ) . '/inc/wp-admin-permissions.php';
+require dirname( __DIR__ ) . '/inc/core/email-change-confirmation.php';
 require dirname( __DIR__ ) . '/inc/admin-access-control.php';
 $failures = 0;
 function check( $label, $condition ) {
@@ -101,7 +103,7 @@ foreach ( array(
 	if ( $allowed ) {
 		check( "user $uid full bar untouched", $before === $bar->nodes );
 	} elseif ( ec_is_team_member( $uid ) ) {
-		check( "user $uid Studio/account/logout retained", $bar->get_node( 'studio' ) && $bar->get_node( 'logout' ) && 'https://community.test/settings/' === $bar->get_node( 'my-account' )->href );
+		check( "user $uid Studio/account/logout retained", $bar->get_node( 'studio' ) && $bar->get_node( 'logout' ) && 'https://community.test/settings' === $bar->get_node( 'my-account' )->href );
 		check( "user $uid no wp-admin hrefs", ! array_filter( $bar->nodes, static function ( $node ) { return false !== strpos( $node->href, '/wp-admin' );
 		} ) );
 	}

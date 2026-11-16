@@ -66,19 +66,19 @@ ec_users_identity_assert(
 			'type'       => 'artist',
 			'id'         => 10,
 			'name'       => 'The Band',
-			'manage_url' => 'https://artist.test/manage-artist/',
+			'manage_url' => 'https://artist.test/manage-artist',
 		),
 		array(
 			'type'       => 'artist',
 			'id'         => 12,
 			'name'       => 'Broken Image',
-			'manage_url' => 'https://artist.test/manage-artist/',
+			'manage_url' => 'https://artist.test/manage-artist',
 		),
 		array(
 			'type'       => 'artist',
 			'id'         => 13,
 			'name'       => 'No Image',
-			'manage_url' => 'https://artist.test/manage-artist/',
+			'manage_url' => 'https://artist.test/manage-artist',
 		),
 	) === $sellers,
 	'artist sellers carry the published profile names'

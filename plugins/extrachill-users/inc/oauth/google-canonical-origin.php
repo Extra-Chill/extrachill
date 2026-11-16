@@ -58,7 +58,7 @@ function ec_users_is_canonical_google_origin() {
  * @return string The canonical login URL.
  */
 function ec_users_canonical_google_signin_url( $return_to, $from_join = false ) {
-	$base = ec_get_site_url( 'community' ) . '/login/';
+	$base = ec_get_site_url( 'community' ) . '/login';
 
 	$args = array();
 	if ( '' !== (string) $return_to ) {

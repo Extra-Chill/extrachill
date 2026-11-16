@@ -62,7 +62,7 @@ if ( ! empty( $existing_artists ) ) {
 			esc_html( $artist_count )
 		) . '</p>';
 	}
-	echo '<a href="' . esc_url( home_url( '/manage-artist/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
+	echo '<a href="' . esc_url( home_url( '/manage-artist' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
 	echo '</div>';
 	return;
 }
@@ -109,8 +109,8 @@ $config = array(
 	'restUrl'           => rest_url( 'extrachill/v1/' ),
 	'nonce'             => wp_create_nonce( 'wp_rest' ),
 	'prefill'           => $prefill,
-	'manageArtistUrl'   => home_url( '/manage-artist/' ),
-	'createLinkPageUrl' => home_url( '/manage-link-page/' ),
+	'manageArtistUrl'   => home_url( '/manage-artist' ),
+	'createLinkPageUrl' => home_url( '/manage-link-page' ),
 	// Shown once the shop rollout reaches this user; the new artist makes them a seller.
 	'createShopUrl'     => function_exists( 'ec_feature_available' ) && ec_feature_available( 'shop', get_current_user_id() ) && function_exists( 'ec_get_shop_manager_url' ) ? ec_get_shop_manager_url() : '',
 );

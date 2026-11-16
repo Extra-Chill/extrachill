@@ -156,7 +156,7 @@ add_action( 'extrachill_new_user_registered', 'extrachill_notify_admin_new_user'
 function extrachill_send_welcome_email_complete( $user_data ) {
 	$username        = $user_data->user_login;
 	$email           = $user_data->user_email;
-	$reset_pass_link = ec_get_site_url( 'community' ) . '/reset-password/';
+	$reset_pass_link = ec_get_site_url( 'community' ) . '/reset-password';
 	$community_url   = ec_get_site_url( 'community' );
 
 	$subject = 'Welcome to the Extra Chill Community!';

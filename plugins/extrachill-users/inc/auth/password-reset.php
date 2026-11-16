@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  */
 // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WordPress lostpassword_url filter signature.
 function ec_custom_lostpassword_url( $lostpassword_url, $redirect ) {
-	return ec_get_site_url( 'community' ) . '/reset-password/';
+	return ec_get_site_url( 'community' ) . '/reset-password';
 }
 add_filter( 'lostpassword_url', 'ec_custom_lostpassword_url', 10, 2 );
 
@@ -53,7 +53,7 @@ function ec_filter_password_reset_email( $email, $key, $user_login, $user_data )
 			'key'    => rawurlencode( $key ),
 			'login'  => rawurlencode( $user_login ),
 		),
-		ec_get_site_url( 'community' ) . '/reset-password/'
+		ec_get_site_url( 'community' ) . '/reset-password'
 	);
 
 	// Replace the wp-login.php link in the body with the canonical reset URL.
@@ -99,7 +99,7 @@ function ec_filter_new_user_notification_email( $email, $user, $blogname ) {
 			'key'    => $matches[1],
 			'login'  => $matches[2],
 		),
-		ec_get_site_url( 'community' ) . '/reset-password/'
+		ec_get_site_url( 'community' ) . '/reset-password'
 	);
 
 	$email['message'] = preg_replace(
@@ -503,7 +503,7 @@ function ec_send_password_reset_email( $user, $reset_key ) {
 			'key'    => $reset_key,
 			'login'  => rawurlencode( $user->user_login ),
 		),
-		ec_get_site_url( 'community' ) . '/reset-password/'
+		ec_get_site_url( 'community' ) . '/reset-password'
 	);
 
 	$subject = __( 'Password Reset Request - Extra Chill', 'extrachill-users' );
@@ -603,7 +603,7 @@ function ec_send_team_welcome_email( $user, $reset_key ) {
 			'key'    => $reset_key,
 			'login'  => rawurlencode( $user->user_login ),
 		),
-		ec_get_site_url( 'community' ) . '/reset-password/'
+		ec_get_site_url( 'community' ) . '/reset-password'
 	);
 
 	$studio_url = ec_get_site_url( 'studio' );

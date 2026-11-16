@@ -34,13 +34,13 @@ function ec_artist_platform_secondary_header_items( $items ) {
 			: __( 'Manage Artists', 'extrachill-artist-platform' );
 
 		$items[] = array(
-			'url'      => home_url( '/manage-artist/' ),
+			'url'      => home_url( '/manage-artist' ),
 			'label'    => $artist_label,
 			'priority' => 10,
 		);
 	} elseif ( ec_can_create_artist_profiles( $user_id ) ) {
 		$items[] = array(
-			'url'      => home_url( '/create-artist/' ),
+			'url'      => home_url( '/create-artist' ),
 			'label'    => __( 'Create Artist Profile', 'extrachill-artist-platform' ),
 			'priority' => 10,
 		);
@@ -50,7 +50,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 	if ( $artist_count > 0 ) {
 		$latest_artist_id = ec_get_latest_artist_for_user( $user_id );
 		$link_page_count  = ec_get_link_page_count_for_user( $user_id );
-		$link_page_url    = $link_page_count > 0 ? ec_get_user_link_page_manage_url( $user_id ) : home_url( '/manage-link-page/' );
+		$link_page_url    = $link_page_count > 0 ? ec_get_user_link_page_manage_url( $user_id ) : home_url( '/manage-link-page' );
 
 		if ( 0 === $link_page_count ) {
 			$link_page_label = __( 'Create Link Page', 'extrachill-artist-platform' );
@@ -69,7 +69,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 		// Analytics Link (priority 40) - only if user has link pages
 		if ( $link_page_count > 0 ) {
 			$items[] = array(
-				'url'      => home_url( '/analytics/' ),
+				'url'      => home_url( '/analytics' ),
 				'label'    => __( 'Analytics', 'extrachill-artist-platform' ),
 				'priority' => 40,
 			);

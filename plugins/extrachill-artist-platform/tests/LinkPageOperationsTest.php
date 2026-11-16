@@ -370,7 +370,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		$definition = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
 
 		$this->assertSame( 'post:' . $this->artist_blog_id() . ':artist_profile:' . $this->profile_id, $definition::owner_reference( $this->profile_id ) );
-		$this->assertSame( ec_get_site_url( 'artist' ) . '/manage-link-page/?artist_id=' . $this->profile_id, $definition::management_url( $this->profile_id ) );
+		$this->assertSame( ec_get_site_url( 'artist' ) . '/manage-link-page?artist_id=' . $this->profile_id, $definition::management_url( $this->profile_id ) );
 		$this->assertSame( 'MusicGroup', ( new ReflectionClassConstant( $definition, 'SCHEMA_TYPE' ) )->getValue() );
 		$this->assertTrue( is_subclass_of( $definition, \ExtraChill\LinkPages\Owned_Link_Pages::class ) );
 		$names = array_column( ec_link_page_public_projection_registry()->snapshot(), 'callback', 'name' );

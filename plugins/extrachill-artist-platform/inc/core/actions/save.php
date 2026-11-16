@@ -99,7 +99,7 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 	}
 	if ( ! is_wp_error( $result ) && array_key_exists( 'profile_image_id', $save_data ) ) {
 		$image_id = absint( $save_data['profile_image_id'] );
-		$result = ec_artist_set_profile_image_from_page( $artist_id, $image_id );
+		$result   = ec_artist_set_profile_image_from_page( $artist_id, $image_id );
 		if ( ! is_wp_error( $result ) ) {
 			if ( ! ec_write_link_page_meta( $link_page_id, '_link_page_profile_image_id', $image_id, ! $image_id ) ) {
 				$result = new WP_Error( 'artist_profile_image_save_failed', 'The Link Page profile image could not be persisted.' );
@@ -640,7 +640,7 @@ function ec_admin_post_save_link_page() {
 		extrachill_set_notice( $message, 'error' );
 
 		$manage_page = get_page_by_path( 'manage-link-page' );
-		$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+		$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page' );
 		wp_safe_redirect( $base_url );
 		exit;
 	}
@@ -649,7 +649,7 @@ function ec_admin_post_save_link_page() {
 	// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
 	extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
 	$manage_page = get_page_by_path( 'manage-link-page' );
-	$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+	$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page' );
 	wp_safe_redirect( $base_url );
 	exit;
 }

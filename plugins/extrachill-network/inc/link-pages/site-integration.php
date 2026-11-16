@@ -166,7 +166,7 @@ function ec_network_link_page_join_route( $route, $path ) {
 		return $route;
 	}
 	return array(
-		'url'    => $artist . '/login/?from_join=true',
+		'url'    => $artist . '/login?from_join=true',
 		'status' => 301,
 		'safe'   => false,
 	);
@@ -276,7 +276,7 @@ function ec_network_onboarding_join_destination( $redirect_url, $user_id, $roles
 		if ( 'venue' === $intent && function_exists( 'ec_feature_available' ) && ec_feature_available( 'venue_booking', (int) $user_id ) ) {
 			$events = ec_get_site_url( 'events' );
 			if ( $events ) {
-				return $events . '/venue-settings/#tab-link-page';
+				return $events . '/venue-settings#tab-link-page';
 			}
 		}
 		$subject = 'venue' === $intent ? 'venue-link-page' : 'promoter-link-page';
@@ -297,6 +297,6 @@ function ec_network_onboarding_join_destination( $redirect_url, $user_id, $roles
 		}
 	}
 	$artist_site = ec_get_site_url( 'artist' );
-	return $artist_site ? $artist_site . '/create-artist/' : $redirect_url;
+	return $artist_site ? $artist_site . '/create-artist' : $redirect_url;
 }
 add_filter( 'ec_onboarding_join_destination', 'ec_network_onboarding_join_destination', 10, 4 );

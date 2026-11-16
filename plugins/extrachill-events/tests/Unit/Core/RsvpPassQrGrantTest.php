@@ -121,7 +121,7 @@ final class RsvpPassQrGrantTest extends PHPUnit\Framework\TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 'image/png', $result['mime_type'] );
-		$this->assertSame( 'https://events.extrachill.com/rsvp-verify/?code=ABCDE-FGH2J-K3LMN', $this->ability->calls[0]['url'] );
+		$this->assertSame( 'https://events.extrachill.com/rsvp-verify?code=ABCDE-FGH2J-K3LMN', $this->ability->calls[0]['url'] );
 		$this->assertSame( 500, $this->ability->calls[0]['size'] );
 	}
 
@@ -147,7 +147,7 @@ final class RsvpPassQrGrantTest extends PHPUnit\Framework\TestCase {
 	public function test_without_the_grant_the_ability_denies(): void {
 		$result = $this->ability->execute(
 			array(
-				'url'  => 'https://events.extrachill.com/rsvp-verify/?code=ABCDE-FGH2J-K3LMN',
+				'url'  => 'https://events.extrachill.com/rsvp-verify?code=ABCDE-FGH2J-K3LMN',
 				'size' => 500,
 			)
 		);
@@ -156,18 +156,18 @@ final class RsvpPassQrGrantTest extends PHPUnit\Framework\TestCase {
 	}
 
 	public function test_grant_only_applies_to_the_qr_ability(): void {
-		$grant = extrachill_events_rsvp_pass_qr_permission_grant( 'https://events.extrachill.com/rsvp-verify/?code=X' );
+		$grant = extrachill_events_rsvp_pass_qr_permission_grant( 'https://events.extrachill.com/rsvp-verify?code=X' );
 
-		$this->assertFalse( $grant( false, 'extrachill/some-other-ability', array( 'url' => 'https://events.extrachill.com/rsvp-verify/?code=X' ) ) );
+		$this->assertFalse( $grant( false, 'extrachill/some-other-ability', array( 'url' => 'https://events.extrachill.com/rsvp-verify?code=X' ) ) );
 	}
 
 	public function test_grant_only_applies_to_the_validated_verify_url(): void {
-		$grant = extrachill_events_rsvp_pass_qr_permission_grant( 'https://events.extrachill.com/rsvp-verify/?code=X' );
+		$grant = extrachill_events_rsvp_pass_qr_permission_grant( 'https://events.extrachill.com/rsvp-verify?code=X' );
 
 		$this->assertFalse( $grant( false, 'extrachill/generate-qr-code', array( 'url' => 'https://evil.example/' ) ) );
 		$this->assertFalse( $grant( false, 'extrachill/generate-qr-code', array() ) );
 		$this->assertFalse( $grant( false, 'extrachill/generate-qr-code', null ) );
-		$this->assertTrue( $grant( false, 'extrachill/generate-qr-code', array( 'url' => 'https://events.extrachill.com/rsvp-verify/?code=X' ) ) );
+		$this->assertTrue( $grant( false, 'extrachill/generate-qr-code', array( 'url' => 'https://events.extrachill.com/rsvp-verify?code=X' ) ) );
 	}
 
 	public function test_missing_ability_returns_null(): void {

@@ -124,7 +124,7 @@ const AttendanceButton = ( {
 		// pass an explicit redirectTo (e.g. deep-link into the archive/import
 		// flow); otherwise fall back to the current request URL.
 		if ( ! isLoggedIn ) {
-			const target = loginUrl || '/login/';
+			const target = loginUrl || '/login';
 			const returnTo = redirectTo || window.location.href;
 			const continuation = new URL( returnTo, window.location.href );
 			if ( intentToken ) {

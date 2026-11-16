@@ -249,7 +249,7 @@ const context = ( overrides = {} ) => ( {
 	},
 	can_access: true,
 	can_manage: false,
-	route_url: 'https://events.example/venue-settings/',
+	route_url: 'https://events.example/venue-settings',
 	booking_url: 'https://events.example/venue/venue-44/#booking-inquiry',
 	requested_venue_id: 0,
 	booking_id: 0,
@@ -869,7 +869,7 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent.match( /1 active hold/g ) ).toHaveLength(
 			2
 		);
-		window.history.replaceState( {}, '', '/venue-settings/' );
+		window.history.replaceState( {}, '', '/venue-settings' );
 		await act( async () => {
 			buttonContaining( container, 'Artist 44' ).click();
 			await Promise.resolve();

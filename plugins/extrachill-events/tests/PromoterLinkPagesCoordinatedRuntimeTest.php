@@ -127,7 +127,7 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'draft_on_term_deleted', $result['deleted_audit']['policy'] );
 		$this->assertSame( array( 'events-venues', 'events-promoters' ), $result['registries'][0] );
 		$this->assertSame( array( 'events-venues', 'events-promoters' ), $result['registries'][1] );
-		$this->assertSame( '/venue-settings/', $result['management_route']['path'] );
+		$this->assertSame( '/venue-settings', $result['management_route']['path'] );
 		$this->assertSame( 'promoter:30', $result['management_route']['identity'] );
 		$this->assertSame( 'promoter-link-page', $result['management_route']['fragment'] );
 		$this->assertSame( array( false, false ), $result['http_functions'] );
