@@ -719,12 +719,34 @@ function extrachill_users_ability_change_email( $input ) {
 	);
 	update_user_meta( $user_id, '_new_email', $new_user_email );
 
-	// Build confirmation URL — matches WordPress core (wp-includes/user.php).
-	$confirm_url = esc_url(
-		self_admin_url(
-			'profile.php?newuseremail=' . $hash
-		)
+	$result = ec_send_email( extrachill_users_email_change_request_email( $user, $new_email, $hash ) );
+
+	$sent = ! empty( $result['success'] );
+
+	if ( ! $sent ) {
+		delete_user_meta( $user_id, '_new_email' );
+		return new WP_Error( 'email_send_failed', 'Failed to send verification email. Please try again.' );
+	}
+
+	return array(
+		'success'       => true,
+		'message'       => sprintf( 'Verification email sent to %s. Check your inbox and click the verification link.', $new_email ),
+		'pending_email' => $new_email,
 	);
+}
+
+/**
+ * Build the "Email Change Request" message for ec_send_email().
+ *
+ * @param WP_User $user      User requesting the change.
+ * @param string  $new_email Pending address.
+ * @param string  $hash      Pending change hash stored in `_new_email`.
+ * @return array<string, mixed>
+ */
+function extrachill_users_email_change_request_email( WP_User $user, string $new_email, string $hash ): array {
+	// Confirmation lands on the front-end Settings page: members without
+	// wp-admin access never reach core's profile.php handler.
+	$confirm_url = esc_url_raw( extrachill_users_email_change_confirm_url( $hash ) );
 
 	$subject = sprintf(
 		/* translators: %s: site name */
@@ -743,33 +765,18 @@ function extrachill_users_ability_change_email( $input ) {
 	) . '</p>';
 	$body_html .= '<p>' . esc_html__( 'If you did not request this, you can safely ignore and delete this email.', 'extrachill-users' ) . '</p>';
 
-	$result = ec_send_email(
-		array(
-			'to'       => $new_email,
-			'subject'  => $subject,
-			'template' => 'extrachill/minimal',
-			'context'  => array(
-				'subject_html'   => esc_html( $subject ),
-				'body_html'      => $body_html,
-				'recipient_name' => $user->user_login,
-				'cta_url'        => $confirm_url,
-				'cta_label'      => __( 'Confirm Email Change', 'extrachill-users' ),
-				'preheader'      => __( 'Confirm your new email address on Extra Chill.', 'extrachill-users' ),
-			),
-		)
-	);
-
-	$sent = ! empty( $result['success'] );
-
-	if ( ! $sent ) {
-		delete_user_meta( $user_id, '_new_email' );
-		return new WP_Error( 'email_send_failed', 'Failed to send verification email. Please try again.' );
-	}
-
 	return array(
-		'success'       => true,
-		'message'       => sprintf( 'Verification email sent to %s. Check your inbox and click the verification link.', $new_email ),
-		'pending_email' => $new_email,
+		'to'       => $new_email,
+		'subject'  => $subject,
+		'template' => 'extrachill/minimal',
+		'context'  => array(
+			'subject_html'   => esc_html( $subject ),
+			'body_html'      => $body_html,
+			'recipient_name' => $user->user_login,
+			'cta_url'        => $confirm_url,
+			'cta_label'      => __( 'Confirm Email Change', 'extrachill-users' ),
+			'preheader'      => __( 'Confirm your new email address on Extra Chill.', 'extrachill-users' ),
+		),
 	);
 }
 
