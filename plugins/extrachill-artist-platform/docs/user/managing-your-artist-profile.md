@@ -1,17 +1,21 @@
 # Managing Your Artist Profile
 
-Keep your artist's bio, pictures, and contact with fans up to date from the [profile manager](https://artist.extrachill.com/manage-artist-profiles/).
+Keep your artist's bio, pictures, and contact with fans up to date from the [profile manager](https://artist.extrachill.com/manage-artist).
 
 ## Update your details
 
 1. Sign in and choose the artist you want to edit.
 2. Open **Info**.
-3. Update your artist name, city or region, genre, and bio.
+3. Update your artist name, hometown under **Local Scene**, genre, and bio. For **Local Scene**, pick your city from the search results.
 4. Choose a profile picture and header image. Use **Remove** to clear a picture you no longer want.
 5. Choose **Save** and wait for the saved message.
 6. Choose **View Profile** to check the public result.
 
 If saving fails, check the message and try again before leaving the page. Your artist name cannot be empty.
+
+## Add your shows
+
+Open **Shows** to put your shows on the Events Calendar. Upload a flyer, enter a show by hand, or import your whole tour page. Open **Local Support** to say you're available for local opening slots. See [Adding Your Shows](https://docs.extrachill.com/artist-platform/adding-your-shows) for the steps.
 
 ## Share the work
 

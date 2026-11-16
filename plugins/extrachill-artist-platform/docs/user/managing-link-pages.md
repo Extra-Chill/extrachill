@@ -26,7 +26,7 @@ The editor provides a **QR Code** button for a scannable version of your page ad
 
 ## Choose how people sign up
 
-In **Advanced**, choose a subscribe icon, a signup form below your links, or no signup option. You can edit the form description. People who sign up this way join your artist's mailing list. Manage that list in **Subscribers** in the profile manager.
+In **Newsletter**, under **How fans sign up**, choose a sign-up form on the page, a bell icon that opens one, or **Off**. Use **Message to fans** to say what you'll send. People who sign up this way join your artist's mailing list. Manage that list in **Subscribers** in the profile manager.
 
 A signup does not enroll someone in an Extra Chill newsletter. Account notices and mailing list signups are separate choices.
 
@@ -34,4 +34,4 @@ A signup does not enroll someone in an Extra Chill newsletter. Account notices a
 
 Wait for **Saved!** before leaving the editor. If a message says saving failed, correct anything it calls out and try again. Check that you selected the intended artist. Reload the public page and check again; if a destination fails, correct its address and save.
 
-For time-limited destinations and other choices, see [Advanced link page features](link-page-advanced-features.md). To understand visits and clicks, see [Link page analytics](understanding-link-page-analytics.md).
+For time-limited destinations and other choices, see [Advanced link page features](https://docs.extrachill.com/artist-platform/link-page-advanced-features). To understand visits and clicks, see [Link page analytics](https://docs.extrachill.com/artist-platform/understanding-link-page-analytics).
