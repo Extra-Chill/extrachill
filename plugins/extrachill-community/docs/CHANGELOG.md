@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.32.0] - 2026-11-16
+
+### Added
+- self-serve account deletion on the website
+
 ## [1.31.1] - 2026-11-16
 
 ### Changed
