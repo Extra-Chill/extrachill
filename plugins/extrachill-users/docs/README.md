@@ -35,6 +35,7 @@ The plugin is network-activated across all sites in the Extra Chill Platform net
 - [Admin Access Control](admin-access.md) - Team members, permissions, and overrides
 
 ### API Reference
+- [Abilities](abilities.md) - Domain operations, schemas, permissions, exposure, and side effects
 - [API Endpoints](api-endpoints.md) - REST API documentation for all endpoints
 
 ### Legacy Documentation
