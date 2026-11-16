@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.67.0] - 2026-11-16
+
+### Added
+- require explicit per-user wp-admin grants
+
 ## [0.66.1] - 2026-11-15
 
 ### Fixed
