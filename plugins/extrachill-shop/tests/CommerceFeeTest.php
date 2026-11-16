@@ -30,6 +30,10 @@ final class CommerceFeeTest extends TestCase {
 		$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE ) );
 		$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE, 4 ) );
 		$this->assertSame( array( 'buyer_fee' => 0, 'application_fee' => 0 ), extrachill_commerce_fee( 'extrachill_merch', 2500, null, 4 ) );
+		// Merch keeps its percentage whoever pays processing.
+		foreach ( array( 'account', 'application', 'application_express', '' ) as $payer ) {
+			$this->assertSame( $merch, extrachill_commerce_fee( 'extrachill_merch', 2500, self::VENUE, 1, $payer ) );
+		}
 	}
 
 	public function test_missing_shop_option_defaults_to_ten_percent(): void {

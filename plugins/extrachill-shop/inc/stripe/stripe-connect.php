@@ -122,14 +122,9 @@ function extrachill_shop_create_seller_stripe_account( $seller ) {
 		);
 	}
 
-	if ( ! extrachill_shop_set_seller_stripe_account_record(
-		$seller,
-		array(
-			'account_id'          => $account->id,
-			'status'              => 'pending',
-			'onboarding_complete' => false,
-		)
-	) ) {
+	// The record keeps who pays card processing (`controller.fees.payer`;
+	// Express accounts report the platform), which sets the ticket application fee.
+	if ( ! extrachill_shop_set_seller_stripe_account_record( $seller, extrachill_shop_new_stripe_account_record( $account ) ) ) {
 		return array(
 			'success' => false,
 			'error'   => 'The payout account could not be saved.',
@@ -237,7 +232,7 @@ function extrachill_shop_create_dashboard_link( $account_id ) {
  * Get account status from Stripe API and update local cache.
  *
  * @param string $account_id Stripe connected account ID.
- * @return array{success: bool, status?: string, can_receive_payments?: bool, error?: string}
+ * @return array{success: bool, status?: string, can_receive_payments?: bool, fee_payer?: string, error?: string}
  */
 function extrachill_shop_get_account_status( $account_id ) {
 	if ( ! extrachill_shop_stripe_init() ) {
@@ -266,6 +261,7 @@ function extrachill_shop_get_account_status( $account_id ) {
 			'charges_enabled'      => $account->charges_enabled,
 			'payouts_enabled'      => $account->payouts_enabled,
 			'details_submitted'    => $account->details_submitted,
+			'fee_payer'            => extrachill_shop_stripe_fee_payer( $account ),
 		);
 
 	} catch ( \Stripe\Exception\ApiErrorException $e ) {
