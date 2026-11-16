@@ -22,11 +22,3 @@ the source and destination files have identical SHA-256 hashes. An ID collision
 or matching title is never sufficient. Missing/unreadable source files return an
 error rather than writing a foreign ID. This implementation requires local,
 readable source media files; offloaded media must expose a readable local file.
-
-The owned-content backfill compares mapped image identity. Its dry run neither
-copies attachments nor adds tracking metadata. Run its apply mode on the artist
-site to repair stale pages:
-
-```sh
-wp --url=<artist-site> eval 'print_r( ec_artist_backfill_link_page_owned_content( true ) );'
-```
