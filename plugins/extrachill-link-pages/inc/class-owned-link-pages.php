@@ -164,19 +164,6 @@ abstract class Owned_Link_Pages {
 	}
 
 	/**
-	 * Whether a page with no stored snapshot may project from a live source read.
-	 *
-	 * Transitional: a kind adopting the engine over pages that predate their
-	 * snapshots enables this so those pages keep rendering until a backfill
-	 * writes the snapshots. Only an absent snapshot falls back; a stale or
-	 * corrupt one still fails closed. Remove the override (and this hook) once
-	 * every adopting kind's backfill has run.
-	 */
-	protected static function live_snapshot_fallback(): bool {
-		return false;
-	}
-
-	/**
 	 * Serialize a mutation against owner authority changes. Kinds without an
 	 * authority lifecycle run the callback directly.
 	 *
@@ -675,10 +662,6 @@ abstract class Owned_Link_Pages {
 		}
 		$link_page_id = (int) $context['link_page_id'];
 		$snapshot     = self::read_snapshot( $link_page_id, (string) $context['owner_reference'] );
-		if ( is_wp_error( $snapshot ) && static::live_snapshot_fallback() && ! metadata_exists( 'post', $link_page_id, static::SNAPSHOT_META_KEY ) ) {
-			// Transitional, read-only: see live_snapshot_fallback().
-			$snapshot = self::build_snapshot( (int) $context['owner']['object_id'], (string) $context['owner_reference'] );
-		}
 		if ( is_wp_error( $snapshot ) ) {
 			return $snapshot;
 		}

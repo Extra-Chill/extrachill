@@ -525,13 +525,12 @@ final class ContentOwnershipTest extends TestCase {
 	}
 
 	/**
-	 * Definition that reads its source live and opts into the transitional
-	 * fallback and owner visibility hooks.
+	 * Definition that reads its source live and opts into the owner
+	 * visibility hook.
 	 *
-	 * @param bool $fallback Whether the definition allows the live fallback.
-	 * @param bool $visible  Whether the snapshot reports a public owner.
+	 * @param bool $visible Whether the snapshot reports a public owner.
 	 */
-	private function liveDefinition( bool $fallback, bool $visible ): Owned_Link_Pages {
+	private function liveDefinition( bool $visible ): Owned_Link_Pages {
 		static $definition = null;
 		if ( null === $definition ) {
 			$definition = new class() extends Owned_Link_Pages {
@@ -540,13 +539,6 @@ final class ContentOwnershipTest extends TestCase {
 				public const SNAPSHOT_META_KEY = '_ec_test_live_profile_snapshot';
 				public const ORPHAN_META_KEY   = '_ec_test_live_profile_orphan';
 				protected const SCHEMA_TYPE    = 'Person';
-
-				/**
-				 * Whether the live fallback is enabled.
-				 *
-				 * @var bool
-				 */
-				public static $fallback = false;
 
 				/**
 				 * Whether the owner is public.
@@ -596,10 +588,6 @@ final class ContentOwnershipTest extends TestCase {
 					return 'https://manage.example/profile/' . $owner_id;
 				}
 
-				protected static function live_snapshot_fallback(): bool {
-					return self::$fallback;
-				}
-
 				protected static function snapshot_is_public( array $snapshot ): bool {
 					unset( $snapshot );
 					return self::$visible;
@@ -616,54 +604,48 @@ final class ContentOwnershipTest extends TestCase {
 				}
 			};
 		}
-		$definition::$fallback    = $fallback;
 		$definition::$visible     = $visible;
 		$definition::$description = 'Live description.';
 		$definition::$entity_url  = '';
 		return $definition;
 	}
 
-	public function test_missing_snapshot_fails_closed_without_the_live_fallback(): void {
-		$this->assertSame( 'profile_link_page_snapshot_invalid', $this->errorCode( $this->ownedProjection( $this->liveDefinition( false, true ) ) ) );
+	/**
+	 * Store the snapshot the definition builds from its live source read.
+	 *
+	 * @param Owned_Link_Pages $definition Owned-page definition.
+	 */
+	private function storeLiveSnapshot( Owned_Link_Pages $definition ): Owned_Link_Pages {
+		$snapshot = $this->ownedEngine( $definition, 'build_snapshot', array( 20, 'post:4:profile:20' ) );
+		$this->assertIsArray( $snapshot );
+		update_post_meta( 40, $definition::SNAPSHOT_META_KEY, $snapshot );
+		return $definition;
 	}
 
-	public function test_missing_snapshot_renders_from_a_read_only_live_source_read_when_allowed(): void {
-		$definition = $this->liveDefinition( true, true );
-		$projection = $this->ownedProjection( $definition );
+	public function test_missing_snapshot_fails_closed(): void {
+		$definition = $this->liveDefinition( true );
 
-		$this->assertIsArray( $projection );
-		$this->assertSame( 'Live Owner', $projection['display_title'] );
-		$this->assertSame( 'Live description.', $projection['bio'] );
-		// The fallback never writes: the backfill owns snapshot creation.
+		$this->assertSame( 'profile_link_page_snapshot_invalid', $this->errorCode( $this->ownedProjection( $definition ) ) );
+		// Projection never writes: snapshots are created by provisioning and refreshes.
 		$this->assertFalse( metadata_exists( 'post', 40, $definition::SNAPSHOT_META_KEY ) );
-
-		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'bio' => 'Page bio.' ) ) );
-		$this->assertSame( 'Page bio.', $this->ownedProjection( $definition )['bio'] );
 	}
 
-	public function test_live_fallback_never_masks_a_corrupt_snapshot(): void {
-		$definition = $this->liveDefinition( true, true );
+	public function test_corrupt_snapshot_fails_closed(): void {
+		$definition = $this->liveDefinition( true );
 		update_post_meta( 40, $definition::SNAPSHOT_META_KEY, array( 'version' => 1 ) );
 
 		$this->assertSame( 'profile_link_page_snapshot_invalid', $this->errorCode( $this->ownedProjection( $definition ) ) );
 	}
 
-	public function test_live_fallback_reports_a_missing_owner(): void {
-		$definition = $this->liveDefinition( true, true );
-		unset( $GLOBALS['ec_test']['blogs'][4]['posts'][20] );
-
-		$this->assertSame( 'profile_link_page_owner_not_found', $this->errorCode( $this->ownedProjection( $definition ) ) );
-	}
-
 	public function test_snapshot_reporting_a_non_public_owner_is_unavailable(): void {
-		$result = $this->ownedProjection( $this->liveDefinition( true, false ) );
+		$result = $this->ownedProjection( $this->storeLiveSnapshot( $this->liveDefinition( false ) ) );
 
 		$this->assertSame( 'link_page_public_owner_unavailable', $this->errorCode( $result ) );
 		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
 	public function test_schema_entity_defaults_to_the_link_page_and_may_name_the_owner_page(): void {
-		$definition = $this->liveDefinition( true, true );
+		$definition = $this->storeLiveSnapshot( $this->liveDefinition( true ) );
 		$canonical  = ec_get_link_page_public_url( 40 );
 		$graph      = $this->ownedProjection( $definition )['seo']['schema'];
 
@@ -680,8 +662,9 @@ final class ContentOwnershipTest extends TestCase {
 	}
 
 	public function test_long_source_description_fits_the_stored_schema_limit(): void {
-		$definition               = $this->liveDefinition( true, true );
+		$definition               = $this->liveDefinition( true );
 		$definition::$description = str_repeat( 'Dénouement ', 400 );
+		$this->storeLiveSnapshot( $definition );
 		$projection               = $this->ownedProjection( $definition );
 		$description              = $projection['seo']['schema'][0]['description'];
 
