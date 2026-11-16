@@ -3,7 +3,7 @@ const path = require( 'node:path' );
 const test = require( 'node:test' );
 const createLoader = require( './helpers/load-typescript' );
 
-function harness( request ) {
+function harness( request, config = {} ) {
 	const states = [];
 	let cursor = 0;
 	const element = {
@@ -22,9 +22,13 @@ function harness( request ) {
 		URL,
 		React: { Fragment: 'fragment' },
 		document: { readyState: 'loading', addEventListener() {} },
-	}, { '@wordpress/element': element, '@wordpress/api-fetch': { default: request } } );
+	}, {
+		'@wordpress/element': element,
+		'@wordpress/api-fetch': { __esModule: true, default: request },
+		'@wordpress/i18n': { __: ( text ) => text, sprintf: ( format, ...args ) => args.reduce( ( out, arg ) => out.replace( '%s', arg ), format ) },
+	} );
 	const { QRCodeGenerator } = load( path.join( __dirname, '../src/blocks/qr-code-generator/view.tsx' ) );
-	return () => { cursor = 0; return QRCodeGenerator(); };
+	return () => { cursor = 0; return QRCodeGenerator( { config } ); };
 }
 function find( tree, predicate ) {
 	if ( ! tree || typeof tree !== 'object' ) return null;
@@ -36,6 +40,8 @@ function find( tree, predicate ) {
 	return null;
 }
 const type = ( tree, name ) => find( tree, ( node ) => node.type === name );
+const submitButton = ( tree ) => find( tree, ( node ) => node.type === 'button' && node.props.type === 'submit' );
+const download = ( tree ) => find( tree, ( node ) => node.type === 'a' && node.props.download );
 const submit = ( tree ) => type( tree, 'form' ).props.onSubmit( { preventDefault() {} } );
 
 test( 'public form generates a preview and downloadable PNG via existing route', async () => {
@@ -51,10 +57,10 @@ test( 'public form generates a preview and downloadable PNG via existing route',
 	assert.equal( called.data.url, 'https://example.com' );
 	tree = render();
 	assert.equal( type( tree, 'img' ).props.src, image );
-	assert.equal( type( tree, 'a' ).props.href, image );
-	assert.equal( type( tree, 'a' ).props.download, 'qr-code.png' );
+	assert.equal( download( tree ).props.href, image );
+	assert.equal( download( tree ).props.download, 'qr-code.png' );
 	type( tree, 'input' ).props.onChange( { target: { value: 'https://other.example' } } );
-	assert.equal( type( render(), 'a' ), null, 'editing clears stale download' );
+	assert.equal( download( render() ), null, 'editing clears stale download' );
 } );
 
 test( 'invalid schemes never request generation', async () => {
@@ -75,12 +81,32 @@ test( 'pending requests disable Generate, block duplicate submits, and show 429 
 	const render = harness( () => { ++calls; return new Promise( ( resolve, fail ) => { reject = fail; } ); } );
 	type( render(), 'input' ).props.onChange( { target: { value: 'https://example.com' } } );
 	const pending = submit( render() );
-	assert.equal( type( render(), 'button' ).props.disabled, true );
+	assert.equal( submitButton( render() ).props.disabled, true );
 	await submit( render() );
 	assert.equal( calls, 1 );
 	reject( { message: 'You can generate 30 QR codes per hour. Please try again later.', data: { status: 429 } } );
 	await pending;
 	assert.match( find( render(), ( node ) => node.props.role === 'alert' ).children[ 0 ], /30 QR codes/ );
-	assert.equal( type( render(), 'button' ).props.disabled, false );
-	assert.equal( type( render(), 'a' ), null );
+	assert.equal( submitButton( render() ).props.disabled, false );
+	assert.equal( download( render() ), null );
+} );
+
+test( 'music presets label the download without restricting the URL', async () => {
+	const image = 'data:image/png;base64,cG5n';
+	const render = harness( async () => ( { image_url: image } ) );
+	find( render(), ( node ) => node.props[ 'data-preset' ] === 'bandcamp' ).props.onClick();
+	assert.match( type( render(), 'input' ).props.placeholder, /bandcamp/ );
+	type( render(), 'input' ).props.onChange( { target: { value: 'https://example.com/anything' } } );
+	await submit( render() );
+	assert.equal( download( render() ).props.download, 'bandcamp-qr-code.png' );
+} );
+
+test( 'after generating, the CTA leads to the extrachill.link join flow', async () => {
+	const image = 'data:image/png;base64,cG5n';
+	const render = harness( async () => ( { image_url: image } ), { joinUrl: 'https://extrachill.link/join' } );
+	assert.equal( find( render(), ( node ) => node.props[ 'data-qr-join' ] ), null );
+	type( render(), 'input' ).props.onChange( { target: { value: 'https://example.com' } } );
+	await submit( render() );
+	const cta = find( render(), ( node ) => node.props[ 'data-qr-join' ] );
+	assert.equal( type( cta, 'a' ).props.href, 'https://extrachill.link/join' );
 } );

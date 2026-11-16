@@ -6,7 +6,7 @@
  *
  * Block ads on:
  * - the homepage
- * - all pages
+ * - all pages, unless a feature opts one in via `extrachill_page_allows_ads`
  * - search results
  *
  * Allow ads everywhere else (including all archives).
@@ -33,7 +33,15 @@ function extrachill_blog_should_block_ads( $should_block_ads, $context ) {
 	}
 
 	if ( ! empty( $context['is_page'] ) ) {
-		return true;
+		$post_id = isset( $context['post_id'] ) ? (int) $context['post_id'] : 0;
+		/**
+		 * Let a feature opt a specific main-site page back into ads.
+		 *
+		 * @param bool                 $allows  Whether this page may show ads. Default false.
+		 * @param int                  $post_id Queried page ID, or 0.
+		 * @param array<string, mixed> $context Ad request context.
+		 */
+		return ! ( $post_id > 0 && (bool) apply_filters( 'extrachill_page_allows_ads', false, $post_id, $context ) );
 	}
 
 	if ( ! empty( $context['is_search'] ) ) {

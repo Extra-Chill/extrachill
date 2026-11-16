@@ -65,4 +65,11 @@ foreach ( $GLOBALS['qr_transients'] as &$entry ) {
 }
 unset( $entry );
 check( is_array( $ability->execute( array( 'url' => 'https://example.com', 'size' => 100 ) ) ), 'expired window resets' );
+// Operator automation stays unthrottled once this request is a WP-CLI run.
+$_SERVER['REMOTE_ADDR'] = '198.51.100.1';
+define( 'WP_CLI', true );
+for ( $i = 0; $i < 35; ++$i ) {
+	$result = $ability->execute( array( 'url' => 'https://example.com', 'size' => 100 ) );
+}
+check( is_array( $result ), 'WP-CLI is not rate limited' );
 echo "PASS: public QR access smoke complete\n";

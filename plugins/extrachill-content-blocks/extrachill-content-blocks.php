@@ -125,6 +125,7 @@ function extrachill_content_blocks_load_business_logic() {
 		'/rapper-name-generator/index.php',
 		'/image-voting/index.php',
 		'/photo-contest/index.php',
+		'/qr-code-generator/index.php',
 	);
 
 	foreach ( $logic_files as $file ) {
