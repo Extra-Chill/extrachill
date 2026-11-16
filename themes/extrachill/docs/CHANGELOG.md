@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.20.1] - 2026-11-16
+
+### Fixed
+- apply sort on search results and keep scope in the filter bar
+
 ## [2.20.0] - 2026-11-15
 
 ### Added
