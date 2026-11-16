@@ -124,4 +124,4 @@ Manage Lifetime Extra Chill Memberships for users. Grant or revoke membership st
 - Consumed by plugins checking `get_user_meta( $user_id, 'extrachill_lifetime_membership', true )`
 
 **Related Endpoints**:
-- [User Profile](users.md) - Get user profile with membership status
+- [User Profile](../users/users.md) - Get user profile with membership status

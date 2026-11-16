@@ -10,7 +10,7 @@ Start with the [architecture overview](architecture.md) for cross-component rela
 - Each component's `docs/CHANGELOG.md` is release-owned, configured by its Homeboy `changelog_target`. Leave changelogs and version strings to the release process.
 - Root `docs/` holds cross-component architecture and site-level infrastructure documentation, including [nginx and Cloudflare configuration](nginx/README.md).
 
-Do not move developer docs between components just to make the layout uniform. When adding a component docs directory, add it to the index below. Check coverage with `node tools/check-docs-index.mjs` (also run by the Site infrastructure CI job).
+Do not move developer docs between components just to make the layout uniform. When adding a component docs directory, add it to the index below. Check coverage with `node tools/check-docs-index.mjs` and relative links with `node tools/check-docs-links.mjs` (both also run by the Site infrastructure CI job). The link check scans git-tracked Markdown, excluding `CHANGELOG.md` and `node_modules`, and ignores fenced code, external URLs, anchors and site-absolute paths. Relative destinations must exist; URL fragments are not validated.
 
 ## How help reaches docs.extrachill.com
 

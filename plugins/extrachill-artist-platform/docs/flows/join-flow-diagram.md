@@ -89,6 +89,6 @@ IF link page creation fails
 
 ## Related Documentation
 
-- [Artist Platform CLAUDE.md](../CLAUDE.md) - Complete architecture
-- [Join Flow System](../CLAUDE.md#join-flow-system) - Technical details
+- [Artist Platform overview](../overview.md) - Complete architecture
+- [Artist Access Requirements](../user/artist-access-requirements.md) - Technical details
 - [Artist Creator Block](../artist-profiles/artist-profile-management.md) - Profile creation workflow

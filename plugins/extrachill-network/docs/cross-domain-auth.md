@@ -426,8 +426,8 @@ Cookie domain configuration lives in WordPress core's multisite bootstrap (not a
 
 ## Cross-References
 
-- [extrachill-network CLAUDE.md - Blog ID Management](../CLAUDE.md#blog-id-management)
-- [extrachill-users CLAUDE.md](../extrachill-users/CLAUDE.md) - Authentication system
+- [Blog ID Helpers](blog-id-helpers.md)
+- [extrachill-users authentication](../../extrachill-users/docs/authentication.md) - Authentication system
 - `Extra-Chill/.github` repo, `sunrise.php` - Domain mapping implementation (canonical source; deployed to `wp-content/sunrise.php`, not part of this repo's tree)
 - `extrachill-api/inc/auth/extrachill-link-token-handoff.php` - `extrachill.link` bearer-token handoff implementation
 - [WordPress Multisite Handbook](https://developer.wordpress.org/plugins/multisite/)

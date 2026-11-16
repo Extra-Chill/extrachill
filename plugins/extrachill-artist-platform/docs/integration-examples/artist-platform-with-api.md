@@ -446,7 +446,7 @@ async function exportSubscribers(artistId) {
 
 ## Related Endpoints
 
-See [extrachill-api plugin documentation](../../extrachill-api/CLAUDE.md) for:
+See [extrachill-api plugin documentation](../../../extrachill-api/README.md) for:
 - All available REST endpoints
 - Authentication methods
 - Request/response formats
@@ -454,6 +454,6 @@ See [extrachill-api plugin documentation](../../extrachill-api/CLAUDE.md) for:
 
 ## Cross-Reference
 
-- [Artist Platform CLAUDE.md](../CLAUDE.md) - Full plugin architecture
-- [Link Page System](../CLAUDE.md#link-page-system) - Link page implementation
-- [Analytics System](../CLAUDE.md#analytics-system) - Analytics tracking
+- [Artist Platform overview](../overview.md) - Full plugin architecture
+- [Link Page System](../link-pages/link-page-system.md) - Link page implementation
+- [Analytics System](../analytics/analytics-system.md) - Analytics tracking

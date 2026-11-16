@@ -70,3 +70,7 @@ jobs:
         run: node tools/site-map.mjs --check
       - name: Documentation index covers every component
         run: node tools/check-docs-index.mjs
+      - name: Documentation relative links resolve
+        run: node tools/check-docs-links.mjs
+      - name: Documentation link checker tests
+        run: node --test tools/tests/check-docs-links.test.mjs

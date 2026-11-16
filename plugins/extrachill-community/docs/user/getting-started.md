@@ -29,4 +29,3 @@ Keep posts respectful and on topic. Share only pictures and music you have permi
 - [Upvote a post](upvoting-system.md)
 - [Understand ranks and points](understanding-ranks.md)
 - [Read and manage notifications](notifications-system.md)
-- [Fix common problems](troubleshooting-and-faq.md)

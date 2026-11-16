@@ -135,4 +135,4 @@ plugins even on installs that ship without DM.
 
 ## VPS deployment notes
 
-Reference nginx config for new VPS deployments lives in [`docs/nginx/`](docs/nginx/README.md) — bot/credential-scanner blocking, `/wp-json/` rate limiting, and `/wp-login.php` brute-force rate limiting. Codified after the 2026-05-10 DOS event so a server rebuild can restore the abuse-mitigation layer without re-mining logs.
+Reference nginx config for new VPS deployments lives in [`docs/nginx/`](../../docs/nginx/README.md) — bot/credential-scanner blocking, `/wp-json/` rate limiting, and `/wp-login.php` brute-force rate limiting. Codified after the 2026-05-10 DOS event so a server rebuild can restore the abuse-mitigation layer without re-mining logs.
