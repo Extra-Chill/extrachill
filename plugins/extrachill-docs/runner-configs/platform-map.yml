@@ -148,3 +148,15 @@ plugins:
     audience: "Extra Chill team contributors and editors drafting, reviewing, and publishing editorial work"
     docs_subpath: "docs/user"
     post_status: "private"
+
+  plugins/extrachill-search:
+    platform_name: "Search"
+    parent_slug: "search"
+    audience: "anyone searching Extra Chill articles, forums, events, artists, products and help across every Extra Chill site"
+    docs_subpath: "docs/user"
+
+  plugins/extrachill-content-blocks:
+    platform_name: "Contests and Games"
+    parent_slug: "contests-and-games"
+    audience: "readers entering photo contests, voting, playing trivia and using the band and rapper name generators in Extra Chill articles"
+    docs_subpath: "docs/user"
