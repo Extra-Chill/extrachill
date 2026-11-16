@@ -36,6 +36,8 @@ Tickets are sold by the show's venue or promoter, and they handle refunds.
 - Once a pass on your order is checked in, the order can't be refunded through Extra Chill.
 - If a show is cancelled, the seller refunds every ticket holder.
 
+If you dispute a ticket payment with your bank, your passes stop working while the bank looks into it. If the bank decides for the seller, your passes work again and we email them to you. The codes don't change, so passes you already saved work too. If the bank decides for you, your money comes back and the passes stay cancelled.
+
 Refunds go back to the way you paid. To ask for one, contact the venue or promoter. See the [Shipping & Returns Policy](https://shop.extrachill.com/shipping-and-returns/) for the full ticket rules.
 
 ## Sold Out or No Button?

@@ -27,7 +27,8 @@ use a zero application fee.
   `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID`. Matching Events target
   grants must allow service `extrachill.events.tickets`, scope
   `extrachill/events:tickets`, and the exact POST routes for issue-ticket-passes,
-  get-ticket-order-status, and revoke-ticket-passes. These are separate from
+  get-ticket-order-status, revoke-ticket-passes, restore-ticket-passes,
+  record-checkout-ticket-sales, and notify-commerce-seller. These are separate from
   priority-boost keys. Without Events and its matching grants, issuance fails
   and webhook delivery must be retried.
 - Pilot seller: Lo-Fi Brewing. Ensure its canonical venue binding points to a
@@ -55,6 +56,35 @@ Refund webhooks also revoke passes (including partial refunds, conservatively).
 A refund already initiated externally after check-in cannot be undone: log the
 Events `ticket_already_redeemed` response and acknowledge the webhook. Payment
 webhooks that arrive before the completion/index write return a retryable error.
+
+## Disputes
+
+`charge.dispute.created` revokes the order's passes in Events with reason
+`dispute` (Events stores it per pass as `revoke_reason`, and emails the seller),
+marks the order `disputed`, and blocks refunds: Stripe refuses refunds on a
+disputed charge. A buyer who already checked in keeps the check-in. A replay, or
+a `created` for a dispute that has already closed, is a no-op.
+
+`charge.dispute.closed` records `dispute_outcome` (`won` or `lost`) on the order,
+appends a `{ at, note }` entry to the order's `notes`, and emails the seller
+through `notify-commerce-seller`:
+
+- **Won** (`won`, or `warning_closed` for an inquiry): Shop calls
+  `extrachill/restore-ticket-passes` with reason `dispute` and the order's
+  `buyer_email`. Events reactivates only the passes that the dispute revoked,
+  keeping their codes so the buyer's existing passes scan again, and emails each
+  restored pass to the buyer. Passes revoked for a refund or removed by a host
+  stay revoked. Capacity isn't re-checked. The order goes back to `issued`, so
+  seller refunds and the show-wide refund work again.
+- **Lost**: the passes stay revoked and the order stays `disputed`, so it still
+  can't be refunded. The returned amount is recorded with
+  `record-checkout-ticket-sales` like a refund, keyed by the dispute ID, with
+  `fees_minor` 0 (the platform fee isn't returned on a lost dispute) and all
+  tickets reversed when the full amount went back.
+
+A failed Events call returns an error so Stripe retries before anything is
+recorded. Replays are no-ops, and the restore itself is idempotent, so the buyer
+is emailed once. Only orders still `disputed` are restored or recorded.
 
 Tests: `phpunit -c plugins/extrachill-shop/phpunit.xml.dist` from workspace root.
 Stripe and the sibling Events contracts are mocked; live Connect configuration

@@ -39,7 +39,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '8';
+	const SCHEMA_VERSION = '9';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -131,6 +131,7 @@ final class RsvpPassesTable {
 			status varchar(16) NOT NULL DEFAULT 'active',
 			issued_at datetime NOT NULL,
 			revoked_at datetime NULL,
+			revoke_reason varchar(32) NULL DEFAULT NULL,
 			redeemed_at datetime NULL,
 			redeemed_by_user_id bigint(20) unsigned NULL,
 			issued_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
@@ -154,6 +155,11 @@ final class RsvpPassesTable {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// Schema 9 (extrachill#1510) adds revoke_reason: why a paid order's
+		// passes were revoked (`dispute`, `seller_refund`, ...), so a won
+		// dispute restores only the passes the dispute cancelled. dbDelta
+		// adds the column itself.
+		//
 		// Schema 8 (extrachill#1521): the owner's list (#1130) moves into
 		// this table as owner passes (event_id 0 + owner_type/owner_term_id,
 		// plus email). Their once-per-show check-ins get a small table whose
@@ -796,8 +802,16 @@ final class RsvpPassesTable {
 		}
 	}
 
-	/** Lock all order rows so redemption and refund cannot both win. */
-	public static function revoke_ticket_order( string $order ) {
+	/**
+	 * Lock all order rows so redemption and refund cannot both win.
+	 *
+	 * @param string $order  Order reference.
+	 * @param string $reason Why the order is revoked (`dispute`, `seller_refund`,
+	 *                       `stripe_refund`), stored on each revoked pass so a
+	 *                       later restore can tell its own revocations apart.
+	 * @return array|\WP_Error `{ revoked }`.
+	 */
+	public static function revoke_ticket_order( string $order, string $reason = '' ) {
 		global $wpdb;
 		$table = self::table_name();
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
@@ -817,9 +831,10 @@ final class RsvpPassesTable {
 			}
 			$now   = current_time( 'mysql', true );
 			$count = $wpdb->update( $table, array(
-				'status'     => self::STATUS_REVOKED,
-				'revoked_at' => $now,
-				'updated_at' => $now,
+				'status'        => self::STATUS_REVOKED,
+				'revoked_at'    => $now,
+				'revoke_reason' => '' === $reason ? null : substr( $reason, 0, 32 ),
+				'updated_at'    => $now,
 			), array(
 				'order_reference' => $order,
 				'status'          => self::STATUS_ACTIVE,
@@ -828,6 +843,74 @@ final class RsvpPassesTable {
 				throw new \RuntimeException( 'Could not revoke ticket order.' );
 			}
 			return array( 'revoked' => (int) $count );
+		} catch ( \Throwable $error ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new \WP_Error( 'ticket_storage_failed', $error->getMessage(), array( 'status' => 500 ) );
+		}
+	}
+
+	/**
+	 * Reactivate the passes on an order that were revoked for one reason.
+	 *
+	 * Only passes revoked by `revoke_ticket_order()` with exactly this reason
+	 * come back; passes revoked for anything else (a refund, a host removing
+	 * a name, or a revocation from before reasons were recorded) stay
+	 * revoked. Each pass keeps its code, so the pass the buyer already holds
+	 * scans again. Capacity is not re-checked: the buyer paid for these spots.
+	 * Restoring again is a no-op.
+	 *
+	 * @param string $order  Order reference.
+	 * @param string $reason Revocation reason to undo.
+	 * @return array|\WP_Error `{ restored: int, rows: array[] }`, rows being the restored passes.
+	 */
+	public static function restore_ticket_order( string $order, string $reason ) {
+		global $wpdb;
+		if ( '' === $reason ) {
+			return new \WP_Error( 'invalid_restore_reason', 'A revocation reason is required.', array( 'status' => 400 ) );
+		}
+		$table = self::table_name();
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			return new \WP_Error( 'ticket_storage_failed', 'Could not start restore.', array( 'status' => 500 ) );
+		}
+		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name; row lock must hit the database.
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_reference = %s ORDER BY id FOR UPDATE", $order ), ARRAY_A );
+			if ( null === $rows ) {
+				throw new \RuntimeException( 'Could not read ticket order.' );
+			}
+			$restore = array_values(
+				array_filter(
+					(array) $rows,
+					static function ( $row ) use ( $reason ) {
+						return self::STATUS_REVOKED === ( $row['status'] ?? '' ) && (string) ( $row['revoke_reason'] ?? '' ) === $reason;
+					}
+				)
+			);
+			if ( ! $restore ) {
+				$wpdb->query( 'COMMIT' );
+				return array(
+					'restored' => 0,
+					'rows'     => array(),
+				);
+			}
+			$now   = current_time( 'mysql', true );
+			$count = $wpdb->update( $table, array(
+				'status'        => self::STATUS_ACTIVE,
+				'revoked_at'    => null,
+				'revoke_reason' => null,
+				'updated_at'    => $now,
+			), array(
+				'order_reference' => $order,
+				'status'          => self::STATUS_REVOKED,
+				'revoke_reason'   => $reason,
+			) );
+			if ( false === $count || false === $wpdb->query( 'COMMIT' ) ) {
+				throw new \RuntimeException( 'Could not restore ticket order.' );
+			}
+			return array(
+				'restored' => (int) $count,
+				'rows'     => $restore,
+			);
 		} catch ( \Throwable $error ) {
 			$wpdb->query( 'ROLLBACK' );
 			return new \WP_Error( 'ticket_storage_failed', $error->getMessage(), array( 'status' => 500 ) );

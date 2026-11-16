@@ -329,6 +329,26 @@ class TicketAbilities {
 			false
 		);
 
+		$this->register_ability(
+			'restore-ticket-passes',
+			'restore',
+			array(
+				'order_reference' => $reference,
+				// Only a won dispute reverses a revocation today.
+				'reason'          => array(
+					'type' => 'string',
+					'enum' => array( 'dispute' ),
+				),
+				'email'           => array(
+					'type'   => 'string',
+					'format' => 'email',
+				),
+			),
+			array( 'order_reference', 'reason' ),
+			array( 'restored' => array( 'type' => 'integer' ) ),
+			false
+		);
+
 		$text = array(
 			'type'      => 'string',
 			'maxLength' => 300,
@@ -606,7 +626,7 @@ class TicketAbilities {
 			return $allowed;
 		}
 
-		$result = RsvpPassesTable::revoke_ticket_order( $input['order_reference'] );
+		$result = RsvpPassesTable::revoke_ticket_order( $input['order_reference'], (string) $input['reason'] );
 		if ( 'dispute' === $input['reason'] ) {
 			$checked_in = is_wp_error( $result ) && 'ticket_already_redeemed' === $result->get_error_code();
 			if ( ! is_wp_error( $result ) || $checked_in ) {
@@ -619,6 +639,48 @@ class TicketAbilities {
 			}
 		}
 		return $result;
+	}
+
+	/**
+	 * Reactivate the passes a revocation for `reason` cancelled on an order.
+	 *
+	 * Used when Shop's dispute is settled in the seller's favor. Passes keep
+	 * their codes, so the buyer's existing pass works at the door again; if
+	 * an email is given, each restored pass is emailed again with the normal
+	 * pass email. Restoring again finds nothing and emails nothing.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function restore( array $input ) {
+		$allowed = $this->authorize();
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$result = RsvpPassesTable::restore_ticket_order( (string) $input['order_reference'], (string) $input['reason'] );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$email = (string) ( $input['email'] ?? '' );
+		foreach ( $result['rows'] as $row ) {
+			if ( '' === $email ) {
+				break;
+			}
+			$event_id = (int) $row['event_id'];
+			$show     = html_entity_decode( (string) get_the_title( $event_id ), ENT_QUOTES );
+			extrachill_events_send_guest_list_pass_email(
+				$event_id,
+				$email,
+				(string) $row['code'],
+				(string) ( $row['guest_name'] ?? '' ),
+				/* translators: %s: show title. */
+				sprintf( __( 'Your ticket for %s works again', 'extrachill-events' ), $show )
+			);
+		}
+
+		return array( 'restored' => (int) $result['restored'] );
 	}
 
 	/**
