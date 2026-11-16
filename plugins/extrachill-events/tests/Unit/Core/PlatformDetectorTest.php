@@ -92,6 +92,53 @@ class PlatformDetectorTest extends TestCase {
 		$this->assertContains( 'ticketmaster_widget', PlatformDetector::detect_platforms( $html ) );
 	}
 
+	public function test_detects_patronmanager_ticket_page(): void {
+		$html = self::fixture( 'ticket-page.html' );
+		$this->assertContains( 'patronmanager', PlatformDetector::detect_platforms( $html ) );
+		// The ticket page carries no absolute self-link; the URL comes from the page URL.
+		$this->assertSame( '', PlatformDetector::detect_patronmanager_ticket_url( $html ) );
+		$this->assertSame(
+			'https://theparlorroom.my.salesforce-sites.com/ticket/',
+			PlatformDetector::patronmanager_ticket_url_from_url( 'https://theparlorroom.my.salesforce-sites.com/ticket/#/' )
+		);
+	}
+
+	public function test_detects_patronmanager_from_venue_page_link(): void {
+		$html      = self::fixture( 'venue-page.html' );
+		$platforms = PlatformDetector::detect_platforms( $html );
+		$this->assertContains( 'patronmanager', $platforms );
+		$this->assertContains( 'squarespace', $platforms );
+		$this->assertSame(
+			'https://theparlorroom.my.salesforce-sites.com/ticket/',
+			PlatformDetector::detect_patronmanager_ticket_url( $html )
+		);
+	}
+
+	public function test_detects_patronmanager_from_iframe_embed_and_escaped_json(): void {
+		$iframe = '<iframe src="https://example.my.salesforce-sites.com/ticket/#/events"></iframe>';
+		$this->assertContains( 'patronmanager', PlatformDetector::detect_platforms( $iframe ) );
+
+		$json = '<script>var cfg = {"tickets":"https:\/\/Example.my.salesforce-sites.com\/ticket\/"};</script>';
+		$this->assertContains( 'patronmanager', PlatformDetector::detect_platforms( $json ) );
+		$this->assertSame( 'https://example.my.salesforce-sites.com/ticket/', PlatformDetector::detect_patronmanager_ticket_url( $json ) );
+	}
+
+	public function test_generic_salesforce_links_are_not_patronmanager(): void {
+		$html = '<a href="https://theparlorroom.my.salesforce-sites.com/donate/?dfId=a0nV5000007HRqzIAG&">Donate</a>'
+			. '<a href="https://acme.my.salesforce-sites.com/tickets-faq">FAQ</a>'
+			. '<a href="https://www.salesforce.com/ticket/">Salesforce</a>'
+			. '<a href="https://acme.my.salesforce.com/ticket/">Org login</a>';
+		$this->assertNotContains( 'patronmanager', PlatformDetector::detect_platforms( $html ) );
+		$this->assertSame( '', PlatformDetector::detect_patronmanager_ticket_url( $html ) );
+	}
+
+	public function test_patronmanager_ticket_url_declines_multiple_orgs(): void {
+		$html = '<a href="https://one.my.salesforce-sites.com/ticket/">A</a>'
+			. '<a href="https://two.my.salesforce-sites.com/ticket/">B</a>';
+		$this->assertContains( 'patronmanager', PlatformDetector::detect_platforms( $html ) );
+		$this->assertSame( '', PlatformDetector::detect_patronmanager_ticket_url( $html ) );
+	}
+
 	public function test_multiple_platforms_co_detect(): void {
 		$html      = '<script>Static.SQUARESPACE_CONTEXT={};</script>'
 			. '<script src="//cdn.opentable.com/w.js"></script>';
@@ -174,5 +221,9 @@ class PlatformDetectorTest extends TestCase {
 		$structured = PlatformDetector::detect_structured_data( $html );
 
 		$this->assertSame( 2, $structured['vision_image_candidates'] );
+	}
+
+	private static function fixture( string $name ): string {
+		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/Fixtures/patronmanager/' . $name );
 	}
 }

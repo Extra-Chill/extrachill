@@ -31,6 +31,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PlatformDetector {
 
 	/**
+	 * Apex controller named in the PatronManager public ticket app's
+	 * Visualforce remoting config. Present only on the ticket page itself.
+	 */
+	public const PATRONMANAGER_CONTROLLER = 'PatronTicket.Controller_PublicTicketApp';
+
+	/**
+	 * PatronManager (Salesforce PatronTicket) ticket-site URL. Mirrors the
+	 * data-machine-events PatronManagerExtractor pattern: a
+	 * `<org>.my.salesforce-sites.com` (or legacy `<org>.secure.force.com`)
+	 * host followed by a `/ticket` path segment. Also matches JSON-escaped
+	 * slashes (`https:\/\/...`) found in inline scripts. Other Salesforce
+	 * Sites paths (e.g. `/donate`) and `/tickets…` lookalikes do not match.
+	 */
+	private const PATRONMANAGER_TICKET_SITE_PATTERN = '#https?:(?://|\\\\/\\\\/)([a-z0-9][a-z0-9\-]*\.(?:my\.salesforce-sites\.com|secure\.force\.com))(?:/|\\\\/)ticket(?![a-z0-9_\-])#i';
+
+	/**
 	 * Detect platforms from raw HTML.
 	 *
 	 * @param string $html Raw page HTML.
@@ -108,6 +124,14 @@ class PlatformDetector {
 			$detected[] = 'dice_fm';
 		}
 
+		// patronmanager: the PatronManager ticket page itself (remoting config
+		// names the PatronTicket controller) OR a link/embed pointing at a
+		// `*.my.salesforce-sites.com/ticket` ticket site.
+		if ( false !== strpos( $html, self::PATRONMANAGER_CONTROLLER )
+			|| preg_match( self::PATRONMANAGER_TICKET_SITE_PATTERN, $html ) ) {
+			$detected[] = 'patronmanager';
+		}
+
 		// ticketmaster_widget: embedded widgets only — actual TM-hosted venue
 		// pages are caught by the dedicated TM precheck in
 		// VenueQualificationAbilities and do NOT flow through this detector.
@@ -116,6 +140,45 @@ class PlatformDetector {
 		}
 
 		return array_values( array_unique( $detected ) );
+	}
+
+	/**
+	 * Find the PatronManager ticket-site URL a page links to or embeds.
+	 *
+	 * Returns the normalized `https://<org-host>/ticket/` URL when every
+	 * ticket-site reference on the page points at a single org. Declines
+	 * ('') when there are none or when links span several orgs, since we
+	 * cannot tell which ticket site belongs to this venue — same rule as
+	 * the PatronManagerExtractor.
+	 *
+	 * The ticket page itself usually carries no absolute self-link; callers
+	 * that know the page URL should fall back to it when the page contains
+	 * {@see self::PATRONMANAGER_CONTROLLER}.
+	 *
+	 * @param string $html Raw page HTML.
+	 * @return string Ticket-site URL, or ''.
+	 */
+	public static function detect_patronmanager_ticket_url( string $html ): string {
+		if ( '' === $html || ! preg_match_all( self::PATRONMANAGER_TICKET_SITE_PATTERN, $html, $matches ) ) {
+			return '';
+		}
+
+		$hosts = array_values( array_unique( array_map( 'strtolower', $matches[1] ) ) );
+		if ( 1 !== count( $hosts ) ) {
+			return '';
+		}
+
+		return 'https://' . $hosts[0] . '/ticket/';
+	}
+
+	/**
+	 * Whether a URL is itself a PatronManager ticket-site URL.
+	 *
+	 * @param string $url Absolute URL.
+	 * @return string Normalized `https://<org-host>/ticket/`, or ''.
+	 */
+	public static function patronmanager_ticket_url_from_url( string $url ): string {
+		return self::detect_patronmanager_ticket_url( $url );
 	}
 
 	/**

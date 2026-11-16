@@ -213,4 +213,35 @@ class QualifyFingerprinterTest extends TestCase {
 		);
 		$this->assertSame( QualifyVerdict::EVENT_PAGE_SHAPE_UNKNOWN, $shape );
 	}
+
+	// ---- PatronManager routing hint (issue #1412) ----
+
+	public function test_patronmanager_hint_points_venue_page_at_ticket_site(): void {
+		$html = (string) file_get_contents( dirname( __DIR__, 2 ) . '/Fixtures/patronmanager/venue-page.html' );
+		$hint = QualifyFingerprinter::build_patronmanager_hint( array( 'squarespace', 'patronmanager' ), $html, 'https://www.ironhorse.org/' );
+
+		$this->assertIsArray( $hint );
+		$this->assertSame( 'https://theparlorroom.my.salesforce-sites.com/ticket/', $hint['ticket_url'] );
+		$this->assertSame( 'patronmanager_venue', $hint['venue_filter_param'] );
+		$this->assertNull( $hint['venue_id'] );
+		$this->assertStringContainsString( 'venueId is needed', $hint['note'] );
+	}
+
+	public function test_patronmanager_hint_uses_ticket_page_url(): void {
+		$html = (string) file_get_contents( dirname( __DIR__, 2 ) . '/Fixtures/patronmanager/ticket-page.html' );
+		$hint = QualifyFingerprinter::build_patronmanager_hint( array( 'patronmanager' ), $html, 'https://theparlorroom.my.salesforce-sites.com/ticket/#/' );
+
+		$this->assertSame( 'https://theparlorroom.my.salesforce-sites.com/ticket/', $hint['ticket_url'] ?? null );
+	}
+
+	public function test_patronmanager_hint_null_without_platform(): void {
+		$this->assertNull( QualifyFingerprinter::build_patronmanager_hint( array( 'squarespace' ), '<a href="https://x.my.salesforce-sites.com/ticket/">t</a>', 'https://x.org/' ) );
+	}
+
+	public function test_patronmanager_maps_to_known_extractor(): void {
+		$this->assertTrue( QualifyFingerprinter::extractor_exists( 'PatronManagerExtractor' ) );
+		$attempts = QualifyFingerprinter::add_platform_existence_attempts( array( 'patronmanager' ), array() );
+		$this->assertSame( 'PatronManagerExtractor', $attempts[0]['name'] ?? null );
+		$this->assertTrue( $attempts[0]['exists'] );
+	}
 }
