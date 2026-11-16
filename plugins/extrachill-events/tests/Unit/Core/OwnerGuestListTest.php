@@ -453,7 +453,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'Lo-Fi Brewing', $added['owner_name'] );
 		$this->assertSame( 'Venue list', $added['label'] );
 		$this->assertMatchesRegularExpression( '/^[A-Z2-9]{5}(-[A-Z2-9]{5}){2}$/', $added['code'] );
-		$this->assertStringContainsString( '/owner-pass/?code=' . $added['code'], $added['pass_url'] );
+		$this->assertStringContainsString( '/owner-pass?code=' . $added['code'], $added['pass_url'] );
 		$this->assertTrue( $added['emailed'] );
 		$this->assertSame( array( 'sam@example.com' ), array_column( $GLOBALS['rsvp_pass_mail_test']['sent'], 'to' ) );
 		$this->assertStringContainsString( $added['code'], $GLOBALS['rsvp_pass_mail_test']['sent'][0]['context']['body_html'] );

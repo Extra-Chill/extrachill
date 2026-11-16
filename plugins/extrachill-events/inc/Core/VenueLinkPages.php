@@ -132,6 +132,6 @@ final class VenueLinkPages extends TeamTermLinkPages {
 		if ( function_exists( 'ec_events_get_venue_settings_url' ) ) {
 			return str_replace( '#tab-calendar', '#tab-link-page', ec_events_get_venue_settings_url( $term_id, 'calendar' ) );
 		}
-		return add_query_arg( 'venue_id', $term_id, get_home_url( self::owner_blog_id(), '/venue-settings/' ) ) . '#tab-link-page';
+		return add_query_arg( 'venue_id', $term_id, get_home_url( self::owner_blog_id(), '/venue-settings' ) ) . '#tab-link-page';
 	}
 }

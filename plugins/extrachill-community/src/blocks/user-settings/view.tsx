@@ -1267,7 +1267,7 @@ function ArtistPlatformTab( {
 					{ hasArtists && (
 						<ActionRow>
 							<a
-								href={ `${ artistSiteUrl }/manage-artist/` }
+								href={ `${ artistSiteUrl }/manage-artist` }
 								className="button-1 button-small"
 							>
 								Manage Artist
@@ -1277,7 +1277,7 @@ function ArtistPlatformTab( {
 					{ ! hasArtists && canCreateArtists && (
 						<ActionRow>
 							<a
-								href={ `${ artistSiteUrl }/create-artist/` }
+								href={ `${ artistSiteUrl }/create-artist` }
 								className="button-1 button-small"
 							>
 								Create Artist Profile

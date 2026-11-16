@@ -133,7 +133,7 @@ function ec_users_build_account_claim_url( WP_User $user ) {
 			'key'    => $key,
 			'login'  => rawurlencode( $user->user_login ),
 		),
-		trailingslashit( $base ) . 'reset-password/'
+		untrailingslashit( $base ) . '/reset-password'
 	);
 }
 

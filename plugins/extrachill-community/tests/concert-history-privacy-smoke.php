@@ -43,7 +43,7 @@ function ec_get_blog_id( $site ) {
 }
 
 function get_home_url() {
-	return 'https://events.example.com/my-shows/';
+	return 'https://events.example.com/my-shows';
 }
 
 function add_query_arg( $key, $value, $url ) {

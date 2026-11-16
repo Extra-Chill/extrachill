@@ -343,7 +343,7 @@ function ec_users_render_attendance_visibility_notice(): void {
 
 	$is_public = 'public' === extrachill_users_get_event_attendance_visibility( get_current_user_id() );
 
-	$settings_url = (string) ec_get_site_url( 'community' ) . '/settings/';
+	$settings_url = extrachill_users_settings_url();
 
 	$message = $is_public
 		? __( 'Your name appears in the public attendee list when you mark attendance.', 'extrachill-users' )
@@ -458,9 +458,9 @@ function ec_users_concert_import_url(): string {
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	if ( $events_blog_id > 0 && function_exists( 'get_home_url' ) ) {
-		$base = (string) get_home_url( $events_blog_id, '/my-shows/' );
+		$base = (string) get_home_url( $events_blog_id, '/my-shows' );
 	} else {
-		$base = home_url( '/my-shows/' );
+		$base = home_url( '/my-shows' );
 	}
 
 	$import_url = add_query_arg( 'tab', 'import', $base );

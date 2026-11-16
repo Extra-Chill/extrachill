@@ -19,5 +19,5 @@ function extrachill_artist_platform_docs_url( string $slug ): string {
 		$base = 'https://docs.extrachill.com';
 	}
 
-	return trailingslashit( $base ) . 'artist-platform/' . trim( sanitize_title( $slug ), '/' ) . '/';
+	return untrailingslashit( $base ) . '/artist-platform/' . trim( sanitize_title( $slug ), '/' );
 }

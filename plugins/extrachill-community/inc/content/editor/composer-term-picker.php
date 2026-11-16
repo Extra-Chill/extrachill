@@ -232,7 +232,7 @@ function extrachill_community_get_discussion_composer_login_url( $taxonomy, $slu
 
 	$community_url = ec_get_site_url( 'community' );
 
-	return add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), trailingslashit( $community_url ) . 'login/' );
+	return add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), untrailingslashit( $community_url ) . '/login' );
 }
 
 /**

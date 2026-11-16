@@ -49,7 +49,7 @@ domReady( () => {
 			initialCount={ { count, label: mount.dataset.countLabel || '' } }
 			labelDefault={ mount.dataset.labelDefault || '' }
 			labelActive={ mount.dataset.labelActive || '' }
-			loginUrl={ mount.dataset.loginUrl || '/login/' }
+			loginUrl={ mount.dataset.loginUrl || '/login' }
 			redirectTo={ mount.dataset.redirectTo || '' }
 			pendingIntent={ mount.dataset.pendingIntent === '1' }
 			intentToken={ mount.dataset.attendanceIntent || '' }

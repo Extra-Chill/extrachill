@@ -30,7 +30,7 @@ if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) 
 
 	if ( is_wp_error( $user ) ) {
 		extrachill_set_notice( __( 'This password reset link is invalid or has expired. Please request a new one.', 'extrachill-users' ), 'error' );
-		wp_safe_redirect( home_url( '/reset-password/' ) );
+		wp_safe_redirect( home_url( user_trailingslashit( '/reset-password' ) ) );
 		exit;
 	}
 
@@ -87,7 +87,7 @@ if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) 
 			<input type="submit" class="button-1 button-medium" value="<?php esc_attr_e( 'Send Reset Link', 'extrachill-users' ); ?>">
 		</form>
 
-		<p><a href="<?php echo esc_url( home_url( '/login/' ) ); ?>"><?php esc_html_e( '← Back to Login', 'extrachill-users' ); ?></a></p>
+		<p><a href="<?php echo esc_url( home_url( user_trailingslashit( '/login' ) ) ); ?>"><?php esc_html_e( '← Back to Login', 'extrachill-users' ); ?></a></p>
 	</div>
 	<?php
 }

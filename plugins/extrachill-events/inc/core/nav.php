@@ -24,7 +24,7 @@ function extrachill_events_secondary_header_items( $items ) {
 		return $items;
 	}
 	$items[] = array(
-		'url'      => home_url( '/submit/' ),
+		'url'      => home_url( '/submit' ),
 		'label'    => __( 'Submit Event', 'extrachill-events' ),
 		'priority' => 10,
 	);

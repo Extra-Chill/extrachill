@@ -81,7 +81,8 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 
 		$this->assertArrayNotHasKey( 'view_profile', $items );
 		$this->assertArrayNotHasKey( 'edit_profile', $items );
-		$this->assertSame( ec_get_site_url( 'community' ) . '/settings/', $items['settings']['url'] );
+		$this->assertSame( extrachill_users_settings_url(), $items['settings']['url'] );
+		$this->assertSame( untrailingslashit( ec_get_site_url( 'community' ) ) . '/settings', $items['settings']['url'] );
 		foreach ( $items as $item ) {
 			$this->assertStringNotContainsString( 'private.login@example.com', $item['url'] );
 		}
@@ -99,7 +100,7 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'settings', $items );
 		$this->assertArrayHasKey( 'logout', $items );
 		if ( isset( $items['create_artist'] ) ) {
-			$this->assertSame( ec_get_site_url( 'artist' ) . '/create-artist/', $items['create_artist']['url'] );
+			$this->assertSame( ec_get_site_url( 'artist' ) . '/create-artist', $items['create_artist']['url'] );
 		}
 		$this->assertArrayNotHasKey( 'manage_link_pages', $items );
 		$this->assertArrayNotHasKey( 'link_page', $items, 'Users without an artist get no Link Page item.' );

@@ -37,7 +37,7 @@ if ( empty( $user_artists ) ) {
 	if ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
 		echo '<div class="notice notice-info">';
 		echo '<p>' . esc_html__( 'Create an artist profile to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
-		echo '<a href="' . esc_url( site_url( '/create-artist/' ) ) . '" class="button-1">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>';
+		echo '<a href="' . esc_url( site_url( '/create-artist' ) ) . '" class="button-1">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>';
 		echo '</div>';
 	} else {
 		echo '<div class="notice notice-info">';
@@ -75,7 +75,7 @@ foreach ( $user_artists as $ua_id ) {
 if ( empty( $user_artists_data ) ) {
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
-	echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+	echo '<a href="' . esc_url( site_url( '/manage-link-page' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
 	echo '</div>';
 	return;
 }
@@ -106,7 +106,7 @@ $link_page_id = ec_get_link_page_for_artist( $artist_id );
 if ( ! $link_page_id || ! ec_artist_link_page_is_published( $link_page_id ) ) {
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
-	echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
+	echo '<a href="' . esc_url( site_url( '/manage-link-page' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';
 	echo '</div>';
 	return;
 }

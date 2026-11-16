@@ -54,7 +54,7 @@ final class PromoterWorkspaceRenderTest extends TestCase {
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		$result = json_decode( implode( "\n", $output ), true );
 
-		$this->assertSame( '/venue-settings/', $result['path'] );
+		$this->assertSame( '/venue-settings', $result['path'] );
 		$this->assertSame( 'promoter:30', $result['identity'] );
 		$this->assertSame( 'promoter-link-page', $result['fragment'] );
 		$router = file_get_contents( dirname( __DIR__ ) . '/inc/core/router-pages.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source contract.

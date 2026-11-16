@@ -73,7 +73,7 @@ function ec_artist_shows_submit_url() {
 	}
 
 	$base = $events_blog_id ? get_home_url( $events_blog_id ) : 'https://events.extrachill.com';
-	return trailingslashit( $base ) . 'submit/';
+	return untrailingslashit( $base ) . '/submit';
 }
 
 /**

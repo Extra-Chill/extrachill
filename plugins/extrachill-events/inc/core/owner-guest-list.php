@@ -170,7 +170,7 @@ function extrachill_events_owner_list_event_is_eligible( array $pass, int $event
  * @return string
  */
 function extrachill_events_owner_list_pass_url( string $code ): string {
-	return add_query_arg( 'code', rawurlencode( $code ), home_url( '/owner-pass/' ) );
+	return add_query_arg( 'code', rawurlencode( $code ), home_url( '/owner-pass' ) );
 }
 
 /**

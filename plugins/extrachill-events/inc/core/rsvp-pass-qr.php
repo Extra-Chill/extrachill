@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string
  */
 function extrachill_events_rsvp_verify_url( string $code ): string {
-	return add_query_arg( 'code', rawurlencode( $code ), home_url( '/rsvp-verify/' ) );
+	return add_query_arg( 'code', rawurlencode( $code ), home_url( '/rsvp-verify' ) );
 }
 
 /**

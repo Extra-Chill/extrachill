@@ -997,5 +997,5 @@ function ec_notifications_email_unsubscribe_footer_html( $user_id ) {
  * @return string
  */
 function ec_notifications_email_notifications_url() {
-	return trailingslashit( ec_get_site_url( 'community' ) ) . 'notifications/';
+	return untrailingslashit( ec_get_site_url( 'community' ) ) . '/notifications';
 }

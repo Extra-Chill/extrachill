@@ -37,7 +37,7 @@ function ec_events_my_shows_nav_item( $items ) {
 	}
 
 	$items[] = array(
-		'url'      => home_url( '/my-shows/' ),
+		'url'      => home_url( '/my-shows' ),
 		'label'    => __( 'My Shows', 'extrachill-events' ),
 		'priority' => 5,
 	);

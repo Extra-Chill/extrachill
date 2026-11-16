@@ -31,14 +31,14 @@ function ec_community_get_artist_platform_action() {
 
 		if ( ! empty( $user_artist_ids ) ) {
 			return array(
-				'url'   => $artist_site_url . '/manage-artist/',
+				'url'   => $artist_site_url . '/manage-artist',
 				'label' => __( 'Manage Artists', 'extra-chill-community' ),
 			);
 		}
 
 		if ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $user_id ) ) {
 			return array(
-				'url'   => $artist_site_url . '/create-artist/',
+				'url'   => $artist_site_url . '/create-artist',
 				'label' => __( 'Create Artist Profile', 'extra-chill-community' ),
 			);
 		}

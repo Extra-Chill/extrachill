@@ -120,9 +120,9 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Every show has a story. Keep yours.', $output );
 		$this->assertStringContainsString( 'id="how-it-works"', $output );
 		$this->assertStringNotContainsString( '/register/', $output );
-		$this->assertStringContainsString( '/events-calendar/getting-started-with-my-shows/', $output );
-		$this->assertStringContainsString( '/events-calendar/importing-concert-history/', $output );
-		$this->assertStringContainsString( '/events-calendar/concert-history-privacy/', $output );
+		$this->assertStringContainsString( '/events-calendar/getting-started-with-my-shows"', $output );
+		$this->assertStringContainsString( '/events-calendar/importing-concert-history"', $output );
+		$this->assertStringContainsString( '/events-calendar/concert-history-privacy"', $output );
 		$this->assertStringNotContainsString( 'class="ec-concert-stats"', $output );
 	}
 
@@ -134,7 +134,7 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		$canonical_registration = extrachill_users_get_registration_url();
 		$this->assertSame( network_home_url( '/login/', 'https' ) . '#tab-register', $canonical_registration );
 
-		$my_shows_url = trailingslashit( ec_get_site_url( 'events' ) ) . 'my-shows/';
+		$my_shows_url = untrailingslashit( ec_get_site_url( 'events' ) ) . '/my-shows';
 		$expected_url = ec_users_login_url_with_redirect( $canonical_registration, $my_shows_url );
 		$output       = $this->render_block();
 
@@ -151,7 +151,7 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		add_filter( 'ec_allowed_redirect_hosts', '__return_empty_array', 1 );
 		add_filter( 'allowed_redirect_hosts', '__return_empty_array', 1 );
 
-		$my_shows_url = $this->events_url . '/my-shows/';
+		$my_shows_url = untrailingslashit( $this->events_url ) . '/my-shows';
 		$signup_url   = ec_users_login_url_with_redirect( extrachill_users_get_registration_url(), $my_shows_url );
 		$output       = $this->render_block();
 

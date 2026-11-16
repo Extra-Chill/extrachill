@@ -46,7 +46,7 @@ extrachill_community_home_header();
 $logged_out = ob_get_clean();
 
 check( 'logged-out header leads with the community promise', false !== strpos( $logged_out, 'Music is better when it starts a conversation.' ) );
-check( 'logged-out header links to canonical registration tab', false !== strpos( $logged_out, '/login/#tab-register' ) );
+check( 'logged-out header links to canonical registration tab', false !== strpos( $logged_out, '/login#tab-register' ) );
 check( 'logged-out header links into live conversations', false !== strpos( $logged_out, '/recent' ) );
 check( 'logged-out header does not render member composer actions', false === strpos( $logged_out, 'Create Discussion' ) );
 

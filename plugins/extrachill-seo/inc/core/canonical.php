@@ -136,7 +136,7 @@ function ec_seo_get_login_canonical_url() {
 		return null;
 	}
 
-	return trailingslashit( $community_url ) . 'login/';
+	return untrailingslashit( $community_url ) . '/login';
 }
 
 /**

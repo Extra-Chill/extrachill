@@ -92,7 +92,7 @@ function ec_get_user_link_page_manage_url( $user_id = 0 ) {
 		}
 	}
 	$site = ec_get_site_url( 'artist' );
-	return ( $site ? untrailingslashit( $site ) : untrailingslashit( home_url() ) ) . '/manage-link-page/';
+	return ( $site ? untrailingslashit( $site ) : untrailingslashit( home_url() ) ) . '/manage-link-page';
 }
 
 /**

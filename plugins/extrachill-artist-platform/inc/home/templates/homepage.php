@@ -118,7 +118,7 @@ extrachill_breadcrumbs();
 						<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>
 						<?php ec_display_artist_cards_grid( 12, false, false ); ?>
 						<div class="browse-all-artists">
-							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+							<a href="<?php echo esc_url( home_url( '/artists' ) ); ?>" class="button-2 button-medium">
 								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
 							</a>
 						</div>
@@ -133,7 +133,7 @@ extrachill_breadcrumbs();
 						<h3><?php esc_html_e( 'Discover Artists', 'extrachill-artist-platform' ); ?></h3>
 						<?php ec_display_artist_cards_grid( 12, false, false ); ?>
 						<div class="browse-all-artists">
-							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+							<a href="<?php echo esc_url( home_url( '/artists' ) ); ?>" class="button-2 button-medium">
 								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
 							</a>
 						</div>
@@ -149,7 +149,7 @@ extrachill_breadcrumbs();
 						<h3><?php esc_html_e( 'Discover Other Artists', 'extrachill-artist-platform' ); ?></h3>
 						<?php ec_display_artist_cards_grid( 12, true, false ); ?>
 						<div class="browse-all-artists">
-							<a href="<?php echo esc_url( home_url( '/artists/' ) ); ?>" class="button-2 button-medium">
+							<a href="<?php echo esc_url( home_url( '/artists' ) ); ?>" class="button-2 button-medium">
 								<?php esc_html_e( 'Browse All Artists', 'extrachill-artist-platform' ); ?>
 							</a>
 						</div>

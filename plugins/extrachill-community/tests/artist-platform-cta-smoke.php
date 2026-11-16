@@ -102,7 +102,7 @@ $GLOBALS['_test_user_id']    = 42;
 $GLOBALS['_test_can_create'] = true;
 $action                      = ec_community_get_artist_platform_action();
 check( 'approved artists without a profile see the create action', 'Create Artist Profile' === $action['label'] );
-check( 'create action uses the canonical create path', 'https://artist.extrachill.com/create-artist/' === $action['url'] );
+check( 'create action uses the canonical create path', 'https://artist.extrachill.com/create-artist' === $action['url'] );
 
 reset_artist_cta_state();
 $GLOBALS['_test_logged_in']  = true;
@@ -111,7 +111,7 @@ $GLOBALS['_test_artist_ids'] = array( 99 );
 $GLOBALS['_test_can_create'] = true;
 $action                      = ec_community_get_artist_platform_action();
 check( 'artist managers see the manage action', 'Manage Artists' === $action['label'] );
-check( 'manage action uses the canonical manage path', 'https://artist.extrachill.com/manage-artist/' === $action['url'] );
+check( 'manage action uses the canonical manage path', 'https://artist.extrachill.com/manage-artist' === $action['url'] );
 check( 'artist membership takes precedence without a redundant capability check', ! in_array( array( 'can_create', 43 ), $GLOBALS['_test_artist_calls'], true ) );
 
 reset_artist_cta_state();
@@ -131,7 +131,7 @@ $GLOBALS['_test_can_create']                 = true;
 $GLOBALS['_test_artist_site_url']            = 'https://artist.extrachill.com/" onclick="alert(1)';
 $GLOBALS['_test_translations']['Create Artist Profile'] = '<script>Create</script>';
 $rendered                                    = render_artist_cta();
-check( 'render escapes the action URL', false !== strpos( $rendered, '&quot; onclick=&quot;alert(1)/create-artist/' ) );
+check( 'render escapes the action URL', false !== strpos( $rendered, '&quot; onclick=&quot;alert(1)/create-artist' ) );
 check( 'render does not emit an executable injected attribute', false === strpos( $rendered, 'href="https://artist.extrachill.com/" onclick=' ) );
 check( 'render escapes the translated action label', false !== strpos( $rendered, '&lt;script&gt;Create&lt;/script&gt;' ) );
 check( 'render includes the established CTA classes', false !== strpos( $rendered, 'class="button-2 button-medium"' ) );

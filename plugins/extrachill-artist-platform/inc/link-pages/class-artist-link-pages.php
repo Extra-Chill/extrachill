@@ -201,7 +201,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	 * @param int $owner_id Artist profile ID.
 	 */
 	public static function management_url( int $owner_id ): string {
-		return ec_get_site_url( 'artist' ) . '/manage-link-page/?artist_id=' . $owner_id;
+		return ec_get_site_url( 'artist' ) . '/manage-link-page?artist_id=' . $owner_id;
 	}
 
 	/**

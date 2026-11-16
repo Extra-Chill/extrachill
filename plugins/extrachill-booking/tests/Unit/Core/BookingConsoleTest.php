@@ -81,7 +81,7 @@ require_once dirname( __DIR__, 3 ) . '/inc/core/booking-console.php';
 
 final class BookingConsoleTest extends TestCase {
 	public function test_booking_route_is_deterministic_and_calendar_first(): void {
-		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings/' );
+		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings' );
 		$this->assertSame(
 			$base_url . '?venue_id=44&booking_id=91#tab-calendar',
 			ec_events_get_booking_console_url( 44, 91 )
@@ -89,7 +89,7 @@ final class BookingConsoleTest extends TestCase {
 	}
 
 	public function test_manage_venue_route_does_not_emit_placeholder_ids(): void {
-		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings/' );
+		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings' );
 		$this->assertSame(
 			$base_url . '#tab-calendar',
 			ec_events_get_booking_console_url( 0 )
@@ -239,7 +239,7 @@ final class BookingConsoleTest extends TestCase {
 
 	/** Build the expected workspace URL from the active WordPress environment. */
 	private function expected_workspace_url(): string {
-		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings/' );
+		$base_url = get_home_url( (int) ec_get_blog_id( 'events' ), '/venue-settings' );
 		return add_query_arg( array( 'venue_id' => 44 ), $base_url ) . '#tab-calendar';
 	}
 

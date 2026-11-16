@@ -28,7 +28,7 @@ const EXTRACHILL_USERS_EMAIL_CHANGE_STATUS_ARG = 'ec_email_change';
  */
 function extrachill_users_settings_url( array $args = array() ): string {
 	$base = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'community' ) : home_url();
-	$url  = trailingslashit( $base ) . 'settings/';
+	$url  = untrailingslashit( $base ) . '/settings';
 
 	return $args ? add_query_arg( $args, $url ) : $url;
 }

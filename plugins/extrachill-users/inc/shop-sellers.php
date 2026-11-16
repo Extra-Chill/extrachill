@@ -61,7 +61,7 @@ function ec_get_manageable_shop_artist_sellers( $user_id ) {
  * @return string
  */
 function ec_get_artist_manage_url() {
-	return function_exists( 'ec_get_site_url' ) ? trailingslashit( (string) ec_get_site_url( 'artist' ) ) . 'manage-artist/' : '';
+	return function_exists( 'ec_get_site_url' ) ? untrailingslashit( (string) ec_get_site_url( 'artist' ) ) . '/manage-artist' : '';
 }
 
 /**

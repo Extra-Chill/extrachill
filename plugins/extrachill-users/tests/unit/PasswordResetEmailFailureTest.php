@@ -175,6 +175,6 @@ class Test_Password_Reset_Email_Failure extends WP_UnitTestCase {
 		$this->assertSame( $user->user_email, $args['to'] );
 		$this->assertSame( 'extrachill/minimal', $args['template'] );
 		$this->assertStringContainsString( 'key=the-reset-key', $args['context']['cta_url'] );
-		$this->assertStringContainsString( '/reset-password/', $args['context']['cta_url'] );
+		$this->assertStringContainsString( '/reset-password?', $args['context']['cta_url'] );
 	}
 }

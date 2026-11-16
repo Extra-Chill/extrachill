@@ -76,7 +76,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 			'label'    => 1 === $artist_count
 				? __( 'Manage Artist', 'extrachill-users' )
 				: __( 'Manage Artists', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'artist' ) . '/manage-artist/',
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-artist',
 			'priority' => 30,
 			'danger'   => false,
 		);
@@ -86,7 +86,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 		$items[] = array(
 			'id'       => 'link_page',
 			'label'    => __( 'My Link Page', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'artist' ) . '/manage-link-page/',
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-link-page',
 			'priority' => 35,
 			'danger'   => false,
 		);
@@ -94,7 +94,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 		$items[] = array(
 			'id'       => 'create_artist',
 			'label'    => __( 'Create Artist Profile', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'artist' ) . '/create-artist/',
+			'url'      => ec_get_site_url( 'artist' ) . '/create-artist',
 			'priority' => 30,
 			'danger'   => false,
 		);
@@ -122,7 +122,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 	$items[] = array(
 		'id'       => 'settings',
 		'label'    => __( 'Settings', 'extrachill-users' ),
-		'url'      => ec_get_site_url( 'community' ) . '/settings/',
+		'url'      => extrachill_users_settings_url(),
 		'priority' => 90,
 		'danger'   => false,
 	);

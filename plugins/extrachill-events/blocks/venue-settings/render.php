@@ -176,7 +176,7 @@ $context = array(
 		'name'     => wp_get_current_user()->display_name,
 		'is_admin' => $is_admin,
 	),
-	'route_url'        => home_url( '/venue-settings/' ),
+	'route_url'        => home_url( '/venue-settings' ),
 	'workspace'        => $workspace,
 );
 if ( ! $promoter_mode ) {

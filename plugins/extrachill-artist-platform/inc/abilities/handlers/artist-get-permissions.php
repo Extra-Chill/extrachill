@@ -37,7 +37,7 @@ function extrachill_artist_platform_ability_artist_get_permissions( array $input
 		$can_edit   = true;
 		$manage_url = ec_get_artist_link_page_edit_url( $artist_id );
 		if ( '' === $manage_url ) {
-			$manage_url = home_url( '/manage-link-page/' );
+			$manage_url = home_url( '/manage-link-page' );
 		}
 	}
 

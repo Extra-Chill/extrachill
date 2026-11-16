@@ -447,7 +447,7 @@ function extrachill_users_send_artist_access_request_email( $user_id, $user, $ac
  * @param string   $type Access type granted ('artist' or 'professional').
  */
 function extrachill_users_send_artist_access_approval_email( $user, $type ) {
-	$create_url = 'https://artist.extrachill.com/create-artist/';
+	$create_url = 'https://artist.extrachill.com/create-artist';
 	$type_label = 'artist' === $type ? 'artist' : 'music industry professional';
 
 	$subject = 'Your Extra Chill Artist Platform Access Has Been Approved';

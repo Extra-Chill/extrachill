@@ -450,5 +450,5 @@ function ec_notifications_read_redirect_allowed_hosts() {
  * @return string
  */
 function ec_notifications_read_redirect_fallback_url() {
-	return trailingslashit( ec_get_site_url( 'community' ) ) . 'notifications/';
+	return untrailingslashit( ec_get_site_url( 'community' ) ) . '/notifications';
 }

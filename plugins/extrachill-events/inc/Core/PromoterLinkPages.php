@@ -93,7 +93,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 * @param int $term_id Promoter term ID.
 	 */
 	public static function management_url( int $term_id ): string {
-		return add_query_arg( 'identity', 'promoter:' . $term_id, get_home_url( self::owner_blog_id(), '/venue-settings/' ) ) . '#promoter-link-page';
+		return add_query_arg( 'identity', 'promoter:' . $term_id, get_home_url( self::owner_blog_id(), '/venue-settings' ) ) . '#promoter-link-page';
 	}
 
 	/**

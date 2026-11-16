@@ -110,7 +110,7 @@ $config = array(
 	'currentUrl'              => $current_url,
 	'loginRedirectUrl'        => $login_redirect_url,
 	'successRedirectUrl'      => $success_redirect,
-	'resetPasswordUrl'        => ec_get_site_url( 'community' ) . '/reset-password/',
+	'resetPasswordUrl'        => ec_get_site_url( 'community' ) . '/reset-password',
 	'fromJoin'                => $from_join,
 	'turnstileHtml'           => wp_kses_post( ec_render_turnstile_widget() ),
 	'initialNotice'           => $initial_notice ? array(
@@ -122,7 +122,7 @@ $config = array(
 if ( is_user_logged_in() ) {
 	$logged_in_user        = wp_get_current_user();
 	$config['displayName'] = $logged_in_user->display_name;
-	$config['profileUrl']  = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename . '/';
+	$config['profileUrl']  = ec_get_site_url( 'community' ) . '/u/' . $logged_in_user->user_nicename;
 	$config['homeUrl']     = home_url();
 	$config['logoutUrl']   = wp_logout_url( home_url() );
 	$config['avatarHtml']  = get_avatar( $logged_in_user->ID, 80 );

@@ -27,7 +27,7 @@ const props = {
 	initialCount: { label: '' },
 	labelDefault: 'Going',
 	labelActive: 'Going',
-	loginUrl: '/login/',
+	loginUrl: '/login',
 	redirectTo: '',
 	pendingIntent: true,
 	intentToken: '',

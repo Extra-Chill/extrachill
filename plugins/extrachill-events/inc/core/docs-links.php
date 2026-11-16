@@ -19,5 +19,5 @@ function extrachill_events_docs_url( string $slug ): string {
 		$base = 'https://docs.extrachill.com';
 	}
 
-	return trailingslashit( $base ) . 'events-calendar/' . trim( sanitize_title( $slug ), '/' ) . '/';
+	return untrailingslashit( $base ) . '/events-calendar/' . trim( sanitize_title( $slug ), '/' );
 }

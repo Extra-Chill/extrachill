@@ -84,15 +84,14 @@ if ( ! $user_id ) {
 		// Extra Chill Users owns the canonical network registration surface and
 		// validates cross-site auth continuations. Keep the WordPress fallback for
 		// isolated environments where that required network plugin is unavailable.
-		$my_shows_url     = trailingslashit( ec_get_site_url( 'events' ) ) . 'my-shows/';
+		$my_shows_url     = untrailingslashit( ec_get_site_url( 'events' ) ) . '/my-shows';
 		$registration_url = function_exists( 'extrachill_users_get_registration_url' )
 			? extrachill_users_get_registration_url()
 			: wp_registration_url();
 		$signup_url       = function_exists( 'ec_users_login_url_with_redirect' )
 			? ec_users_login_url_with_redirect( $registration_url, $my_shows_url )
 			: add_query_arg( 'redirect_to', rawurlencode( $my_shows_url ), $registration_url );
-		$login_url        = trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $my_shows_url );
-		$docs_url         = trailingslashit( ec_get_site_url( 'docs' ) ) . 'events-calendar/';
+		$login_url        = untrailingslashit( ec_get_site_url( 'events' ) ) . '/login?redirect_to=' . rawurlencode( $my_shows_url );
 
 		$wrapper_attributes = get_block_wrapper_attributes(
 			array(
@@ -163,13 +162,13 @@ if ( ! $user_id ) {
 							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Already have a history?', 'extrachill-events' ); ?></p>
 							<h2><?php esc_html_e( 'Bring the whole archive with you', 'extrachill-events' ); ?></h2>
 							<p><?php esc_html_e( 'Import attended shows from setlist.fm or phish.net. My Shows matches what it can and adds missing events so the story does not start today.', 'extrachill-events' ); ?></p>
-							<a href="<?php echo esc_url( $docs_url . 'importing-concert-history/' ); ?>"><?php esc_html_e( 'How concert imports work', 'extrachill-events' ); ?> &rarr;</a>
+							<a href="<?php echo esc_url( extrachill_events_docs_url( 'importing-concert-history' ) ); ?>"><?php esc_html_e( 'How concert imports work', 'extrachill-events' ); ?> &rarr;</a>
 						</article>
 						<article class="ec-panel ec-panel--depth-1">
 							<p class="ec-concert-stats-marketing__eyebrow"><?php esc_html_e( 'Your history, your call', 'extrachill-events' ); ?></p>
 							<h2><?php esc_html_e( 'Private by default for new accounts', 'extrachill-events' ); ?></h2>
 							<p><?php esc_html_e( 'Choose whether people can view your past concert history and whether your identity appears on event attendee lists. Upcoming plans stay owner-only.', 'extrachill-events' ); ?></p>
-							<a href="<?php echo esc_url( $docs_url . 'concert-history-privacy/' ); ?>"><?php esc_html_e( 'Understand privacy controls', 'extrachill-events' ); ?> &rarr;</a>
+							<a href="<?php echo esc_url( extrachill_events_docs_url( 'concert-history-privacy' ) ); ?>"><?php esc_html_e( 'Understand privacy controls', 'extrachill-events' ); ?> &rarr;</a>
 						</article>
 					</section>
 
@@ -179,7 +178,7 @@ if ( ! $user_id ) {
 							<h2><?php esc_html_e( 'Start with the full My Shows guide', 'extrachill-events' ); ?></h2>
 							<p><?php esc_html_e( 'Learn how marking, search, imports, public histories, and each dashboard view fit together.', 'extrachill-events' ); ?></p>
 						</div>
-						<a href="<?php echo esc_url( $docs_url . 'getting-started-with-my-shows/' ); ?>" class="button-2 button-large"><?php esc_html_e( 'Read the Guide', 'extrachill-events' ); ?></a>
+						<a href="<?php echo esc_url( extrachill_events_docs_url( 'getting-started-with-my-shows' ) ); ?>" class="button-2 button-large"><?php esc_html_e( 'Read the Guide', 'extrachill-events' ); ?></a>
 					</section>
 
 					<section class="ec-concert-stats-marketing__closing">

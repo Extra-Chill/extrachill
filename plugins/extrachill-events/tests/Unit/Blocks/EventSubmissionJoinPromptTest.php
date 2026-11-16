@@ -20,7 +20,7 @@ class EventSubmissionJoinPromptTest extends TestCase {
 		$this->assertStringContainsString( 'ec_users_login_url_with_redirect( $registration_url, $submit_url )', $source );
 		$this->assertStringContainsString( "wp_registration_url()", $source );
 		$this->assertStringContainsString( 'wp_login_url( $submit_url )', $source );
-		$this->assertStringContainsString( "'login/?redirect_to=' . rawurlencode( \$submit_url )", $source );
+		$this->assertStringContainsString( "'/login?redirect_to=' . rawurlencode( \$submit_url )", $source );
 		$this->assertStringContainsString( 'Import a whole artist tour, venue calendar, or festival schedule at once', $source );
 		$this->assertStringContainsString( 'Use the manual form below for one event.', $source );
 

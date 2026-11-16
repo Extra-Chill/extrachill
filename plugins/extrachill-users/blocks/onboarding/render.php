@@ -13,7 +13,7 @@ if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 }
 
 if ( ! is_user_logged_in() ) {
-	$login_url = ec_get_site_url( 'community' ) . '/login/';
+	$login_url = ec_get_site_url( 'community' ) . '/login';
 	wp_safe_redirect( $login_url );
 	exit;
 }

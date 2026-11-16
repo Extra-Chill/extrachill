@@ -181,7 +181,7 @@ function extrachill_handle_login_failed( $username ) {
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	if ( empty( $source_url ) ) {
-		$source_url = home_url( '/login/' );
+		$source_url = home_url( user_trailingslashit( '/login' ) );
 	}
 
 	$redirect = new EC_Redirect_Handler( $source_url, $fragment, 'ec_login' );
@@ -221,7 +221,7 @@ function extrachill_intercept_auth_error( $user, $username, $password ) {
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	if ( empty( $source_url ) ) {
-		$source_url = home_url( '/login/' );
+		$source_url = home_url( user_trailingslashit( '/login' ) );
 	}
 
 	$redirect = new EC_Redirect_Handler( $source_url, $fragment, 'ec_login' );
@@ -272,7 +272,7 @@ function extrachill_redirect_wp_login_access() {
 				'key'    => rawurlencode( $key ),
 				'login'  => rawurlencode( $login ),
 			),
-			ec_get_site_url( 'community' ) . '/reset-password/'
+			ec_get_site_url( 'community' ) . '/reset-password'
 		);
 
 		wp_safe_redirect( $reset_url );
@@ -280,7 +280,7 @@ function extrachill_redirect_wp_login_access() {
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
-	$login_url = home_url( '/login/' );
+	$login_url = home_url( user_trailingslashit( '/login' ) );
 	if ( function_exists( 'ec_users_get_validated_login_redirect_from_request' )
 		&& function_exists( 'ec_users_login_url_with_redirect' ) ) {
 		$redirect_to = ec_users_get_validated_login_redirect_from_request();

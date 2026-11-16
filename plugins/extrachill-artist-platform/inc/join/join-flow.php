@@ -55,14 +55,14 @@ function ec_get_join_flow_destination( $user_id ) {
 
 	if ( ! empty( $user_artist_ids ) ) {
 		return array(
-			'url'     => home_url( '/manage-link-page/' ),
+			'url'     => home_url( '/manage-link-page' ),
 			'message' => __( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
 			'type'    => 'success',
 		);
 	}
 
 	return array(
-		'url'     => home_url( '/create-artist/' ),
+		'url'     => home_url( '/create-artist' ),
 		'message' => __( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ),
 		'type'    => 'info',
 	);
@@ -178,7 +178,7 @@ function ec_join_flow_existing_account_nudge() {
 	// preserving the join-flow context so the experience stays coherent.
 	$redirect = EC_Redirect_Handler::from_post( 'ec_registration' );
 
-	$login_url = add_query_arg( 'from_join', 'true', home_url( '/login/' ) ) . '#tab-login';
+	$login_url = add_query_arg( 'from_join', 'true', home_url( '/login' ) ) . '#tab-login';
 
 	extrachill_set_notice(
 		__( 'Looks like you already have an Extra Chill account with that email. Log in below to continue — no need to create a new one.', 'extrachill-artist-platform' ),
@@ -213,6 +213,6 @@ function ec_join_flow_registration_redirect( $redirect_to, $user_id ) {
 		'success'
 	);
 
-	return home_url( '/create-artist/' );
+	return home_url( '/create-artist' );
 }
 add_filter( 'registration_redirect', 'ec_join_flow_registration_redirect', 10, 2 );

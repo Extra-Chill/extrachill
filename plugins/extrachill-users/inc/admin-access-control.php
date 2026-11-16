@@ -62,7 +62,7 @@ function ec_users_frontend_edit_url() {
 		return get_home_url( ec_get_blog_id( 'studio' ), '/' );
 	}
 	if ( 'artist_profile' === $post->post_type && function_exists( 'ec_get_site_url' ) ) {
-		return ec_get_site_url( 'artist' ) . '/manage-artist/';
+		return ec_get_site_url( 'artist' ) . '/manage-artist';
 	}
 	if ( function_exists( 'ec_link_page_post_type' ) && ec_link_page_post_type() === $post->post_type && function_exists( 'ec_link_page_public_base_url' ) && function_exists( 'ec_get_link_page_edit_endpoints' ) ) {
 		$base = ec_link_page_public_base_url();
@@ -92,7 +92,7 @@ function ec_users_trim_team_admin_bar( $bar ) {
 	foreach ( array( 'dashboard', 'new-content', 'edit', 'comments', 'updates', 'site-name', 'my-sites' ) as $id ) {
 		$bar->remove_node( $id );
 	}
-	$settings = ec_get_site_url( 'community' ) . '/settings/';
+	$settings = extrachill_users_settings_url();
 	foreach ( array( 'my-account', 'user-info', 'edit-profile' ) as $id ) {
 		$node = $bar->get_node( $id );
 		if ( $node ) {

@@ -19,7 +19,7 @@ foreach ( array( 0, 7 ) as $events_blog_id ) {
 	$GLOBALS['events_blog_id'] = $events_blog_id;
 	foreach ( array( array( 0, 0 ), array( 44, 0 ), array( 44, 91 ) ) as [ $venue_id, $booking_id ] ) {
 		// The original console implementation, frozen to detect output drift.
-		$base_url = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings/' ) : home_url( '/venue-settings/' );
+		$base_url = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings' ) : home_url( '/venue-settings' );
 		$args = array();
 		if ( $venue_id > 0 ) {
 			$args['venue_id'] = $venue_id;
