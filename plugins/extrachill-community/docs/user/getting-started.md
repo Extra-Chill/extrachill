@@ -5,7 +5,7 @@ Join music fans and artists for conversations, recommendations, and local music 
 ## Find your way around
 
 1. Visit [Extra Chill Community](https://community.extrachill.com) and sign in or create an account.
-2. Browse the forum list and choose a subject that interests you. **Music Discussion** is for music talk and recommendations. **Local Scenes** is for music and events in an area.
+2. Browse the forum list and choose a subject that interests you. **Music Discussion** is for music talk and recommendations. **Live Shows & Scenes** is for live music, local scenes, and shows in your city.
 3. Open a topic to read the conversation. Reply if you have something useful to add, or start a new topic for a new conversation.
 4. Upvote a topic or reply you appreciate.
 
@@ -17,9 +17,9 @@ Open your profile and choose **Edit Profile** to add a picture, a custom title, 
 
 ## Keep up with conversations
 
-The notification bell and **Notifications** page show activity that involves you, including replies, mentions, and topics about festivals you subscribe to. Open the page to see recent items and manage what you have read.
+The notification bell and **Notifications** page show activity that involves you, including replies to conversations you are subscribed to and mentions. Open the page to see recent items and manage what you have read.
 
-Keep posts respectful and on topic. Share only pictures and music you have permission to share, and do not post private information. For community help, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us/).
+Keep posts respectful and on topic. Share only pictures and music you have permission to share, and do not post private information. For community help, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us).
 
 ## Explore more
 

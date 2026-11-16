@@ -1,27 +1,25 @@
 # Artist Preferences
 
-Artist preferences let you choose whether Extra Chill sends account notifications about an artist. Turning these on does not share the email address on your Extra Chill account or add you to a mailing list.
+Want news straight from a band you love? Many artists on Extra Chill have a **Subscribe** form so you can join their email list. Extra Chill does not have a separate artist preferences page or artist notifications in your account settings.
 
-## Artist notifications
+## Subscribe to an artist
 
-Turn on artist notifications to get an Extra Chill account notification when new coverage of that artist is published.
+1. Open the artist's Link Page or public artist profile.
+2. Find the **Subscribe** form. On a Link Page it may show as a form on the page or as a subscribe button that opens one.
+3. Enter your email address and submit it.
 
-Turning this off stops those notifications.
+You see **Thank you for subscribing!** when it works. If you see **You are already subscribed to this artist.**, you are already on their list. You do not need an Extra Chill account to subscribe.
 
-## Direct artist subscriptions
+If you do not see a **Subscribe** form, that artist has chosen to hide it.
 
-An email form on an artist's Link Page or public artist profile is separate from artist notifications. When you submit that form, you subscribe directly to that artist and the artist's team manages that subscriber list.
+## Who gets your email
 
-Extra Chill does not add your account email to an artist's subscriber list. Turning artist notifications on or off does not change a direct artist subscription.
+Your email goes to that artist's subscriber list, and the artist's team can see and download the list to send you updates. Subscribing to one artist does not sign you up for other artists or for the Extra Chill newsletter. The Extra Chill [newsletter](https://docs.extrachill.com/newsletter) is a separate signup.
 
-## Extra Chill newsletters
+## Stop getting an artist's emails
 
-A newsletter form from Extra Chill subscribes you to Extra Chill, not to an artist. Extra Chill newsletter subscriptions, direct artist subscriptions, and artist account notifications are separate choices.
+Extra Chill does not send these emails; the artist does. Use any unsubscribe link in the artist's emails, or ask the artist to remove you. If you need help, [contact Extra Chill](https://extrachill.com/contact-us).
 
-## Change your preferences
+## For artists
 
-1. Log in to Extra Chill.
-2. Open the artist's page.
-3. Use the controls under **Artist preferences**.
-
-You can turn artist notifications on or off at any time.
+To show, hide, or change the form on your Link Page, see [Link Page advanced features](https://docs.extrachill.com/artist-platform/link-page-advanced-features).

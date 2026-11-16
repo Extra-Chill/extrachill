@@ -142,6 +142,12 @@ plugins:
       prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-users/ and write only under plugins/extrachill-users/docs/user/. Read source only under plugins/extrachill-users/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for anyone with an Extra Chill account: signing up, signing in, setting up a profile and avatar, managing notifications and email digests, badges and ranks, and lifetime membership. Cover: creating an account and signing in (including signing in with Google and what to do when sign-in is blocked or a password is forgotten), the first-time setup steps, your profile and avatar, badges and ranks, notification and digest settings, and what lifetime membership includes. One account works across every Extra Chill site; explain that plainly. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
       model: "gpt-6-luna"
 
+  plugins/extrachill-contact:
+    platform_name: "Accounts"
+    parent_slug: "accounts"
+    audience: "anyone contacting the Extra Chill team through the contact form for account, partnership, shop, or technical help"
+    docs_subpath: "docs/user"
+
   plugins/extrachill-studio:
     platform_name: "Studio"
     parent_slug: "studio"

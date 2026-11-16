@@ -16,7 +16,7 @@ Upvote changes are reflected directly in the total. Points from a new topic or r
 
 ## Why did I not get a notification?
 
-Notifications cover replies to topics you are subscribed to, mentions in forum posts, and new topics about festivals you subscribed to. They are not alerts for every post. Check the **Notifications** page and make sure you chose to hear about the relevant discussion or festival when that option was offered.
+Notifications cover replies to topics you are subscribed to and mentions in forum posts. They are not alerts for every post. Check the **Notifications** page and make sure you chose to hear about the discussion when that option was offered.
 
 ## Can I remove an upvote?
 
@@ -24,10 +24,10 @@ Yes. Choose the upvote control again to remove your vote. There is no downvote o
 
 ## Where should I share a song or release?
 
-Use **Music Discussion** for general music posts. Use **Local Scenes** when your post is about music or artists in your area. Add a listening link and enough context for others to join the conversation.
+Use **Music Discussion** for general music posts. Use **Live Shows & Scenes** when your post is about shows or artists in your area. Add a listening link and enough context for others to join the conversation.
 
 ## What can other members see on my profile?
 
 Your public profile may show your picture, bio, links, activity, and rank. Only add details and links you are comfortable sharing. See [Set up your profile](setting-up-your-user-profile.md).
 
-For help from community members, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us/).
+For help from community members, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us).
