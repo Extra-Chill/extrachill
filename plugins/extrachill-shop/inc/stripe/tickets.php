@@ -37,7 +37,9 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments.', array( 'status' => 409 ) ); }
 	if ( ! is_int( $offer['price_minor'] ) || $offer['price_minor'] < 1 ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
-	$fees     = extrachill_commerce_fee( 'extrachill_ticket', $offer['price_minor'] * $input['quantity'], $seller );
+	// The buyer pays the Service fee; the venue nets the subtotal (see extrachill_commerce_ticket_fee()).
+	$subtotal = $offer['price_minor'] * $input['quantity'];
+	$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'] );
 	$metadata = array(
 		'event_id'    => (string) $offer['event_id'],
 		'quantity'    => (string) $input['quantity'],
@@ -95,10 +97,18 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'event_url'      => (string) $offer['url'],
 			'quantity'       => $input['quantity'],
 			'created_at'     => gmdate( 'Y-m-d\TH:i:s\Z' ),
+			// What the buyer paid, split: tickets, Service fee, and Extra Chill's share.
+			'amounts'        => array(
+				'subtotal_minor'        => $subtotal,
+				'service_fee_minor'     => $fees['buyer_fee'],
+				'total_minor'           => $subtotal + $fees['buyer_fee'],
+				'application_fee_minor' => $fees['application_fee'],
+				'currency'              => $offer['currency'],
+			),
 			'sales'          => array(
 				'event_id'     => (int) $offer['event_id'],
 				'tickets_sold' => $input['quantity'],
-				'gross_minor'  => $offer['price_minor'] * $input['quantity'] + $fees['buyer_fee'],
+				'gross_minor'  => $subtotal + $fees['buyer_fee'],
 				'fees_minor'   => $fees['application_fee'],
 				'currency'     => $offer['currency'],
 				'period_start' => gmdate( 'Y-m-d H:i:s' ),
@@ -151,6 +161,18 @@ function extrachill_shop_record_ticket_sales( $reference, array $order, $refund 
 	return is_wp_error( $result ) ? $result : true;
 }
 
+/**
+ * Refund a ticket order in full.
+ *
+ * No amount means the whole charge: the tickets and the Service fee go back to
+ * the buyer, and `refund_application_fee` returns Extra Chill's share to the
+ * venue, so Extra Chill keeps nothing on a refunded order.
+ *
+ * @param string $reference Order reference (Checkout Session ID).
+ * @param array  $order     Ticket order row.
+ * @param string $reason    Refund reason.
+ * @return true|WP_Error
+ */
 function extrachill_shop_ticket_refund_payment( $reference, array $order, $reason ) {
 	try {
 		$refund = \Stripe\Refund::create( array(

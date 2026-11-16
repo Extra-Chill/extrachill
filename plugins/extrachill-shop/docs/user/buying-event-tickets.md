@@ -10,7 +10,7 @@ Some shows on the [Extra Chill Events Calendar](https://events.extrachill.com/) 
 4. Enter your **Name** and **Email**. The name goes on your passes, and the passes go to that email.
 5. Select **Buy tickets** again to go to the secure payment page.
 6. Check the box to agree to the [Terms of Service](https://extrachill.com/terms-of-service/). You can't buy tickets without it.
-7. Pay on the secure payment page. If the show has a service fee, it's listed there before you pay.
+7. Pay on the secure payment page. Your total includes a **Service fee** of $1 per ticket plus the card processing cost. It's listed as its own line before you pay.
 
 The payment page stays open for 30 minutes. If you close it or run out of time, nothing is charged and you can start over from the event page.
 
@@ -26,7 +26,7 @@ Ticket purchases don't show up under **My account** on the shop. Keep your pass 
 
 ## If a Show Sells Out While You Pay
 
-If the last tickets sell while you're on the payment page, you're refunded in full automatically. You won't get passes for that order.
+If the last tickets sell while you're on the payment page, you're refunded in full automatically, service fee included. You won't get passes for that order.
 
 ## Refunds
 
@@ -38,7 +38,7 @@ Tickets are sold by the show's venue or promoter, and they handle refunds.
 
 If you dispute a ticket payment with your bank, your passes stop working while the bank looks into it. If the bank decides for the seller, your passes work again and we email them to you. The codes don't change, so passes you already saved work too. If the bank decides for you, your money comes back and the passes stay cancelled.
 
-Refunds go back to the way you paid. To ask for one, contact the venue or promoter. See the [Shipping & Returns Policy](https://shop.extrachill.com/shipping-and-returns/) for the full ticket rules.
+A refund gives you back everything you paid, service fee included. Refunds go back to the way you paid. To ask for one, contact the venue or promoter. See the [Shipping & Returns Policy](https://shop.extrachill.com/shipping-and-returns/) for the full ticket rules.
 
 ## Sold Out or No Button?
 

@@ -53,8 +53,10 @@ const PaymentsTab = ( {
 					</ul>
 					<p className="ec-asm__muted">
 						The fee is taken automatically when the buyer pays.
-						Payment processing fees come out of your payout account
-						separately.
+						Payment processing fees on merch come out of your payout
+						account separately.
+						{ sellsTickets &&
+							' On tickets, the buyer’s service fee covers them.' }
 					</p>
 				</div>
 			) }

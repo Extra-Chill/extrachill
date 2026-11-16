@@ -5,14 +5,64 @@ seller is merchant of record; Extra Chill receives only the application fee.
 There is no Woo order, Stripe Tax, or Woo tax calculation. Prices include tax;
 the seller is responsible for tax. Merch checkout is unchanged.
 
-Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', … )`, which
-reads the network `extrachill_commerce_fees` setting (Network Admin → Payments → Fees):
-`ticket_buyer_fee_flat_minor` (per checkout), `ticket_buyer_fee_percent` and
-`ticket_percent` (paid by the seller). Until that page is saved, the values come
-from the older `extrachill_ticket_fees` option (all zero). Percent fees are
-rounded to the nearest minor unit on the ticket subtotal, independently. A
-nonzero buyer fee is a separate Service fee line. Zero fees omit that line and
-use a zero application fee.
+## Fees: the venue keeps the full ticket price
+
+Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity )`,
+which delegates to `extrachill_commerce_ticket_fee()` and reads the network
+`extrachill_commerce_fees` setting (Network Admin → Payments → Fees):
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `ticket_buyer_fee_per_ticket_minor` | `100` | Buyer service fee per ticket, cents |
+| `ticket_buyer_fee_flat_minor` | `0` | Buyer service fee per order, cents |
+| `ticket_buyer_fee_percent` | `0` | Buyer service fee, % of the ticket subtotal |
+| `ticket_processing_percent` | `2.9` | Card processing estimate, % (capped at 50) |
+| `ticket_processing_fixed_minor` | `30` | Card processing estimate per payment, cents |
+| `ticket_percent` | `0` | Fee taken from the seller, % of the subtotal (keep 0) |
+
+Checkout is a direct charge, so the processor takes its fee out of the venue's
+side of the whole charge. The Service fee is grossed up to pay for it:
+
+```
+base        = subtotal + per_ticket × qty + per_order + buyer_percent × subtotal + processing_fixed
+total       = ceil( base / (1 − processing_percent) )
+service fee = total − subtotal                      (the "Service fee" line, quantity 1)
+processing  = ceil( total × processing_percent ) + processing_fixed   (the estimate)
+application = total − subtotal − processing + seller fee
+```
+
+At the estimate the venue nets `total − processing − application = subtotal −
+seller fee`, i.e. exactly the subtotal at the default `ticket_percent` of 0. The
+estimate rounds up and the total is raised a cent at a time until the
+application fee is not negative, so the venue never nets less than that at the
+estimate; when the processor rounds to the nearest cent the venue can net one
+cent more. Real processing can be higher than the estimate (international or
+currency-converted cards), and on a direct charge that difference comes out of
+the venue's payout, so set the estimate conservatively if that matters. Free
+tickets never reach checkout (`invalid_ticket_price`), and a zero subtotal or a
+platform-owned offer has no fee. With every fee and the estimate at 0 there is no
+Service fee line and the application fee is 0.
+
+Worked example at the defaults:
+
+| Order | Subtotal | Service fee | Buyer pays | Processing (est.) | Application fee | Venue nets |
+| --- | --- | --- | --- | --- | --- | --- |
+| $20 × 1 | $20.00 | $1.94 | $21.94 | $0.94 | $1.00 | $20.00 |
+| $20 × 4 | $80.00 | $6.82 | $86.82 | $2.82 | $4.00 | $80.00 |
+
+The ticket order row (`extrachill_ticket_order_<session>`) stores the split under
+`amounts`: `subtotal_minor`, `service_fee_minor`, `total_minor`,
+`application_fee_minor` and `currency`. `sales.gross_minor` (sent to Events'
+`record-checkout-ticket-sales`) is the full amount charged, Service fee included,
+and `sales.fees_minor` is the application fee.
+
+Refunds (`extrachill_shop_ticket_refund_payment()`, used for a single order, the
+show-wide "refund everyone", and sold-out auto-refunds) send no `amount`, so the
+buyer gets the whole charge back, Service fee included, and
+`refund_application_fee` returns the application fee to the venue. The processor
+does not return its fee on a refund, so the venue is out the original processing
+on a refunded order, as with merch. Disputes are unchanged; their amounts include
+the Service fee.
 
 ## Deployment
 

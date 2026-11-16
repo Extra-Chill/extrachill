@@ -10,7 +10,9 @@
  *
  * Until the page is first saved, the values fall back to the two stores this
  * replaces: the shop's `extrachill_shop_commission_rate` (blog option) and the
- * network `extrachill_ticket_fees` array. Nothing is written on read.
+ * network `extrachill_ticket_fees` array. Nothing is written on read. Keys
+ * those stores never had (the per-ticket service fee and the card processing
+ * estimate) use the shipped defaults in `ec_commerce_fee_new_defaults()`.
  *
  * @package ExtraChillNetwork
  */
@@ -25,10 +27,43 @@ defined( 'ABSPATH' ) || exit;
  */
 function ec_commerce_fee_fields() {
 	return array(
-		'merch_percent'               => true,
-		'ticket_percent'              => true,
-		'ticket_buyer_fee_flat_minor' => false,
-		'ticket_buyer_fee_percent'    => true,
+		'merch_percent'                     => true,
+		'ticket_percent'                    => true,
+		'ticket_buyer_fee_per_ticket_minor' => false,
+		'ticket_buyer_fee_flat_minor'       => false,
+		'ticket_buyer_fee_percent'          => true,
+		'ticket_processing_percent'         => true,
+		'ticket_processing_fixed_minor'     => false,
+	);
+}
+
+/**
+ * Highest allowed value per percentage key, when lower than 100.
+ *
+ * The processing percentage divides the buyer total by (1 - rate), so it must
+ * stay well below 100.
+ *
+ * @return array<string,float>
+ */
+function ec_commerce_fee_percent_caps() {
+	return array( 'ticket_processing_percent' => 50.0 );
+}
+
+/**
+ * Shipped defaults for keys the legacy stores never had.
+ *
+ * - `ticket_buyer_fee_per_ticket_minor`: $1 per ticket, paid by the buyer.
+ * - `ticket_processing_percent` / `ticket_processing_fixed_minor`: the card
+ *   processing estimate (2.9% + 30¢) the ticket service fee is grossed up by,
+ *   so the venue nets the full ticket subtotal.
+ *
+ * @return array<string,float|int>
+ */
+function ec_commerce_fee_new_defaults() {
+	return array(
+		'ticket_buyer_fee_per_ticket_minor' => 100,
+		'ticket_processing_percent'         => 2.9,
+		'ticket_processing_fixed_minor'     => 30,
 	);
 }
 
@@ -50,14 +85,15 @@ function ec_commerce_fee_defaults() {
 			'ticket_percent'              => $ticket['seller_fee_percent'] ?? 0,
 			'ticket_buyer_fee_flat_minor' => $ticket['buyer_fee_flat_minor'] ?? 0,
 			'ticket_buyer_fee_percent'    => $ticket['buyer_fee_percent'] ?? 0,
-		),
+		) + ec_commerce_fee_new_defaults(),
 		array_fill_keys( array_keys( ec_commerce_fee_fields() ), 0 )
 	);
 }
 
 /**
- * Clamp fee values: percentages to 0-100, flat amounts to whole minor units
- * of at least 0. A missing or non-numeric value keeps its fallback.
+ * Clamp fee values: percentages to 0-100 (or a lower cap from
+ * `ec_commerce_fee_percent_caps()`), flat amounts to whole minor units of at
+ * least 0. A missing or non-numeric value keeps its fallback.
  *
  * @param array $values   Submitted or stored values.
  * @param array $fallback Values used for missing or invalid keys.
@@ -65,10 +101,11 @@ function ec_commerce_fee_defaults() {
  */
 function ec_commerce_fee_sanitize( array $values, array $fallback ) {
 	$clean = array();
+	$caps  = ec_commerce_fee_percent_caps();
 	foreach ( ec_commerce_fee_fields() as $key => $is_percent ) {
 		$value         = isset( $values[ $key ] ) && is_numeric( $values[ $key ] ) ? (float) $values[ $key ] : (float) ( $fallback[ $key ] ?? 0 );
 		$value         = max( 0.0, $value );
-		$clean[ $key ] = $is_percent ? min( 100.0, $value ) : (int) round( $value );
+		$clean[ $key ] = $is_percent ? min( $caps[ $key ] ?? 100.0, $value ) : (int) round( $value );
 	}
 	return $clean;
 }

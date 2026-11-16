@@ -1,18 +1,23 @@
 # Fees, Payouts, and Taxes
 
-Selling on Extra Chill works like a merch table at a festival. We bring the booth, the checkout, and the crowd. You bring the goods and keep the money, minus a small fee on merch. Here's exactly what comes out of each sale and when you get paid.
+Selling on Extra Chill works like a merch table at a festival. We bring the booth, the checkout, and the crowd. You bring the goods and keep the money, minus a small fee on merch. On tickets you keep the whole ticket price. Here's exactly what comes out of each sale and when you get paid.
 
 ## What Extra Chill Charges
 
 - **Merch:** 10% of the price of the items in each order, after any discount. There's no fee on shipping.
-- **Tickets:** nothing right now. No fee for you, and no service fee for your buyers.
+- **Tickets:** nothing. You keep the full ticket price. Buyers pay a service fee of $1 per ticket plus the card processing cost, shown as one **Service fee** line before they pay.
 - **Opening a shop, listing products, and printing labels:** free.
 
 The fee is taken automatically when the buyer pays. You never get a bill. The current rates are always shown on the **Payments** tab of the shop manager, and the merch rate is shown under **Price** when you add a product. The rates are set for Extra Chill as a whole, not separately by each shop. If fees ever go up, we'll give you at least 30 days' notice, and the new rate only applies to sales after it starts.
 
 ## Payment Processing Fees
 
-Our payment partner charges a processing fee on every card payment. It comes out of your payout account under their pricing, not out of Extra Chill's fee. You can see it on each payment in your payout dashboard.
+Every card payment has a processing fee. You can see it on each payment in your payout dashboard.
+
+- **Merch:** the processing fee comes out of your payout account, not out of Extra Chill's fee.
+- **Tickets:** the buyer's service fee covers it. The processing fee still shows on the payment in your payout dashboard, but the service fee pays for it, so you end up with the full ticket price.
+
+The ticket service fee is based on the usual card rate. A few cards, like ones from outside the US, cost more to process, so on those payments you can end up a few cents short of the full ticket price.
 
 ## What Happens to the Buyer's Shipping
 
@@ -35,6 +40,16 @@ If you print the label through Extra Chill, your payout stays $22.50 and the lab
 
 Payment processing fees come out of these amounts.
 
+## A Ticket Example
+
+A fan buys one $20 ticket.
+
+- The buyer pays $20 plus a **$1.94** service fee: **$21.94**.
+- Card processing on $21.94 is $0.94, and Extra Chill keeps $1.
+- **You get $20**, the full ticket price.
+
+Four $20 tickets: the buyer pays $80 plus a **$6.82** service fee, $86.82 in total. Processing is $2.82, Extra Chill keeps $4, and **you get $80**.
+
 ## How Payouts Work
 
 - Every sale is paid straight into your payout account. Extra Chill never holds your money.
@@ -44,6 +59,8 @@ Payment processing fees come out of these amounts.
 ## Refunds and Disputes
 
 When you refund an order, Extra Chill's fee on it is returned to you. A partial refund returns the same share of the fee: refund $10 of a $25 order and $10/$25 of the fee comes back. This also applies to refunds you make from your payout dashboard. Payment processing fees on the original sale may not come back.
+
+When you refund a ticket order, the buyer gets back everything they paid, service fee included, and Extra Chill's share comes back to you. Card processing on the original payment may not come back.
 
 If a buyer disputes a payment with their bank, the disputed amount and any dispute fee come out of your balance. See [Managing Orders and Refunds](managing-orders-and-refunds.md).
 

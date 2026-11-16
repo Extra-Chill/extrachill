@@ -46,7 +46,7 @@ Ticket payments and payouts also show in your payout dashboard.
 - **One order:** select **Refund** next to it. You can refund any order until someone on it checks in at the door. After that, it can't be refunded through Extra Chill.
 - **Cancelled show:** select **Show cancelled? Refund everyone**. This refunds every order that hasn't checked in and turns ticket sales off.
 
-Refunded passes stop working at the door. Extra Chill's fee on a refunded order is returned to you. If you cancel a show, the [Seller Agreement](https://extrachill.com/seller-agreement/) asks you to refund every ticket holder.
+Refunded passes stop working at the door. The buyer gets back everything they paid, including the service fee, and Extra Chill's share of the order comes back to you. If you cancel a show, the [Seller Agreement](https://extrachill.com/seller-agreement/) asks you to refund every ticket holder.
 
 ### If a Buyer Disputes a Ticket Payment
 
@@ -59,6 +59,6 @@ When the bank decides, we email you again:
 
 ## Fees and Taxes
 
-Right now Extra Chill takes no fee on ticket sales and adds no service fee for buyers. The current rates are always shown on the **Payments** tab of the shop manager. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
+You keep the full ticket price. Extra Chill takes nothing from it. Buyers pay a service fee of $1 per ticket plus the card processing cost, shown as one **Service fee** line before they pay. That fee covers the card processing on the whole payment, so a $20 ticket gets you $20. The current rates are always shown on the **Payments** tab of the shop manager. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
 
 You set the full price, with tax included. You're responsible for any sales or admissions tax on your tickets.

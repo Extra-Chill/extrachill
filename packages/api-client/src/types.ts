@@ -722,6 +722,8 @@ export interface ShopSellerFeeRates {
   ticket_percent: number;
   ticket_buyer_fee_percent: number;
   ticket_buyer_fee_flat: number;
+  /** Buyer service fee per ticket, in dollars. */
+  ticket_buyer_fee_per_ticket: number;
   merch_summary: string;
   ticket_summary: string;
 }

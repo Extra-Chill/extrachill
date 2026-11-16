@@ -44,6 +44,9 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_owner_calls']       = array();
 		$GLOBALS['test_user_meta']         = array();
 		$GLOBALS['ticket_session_request'] = null;
+		// Two $10 tickets at the shipped defaults ($1 per ticket, 2.9% + 30¢
+		// processing estimate): the buyer pays $22.97.
+		$GLOBALS['ticket_charge_amount']   = 2297;
 		$GLOBALS['ticket_offer']           = array(
 			'event_id'    => 101,
 			'title'       => 'Lo-Fi show',
@@ -114,7 +117,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 							'data'     => array(
 								(object) array(
 									'id'       => 're_ticket',
-									'amount'   => 2000,
+									'amount'   => 2297,
 									'created'  => 1700000000,
 									'status'   => 'succeeded',
 									'metadata' => (object) array(),
@@ -154,9 +157,11 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$calls = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'record-checkout-ticket-sales' ) ) );
 		$this->assertCount( 2, $calls );
 		$this->assertSame( 'cs_ticket', $calls[0]['args']['body']['input']['external_report_id'] );
-		$this->assertSame( 2000, $calls[0]['args']['body']['input']['gross_minor'] );
+		$this->assertSame( 2297, $calls[0]['args']['body']['input']['gross_minor'] );
+		$this->assertSame( 200, $calls[0]['args']['body']['input']['fees_minor'] );
 		$this->assertSame( 're_ticket', $calls[1]['args']['body']['input']['external_report_id'] );
-		$this->assertSame( -2000, $calls[1]['args']['body']['input']['gross_minor'] );
+		$this->assertSame( -2297, $calls[1]['args']['body']['input']['gross_minor'] );
+		$this->assertSame( -200, $calls[1]['args']['body']['input']['fees_minor'] );
 		$this->assertSame( -2, $calls[1]['args']['body']['input']['tickets_sold'] );
 	}
 
@@ -165,47 +170,186 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			'type' => 'venue',
 			'id'   => 9911,
 		);
+		// Shipped defaults: $1 per ticket plus the 2.9% + 30¢ processing estimate.
 		$this->assertSame( array(
-			'buyer_fee'       => 0,
-			'application_fee' => 0,
-		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller ) );
+			'buyer_fee'       => 194,
+			'application_fee' => 100,
+		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller, 1 ) );
+		$this->assertSame( array(
+			'buyer_fee'       => 682,
+			'application_fee' => 400,
+		), extrachill_commerce_fee( 'extrachill_ticket', 8000, $seller, 4 ) );
+		// Older settings still apply on top: per-order fee, buyer percent, seller percent.
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
-			'ticket_buyer_fee_flat_minor' => 100,
-			'ticket_buyer_fee_percent'    => 3,
-			'ticket_percent'              => 5,
+			'ticket_buyer_fee_per_ticket_minor' => 0,
+			'ticket_buyer_fee_flat_minor'       => 100,
+			'ticket_buyer_fee_percent'          => 3,
+			'ticket_percent'                    => 5,
+			'ticket_processing_percent'         => 0,
+			'ticket_processing_fixed_minor'     => 0,
 		);
 		$this->assertSame( array(
 			'buyer_fee'       => 160,
 			'application_fee' => 260,
 		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller ) );
+		// Everything off: no fee at all.
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
-			'ticket_buyer_fee_percent' => 3.3,
-			'ticket_percent'           => 3.3,
+			'ticket_buyer_fee_per_ticket_minor' => 0,
+			'ticket_processing_percent'         => 0,
+			'ticket_processing_fixed_minor'     => 0,
 		);
 		$this->assertSame( array(
-			'buyer_fee'       => 33,
-			'application_fee' => 66,
-		), extrachill_commerce_fee( 'extrachill_ticket', 999, $seller ) );
+			'buyer_fee'       => 0,
+			'application_fee' => 0,
+		), extrachill_commerce_fee( 'extrachill_ticket', 2000, $seller, 2 ) );
 	}
-	public function test_direct_charge_session(): void {
-		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
-			'ticket_buyer_fee_flat_minor' => 100,
-			'ticket_buyer_fee_percent'    => 3,
-			'ticket_percent'              => 5,
+
+	/** @return array<string,array{int,int}> */
+	public static function ticket_orders(): array {
+		$cases = array();
+		foreach ( array( 500, 2000, 5000 ) as $price ) {
+			foreach ( array( 1, 4, 10 ) as $quantity ) {
+				$cases[ sprintf( '$%d x %d', $price / 100, $quantity ) ] = array( $price, $quantity );
+			}
+		}
+		return $cases;
+	}
+
+	/**
+	 * @dataProvider ticket_orders
+	 */
+	public function test_venue_nets_the_full_subtotal_at_the_processing_estimate( int $price, int $quantity ): void {
+		$seller   = array(
+			'type' => 'venue',
+			'id'   => 9911,
 		);
+		$subtotal = $price * $quantity;
+		$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity );
+		$total    = $subtotal + $fees['buyer_fee'];
+		// The estimate rounds the percentage up, so the venue nets exactly the
+		// subtotal at the estimate...
+		$estimate = extrachill_commerce_ticket_processing_estimate( $total, ec_commerce_fee_settings() );
+		$this->assertSame( (int) ceil( $total * 0.029 ) + 30, $estimate );
+		$this->assertSame( $subtotal, $total - $estimate - $fees['application_fee'], 'Venue nets exactly the subtotal.' );
+		// ...and the same or a cent more when the processor rounds to the nearest cent.
+		$net = $total - ( (int) round( $total * 0.029 ) + 30 ) - $fees['application_fee'];
+		$this->assertContains( $net - $subtotal, array( 0, 1 ) );
+		// Extra Chill keeps about $1 per ticket (rounding can cost it a cent or two).
+		$this->assertEqualsWithDelta( 100 * $quantity, $fees['application_fee'], 2 );
+		// The smallest such total: a cent less would not cover the fees and processing.
+		$this->assertLessThan( $subtotal + 100 * $quantity + 30, ( $total - 1 ) - (int) ceil( ( $total - 1 ) * 0.029 ) );
+	}
+
+	public function test_venue_never_nets_less_than_the_subtotal_at_any_price(): void {
+		$settings = ec_commerce_fee_settings();
+		foreach ( array( 1, 2, 3, 99, 101, 333, 999, 1234, 4999, 12345, 99999 ) as $price ) {
+			foreach ( array( 1, 3, 7, 10 ) as $quantity ) {
+				$subtotal = $price * $quantity;
+				$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity );
+				$total    = $subtotal + $fees['buyer_fee'];
+				$this->assertSame( $subtotal, $total - extrachill_commerce_ticket_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
+				$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
+			}
+		}
+		// A processing estimate with no buyer fee still keeps the venue whole.
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0 );
+		$fees = extrachill_commerce_fee( 'extrachill_ticket', 1000, array( 'type' => 'venue', 'id' => 9911 ), 1 );
+		$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
+		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_ticket_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
+	}
+
+	public function test_free_tickets_and_platform_tickets_have_no_fee(): void {
+		$none = array(
+			'buyer_fee'       => 0,
+			'application_fee' => 0,
+		);
+		$this->assertSame( $none, extrachill_commerce_fee( 'extrachill_ticket', 0, array( 'type' => 'venue', 'id' => 9911 ), 4 ) );
+		$this->assertSame( $none, extrachill_commerce_fee( 'extrachill_ticket', 2000, null, 1 ) );
+		// A free offer never reaches Stripe.
+		$GLOBALS['ticket_offer']['price_minor'] = 0;
+		$this->assertSame( 'invalid_ticket_price', $this->checkout()->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'] );
+	}
+
+	public function test_direct_charge_session(): void {
 		$this->assertSame( 'cs_ticket', $this->checkout()['session_id'] );
 		list( $params, $opts ) = $GLOBALS['ticket_session_request'];
 		$this->assertSame( 'acct_venue', $opts['stripe_account'] );
-		$this->assertSame( 260, $params['payment_intent_data']['application_fee_amount'] );
+		// Two $10 tickets: one ticket line, one Service fee line.
+		$this->assertCount( 2, $params['line_items'] );
+		$this->assertSame( 2, $params['line_items'][0]['quantity'] );
+		$this->assertSame( 1000, $params['line_items'][0]['price_data']['unit_amount'] );
 		$this->assertSame( 'Service fee', $params['line_items'][1]['price_data']['product_data']['name'] );
-		$this->assertSame( 160, $params['line_items'][1]['price_data']['unit_amount'] );
+		$this->assertSame( 1, $params['line_items'][1]['quantity'] );
+		$this->assertSame( 297, $params['line_items'][1]['price_data']['unit_amount'] );
+		$this->assertSame( 200, $params['payment_intent_data']['application_fee_amount'] );
 		$this->assertSame( 'extrachill_ticket', $params['payment_intent_data']['metadata']['kind'] );
 		$this->assertStringContainsString( 'session_id={CHECKOUT_SESSION_ID}', $params['success_url'] );
 		$this->assertEqualsWithDelta( time() + 1800, $params['expires_at'], 2 );
 		$this->assertArrayNotHasKey( 'automatic_tax', $params );
+		// The order row keeps the split.
+		$order = $GLOBALS['test_options']['extrachill_ticket_order_cs_ticket'];
+		$this->assertSame( array(
+			'subtotal_minor'        => 2000,
+			'service_fee_minor'     => 297,
+			'total_minor'           => 2297,
+			'application_fee_minor' => 200,
+			'currency'              => 'usd',
+		), $order['amounts'] );
+		$this->assertSame( 2297, $order['sales']['gross_minor'] );
+		$this->assertSame( 200, $order['sales']['fees_minor'] );
+	}
+
+	public function test_full_refund_returns_the_service_fee_and_the_application_fee(): void {
+		$this->checkout();
+		extrachill_shop_route_webhook_event( $this->event() );
+		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) ) );
+		list( $params, $opts ) = $GLOBALS['ticket_refunds'][0];
+		// No amount: the whole charge, tickets plus Service fee, goes back to the buyer.
+		$this->assertArrayNotHasKey( 'amount', $params );
+		$this->assertSame( 'pi_ticket', $params['payment_intent'] );
+		$this->assertTrue( $params['refund_application_fee'] );
+		$this->assertSame( '200', $params['metadata']['application_fee_minor'] );
+		$this->assertSame( 'acct_venue', $opts['stripe_account'] );
+		$record = end( $GLOBALS['test_owner_calls'] );
+		$calls  = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'record-checkout-ticket-sales' ) ) );
+		$refund = end( $calls )['args']['body']['input'];
+		$this->assertSame( -2297, $refund['gross_minor'] );
+		$this->assertSame( -200, $refund['fees_minor'] );
+		$this->assertSame( -2, $refund['tickets_sold'], 'A refund of the whole charge, fee included, cancels the tickets.' );
+		$this->assertNotEmpty( $record );
+	}
+
+	public function test_refund_everyone_refunds_each_order_in_full(): void {
+		$GLOBALS['stripe_session_ids'] = array( 'cs_one', 'cs_two' );
+		$this->checkout();
+		$this->checkout( array( 'quantity' => 4 ) );
+		foreach ( array( 'cs_one', 'cs_two' ) as $reference ) {
+			$order                   = $GLOBALS['test_options'][ 'extrachill_ticket_order_' . $reference ];
+			$order['status']         = 'issued';
+			$order['payment_intent'] = 'pi_' . $reference;
+			$GLOBALS['test_options'][ 'extrachill_ticket_order_' . $reference ] = $order;
+		}
+		$this->assertSame( 4563, $GLOBALS['test_options']['extrachill_ticket_order_cs_two']['amounts']['total_minor'] );
+		$this->assertSame( 400, $GLOBALS['test_options']['extrachill_ticket_order_cs_two']['amounts']['application_fee_minor'] );
+		$counts = extrachill_shop_refund_event_ticket_orders( array( 'event_id' => 101 ) );
+		$this->assertSame( 2, $counts['refunded'] );
+		$this->assertCount( 2, $GLOBALS['ticket_refunds'] );
+		foreach ( $GLOBALS['ticket_refunds'] as $refund ) {
+			$this->assertArrayNotHasKey( 'amount', $refund[0] );
+			$this->assertTrue( $refund[0]['refund_application_fee'] );
+		}
+		$this->assertSame( array( '200', '400' ), array_map( static fn( $refund ) => $refund[0]['metadata']['application_fee_minor'], $GLOBALS['ticket_refunds'] ) );
+		unset( $GLOBALS['stripe_session_ids'] );
 	}
 	public function test_zero_fees_and_refusals(): void {
+		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array(
+			'ticket_buyer_fee_per_ticket_minor' => 0,
+			'ticket_processing_percent'         => 0,
+			'ticket_processing_fixed_minor'     => 0,
+		);
 		$this->checkout();
+		$this->assertCount( 1, $GLOBALS['ticket_session_request'][0]['line_items'], 'No Service fee line without a fee.' );
 		$this->assertSame( 0, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
 		$GLOBALS['ticket_offer']['sale_open'] = false;
 		$this->assertSame( 'ticket_sale_closed', $this->checkout()->get_error_code() );
@@ -351,7 +495,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$closed                       = $this->dispute();
 		$closed->type                 = 'charge.dispute.closed';
 		$closed->data->object->status = $status;
-		$closed->data->object->amount = 2000;
+		$closed->data->object->amount = 2297;
 		return $closed;
 	}
 	private function disputed_order(): void {
@@ -434,7 +578,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( array( 'record-checkout-ticket-sales', 'notify-commerce-seller' ), $this->routes() );
 		$input = $GLOBALS['test_owner_calls'][0]['args']['body']['input'];
 		$this->assertSame( 'dp_ticket', $input['external_report_id'] );
-		$this->assertSame( -2000, $input['gross_minor'] );
+		$this->assertSame( -2297, $input['gross_minor'] );
 		$this->assertSame( -2, $input['tickets_sold'] );
 		$this->assertSame( 0, $input['fees_minor'], 'The platform fee is not returned on a lost dispute.' );
 		$this->assertStringContainsString( 'dispute', $GLOBALS['test_owner_calls'][1]['args']['body']['input']['subject'] );
