@@ -156,8 +156,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	/**
 	 * Read the pre-migration profile copy of an artist's socials.
 	 *
-	 * Only consulted until the Link Page owns its socials (see
-	 * ec_artist_backfill_link_page_owned_content()).
+	 * Only consulted while the Link Page does not yet own its socials.
 	 *
 	 * @param int $artist_id Artist profile ID.
 	 * @return array
@@ -288,8 +287,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	/**
 	 * Persist socials on the Link Page, which becomes their only copy.
 	 *
-	 * No permission check: callers authorize. Used by save() and by the
-	 * owned-content backfill.
+	 * No permission check: callers authorize. Used by save().
 	 *
 	 * @param int   $artist_id       Artist profile ID.
 	 * @param array $sanitized_links Sanitized links.

@@ -80,7 +80,7 @@ if ( ! function_exists( 'ec_artist_platform_test_seed_site' ) ) {
 
 if ( ! function_exists( 'ec_artist_platform_test_seed_topology' ) ) {
 	/**
-	 * Seed blogs 1/4/7 and persist the sandbox Link Page storage blog (4).
+	 * Seed the canonical blogs 1/4/7.
 	 *
 	 * @return void
 	 */
@@ -91,10 +91,28 @@ if ( ! function_exists( 'ec_artist_platform_test_seed_topology' ) ) {
 		ec_artist_platform_test_seed_site( 1, '', 'Extra Chill' );
 		ec_artist_platform_test_seed_site( 4, 'artist', 'Extra Chill Artist Platform' );
 		ec_artist_platform_test_seed_site( 7, 'events', 'Extra Chill Events' );
-		// Link Pages network activation requires a persisted storage blog. The
-		// sandbox keeps the legacy artist-site storage the fixtures assert.
-		if ( ! get_site_option( 'ec_link_page_storage_blog_id' ) ) {
-			update_site_option( 'ec_link_page_storage_blog_id', 4 );
-		}
 	}
 }
+
+if ( ! function_exists( 'ec_artist_platform_test_link_page_storage_blog_id' ) ) {
+	/**
+	 * Resolve the sandbox Link Page storage blog.
+	 *
+	 * extrachill-network's ec_link_page_storage_blog_id filter returns
+	 * EC_BLOG_ID_LINK_PAGES (13), which the sandbox does not seed, so an
+	 * unusable candidate falls back to the artist site (4) the fixtures
+	 * assert. A test that injects its own existing storage blog keeps it.
+	 *
+	 * @param int $blog_id Candidate storage blog ID.
+	 * @return int
+	 */
+	function ec_artist_platform_test_link_page_storage_blog_id( $blog_id ) {
+		$blog_id = (int) $blog_id;
+		if ( $blog_id > 0 && function_exists( 'get_site' ) && get_site( $blog_id ) ) {
+			return $blog_id;
+		}
+		return 4;
+	}
+}
+
+add_filter( 'ec_link_page_storage_blog_id', 'ec_artist_platform_test_link_page_storage_blog_id', 11 );

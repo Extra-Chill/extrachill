@@ -456,15 +456,14 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'Artist excerpt.', $projection['seo']['schema'][0]['description'] );
 	}
 
-	public function test_missing_snapshot_renders_from_live_source_without_writing(): void {
+	public function test_missing_snapshot_fails_closed_without_writing(): void {
 		$this->seedArtistIdentity();
 		$this->deleteArtistSnapshot();
 
-		$projection = ec_get_link_page_public_projection( $this->link_page_id );
+		$result = ec_get_link_page_public_projection( $this->link_page_id );
 
-		$this->assertIsArray( $projection );
-		$this->assertSame( 'Test Owner', $projection['display_title'] );
-		$this->assertSame( 'Artist excerpt.', $projection['bio'] );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'artist_profile_link_page_snapshot_invalid', $result->get_error_code() );
 		switch_to_blog( ec_get_link_page_storage_blog_id() );
 		try {
 			$this->assertFalse( metadata_exists( 'post', $this->link_page_id, \ExtraChillArtistPlatform\Artist_Link_Pages::SNAPSHOT_META_KEY ) );
@@ -473,7 +472,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		}
 	}
 
-	public function test_unpublished_artist_is_unavailable_from_snapshot_and_fallback(): void {
+	public function test_unpublished_artist_is_unavailable_from_snapshot(): void {
 		switch_to_blog( $this->artist_blog_id() );
 		wp_update_post(
 			array(
@@ -482,51 +481,9 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 			)
 		);
 		restore_current_blog();
-		$this->deleteArtistSnapshot();
-
-		$this->assertSame( 'link_page_public_owner_unavailable', ec_get_link_page_public_projection( $this->link_page_id )->get_error_code() );
 		$this->storeArtistSnapshot();
 		$result = ec_get_link_page_public_projection( $this->link_page_id );
 		$this->assertSame( 'link_page_public_owner_unavailable', $result->get_error_code() );
 		$this->assertSame( 404, $result->get_error_data()['status'] );
-	}
-
-	public function test_snapshot_migration_reports_and_backfills_missing_snapshots(): void {
-		$migration = \ExtraChillArtistPlatform\Artist_Link_Page_Snapshot_Migration::class;
-		$this->deleteArtistSnapshot();
-		$state     = $migration::inspect();
-
-		$this->assertSame( 'pending', $state['status'] );
-		$this->assertSame( 1, $state['missing'] );
-		$this->assertFalse( $migration::isComplete() );
-		// apply() is CLI-only and writes nothing elsewhere.
-		$this->assertSame( 'blocked', $migration::apply( 0 )['status'] );
-		$this->assertSame( 1, $migration::inspect()['missing'] );
-		$this->assertNotFalse( has_filter( 'datamachine_migrations' ) );
-
-		$this->storeArtistSnapshot();
-		$this->assertSame( 'complete', $migration::inspect()['status'] );
-		$this->assertTrue( $migration::isComplete() );
-	}
-
-	public function test_snapshot_migration_backfill_refreshes_each_missing_page(): void {
-		// The trusted refresh writes under a MySQL GET_LOCK advisory lock.
-		$this->ec_require_mysql_advisory_locks();
-		$this->authorizeOwner();
-		$this->deleteArtistSnapshot();
-		$backfill = Closure::bind(
-			static function () {
-				return \ExtraChillArtistPlatform\Artist_Link_Page_Snapshot_Migration::backfill( 0 );
-			},
-			null,
-			\ExtraChillArtistPlatform\Artist_Link_Page_Snapshot_Migration::class
-		);
-
-		$result = $backfill();
-
-		$this->assertTrue( $result['success'] );
-		$this->assertTrue( $result['complete'] );
-		$this->assertSame( array( $this->link_page_id ), $result['refreshed'] );
-		$this->assertSame( 'complete', \ExtraChillArtistPlatform\Artist_Link_Page_Snapshot_Migration::inspect()['status'] );
 	}
 }

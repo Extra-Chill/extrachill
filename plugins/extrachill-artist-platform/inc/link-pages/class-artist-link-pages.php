@@ -196,17 +196,6 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	}
 
 	/**
-	 * Pages that predate this definition have no snapshot until the backfill
-	 * migration runs; they keep rendering from a live source read.
-	 *
-	 * Remove this override once `extrachill-artist-platform.link-page-snapshots`
-	 * reports complete in production.
-	 */
-	protected static function live_snapshot_fallback(): bool {
-		return true;
-	}
-
-	/**
 	 * Build the artist management destination.
 	 *
 	 * @param int $owner_id Artist profile ID.
