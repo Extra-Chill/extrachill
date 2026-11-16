@@ -44,6 +44,9 @@ function get_the_title( $post_id = 0 ) {
 
 function get_permalink( $post_id = 0 ) {
 	global $current_blog_id, $post;
+	if ( is_object( $post_id ) ) {
+		$post_id = $post_id->ID;
+	}
 	return sprintf( 'https://site%d.test/%d', $current_blog_id, $post_id ?: $post->ID );
 }
 
@@ -91,4 +94,17 @@ function search_test_post( $id, $status = 'publish', $password = '' ) {
 		'post_status'   => $status,
 		'post_password' => $password,
 	);
+}
+
+function get_transient( $key ) {
+	return array();
+}
+
+function set_transient( $key, $value, $expiration = 0 ) {
+	return true;
+}
+
+function extrachill_resolve_search_sort() {
+	global $search_sort;
+	return $search_sort ?? 'relevance';
 }

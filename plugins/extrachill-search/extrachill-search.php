@@ -59,6 +59,8 @@ class ExtraChill_Search_Plugin {
 		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
 		add_filter( 'posts_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );
 		add_filter( 'site_status_tests', 'extrachill_register_search_site_health_test' );
+		add_filter( 'extrachill_filter_bar_sort_options', 'extrachill_search_filter_bar_sort_options' );
+		add_action( 'extrachill_filter_bar_start', 'extrachill_search_filter_bar_scope_field' );
 	}
 
 	/**
@@ -141,6 +143,7 @@ class ExtraChill_Search_Plugin {
 
 		require_once $includes_dir . 'core/search-functions.php';
 		require_once $includes_dir . 'core/search-scope.php';
+		require_once $includes_dir . 'core/search-sort.php';
 		require_once $includes_dir . 'core/index-health.php';
 		require_once $includes_dir . 'core/search-algorithm.php';
 		require_once $includes_dir . 'core/taxonomy-functions.php';
