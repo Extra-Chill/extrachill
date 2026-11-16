@@ -117,6 +117,7 @@ function extrachill_shop_register_ticket_abilities() {
 						'type'       => 'object',
 						'properties' => array(
 							'reference'   => array( 'type' => 'string' ),
+							'order_id'    => array( 'type' => 'integer' ),
 							'event_id'    => array( 'type' => 'integer' ),
 							'event_title' => array( 'type' => 'string' ),
 							'event_url'   => array( 'type' => 'string' ),

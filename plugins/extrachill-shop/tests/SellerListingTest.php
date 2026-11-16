@@ -205,10 +205,36 @@ final class SellerListingTest extends TestCase {
 			'key'   => '_extrachill_seller',
 			'value' => 'venue:1226',
 		);
-		// The page query is scoped to the seller only; All includes disputed orders.
-		$this->assertSame( array( $seller_clause ), $GLOBALS['listing_queries'][0]['meta_query'] );
+		$merch_clause  = extrachill_shop_not_ticket_meta_clause();
+		// The page query is scoped to the seller's merch orders; All includes disputed orders.
+		$this->assertSame( array( $seller_clause, $merch_clause ), $GLOBALS['listing_queries'][0]['meta_query'] );
 		// The Needs Fulfillment count leaves disputed orders out.
-		$this->assertSame( array( $seller_clause, extrachill_shop_not_disputed_meta_clause() ), $GLOBALS['listing_queries'][1]['meta_query'] );
+		$this->assertSame( array( $seller_clause, $merch_clause, extrachill_shop_not_disputed_meta_clause() ), $GLOBALS['listing_queries'][1]['meta_query'] );
+	}
+	public function test_ticket_orders_never_reach_the_orders_tab(): void {
+		\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
+		extrachill_shop_ability_list_orders( array(
+			'seller' => array(
+				'type' => 'venue',
+				'id'   => 1226,
+			),
+			'status' => 'needs_fulfillment',
+		) );
+		// The CPT store gets the same clause through the query adapter.
+		foreach ( $GLOBALS['listing_queries'] as $query ) {
+			$this->assertSame( array( extrachill_shop_not_ticket_meta_clause() ), $query['extrachill_meta_query'] );
+			$this->assertContains( extrachill_shop_not_ticket_meta_clause(), extrachill_shop_order_seller_cpt_query( array(), $query )['meta_query'] );
+		}
+		// The merch tools refuse a ticket order even when its seller matches.
+		$ticket                                      = new SellerListingOrder( array() );
+		$ticket->meta['_extrachill_seller']          = 'venue:1226';
+		$ticket->meta[ EXTRACHILL_SHOP_ORDER_KIND_META ] = EXTRACHILL_SHOP_TICKET_KIND;
+		$seller                                      = array( 'type' => 'venue', 'id' => 1226 );
+		$this->assertFalse( extrachill_shop_order_has_seller( $ticket, $seller ) );
+		$this->assertNull( extrachill_shop_get_order_seller_record( $ticket ) );
+		$this->assertSame( $seller, extrachill_shop_get_order_seller( $ticket ) );
+		unset( $ticket->meta[ EXTRACHILL_SHOP_ORDER_KIND_META ] );
+		$this->assertTrue( extrachill_shop_order_has_seller( $ticket, $seller ) );
 	}
 	public function test_cpt_adapter_excludes_disputed_orders_when_asked(): void {
 		$query = extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_seller' => 'venue:1226', 'extrachill_exclude_disputed' => true ) );

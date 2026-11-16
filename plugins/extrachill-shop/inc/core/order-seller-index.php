@@ -42,7 +42,31 @@ function extrachill_shop_order_seller_cpt_query( $query, $vars ) {
 	if ( ! empty( $vars['extrachill_exclude_disputed'] ) ) {
 		$query['meta_query'][] = extrachill_shop_not_disputed_meta_clause();
 	}
+	foreach ( (array) ( $vars['extrachill_meta_query'] ?? array() ) as $clause ) {
+		$query['meta_query'][] = $clause;
+	}
 	return $query;
+}
+
+/**
+ * Add one meta clause to a `wc_get_orders()` query.
+ *
+ * HPOS takes `meta_query` natively; the CPT adapter appends
+ * `extrachill_meta_query` clauses (extrachill_shop_order_seller_cpt_query()).
+ *
+ * @param array $args   Order query args.
+ * @param array $clause Meta query clause.
+ * @return array
+ */
+function extrachill_shop_add_order_meta_clause( array $args, array $clause ): array {
+	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
+		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$args['meta_query']   = isset( $args['meta_query'] ) && is_array( $args['meta_query'] ) ? $args['meta_query'] : array(); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Order facts are order meta.
+		$args['meta_query'][] = $clause;
+	} else {
+		$args['extrachill_meta_query'][] = $clause;
+	}
+	return $args;
 }
 
 /**
@@ -120,7 +144,8 @@ function extrachill_shop_scope_order_query_to_seller( array $args, array $seller
  */
 function extrachill_shop_index_order_seller( $order ) {
 	$order = is_object( $order ) ? $order : wc_get_order( $order );
-	if ( ! $order || $order->get_meta( '_extrachill_checkout_sessions' ) ) {
+	// Ticket orders have no products; ticket checkout records their seller.
+	if ( ! $order || $order->get_meta( '_extrachill_checkout_sessions' ) || extrachill_shop_order_is_ticket( $order ) ) {
 		return;
 	}
 	$ids = array();
@@ -151,13 +176,19 @@ function extrachill_shop_get_order_seller( $order ): ?array {
 }
 
 /**
- * Whether an order belongs to a seller.
+ * Whether a merch order belongs to a seller.
+ *
+ * Ticket orders never match: the merch tools (status, labels, refunds) do not
+ * apply to them. Ticket refunds check the seller themselves.
  *
  * @param WC_Order $order  Order.
  * @param array    $seller Seller reference.
  * @return bool
  */
 function extrachill_shop_order_has_seller( $order, array $seller ): bool {
+	if ( extrachill_shop_order_is_ticket( $order ) ) {
+		return false;
+	}
 	$owner = extrachill_shop_get_order_seller( $order );
 	return null !== $owner && $owner['type'] === $seller['type'] && $owner['id'] === (int) $seller['id'];
 }
@@ -170,11 +201,11 @@ function extrachill_shop_order_has_seller( $order, array $seller ): bool {
  * shipping hold while Extra Chill still holds it.
  *
  * @param WC_Order $order Order.
- * @return array|null { seller, stripe_account, total, application_fee, shipping_held, seller_payout, items[] }, null for platform orders.
+ * @return array|null { seller, stripe_account, total, application_fee, shipping_held, seller_payout, items[] }, null for platform and ticket orders.
  */
 function extrachill_shop_get_order_seller_record( $order ): ?array {
 	$seller = extrachill_shop_get_order_seller( $order );
-	if ( null === $seller ) {
+	if ( null === $seller || extrachill_shop_order_is_ticket( $order ) ) {
 		return null;
 	}
 

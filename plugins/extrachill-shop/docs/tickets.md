@@ -94,26 +94,84 @@ field from an Account object, a webhook payload, or an array. Merch checkout
 uses the payer too since #1563 (see
 [ecommerce-integration.md](ecommerce-integration.md#4-merch-fee-sellers-pay-card-processing-1563)).
 
-The ticket order row (`extrachill_ticket_order_<session>`) stores the split under
-`amounts`: `subtotal_minor`, `service_fee_minor`, `total_minor`,
-`application_fee_minor` (the application fee actually charged), `currency`, and
-`processing_payer` (`account` or `platform`, the payer that fee assumed).
-`sales.gross_minor` (sent to Events'
-`record-checkout-ticket-sales`) is the full amount charged, Service fee included,
-and `sales.fees_minor` is the application fee.
+The ticket order (see [Storage](#storage-woocommerce-orders)) stores the split
+in `_extrachill_ticket_amounts`: `subtotal_minor`, `service_fee_minor`,
+`total_minor`, `application_fee_minor` (the application fee actually charged),
+`currency`, and `processing_payer` (`account` or `platform`, the payer that fee
+assumed). The sale sent to Events' `record-checkout-ticket-sales` reports
+`gross_minor` as the full amount charged, Service fee included, and `fees_minor`
+as the application fee.
 
 Refunds (`extrachill_shop_ticket_refund_payment()`, used for a single order, the
 show-wide "refund everyone", and sold-out auto-refunds) send no `amount`, so the
 buyer gets the whole charge back, Service fee included, and
 `refund_application_fee` returns the application fee to the venue. Refunds never
 recompute the fee: the refund metadata and `record-checkout-ticket-sales`
-reversal use the stored `sales.fees_minor`, i.e. whatever was charged. The
+reversal use the stored `application_fee_minor`, i.e. whatever was charged. The
 processor does not return its fee on a refund, so whoever paid processing is out
 the original processing on a refunded order: the venue when the account pays
 (as with merch), Extra Chill when the platform pays (about $0.94 on a refunded
 $20 ticket; the venue nets $0). Disputes are unchanged; their amounts include
 the Service fee, and a lost dispute records `fees_minor` 0 whichever payer the
 order assumed.
+
+## Storage: WooCommerce orders
+
+Since #1597 each ticket sale is a WooCommerce order (HPOS), created with
+`wc_create_order()` before the Checkout Session. There is no product and no
+cart; the option rows (`extrachill_ticket_order_*`, `extrachill_ticket_payment_*`)
+and the buyer user-meta index are gone. `inc/core/ticket-orders.php` documents
+every field.
+
+- **Lines:** one line item `Event tickets: <show>` with no product (quantity =
+  tickets, total = ticket subtotal, item meta `event_id`), plus a `Service fee`
+  fee line when the buyer pays one. Billing name and email come from checkout;
+  `customer_id` is the logged-in buyer (0 for a guest). The payment method is
+  `extrachill_ticket_checkout`, which has no gateway, so WooCommerce never
+  refunds the payment itself.
+- **Meta:** `_extrachill_order_kind` = `extrachill_ticket`, the seller index
+  `_extrachill_seller` and `_extrachill_stripe_account` (as merch),
+  `_extrachill_ticket_event`, `_extrachill_ticket_amounts`,
+  `_extrachill_fee_payer`, `_extrachill_terms_accepted_at` /
+  `_extrachill_terms_version`, `_extrachill_checkout_sessions`, and
+  `_extrachill_payment_intent` once paid.
+- **Order reference:** the Checkout Session ID, stored as
+  `_extrachill_ticket_reference`. Events keys passes, sales and
+  `get-ticket-order-status` by it, so nothing changed there. The Session's
+  metadata carries `kind` and `order_id`.
+- **Notes:** state changes, refunds and dispute outcomes are WooCommerce order
+  notes.
+
+| Ticket state | WooCommerce order |
+|---|---|
+| pending | `pending` while the Checkout Session is open |
+| expired / failed | `cancelled` / `failed`: the Session expired or the async payment failed (the merch expiry path) |
+| issued | `completed` (`payment_complete()` after Events issues the passes; nothing to ship, so it skips `processing`). `processing` also counts as issued. |
+| refund_pending | issued, with `_extrachill_ticket_refund_pending`: passes revoked, Stripe refund not yet succeeded |
+| refunded | `refunded`, with a WooCommerce refund record |
+| disputed | `on-hold` with `_extrachill_dispute` (the #1503 flag) |
+
+Refunds are recorded with `wc_create_refund()` (`refund_payment` false, so
+Stripe isn't called again), tagged with the Stripe refund or dispute ID for
+idempotency. The order goes to `refunded` once nothing is left to refund.
+
+**Kept apart from merch.** Ticket orders have nothing to ship:
+
+- No WooCommerce emails (`woocommerce_email_enabled_*` returns false for the
+  admin new/cancelled/failed order emails and every customer order email).
+  Events emails passes, refunds and dispute notices.
+- No stock changes (`woocommerce_can_reduce_order_stock`).
+- Not in the seller's Orders tab, the Needs Fulfillment count, or the shipping
+  label list: those queries add a "kind is not ticket" meta clause. The merch
+  tools (status changes, labels, merch refunds, seller order emails) refuse a
+  ticket order because `extrachill_shop_order_has_seller()` is false for it.
+- Not in My Account → Orders; they're under My Account → Tickets.
+
+**Reads.** My Account → Tickets and `extrachill/list-my-ticket-orders` query
+orders by `customer_id` and kind (issued, refunded and on-hold). Host refunds
+query by `_extrachill_ticket_event` and status (`processing`, `completed`).
+Webhooks find the order from the Session's `order_id` (checked against the
+stored account) or by PaymentIntent and account. None of them scan.
 
 ## Deployment
 
@@ -122,8 +180,8 @@ order assumed.
   `/wp-json/extrachill/v1/shop/stripe-webhook` to the events listed on Network
   Admin → Payments. Ticket Sessions use `checkout.session.completed` and
   `checkout.session.async_payment_succeeded` (issue), `checkout.session.expired`
-  and `checkout.session.async_payment_failed` (close the pending Shop order row;
-  Events has recorded nothing yet), `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`.
+  and `checkout.session.async_payment_failed` (cancel or fail the pending ticket
+  order; Events has recorded nothing yet), `charge.refunded`, `charge.dispute.created` and `charge.dispute.closed`.
 - Configure `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_KEYS` (key-ID map) and
   `EXTRACHILL_SHOP_TICKET_SERVICE_ASSERTION_ACTIVE_KEY_ID`. Matching Events target
   grants must allow service `extrachill.events.tickets`, scope
@@ -136,12 +194,13 @@ order assumed.
   charges-enabled connected account. Exercise test-mode checkout and webhook
   delivery before enabling a paid offer.
 
-Shop stores immutable seller/account bindings per Checkout Session in non-autoloaded
-options and a payment-intent index. Events issuance uses the session ID as both
-idempotency key and order reference. Sold-out payments are refunded on the stored
-account with application fees returned; the reason is persisted. Stripe refund
+The ticket order binds the seller and connected account before the Session
+exists. If Stripe refuses the Session, the pending order is deleted. Events
+issuance uses the session ID as both idempotency key and order reference.
+Sold-out payments are refunded on the stored account with application fees
+returned; the reason is stored in `_extrachill_ticket_refund_reason`. Stripe refund
 requests use a stable per-session idempotency key. Webhook failures return errors
-for Stripe retries; order state is marked issued only after Events confirms it.
+for Stripe retries; the order is marked paid only after Events confirms issuance.
 
 ## Refund ordering deviation
 
@@ -149,7 +208,7 @@ Seller refunds authorize against the stored seller and consult Events status.
 After that check, passes are revoked **before** the Stripe refund: Events must
 atomically refuse revocation if check-in has occurred. Refunding first, as in the
 issue's proposed ordering, would permit a check-in race that refunds a redeemed
-pass. A failed Stripe call leaves `refund_pending`; retry the same ability to
+pass. A refund is never issued for an order with a checked-in pass. A failed Stripe call leaves `refund_pending`; retry the same ability to
 complete it (passes stay revoked). This state requires operator attention if
 Stripe continues failing. This is not a distributed transaction.
 
@@ -162,12 +221,12 @@ webhooks that arrive before the completion/index write return a retryable error.
 
 `charge.dispute.created` revokes the order's passes in Events with reason
 `dispute` (Events stores it per pass as `revoke_reason`, and emails the seller),
-marks the order `disputed`, and blocks refunds: Stripe refuses refunds on a
-disputed charge. A buyer who already checked in keeps the check-in. A replay, or
+puts the order `on-hold` with the `_extrachill_dispute` flag (remembering the
+prior status), and blocks refunds: Stripe refuses refunds on a disputed charge. A buyer who already checked in keeps the check-in. A replay, or
 a `created` for a dispute that has already closed, is a no-op.
 
-`charge.dispute.closed` records `dispute_outcome` (`won` or `lost`) on the order,
-appends a `{ at, note }` entry to the order's `notes`, and emails the seller
+`charge.dispute.closed` records `_extrachill_dispute_outcome` (`<dispute>:won` or
+`<dispute>:lost`) on the order, adds an order note, and emails the seller
 through `notify-commerce-seller`:
 
 - **Won** (`won`, or `warning_closed` for an inquiry): Shop calls
@@ -175,17 +234,19 @@ through `notify-commerce-seller`:
   `buyer_email`. Events reactivates only the passes that the dispute revoked,
   keeping their codes so the buyer's existing passes scan again, and emails each
   restored pass to the buyer. Passes revoked for a refund or removed by a host
-  stay revoked. Capacity isn't re-checked. The order goes back to `issued`, so
-  seller refunds and the show-wide refund work again.
-- **Lost**: the passes stay revoked and the order stays `disputed`, so it still
-  can't be refunded. The returned amount is recorded with
+  stay revoked. Capacity isn't re-checked. The order goes back to its prior
+  status (`completed`), so seller refunds and the show-wide refund work again.
+- **Lost**: the passes stay revoked. The returned amount is recorded as a
+  WooCommerce refund tagged with the dispute ID; a full loss leaves the order
+  `refunded`, a partial one leaves it `on-hold` and still unrefundable. It is
+  also recorded with
   `record-checkout-ticket-sales` like a refund, keyed by the dispute ID, with
   `fees_minor` 0 (the platform fee isn't returned on a lost dispute) and all
   tickets reversed when the full amount went back.
 
 A failed Events call returns an error so Stripe retries before anything is
 recorded. Replays are no-ops, and the restore itself is idempotent, so the buyer
-is emailed once. Only orders still `disputed` are restored or recorded.
+is emailed once. Only orders still on hold for the dispute are restored or recorded.
 
 Tests: `phpunit -c plugins/extrachill-shop/phpunit.xml.dist` from workspace root.
 Stripe and the sibling Events contracts are mocked; live Connect configuration

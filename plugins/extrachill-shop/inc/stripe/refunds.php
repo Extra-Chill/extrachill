@@ -328,7 +328,7 @@ function extrachill_shop_tag_refund_with_stripe_id( $refund_id ): void {
  * @param WC_Order $order Order.
  * @return string[]
  */
-function extrachill_shop_recorded_merch_refunds( $order ): array {
+function extrachill_shop_recorded_stripe_refunds( $order ): array {
 	$ids = array();
 	foreach ( $order->get_refunds() as $refund ) {
 		$id = (string) $refund->get_meta( EXTRACHILL_SHOP_REFUND_ID_META );
@@ -422,7 +422,7 @@ function extrachill_shop_merch_charge_refunded( $charge, $account ) {
 	}
 
 	$order_id = (string) $order->get_id();
-	$known    = extrachill_shop_recorded_merch_refunds( $order );
+	$known    = extrachill_shop_recorded_stripe_refunds( $order );
 	$added    = 0;
 	try {
 		$rows = extrachill_shop_charge_refund_rows( $charge, $account );

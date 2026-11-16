@@ -74,14 +74,16 @@ function extrachill_shop_ability_list_shipping_labels( array $input ): array|WP_
 	}
 
 	$orders = wc_get_orders(
-		extrachill_shop_scope_order_query_to_seller(
-			array(
-				'limit'   => -1,
-				'status'  => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
-				'orderby' => 'date',
-				'order'   => 'DESC',
-			),
-			$seller
+		extrachill_shop_exclude_ticket_orders(
+			extrachill_shop_scope_order_query_to_seller(
+				array(
+					'limit'   => -1,
+					'status'  => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
+					'orderby' => 'date',
+					'order'   => 'DESC',
+				),
+				$seller
+			)
 		)
 	);
 
