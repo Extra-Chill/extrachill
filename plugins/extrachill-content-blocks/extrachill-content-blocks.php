@@ -125,6 +125,7 @@ function extrachill_content_blocks_load_business_logic() {
 		'/rapper-name-generator/index.php',
 		'/image-voting/index.php',
 		'/photo-contest/index.php',
+		'/qr-code-generator/index.php',
 	);
 
 	foreach ( $logic_files as $file ) {
@@ -172,6 +173,7 @@ function extrachill_content_blocks_register_blocks() {
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/photo-contest' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/band-name-generator' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/rapper-name-generator' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/qr-code-generator' );
 }
 add_action( 'init', 'extrachill_content_blocks_register_blocks' );
 
@@ -208,6 +210,7 @@ function extrachill_content_blocks_get_block_names() {
 		'extrachill/photo-contest',
 		'extrachill/band-name-generator',
 		'extrachill/rapper-name-generator',
+		'extrachill/qr-code-generator',
 	);
 }
 

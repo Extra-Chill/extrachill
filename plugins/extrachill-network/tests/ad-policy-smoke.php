@@ -38,6 +38,10 @@ function get_post_type() {
 	return '';
 }
 
+function get_queried_object_id() {
+	return 0;
+}
+
 function is_front_page() {
 	return false;
 }
@@ -157,6 +161,12 @@ add_filter( 'extrachill_ad_policy_exclusion', 'extrachill_member_ad_policy_exclu
 $member_policy = extrachill_get_ad_policy( array( 'blog_id' => 1 ) );
 ad_policy_assert_same( 'member_benefit', $member_policy['reason'], 'Reason-aware member exclusions propagate their stable reason.' );
 ad_policy_assert_same( false, $member_policy['serve_ads'], 'Member benefits prevent serving ads.' );
+
+ad_policy_reset();
+ad_policy_available_health();
+add_filter( 'extrachill_should_block_ads', static fn( $blocked, $context ) => 10 !== $context['post_id'], 10, 2 );
+ad_policy_assert_same( 'enabled', extrachill_get_ad_policy( array( 'blog_id' => 1, 'post_id' => 10 ) )['reason'], 'Explicit post_id reaches route exclusions.' );
+ad_policy_assert_same( 'route_blocked', extrachill_get_ad_policy( array( 'blog_id' => 1 ) )['reason'], 'Non-singular requests carry post_id 0.' );
 
 ad_policy_reset();
 $unavailable = extrachill_get_ad_policy( array( 'blog_id' => 1 ) );

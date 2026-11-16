@@ -1,0 +1,22 @@
+{
+	"apiVersion": 3,
+	"name": "extrachill/qr-code-generator",
+	"title": "QR Code Generator for Musicians",
+	"icon": "grid-view",
+	"category": "widgets",
+	"description": "Free static QR codes for merch tables, flyers, tip jars and ticket links. They never expire.",
+	"textdomain": "extrachill-content-blocks",
+	"supports": {
+		"html": false
+	},
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"render": "file:./render.php",
+	"keywords": [
+		"qr",
+		"band",
+		"merch",
+		"flyer",
+		"tickets"
+	]
+}

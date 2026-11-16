@@ -78,6 +78,7 @@ function extrachill_users_output_mediavine_blocklist() {
 
 	$context = array(
 		'blog_id'              => get_current_blog_id(),
+		'post_id'              => is_singular() ? (int) get_queried_object_id() : 0,
 		'post_type'            => is_singular() ? (string) get_post_type() : '',
 		'is_front_page'        => is_front_page(),
 		'is_home'              => is_home(),

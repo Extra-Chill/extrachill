@@ -54,6 +54,7 @@ function extrachill_get_ad_request_context( array $context = array() ): array {
 		$context,
 		array(
 			'blog_id'              => $blog_id,
+			'post_id'              => isset( $context['post_id'] ) ? absint( $context['post_id'] ) : ( $is_current && is_singular() ? (int) get_queried_object_id() : 0 ),
 			'post_type'            => isset( $context['post_type'] ) ? sanitize_key( (string) $context['post_type'] ) : ( $is_current && is_singular() ? (string) get_post_type() : '' ),
 			'is_front_page'        => $runtime_value( 'is_front_page', 'is_front_page' ),
 			'is_home'              => $runtime_value( 'is_home', 'is_home' ),

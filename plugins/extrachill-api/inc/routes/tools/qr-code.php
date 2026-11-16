@@ -5,9 +5,8 @@
  * Generates high-resolution print-ready QR codes for any URL.
  * PNG generation is owned by the extrachill/generate-qr-code ability (extrachill-network).
  *
- * Admin-tool route: the backing extrachill/generate-qr-code ability requires
- * network-admin permission. Despite the open transport callback, non-admin
- * callers receive 403 ability_invalid_permissions from ability execution.
+ * Public, including anonymous callers. The backing ability validates HTTP(S)
+ * URLs, bounds image dimensions, and limits generation to 30/hour per IP and user.
  * Public contest entry QR reads use the dedicated photo-contest/entry-qr route.
  *
  * @endpoint POST /wp-json/extrachill/v1/tools/qr-code
@@ -66,7 +65,7 @@ function extrachill_api_validate_qr_url( $url ) {
 		);
 	}
 
-	if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+	if ( ! filter_var( $url, FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) ) {
 		return new WP_Error(
 			'invalid_url',
 			'Please provide a valid URL.',
