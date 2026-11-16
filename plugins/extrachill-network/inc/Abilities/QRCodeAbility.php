@@ -134,7 +134,7 @@ class QRCodeAbility {
 	 */
 	private function check_rate_limit() {
 		// Operator automation (WP-CLI, Action Scheduler) is trusted and unthrottled.
-		if ( ( defined( 'WP_CLI' ) && WP_CLI ) || ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) ) {
+		if ( ( defined( 'WP_CLI' ) && constant( 'WP_CLI' ) ) || ( class_exists( 'ActionScheduler' ) && did_action( 'action_scheduler_before_execute' ) ) ) {
 			return true;
 		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- hashed only, never rendered or used as an address.

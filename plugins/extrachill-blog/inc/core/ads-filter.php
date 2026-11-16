@@ -24,7 +24,7 @@ function extrachill_blog_should_block_ads( $should_block_ads, $context ) {
 		return true;
 	}
 
-	if ( empty( $context['blog_id'] ) || (int) $context['blog_id'] !== 1 ) {
+	if ( empty( $context['blog_id'] ) || 1 !== (int) $context['blog_id'] ) {
 		return false;
 	}
 

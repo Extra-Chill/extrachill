@@ -31,6 +31,7 @@ export function QRCodeGenerator( { config = {} }: { config?: QRGeneratorConfig }
 	const [ error, setError ] = useState( '' );
 	const [ busy, setBusy ] = useState( false );
 	const pending = useRef( false );
+	const inputId = useRef( `ec-qr-url-${ Math.random().toString( 36 ).slice( 2 ) }` ).current;
 
 	async function generate( event: React.FormEvent ) {
 		event.preventDefault();
@@ -69,19 +70,26 @@ export function QRCodeGenerator( { config = {} }: { config?: QRGeneratorConfig }
 	}
 
 	const filename = preset ? `${ preset.slug }-qr-code.png` : 'qr-code.png';
+	const altText = preset
+		? sprintf(
+			/* translators: %s: QR code use, e.g. Bandcamp. */
+			__( 'Your %s QR code', 'extrachill-content-blocks' ),
+			preset.label
+		)
+		: __( 'Your QR code', 'extrachill-content-blocks' );
 
 	return (
 		<>
 			<form className="ec-form-stack" onSubmit={ generate } aria-busy={ busy }>
-				<label>
+				<label htmlFor={ inputId }>
 					{ __( 'Where should it point?', 'extrachill-content-blocks' ) }
-					<input type="url" value={ url } maxLength={ 2048 } required
+				</label>
+				<input id={ inputId } type="url" value={ url } maxLength={ 2048 } required
 						placeholder={ preset ? preset.placeholder : 'https://yourband.bandcamp.com' } disabled={ busy }
 						onChange={ ( event ) => {
 							setUrl( event.target.value );
 							setImage( '' );
 						} } />
-				</label>
 				<button type="submit" className="button-1" disabled={ busy }>
 					{ busy ? __( 'Generating…', 'extrachill-content-blocks' ) : __( 'Generate QR code', 'extrachill-content-blocks' ) }
 				</button>
@@ -100,10 +108,7 @@ export function QRCodeGenerator( { config = {} }: { config?: QRGeneratorConfig }
 			{ error && <p className="notice notice-error" role="alert">{ error }</p> }
 			<div aria-live="polite">
 				{ image && <>
-					<p><img src={ image } alt={ preset
-						/* translators: %s: QR code use, e.g. Bandcamp. */
-						? sprintf( __( 'Your %s QR code', 'extrachill-content-blocks' ), preset.label )
-						: __( 'Your QR code', 'extrachill-content-blocks' ) } width="300" height="300" /></p>
+					<p><img src={ image } alt={ altText } width="300" height="300" /></p>
 					<a className="button-1" href={ image } download={ filename }>{ __( 'Download PNG', 'extrachill-content-blocks' ) }</a>
 					{ config.joinUrl && <p className="notice notice-info" data-qr-join>
 						{ __( 'Tired of reprinting flyers every time a link changes? Put one QR on everything:', 'extrachill-content-blocks' ) }{ ' ' }
