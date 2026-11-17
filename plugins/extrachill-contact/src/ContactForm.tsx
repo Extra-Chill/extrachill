@@ -1,4 +1,11 @@
+/**
+ * External dependencies
+ */
 import { useState, useEffect, useRef } from 'react';
+
+/**
+ * Internal dependencies
+ */
 import type { ContactFormProps, ContactFormData, ContactFormStatus } from './types';
 import './ContactForm.css';
 
@@ -18,7 +25,7 @@ export function ContactForm({
   turnstileSiteKey,
   subjects,
   initialSubject,
-  newsletterNotice,
+  newsletterOptIn,
   successMessage = "Thanks for reaching out! We'll be in touch soon.",
   successAction,
   onSuccess,
@@ -32,6 +39,7 @@ export function ContactForm({
     email: '',
     subject: initialSubject && subjects.includes(initialSubject) ? initialSubject : '',
     message: '',
+    newsletter_opt_in: false,
   });
 
   const turnstileRef = useRef<HTMLDivElement>(null);
@@ -81,6 +89,11 @@ export function ContactForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleOptInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { checked } = e.target;
+    setFormData((prev) => ({ ...prev, newsletter_opt_in: checked }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -115,6 +128,7 @@ export function ContactForm({
           email: formData.email,
           subject: formData.subject,
           message: formData.message,
+          newsletter_opt_in: Boolean(newsletterOptIn) && formData.newsletter_opt_in,
           source_url: window.location.href,
           turnstile_response: turnstileResponse,
         }),
@@ -233,8 +247,20 @@ export function ContactForm({
           />
         </div>
 
-        {newsletterNotice && (
-          <p className="ec-contact-form__notice">{newsletterNotice}</p>
+        {newsletterOptIn && (
+          <div className="ec-contact-form__group">
+            <label htmlFor="ec-contact-newsletter-opt-in" className="ec-checkbox-row">
+              <input
+                type="checkbox"
+                id="ec-contact-newsletter-opt-in"
+                name="newsletter_opt_in"
+                checked={formData.newsletter_opt_in}
+                onChange={handleOptInChange}
+                disabled={status === 'submitting'}
+              />
+              <span>{newsletterOptIn}</span>
+            </label>
+          </div>
         )}
 
         {turnstileSiteKey && (

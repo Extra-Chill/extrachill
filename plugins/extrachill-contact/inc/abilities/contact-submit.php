@@ -30,7 +30,7 @@ function extrachill_contact_register_submit_ability(): void {
 		'extrachill/contact-submit',
 		array(
 			'label'               => __( 'Submit Contact Form', 'extrachill-contact' ),
-			'description'         => __( 'Process a contact form submission with Turnstile verification, email notifications, and optional newsletter synchronization.', 'extrachill-contact' ),
+			'description'         => __( 'Process a contact form submission with Turnstile verification, email notifications, and newsletter synchronization when the sender opts in.', 'extrachill-contact' ),
 			'category'            => 'extrachill-contact',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -61,6 +61,11 @@ function extrachill_contact_register_submit_ability(): void {
 					'turnstile_response' => array(
 						'type'        => 'string',
 						'description' => __( 'Cloudflare Turnstile response token.', 'extrachill-contact' ),
+					),
+					'newsletter_opt_in'  => array(
+						'type'        => 'boolean',
+						'default'     => false,
+						'description' => __( 'Whether the sender ticked the newsletter opt-in box. Only an explicit true subscribes; absent means no.', 'extrachill-contact' ),
 					),
 				),
 			),
@@ -115,6 +120,44 @@ function extrachill_contact_skipped_side_effect( string $provider, bool $optiona
 }
 
 /**
+ * Return the newsletter side effect for a sender who did not opt in.
+ *
+ * @return array<string, mixed>
+ */
+function extrachill_contact_not_opted_in_side_effect(): array {
+	return array(
+		'success'   => true,
+		'status'    => 'not_opted_in',
+		'provider'  => 'extrachill/subscribe',
+		'optional'  => true,
+		'retryable' => false,
+		'message'   => 'Not attempted because the sender did not opt in to the newsletter.',
+	);
+}
+
+/**
+ * Whether the submission explicitly opted in to the newsletter.
+ *
+ * A contact message is not newsletter consent, so only an explicit yes
+ * (true, 1, "1", "true", "on", "yes") counts. An absent, empty, or
+ * unrecognized value is a no.
+ *
+ * @param array<string, mixed> $input Ability input.
+ */
+function extrachill_contact_has_newsletter_opt_in( array $input ): bool {
+	if ( ! isset( $input['newsletter_opt_in'] ) ) {
+		return false;
+	}
+
+	$value = $input['newsletter_opt_in'];
+	if ( ! is_bool( $value ) && ! is_int( $value ) && ! is_string( $value ) ) {
+		return false;
+	}
+
+	return true === filter_var( $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+}
+
+/**
  * Stable replay key for one normalized submission.
  *
  * The Turnstile token is deliberately excluded because tokens are single-use.
@@ -122,7 +165,12 @@ function extrachill_contact_skipped_side_effect( string $provider, bool $optiona
  * @param array<string, string> $submission Normalized submission.
  */
 function extrachill_contact_submission_id( array $submission ): string {
-	return hash( 'sha256', wp_json_encode( $submission ) );
+	$encoded = wp_json_encode( $submission );
+	if ( false === $encoded ) {
+		$encoded = implode( "\0", $submission );
+	}
+
+	return hash( 'sha256', $encoded );
 }
 
 /**
@@ -211,7 +259,9 @@ function extrachill_contact_ability_submit( array $input ) {
 		'side_effects'  => array(
 			'administrator_delivery' => $administrator,
 			'confirmation_delivery'  => ec_contact_send_user_confirmation( $name, $email, $subject, $message ),
-			'newsletter_sync'        => ec_contact_sync_to_sendy( $email, $name, $source_url ),
+			'newsletter_sync'        => extrachill_contact_has_newsletter_opt_in( $input )
+				? ec_contact_sync_to_sendy( $email, $name, $source_url )
+				: extrachill_contact_not_opted_in_side_effect(),
 		),
 	);
 

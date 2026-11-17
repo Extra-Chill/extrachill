@@ -76,7 +76,12 @@ class Test_Contact_Submission extends WP_UnitTestCase {
 		return $pre;
 	}
 
-	/** @return array<string, string> */
+	/**
+	 * Default input opts in, so the side-effect tests exercise newsletter sync.
+	 * The opt-in tests below remove or override it.
+	 *
+	 * @return array<string, mixed>
+	 */
 	private function input(): array {
 		return array(
 			'name'               => 'Listener',
@@ -84,6 +89,7 @@ class Test_Contact_Submission extends WP_UnitTestCase {
 			'subject'            => 'General Inquiry',
 			'message'            => 'Hello Extra Chill.',
 			'turnstile_response' => 'valid-token',
+			'newsletter_opt_in'  => true,
 		);
 	}
 
@@ -105,6 +111,88 @@ class Test_Contact_Submission extends WP_UnitTestCase {
 		$this->assertSame( 'delivered', $result['side_effects']['administrator_delivery']['status'] );
 		$this->assertSame( 'delivered', $result['side_effects']['confirmation_delivery']['status'] );
 		$this->assertSame( 'subscribed', $result['side_effects']['newsletter_sync']['status'] );
+	}
+
+	public function test_absent_opt_in_never_subscribes(): void {
+		$this->email_results = array( $this->delivered(), $this->delivered() );
+
+		$input = $this->input();
+		unset( $input['newsletter_opt_in'] );
+
+		$result = extrachill_contact_ability_submit( $input );
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 0, $this->newsletter_calls );
+		$this->assertSame( 'not_opted_in', $result['side_effects']['newsletter_sync']['status'] );
+		$this->assertSame( 'delivered', $result['side_effects']['confirmation_delivery']['status'] );
+	}
+
+	/** @return array<string, array{0: mixed}> */
+	public function falsy_opt_in_provider(): array {
+		return array(
+			'false'        => array( false ),
+			'zero'         => array( 0 ),
+			'string zero'  => array( '0' ),
+			'string false' => array( 'false' ),
+			'empty'        => array( '' ),
+			'garbage'      => array( 'please-no' ),
+			'null'         => array( null ),
+			'array'        => array( array( true ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider falsy_opt_in_provider
+	 * @param mixed $value Opt-in value.
+	 */
+	public function test_unchecked_or_unrecognized_opt_in_never_subscribes( $value ): void {
+		$this->email_results = array( $this->delivered(), $this->delivered() );
+
+		$input                      = $this->input();
+		$input['newsletter_opt_in'] = $value;
+
+		$result = extrachill_contact_ability_submit( $input );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 0, $this->newsletter_calls );
+		$this->assertSame( 'not_opted_in', $result['side_effects']['newsletter_sync']['status'] );
+	}
+
+	/** @return array<string, array{0: mixed}> */
+	public function truthy_opt_in_provider(): array {
+		return array(
+			'true'        => array( true ),
+			'one'         => array( 1 ),
+			'string one'  => array( '1' ),
+			'string true' => array( 'true' ),
+			'checkbox on' => array( 'on' ),
+		);
+	}
+
+	/**
+	 * @dataProvider truthy_opt_in_provider
+	 * @param mixed $value Opt-in value.
+	 */
+	public function test_explicit_opt_in_subscribes( $value ): void {
+		$this->email_results = array( $this->delivered(), $this->delivered() );
+
+		$input                      = $this->input();
+		$input['newsletter_opt_in'] = $value;
+
+		$result = extrachill_contact_ability_submit( $input );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( 1, $this->newsletter_calls );
+		$this->assertSame( 'subscribed', $result['side_effects']['newsletter_sync']['status'] );
+	}
+
+	public function test_ability_schema_defaults_opt_in_to_false(): void {
+		$schema = wp_get_ability( 'extrachill/contact-submit' )->get_input_schema();
+
+		$this->assertSame( 'boolean', $schema['properties']['newsletter_opt_in']['type'] );
+		$this->assertFalse( $schema['properties']['newsletter_opt_in']['default'] );
+		$this->assertNotContains( 'newsletter_opt_in', $schema['required'] );
 	}
 
 	public function test_confirmation_failure_is_observable_partial_failure(): void {

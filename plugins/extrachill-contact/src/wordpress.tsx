@@ -5,7 +5,14 @@
  * Reads configuration from window.ecContactConfig.
  */
 
+/**
+ * External dependencies
+ */
 import { createRoot } from 'react-dom/client';
+
+/**
+ * Internal dependencies
+ */
 import { ContactForm } from './ContactForm';
 import type { ContactFormProps } from './types';
 
@@ -23,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (!window.ecContactConfig) {
+    // eslint-disable-next-line no-console -- surface a missing config to site admins.
     console.error('ContactForm: ecContactConfig not found on window object');
     return;
   }
