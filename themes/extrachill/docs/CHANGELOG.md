@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.20.2] - 2026-11-17
+
+### Fixed
+- link registered comment authors to community profiles
+
 ## [2.20.1] - 2026-11-16
 
 ### Fixed
