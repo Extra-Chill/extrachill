@@ -154,7 +154,7 @@ function ec_get_default_rank_tiers() {
 		),
 		array(
 			'key'        => 'frozen_foods_isle',
-			'label'      => 'Frozen Foods Isle',
+			'label'      => 'Frozen Foods Aisle',
 			'min_points' => 5968,
 			'icon'       => 'snowflake',
 			'class_name' => 'rank-frozen-foods-isle',

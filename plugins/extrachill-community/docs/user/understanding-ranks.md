@@ -33,7 +33,7 @@ Your rank changes as your point total grows. Each rank starts at the number of p
 - Fridge: 1,768
 - Freezer: 2,652
 - Ice Machine: 3,978
-- Frozen Foods Isle: 5,968
+- Frozen Foods Aisle: 5,968
 - Walk-In Freezer: 8,952
 - Ice Rink: 13,428
 - Flurry: 20,143

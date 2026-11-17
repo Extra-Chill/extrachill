@@ -48,7 +48,7 @@ function extrachill_artist_platform_set_local_scene( $artist_id, $slug ) {
  */
 function extrachill_artist_platform_resolve_local_support_scene( $slug ) {
 	if ( ! function_exists( 'extrachill_users_resolve_local_scene' ) ) {
-		return new WP_Error( 'local_scene_dependency_missing', __( 'Canonical Local Scene resolution is unavailable.', 'extrachill-artist-platform' ) );
+		return new WP_Error( 'local_scene_dependency_missing', __( 'Local Scene lookup is unavailable right now. Please try again later.', 'extrachill-artist-platform' ) );
 	}
 
 	return extrachill_users_resolve_local_scene( sanitize_title( $slug ) );
@@ -224,14 +224,14 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
 	} elseif ( function_exists( 'extrachill_users_get_local_scene' ) ) {
 		$scene = extrachill_users_get_local_scene( $actor_id );
 	} else {
-		$scene = new WP_Error( 'local_scene_dependency_missing', __( 'Canonical Local Scene resolution is unavailable.', 'extrachill-artist-platform' ) );
+		$scene = new WP_Error( 'local_scene_dependency_missing', __( 'Local Scene lookup is unavailable right now. Please try again later.', 'extrachill-artist-platform' ) );
 	}
 
 	if ( is_wp_error( $scene ) ) {
 		return $scene;
 	}
 	if ( ! is_array( $scene ) || empty( $scene['slug'] ) ) {
-		return new WP_Error( 'local_support_scene_required', __( 'Choose a canonical Local Scene before enabling local support availability.', 'extrachill-artist-platform' ) );
+		return new WP_Error( 'local_support_scene_required', __( "Set your artist's Local Scene on the Info tab first.", 'extrachill-artist-platform' ) );
 	}
 
 	$scene_slug = sanitize_title( $scene['slug'] );

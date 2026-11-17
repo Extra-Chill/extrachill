@@ -23,7 +23,7 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 	/**
 	 * The canonical ladder, ascending. Thresholds must match the registry
 	 * exactly; labels reflect the current canonical set (Full Ice Tray, and
-	 * Walk-In Freezer ranked above Frozen Foods Isle).
+	 * Walk-In Freezer ranked above Frozen Foods Aisle).
 	 *
 	 * @return array<int, array{0:float,1:string}>
 	 */
@@ -45,7 +45,7 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 			array( 1768, 'Fridge' ),
 			array( 2652, 'Freezer' ),
 			array( 3978, 'Ice Machine' ),
-			array( 5968, 'Frozen Foods Isle' ),
+			array( 5968, 'Frozen Foods Aisle' ),
 			array( 8952, 'Walk-In Freezer' ),
 			array( 13428, 'Ice Rink' ),
 			array( 20143, 'Flurry' ),
@@ -76,6 +76,19 @@ class Test_Rank_Tiers extends WP_UnitTestCase {
 			$this->assertGreaterThan( $prev, $tier['min_points'], 'Tiers must be strictly ascending by min_points.' );
 			$prev = $tier['min_points'];
 		}
+	}
+
+	/**
+	 * The Frozen Foods tier label is spelled "Aisle" (#1573); its stable key
+	 * and CSS class keep the original "isle" slug so nothing stored or styled
+	 * against them changes.
+	 */
+	public function test_frozen_foods_aisle_label_keeps_stable_key_and_class(): void {
+		$tier = ec_get_rank_tier_for_points( 5968 );
+
+		$this->assertSame( 'Frozen Foods Aisle', $tier['label'] );
+		$this->assertSame( 'frozen_foods_isle', $tier['key'] );
+		$this->assertSame( 'rank-frozen-foods-isle', $tier['class_name'] );
 	}
 
 	public function test_label_at_each_threshold(): void {

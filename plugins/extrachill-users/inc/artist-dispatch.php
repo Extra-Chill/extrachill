@@ -943,7 +943,7 @@ function ec_users_request_artist_dispatch_access( $user_id, array $input ) {
 		}
 		$artist_id = isset( $input['artist_id'] ) ? absint( $input['artist_id'] ) : 0;
 		if ( ! $artist_id || ! in_array( $artist_id, $eligibility['criteria']['claimed_artist']['artist_ids'], true ) ) {
-			return new WP_Error( 'invalid_artist_dispatch_artist', __( 'Select an artist profile you canonically manage or claim.', 'extrachill-users' ), array( 'status' => 403 ) );
+			return new WP_Error( 'invalid_artist_dispatch_artist', __( 'Select an artist profile you manage or have claimed.', 'extrachill-users' ), array( 'status' => 403 ) );
 		}
 		$description = isset( $input['description'] ) ? sanitize_textarea_field( (string) $input['description'] ) : '';
 		$length      = function_exists( 'mb_strlen' ) ? mb_strlen( $description ) : strlen( $description );
