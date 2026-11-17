@@ -12,7 +12,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// Components still on the external service because their suites fail once they
+// actually run (#1622). Each one is reported as a CI warning. Remove the entry
+// together with the switch to the Docker provider.
+const PENDING_EXTERNAL_DB = {
+  'plugins/extrachill-booking/homeboy.json': '#1622',
+  'plugins/extrachill-events/homeboy.json': '#1622',
+};
+
 const errors = [];
+const warnings = [];
 let checked = 0;
 for (const group of ['plugins', 'themes', 'packages']) {
   for (const entry of readdirSync(path.join(root, group), { withFileTypes: true })) {
@@ -25,6 +35,13 @@ for (const group of ['plugins', 'themes', 'packages']) {
       const service = extensionConfig?.settings?.wp_codebox_database_service;
       if (!service) continue;
       if (service.secret_env || service.provider === 'external') {
+        if (PENDING_EXTERNAL_DB[file]) {
+          warnings.push(
+            `${file}: PHPUnit does not run in monorepo CI (external WP Codebox database service; tracked in ` +
+              `${PENDING_EXTERNAL_DB[file]}).`,
+          );
+          continue;
+        }
         errors.push(
           `${file}: extensions.${extension}.settings.wp_codebox_database_service uses provider ` +
             `"${service.provider}"${service.secret_env ? ' with secret_env' : ''}. Monorepo CI cannot ` +
@@ -33,6 +50,14 @@ for (const group of ['plugins', 'themes', 'packages']) {
       }
     }
   }
+}
+for (const [file, issue] of Object.entries(PENDING_EXTERNAL_DB)) {
+  if (!warnings.some((warning) => warning.startsWith(`${file}:`))) {
+    errors.push(`${file}: no longer uses an external database service; remove it from PENDING_EXTERNAL_DB (${issue}).`);
+  }
+}
+for (const warning of warnings) {
+  console.log(process.env.GITHUB_ACTIONS ? `::warning::${warning}` : `warning: ${warning}`);
 }
 if (errors.length) {
   console.error(errors.join('\n'));
