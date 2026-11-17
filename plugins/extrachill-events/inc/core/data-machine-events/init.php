@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once __DIR__ . '/taxonomy-registration.php';
 require_once __DIR__ . '/configuration.php';
+require_once __DIR__ . '/ability-capabilities.php';
 require_once __DIR__ . '/event-type-vocabulary.php';
 require_once __DIR__ . '/venue-tier-vocabulary.php';
 require_once __DIR__ . '/import-lockout.php';

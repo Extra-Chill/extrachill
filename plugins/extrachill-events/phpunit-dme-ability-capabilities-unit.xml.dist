@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			dme-ability-capabilities-unit: pure-PHP tests for the Data Machine
+			Events ability capability bridge. This suite owns a file-level
+			current_user_can double, so it runs in its own process rather than
+			alongside sibling pure suites that may define the same symbol.
+		-->
+		<testsuite name="dme-ability-capabilities-unit">
+			<file>tests/Unit/Core/DataMachineEventsAbilityCapabilitiesTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

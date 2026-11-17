@@ -15,6 +15,7 @@
 			<exclude>tests/Unit/Core/LocalSceneDigestGuestTest.php</exclude>
 			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
+			<exclude>tests/Unit/Core/DataMachineEventsAbilityCapabilitiesTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
 			<!-- Pure-PHP resolver test with file-level WP doubles (wp_cache_*,
 			     is_tax, get_queried_object…); it runs in its own suite,
