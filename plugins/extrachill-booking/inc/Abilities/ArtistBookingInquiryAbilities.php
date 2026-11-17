@@ -50,6 +50,8 @@ final class ArtistBookingInquiryAbilities {
 	}
 
 	private function register_ability( string $slug, string $label, array $input, array $output, callable $callback, bool $read_only, bool $destructive ): void {
+		// abilities-docs: extrachill-events/get-artist-booking-inquiry, extrachill-events/request-artist-booking-correction, extrachill-events/withdraw-artist-booking-inquiry.
+		// abilities-docs: extrachill-events/recover-artist-booking-inquiry-receipt.
 		wp_register_ability(
 			'extrachill-events/' . $slug,
 			array(

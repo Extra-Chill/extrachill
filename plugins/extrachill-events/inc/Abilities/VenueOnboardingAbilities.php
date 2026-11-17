@@ -217,6 +217,9 @@ class VenueOnboardingAbilities {
 
 	/** Register one onboarding ability contract. */
 	private function register_ability( string $name, string $label, array $properties, array $required, callable $execute, callable $permission, bool $destructive, bool $idempotent, bool $is_readonly = false ): void {
+		// abilities-docs: extrachill/submit-venue-claim, extrachill/review-venue-claim, extrachill/cancel-venue-claim.
+		// abilities-docs: extrachill/list-venue-claims, extrachill/create-venue-invitation, extrachill/resend-venue-invitation.
+		// abilities-docs: extrachill/cancel-venue-invitation, extrachill/list-venue-invitations, extrachill/respond-to-venue-invitation.
 		wp_register_ability(
 			$name,
 			array(

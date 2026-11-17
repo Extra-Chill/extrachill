@@ -745,6 +745,122 @@ Registration: [`LocalSceneDigestGuestAbilities.php`](../inc/Abilities/LocalScene
 
 Registration: [`TeamTermLinkPageAbilities.php`](../inc/Abilities/TeamTermLinkPageAbilities.php).
 
+Venue and promoter Link Pages share one management family per owner kind. Each name below exists twice, once with `venue` and once with `promoter`. The owner key is `venue_term_id` or `promoter_term_id`. Shared rules for the 16 management abilities:
+
+- **Permission:** `authorize()` delegates to the owner class: venues need `TeamCapabilities::authorize('ec_access_venue')`, promoters need `ec_access_promoter` (an active verified promoter). The Link Pages engine reauthorizes inside each operation.
+- **Exposure:** `show_in_rest: true`. The venue-settings managed workspace calls `get-*`, `provision-*` and `patch-*`; no other API or CLI callers were found.
+- **Document output:** `object {created?: boolean, venue|promoter: {term_id, owner_reference, title, management_url, snapshot}, link_page: {link_page_id, css_vars, links, link_sections, bio, settings, background_image_id, background_image_url, public_url, revision, …}}`. The venue snapshot carries `location`; the promoter snapshot carries `entity_type: Organization`.
+- **Concurrency:** Writes require `expected_revision`, the 64-character hex `link_page.revision` from the last read. A stale revision conflicts.
+- **Bounds:** Links are at most 10 sections of 25 links each, each `{id?, link_text, link_url, expires_at?}`. `css_vars` is a closed map of Link Page CSS variables. `settings` is a closed map (`link_expiration_enabled`, `redirect_enabled`, `redirect_target_url`, `youtube_embed_enabled`, `meta_pixel_id`, `google_tag_id`, `google_tag_manager_id`, `social_icons_position`, `profile_image_shape`, `background_image_id`).
+
+### `extrachill/provision-venue-link-page`
+
+- **Purpose:** Create the venue's Link Page from its canonical profile, or return the existing one.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Document output.
+- **Side effects:** Under the owner authority lock, creates the Link Page and its snapshot on the Link Pages storage blog if missing. Idempotent.
+
+### `extrachill/provision-promoter-link-page`
+
+- **Purpose:** Promoter counterpart of `extrachill/provision-venue-link-page`.
+- **Input:** `promoter_term_id` (integer, required).
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/get-venue-link-page`
+
+- **Purpose:** Read the venue's composed Link Page document.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Document output, via `ec_read_link_page()`.
+
+### `extrachill/get-promoter-link-page`
+
+- **Purpose:** Read the promoter's composed Link Page document.
+- **Input:** `promoter_term_id` (integer, required).
+- **Output:** Document output.
+
+### `extrachill/save-venue-link-page-links`
+
+- **Purpose:** Replace the venue Link Page's links.
+- **Input:** `venue_term_id`, `links` (sections), `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** Rechecks the link bounds even on direct execution (`invalid_venue_link_page_links`), then saves through `ec_save_link_page()`.
+
+### `extrachill/save-promoter-link-page-links`
+
+- **Purpose:** Promoter counterpart of `extrachill/save-venue-link-page-links`.
+- **Input:** `promoter_term_id`, `links`, `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/save-venue-link-page-styles`
+
+- **Purpose:** Save the venue Link Page's style variables.
+- **Input:** `venue_term_id`, `css_vars` (at least one key), `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** Saves the styles through `ec_save_link_page()`.
+
+### `extrachill/save-promoter-link-page-styles`
+
+- **Purpose:** Promoter counterpart of `extrachill/save-venue-link-page-styles`.
+- **Input:** `promoter_term_id`, `css_vars`, `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/save-venue-link-page-settings`
+
+- **Purpose:** Save the venue Link Page's settings.
+- **Input:** `venue_term_id`, `settings` (at least one key), `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** Saves the settings through `ec_save_link_page()`.
+
+### `extrachill/save-promoter-link-page-settings`
+
+- **Purpose:** Promoter counterpart of `extrachill/save-venue-link-page-settings`.
+- **Input:** `promoter_term_id`, `settings`, `expected_revision` (all required).
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/patch-venue-link-page`
+
+- **Purpose:** Atomically save only the changed areas of the venue Link Page.
+- **Input:** `venue_term_id`, `expected_revision` (required), plus at least one of `links`, `css_vars`, `settings`, `background_image_id` (integer ≥0).
+- **Output:** Document output.
+- **Side effects:** One save under one canonical lock; links are bound-checked first. Not idempotent.
+
+### `extrachill/patch-promoter-link-page`
+
+- **Purpose:** Promoter counterpart of `extrachill/patch-venue-link-page`.
+- **Input:** `promoter_term_id`, `expected_revision` (required), plus at least one area.
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/refresh-venue-link-page-snapshot`
+
+- **Purpose:** Rebuild the Link Page's stored snapshot from the venue's canonical profile.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Document output.
+- **Side effects:** Rewrites the snapshot under the owner authority lock. Idempotent.
+
+### `extrachill/refresh-promoter-link-page-snapshot`
+
+- **Purpose:** Promoter counterpart of `extrachill/refresh-venue-link-page-snapshot`.
+- **Input:** `promoter_term_id` (integer, required).
+- **Output:** Document output.
+- **Side effects:** As for venues.
+
+### `extrachill/get-venue-link-page-analytics`
+
+- **Purpose:** Read views and clicks for the venue Link Page.
+- **Input:** `venue_term_id` (integer, required); `date_range` (integer 1–90, default 30), `start_date`, `end_date` (`YYYY-MM-DD`, optional).
+- **Output:** `object {start_date, end_date, days, summary: {total_views, total_clicks}, chart_data: {labels, datasets}, top_links: array<{text, identifier, clicks}>}`. Fails with `analytics_unavailable` (503) when no provider answers the `extrachill_get_link_page_analytics` filter.
+
+### `extrachill/get-promoter-link-page-analytics`
+
+- **Purpose:** Promoter counterpart of `extrachill/get-venue-link-page-analytics`.
+- **Input:** `promoter_term_id` (integer, required); `date_range`, `start_date`, `end_date` (optional).
+- **Output:** As for venues.
+
 ### `extrachill/list-approved-promoters`
 
 - **Purpose:** List the bounded public projection of active verified Events promoters.
@@ -934,3 +1050,310 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 - **Side effects:** Emails seller owners the supplied commerce notification.
+
+## Managed Event
+
+Registration: [`ManagedEventAbilities.php`](../inc/Abilities/ManagedEventAbilities.php). The names are the `LIST_ABILITY` and `UPDATE_ABILITY` class constants. Scope rules are described in [promoter authority](promoter-authority.md#managed-events).
+
+### `extrachill/list-managed-events`
+
+- **Purpose:** List published events at venues where the user is an active venue-team member, or tagged with a promoter where they are an active promoter member.
+- **Input:** All optional: `when` (`upcoming` default, `past`, `any`), `date_from`, `date_to` (`YYYY-MM-DD`), `venue_term_id`, `promoter_term_id`, `scope` (`mine` default, `all`), `limit` (1–100, default 20), `page` (default 1). Filters narrow the user's scope; they never widen it.
+- **Output:** `object {events: array<{id, title, start, end, venue, promoters, permalink, guest_list: {enabled, mode, password_required}}>, managed: {all, venues, promoters}, total, page, limit}`.
+- **Permission:** A signed-in user whose agent principal ceiling admits `read`. `scope: all` also requires `edit_others_posts`.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found (intended for agents through the Extra Chill MCP).
+
+### `extrachill/update-managed-event`
+
+- **Purpose:** Edit the details of an event the user manages.
+- **Input:** `event` (integer, required); optional `startDate`, `startTime`, `endDate`, `endTime`, `description`, `price`, `ticketUrl`, `eventStatus` (`EventScheduled`, `EventPostponed`, `EventCancelled`, `EventRescheduled`), `eventType` (event-type vocabulary). Send at least one field. Venue and promoter are rejected.
+- **Output:** `object {success: boolean, event_id: integer, status: updated|no_change, updated_fields: array<string>, warnings: array}`.
+- **Permission:** The managed scope must cover the event, and the event must be published unless the user has `edit_others_posts`.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Applies the update through Data Machine Events' `EventUpdateAbilities::executeUpdateEvent()`. When something changed, the event is marked human-owned (`EventOwnership::markHumanOwned()`), so later imports only fill empty fields.
+
+## Promoter Workspace
+
+Registration: [`PromoterWorkspaceAbilities.php`](../inc/Abilities/PromoterWorkspaceAbilities.php). Both abilities are read-only and need only an effective signed-in user (`TeamAuthorization::effective_user_id()`); results cover only identities that user holds.
+
+### `extrachill/list-managed-workspace-identities`
+
+- **Purpose:** List the venue and promoter identities the user can manage.
+- **Input:** No fields.
+- **Output:** `object {actor: {id, name}, identities: array<{reference: "venue:N"|"promoter:N", type, id, name, is_owner, permissions}>}`. Permissions are drawn from `access_venue`, `manage_members`, `manage_finances`, `access_promoter`.
+- **Permission:** Signed-in user.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+
+### `extrachill/resolve-managed-workspace-context`
+
+- **Purpose:** Resolve the selected workspace identity and its context.
+- **Input:** `selected_reference` (string, required; `""`, `venue:N` or `promoter:N`).
+- **Output:** `object {actor, identities, selection: {reference, state: active|empty|stale|denied, type?, id?, reason?}, promoter: identity + link_page {status: available|not_provisioned|unavailable, management_url} | null, venue: identity|null, granted_venues: [], promoter_relationships: []}`.
+- **Permission:** Signed-in user.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+
+## Venue Calendar Feed
+
+Registration: [`VenueCalendarFeedAbilities.php`](../inc/Abilities/VenueCalendarFeedAbilities.php). All four take `venue_term_id` and return the feed state `object {venue_term_id, bound, feed_url, status: active|paused|error|"", last_synced, last_error, event_count?, created?, updated?, unchanged?, cancelled?, skipped?, excluded?}`. Permission is `current_user_can('ec_access_venue', venue_term_id)`. Exposure is `show_in_rest: true`; the venue-settings Calendar feed tab calls them.
+
+### `extrachill/get-venue-calendar-feed`
+
+- **Purpose:** Read the venue's feed binding and sync state.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Feed state.
+- **Permission:** `ec_access_venue`.
+- **Exposure:** `show_in_rest: true`; Calendar feed tab.
+
+### `extrachill/set-venue-calendar-feed`
+
+- **Purpose:** Bind a public ICS feed to the venue.
+- **Input:** `venue_term_id` (integer), `feed_url` (string; `webcal://` is normalized to `https://`), both required.
+- **Output:** Feed state plus `event_count`, the number of importable entries found.
+- **Permission:** `ec_access_venue`.
+- **Exposure:** `show_in_rest: true`; Calendar feed tab.
+- **Side effects:** Fetches the URL (15 s timeout) and rejects unreachable, non-2xx, oversized or non-calendar responses. It then stores the URL in term meta with status `active` and clears the last error.
+
+### `extrachill/sync-venue-calendar-feed`
+
+- **Purpose:** Import the bound feed now.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Feed state merged with sync counts.
+- **Permission:** `ec_access_venue`.
+- **Exposure:** `show_in_rest: true`; Calendar feed tab.
+- **Side effects:** Fails with `venue_calendar_feed_not_bound` when no feed is bound. Reactivates a paused or errored binding, then runs `VenueCalendarFeedSync::sync_venue()`. That sync upserts only events whose source is this venue's feed.
+
+### `extrachill/remove-venue-calendar-feed`
+
+- **Purpose:** Remove the venue's feed binding.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** The cleared feed state.
+- **Permission:** `ec_access_venue`.
+- **Exposure:** `show_in_rest: true`; Calendar feed tab.
+- **Side effects:** Deletes the binding term meta (URL, status, last synced, last error). Imported events are kept.
+
+## Promoter Authority
+
+Registration: [`PromoterAuthorityAbilities.php`](../inc/Abilities/PromoterAuthorityAbilities.php). The verification and membership model is described in [promoter authority](promoter-authority.md). Every operation is `show_in_rest: true` with no API/CLI caller found. Execution reauthorizes with the same capability as the permission callback, using `TeamAuthorization::effective_user_id()`.
+
+- **Organization object:** `{id, promoter_term_id, status: active|revoked, version, verified_by_user_id, verified_at, updated_at, revoked_by_user_id, revoked_at}`.
+- **Membership object:** `{id, promoter_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, …}`.
+- **Invitation object:** `{id, public_id, team_term_id, team_type, user_id, is_owner, status, version, invited_by_user_id, created_at, updated_at, expires_at, resolved_at, delivery_status, delivery_attempts, delivered_at, display_name?, email?, delivery_queued?, account_created?}`.
+
+### `extrachill/verify-promoter-organization`
+
+- **Purpose:** Verify a promoter term, optionally bootstrapping its first owner.
+- **Input:** `promoter_term_id` (integer, required); `owner_user_id` (integer, optional).
+- **Output:** `object {organization, membership: membership|null}`.
+- **Permission:** `ec_verify_promoter` (site administrator).
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Writes `_ec_promoter_status` and `_ec_promoter_verification` term meta; creates the owner membership when `owner_user_id` is given.
+
+### `extrachill/revoke-promoter-organization`
+
+- **Purpose:** Revoke a verified promoter while preserving its history.
+- **Input:** `promoter_term_id`, `expected_version` (integers, required).
+- **Output:** Organization object.
+- **Permission:** `ec_revoke_promoter` (site administrator).
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Marks the organization revoked. Revoked organizations accept no membership changes.
+
+### `extrachill/create-promoter-membership`
+
+- **Purpose:** Add an existing network user to a verified promoter.
+- **Input:** `promoter_term_id`, `user_id` (integers), `is_owner` (boolean), all required.
+- **Output:** Membership object.
+- **Permission:** `ec_manage_promoter_members`: a site administrator, or an active owner of that promoter.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Inserts a `promoter` row in `ec_team_members`. Fails if more than 100 rows are stored.
+
+### `extrachill/update-promoter-membership`
+
+- **Purpose:** Set or clear a member's owner flag.
+- **Input:** `promoter_term_id`, `user_id`, `is_owner`, `expected_version` (all required).
+- **Output:** Membership object.
+- **Permission:** `ec_manage_promoter_members`.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Versioned update. An owner cannot demote the final active owner; administrators can.
+
+### `extrachill/revoke-promoter-membership`
+
+- **Purpose:** Revoke a promoter membership.
+- **Input:** `promoter_term_id`, `user_id`, `expected_version` (all required).
+- **Output:** Membership object.
+- **Permission:** `ec_manage_promoter_members`.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Versioned revocation; the row is preserved. The same final-owner rule applies.
+
+### `extrachill/list-promoter-memberships`
+
+- **Purpose:** List the preserved membership records of one promoter.
+- **Input:** `promoter_term_id` (integer, required).
+- **Output:** Array of membership objects, at most 100.
+- **Permission:** `ec_manage_promoter_members`.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+
+### `extrachill/invite-promoter-member`
+
+- **Purpose:** Invite someone to a promoter team by email.
+- **Input:** `promoter_term_id` (integer), `email` (string), `is_owner` (boolean), all required.
+- **Output:** Invitation object with `delivery_queued` and `account_created`.
+- **Permission:** Any signed-in user at the callback. `TeamOnboardingService::invite()` then requires member-management authority on the promoter.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Creates an unclaimed network account (`extrachill/create-user`) if the email has none. Persists the invitation and queues email delivery through Action Scheduler. A newly created account is rolled back on failure.
+
+### `extrachill/resend-promoter-invitation`
+
+- **Purpose:** Rotate the token and resend a pending invitation.
+- **Input:** `invitation_id`, `expected_version` (integers, required).
+- **Output:** Invitation object.
+- **Permission:** Signed-in user; the service requires member-management authority.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Rotates the token, bumps the version and queues another delivery.
+
+### `extrachill/cancel-promoter-invitation`
+
+- **Purpose:** Cancel a pending invitation.
+- **Input:** `invitation_id`, `expected_version` (integers, required).
+- **Output:** Invitation object.
+- **Permission:** Signed-in user; the service requires member-management authority.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Cancels the invitation and deletes the unclaimed account it created, if still unused.
+
+### `extrachill/list-promoter-invitations`
+
+- **Purpose:** List invitations for a promoter team.
+- **Input:** `promoter_term_id` (integer, required).
+- **Output:** Array of invitation objects with `display_name` and `email`.
+- **Permission:** Signed-in user; the service requires member-management authority.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+
+### `extrachill/respond-promoter-invitation`
+
+- **Purpose:** Accept or reject an invitation as the invited user.
+- **Input:** `public_id`, `token` (strings), `promoter_term_id` (integer), `is_owner` (boolean), `expected_version` (integer), `decision` (`accepted` or `rejected`), all required.
+- **Output:** Invitation object.
+- **Permission:** Signed-in user. The repository binds the invitation to that user and checks the token and every echoed field.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Acceptance activates the membership. Rejection, or expiry (410), removes an unused invitation-created account.
+
+## Venue Membership
+
+Registration: [`VenueMembershipAbilities.php`](../inc/Abilities/VenueMembershipAbilities.php). Every operation is permitted by `TeamCapabilities::authorize('ec_manage_venue_members', venue_term_id)` and reauthorized inside execution. Every operation returns the membership object `{id, venue_term_id, user_id, display_name, email, is_owner, status: active|invited|revoked, version, created_by_user_id, created_at, updated_at, revoked_at}` and is `show_in_rest: true`.
+
+### `extrachill/create-venue-membership`
+
+- **Purpose:** Add an existing network user to a venue as an active member.
+- **Input:** `venue_term_id`, `user_id` (integers), `is_owner` (boolean), all required.
+- **Output:** Membership object.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; used by the network rig journey seeds.
+- **Side effects:** Inserts an active venue row through `VenueMembershipRepository::create()`.
+
+### `extrachill/update-venue-membership`
+
+- **Purpose:** Change a member's owner flag.
+- **Input:** `venue_term_id`, `user_id`, `is_owner`, `expected_version` (all required).
+- **Output:** Membership object.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings Team tab.
+- **Side effects:** Versioned change through `TeamMembershipRepository::change_member()`.
+
+### `extrachill/revoke-venue-membership`
+
+- **Purpose:** Revoke a venue membership.
+- **Input:** `venue_term_id`, `user_id`, `expected_version` (all required).
+- **Output:** Membership object.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings Team tab.
+- **Side effects:** Versioned revocation through `TeamMembershipRepository::change_member()`; the row is preserved.
+
+### `extrachill/list-venue-memberships`
+
+- **Purpose:** List a venue's members.
+- **Input:** `venue_term_id` (integer, required); optional `is_owner`, `status`, `limit` (1–100, default 50), `offset` (default 0).
+- **Output:** Array of membership objects.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings block.
+
+## Venue Onboarding
+
+Registration: [`VenueOnboardingAbilities.php`](../inc/Abilities/VenueOnboardingAbilities.php). Claims and invitations run through the shared `TeamOnboardingService` from Extra Chill Users, with the venue `VenueOnboardingAdapter`. All are `show_in_rest: true`; the output schema is a loose object or array holding the public claim or invitation record.
+
+### `extrachill/submit-venue-claim`
+
+- **Purpose:** Ask to become the owner of an unmanaged venue.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Claim record.
+- **Permission:** Signed-in user.
+- **Exposure:** `show_in_rest: true`; venue-settings Claims tab.
+- **Side effects:** Inserts a pending claim. Fails if the user already has an invitation or membership for the venue.
+
+### `extrachill/review-venue-claim`
+
+- **Purpose:** Approve or reject a pending claim.
+- **Input:** `claim_id`, `expected_version` (integers), `decision` (`approved` or `rejected`), all required.
+- **Output:** Claim record.
+- **Permission:** `manage_options`.
+- **Exposure:** `show_in_rest: true`; venue-settings Claims tab.
+- **Side effects:** Versioned decision. Approval grants the claimant an owner membership under the membership lock.
+
+### `extrachill/cancel-venue-claim`
+
+- **Purpose:** Withdraw a pending claim.
+- **Input:** `claim_id`, `expected_version` (integers, required).
+- **Output:** Claim record.
+- **Permission:** Signed-in user; the repository checks the claim's actor.
+- **Exposure:** `show_in_rest: true`; venue-settings block.
+- **Side effects:** Marks the claim `cancelled`.
+
+### `extrachill/list-venue-claims`
+
+- **Purpose:** List claims for review.
+- **Input:** `status` (`pending`, `approved`, `rejected`, `cancelled`; optional).
+- **Output:** Array of claim records.
+- **Permission:** `manage_options`.
+- **Exposure:** `show_in_rest: true`; venue-settings block.
+
+### `extrachill/create-venue-invitation`
+
+- **Purpose:** Invite someone to a venue team by email.
+- **Input:** `venue_term_id` (integer), `email` (email), `is_owner` (boolean), all required.
+- **Output:** Invitation record with `delivery_queued` and `account_created`.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings Team tab.
+- **Side effects:** Like `extrachill/invite-promoter-member`: may create an unclaimed account, persists the invitation and queues email delivery.
+
+### `extrachill/resend-venue-invitation`
+
+- **Purpose:** Rotate the token and resend a pending invitation.
+- **Input:** `venue_term_id`, `invitation_id`, `expected_version` (integers, required).
+- **Output:** Invitation record.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings Team tab.
+- **Side effects:** Rotates the token and queues another delivery.
+
+### `extrachill/cancel-venue-invitation`
+
+- **Purpose:** Cancel a pending invitation.
+- **Input:** `venue_term_id`, `invitation_id`, `expected_version` (integers, required).
+- **Output:** Invitation record.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings Team tab.
+- **Side effects:** Cancels the invitation and deletes the unused account it created.
+
+### `extrachill/list-venue-invitations`
+
+- **Purpose:** List a venue's invitations.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** Array of invitation records with `display_name` and `email`.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`; venue-settings block.
+
+### `extrachill/respond-to-venue-invitation`
+
+- **Purpose:** Accept or reject a venue invitation as the invited user.
+- **Input:** `invitation_id` (UUID public ID), `token` (64 characters), `venue_term_id` (integer), `is_owner` (boolean), `expected_version` (integer), `decision` (`accepted` or `rejected`), all required.
+- **Output:** Invitation record.
+- **Permission:** Signed-in user; the repository binds the invitation to that user and token.
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Acceptance activates the membership. Rejection or expiry removes an unused invitation-created account.

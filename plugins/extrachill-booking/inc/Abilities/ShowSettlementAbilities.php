@@ -57,6 +57,9 @@ class ShowSettlementAbilities {
 	}
 
 	private function register_ability( string $name, string $label, array $input, string $execute, bool $is_readonly, bool $idempotent, string $permission = 'can_manage' ): void {
+		// abilities-docs: extrachill/draft-booking-show-settlement, extrachill/read-booking-show-settlement, extrachill/revise-booking-show-settlement.
+		// abilities-docs: extrachill/finalize-booking-show-settlement, extrachill/acknowledge-booking-show-settlement, extrachill/dispute-booking-show-settlement.
+		// abilities-docs: extrachill/correct-booking-show-settlement, extrachill/mark-booking-artist-payout-paid, extrachill/void-booking-show-settlement.
 		wp_register_ability(
 			$name,
 			array(

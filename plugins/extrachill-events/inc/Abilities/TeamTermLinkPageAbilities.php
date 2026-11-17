@@ -118,6 +118,7 @@ final class TeamTermLinkPageAbilities {
 			false,
 			false
 		);
+		// abilities-docs: extrachill/patch-venue-link-page, extrachill/patch-promoter-link-page.
 		wp_register_ability(
 			sprintf( $prefix, 'patch', '' ),
 			array(
@@ -224,6 +225,11 @@ final class TeamTermLinkPageAbilities {
 				$required[] = $field;
 			}
 		}
+		// abilities-docs: extrachill/provision-venue-link-page, extrachill/get-venue-link-page, extrachill/save-venue-link-page-links.
+		// abilities-docs: extrachill/save-venue-link-page-styles, extrachill/save-venue-link-page-settings, extrachill/refresh-venue-link-page-snapshot.
+		// abilities-docs: extrachill/get-venue-link-page-analytics, extrachill/provision-promoter-link-page, extrachill/get-promoter-link-page.
+		// abilities-docs: extrachill/save-promoter-link-page-links, extrachill/save-promoter-link-page-styles, extrachill/save-promoter-link-page-settings.
+		// abilities-docs: extrachill/refresh-promoter-link-page-snapshot, extrachill/get-promoter-link-page-analytics.
 		wp_register_ability(
 			$name,
 			array(

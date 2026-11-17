@@ -38,6 +38,7 @@ class BookingReportingAbilities {
 	}
 
 	private function register_ability( string $name, string $label, string $execute, string $permission, array $output ): void {
+		// abilities-docs: extrachill/get-venue-booking-performance-report, extrachill/get-venue-booking-revenue-report.
 		wp_register_ability(
 			$name,
 			array(

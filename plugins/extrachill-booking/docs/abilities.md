@@ -1,6 +1,6 @@
 # Booking abilities
 
-Extra Chill Booking's abilities cover public inquiry admission and artist follow-through, venue-scoped booking operations, holds, configuration, correspondence, private attachments, privacy, and marketing. All registrations use category `extrachill-events`; historical ability namespaces are retained after extraction from Events.
+Extra Chill Booking's abilities cover public inquiry admission and artist follow-through, venue-scoped booking operations and edits, holds, configuration, correspondence, private attachments, privacy, marketing, ticket-sales and show settlements, and reporting. All registrations use category `extrachill-events`; historical ability namespaces are retained after extraction from Events.
 
 ## Contract conventions
 
@@ -78,6 +78,42 @@ API paths below are relative to `/wp-json/extrachill/v1`. No `wp extrachill` cal
 - **Permission:** Booking authorization; lifecycle service validates the identity binding.
 - **Exposure:** `show_in_rest: true`; API/CLI none found.
 - **Side effects:** Updates artist identity/version and records activity.
+
+## Booking edits
+
+Registration: [`VenueBookingMutationAbilities.php`](../inc/Abilities/VenueBookingMutationAbilities.php).
+
+All four share one contract:
+
+- **Input:** **Required:** `booking_id`, `expected_version` (integers), plus the fields listed per ability.
+- **Output:** Booking object.
+- **Permission:** Booking authorization.
+- **Exposure:** `show_in_rest: true` (annotations: not read-only, not idempotent, destructive); API/CLI none found.
+- **Side effects:** `BookingMutationService` locks venue authority and the booking, rejects a stale `expected_version` with `booking_version_conflict` (409), bumps the booking version and records activity. Each edit is limited to the listed statuses.
+
+### `extrachill/correct-venue-booking-intake`
+
+- **Purpose:** Correct the submitted contact, requested slot, or intake document.
+- **Input:** At least one of `contact_name` (string|null, ≤255), `contact_email` (email|null, ≤255), `contact_phone` (string|null, ≤64), `requested_space_key` (string|null, ≤64), `requested_start_at`, `requested_end_at` (datetime|null), `intake` (object, arbitrary properties).
+- **Side effects:** Allowed in `submitted`, `needs_info`, `under_review`, `negotiating`. A requested end not after its start fails. When the contact email changes, pending reminders are suppressed (`booking_recipient_changed`); a suppression failure is returned with `booking_committed: true`.
+
+### `extrachill/select-venue-booking-performance`
+
+- **Purpose:** Choose the performance space and time.
+- **Input:** **Required:** `space_key` (string, 1–64), `start_at`, `end_at` (datetime strings).
+- **Side effects:** Before an event exists, `BookingHoldRepository::select_performance()` (status `under_review` or `negotiating`) checks the space is configured and the interval free of conflicts, then persists the selection. Once the booking has an event, the change is applied through `BookingEventSyncService::reconcile()`, which also updates the canonical event. The Booking console in the venue-settings block calls it.
+
+### `extrachill/update-venue-booking-production`
+
+- **Purpose:** Replace the whole production document.
+- **Input:** **Required:** `production`: `{version: 1, support_requirements, support_offers (string arrays, ≤50 items each), production_notes (string|null)}`.
+- **Side effects:** Allowed in `under_review`, `negotiating`, `held`; records `production_updated`. The Booking console calls it.
+
+### `extrachill/update-venue-booking-deal`
+
+- **Purpose:** Replace the whole draft deal document.
+- **Input:** **Required:** `deal`: version 1 with `type`, `guarantee_cents`, `revenue_share_basis_points` (0–10000), `revenue_share_basis` (`gross_ticket_sales`, `net_ticket_sales`, `door_receipts`), `currency` (`^[A-Z]{3}$`), `capacity`, `advance_ticket_price_cents`, `door_ticket_price_cents`, `ticket_fee_cents`, `tickets_on_sale_at`, `ticket_url`, `additional_terms` (all required, most nullable).
+- **Side effects:** Allowed in `negotiating`, `held`; records `deal_draft_updated`; fails with `booking_deal_already_confirmed` (409) once terms are confirmed. After an event exists, only `ticket_url` may differ from the confirmed deal, and that change is synced to the event. The Booking console calls it.
 
 ## Holds
 
@@ -338,3 +374,200 @@ The dynamic marketing `extrachill/` registration expands to get/retry/cancel ope
 - **Permission:** `BookingPrivacyService::authorize_operation` normalizes the request and checks `ec_access_venue` for the supplied venue/current user; normalization and authorization errors propagate.
 - **Exposure:** `show_in_rest: false`; API/CLI none found.
 - **Side effects:** Dry run is the default; applied cleanup redacts eligible retained personal data and records privacy consequences under retention/legal-hold policy.
+
+## Ticket sales and commission settlement
+
+Registration: [`TicketSettlementAbilities.php`](../inc/Abilities/TicketSettlementAbilities.php). Storage, reconciliation and the formula are described in [ticket sales and settlements](../../extrachill-events/docs/ticket-settlements.md). This settlement is the frozen Extra Chill commission for one booking; it is separate from the show settlement below.
+
+Shared rules:
+
+- **Permission:** Booking authorization (`ec_access_venue`) for reads, sales recording and CSV import. **Finance authorization** below means the same check with `ec_manage_venue_finances`. The services repeat the check internally.
+- **Exposure:** `show_in_rest: true`; annotations mark reads read-only and writes destructive. API/CLI none found.
+- **Report object:** the strict sales-report projection: integer `id`, `booking_id`, `event_id`, `venue_term_id`; nullable `ticket_source_id`, `evidence_attachment_id`, `corrects_report_id`; `provider`, `external_report_id`, `source_type` (`manual`, `csv_certified`, `extrachill_checkout`), `period_start`, `period_end`; signed integers `tickets_sold`, `tickets_refunded`, `gross_minor`, `fees_minor`, `tax_minor`, `refunds_minor`, `net_minor`; `currency`; `source` redacted to `{redacted, attachment_id?, row?}`; `request_hash`, `created_by_user_id`, `created_at`.
+- **Settlement object:** the frozen settlement: ids, `status` (`finalized`, `paid`, `void`), `version`, `booking_version`, `basis`, `basis_points`, `currency`, `formula_version` (1–3), `included_report_ids`, `evidence_hash`, `integrity_hash`, `basis_amount_minor`, `adjustment_minor`, `amount_due_minor`, finalizer, nullable paid/void audit fields, timestamps.
+- **Paging input:** **Required:** `booking_id`. Optional: `limit` (1–200), `offset` (0–100000).
+
+### `extrachill/record-checkout-ticket-sales`
+
+- **Purpose:** Record an Extra Chill checkout sale or refund against the booking linked to an event.
+- **Input:** **Required:** `event_id` (integer), `external_report_id`, `order_reference` (strings, 1–191), `period_start` (string), `currency` (three letters), `tickets_sold`, `gross_minor`, `fees_minor` (integers).
+- **Output:** `{recorded: boolean}`; `false` when no booking is linked to the event.
+- **Permission:** Verified cross-site ticket service grant (`extrachill_events_ticket_has_service_authority()`), not a user capability.
+- **Exposure:** `show_in_rest: true`; called by the shop's Stripe ticket handlers through `extrachill_shop_execute_ticket_owner_ability()`.
+- **Side effects:** Appends an `extrachill_checkout` report (provider `extrachill`, net = gross − fees). Exact retries return the prior report.
+
+### `extrachill/register-booking-ticket-source`
+
+- **Purpose:** Register an immutable ticket-source identity for a booking.
+- **Input:** **Required:** `booking_id`, `provider` (`^[a-z0-9_-]+$`, ≤64), `source_key` (1–191), `ticket_url` (http(s), 8–2048).
+- **Output:** Source object `{id, public_id, booking_id, event_id, venue_term_id, provider, source_key, display_url, created_at}`; `display_url` is the URL origin only.
+- **Permission:** Finance authorization.
+- **Side effects:** Inserts a source row; exact retries are idempotent.
+
+### `extrachill/list-booking-ticket-sources`
+
+- **Purpose:** List a booking's registered ticket sources.
+- **Input:** Paging input.
+- **Output:** Array of source objects, at most 200.
+- **Permission:** Booking authorization.
+
+### `extrachill/record-booking-ticket-sales`
+
+- **Purpose:** Record a manual sales observation or correction.
+- **Input:** **Required:** `booking_id`, `provider`, `external_report_id`, `source_type` (`manual` only), `period_start`, `period_end` (datetimes), `tickets_sold`, `tickets_refunded`, `gross_minor`, `fees_minor`, `tax_minor`, `refunds_minor`, `net_minor` (integers), `currency`, `source` (object, 1–32 properties). Optional: `ticket_source_id`, `evidence_attachment_id`, `corrects_report_id` (integer|null).
+- **Output:** Report object.
+- **Permission:** Booking authorization.
+- **Side effects:** Appends an immutable report. An exact retry returns the prior report; reusing the report ID with different content conflicts.
+
+### `extrachill/import-booking-ticket-sales-csv`
+
+- **Purpose:** Import certified sales rows from a private CSV booking attachment.
+- **Input:** **Required:** `booking_id`, `attachment_id`, `ticket_source_id` (integers).
+- **Output:** Array of report objects, at most 1000.
+- **Permission:** Booking authorization.
+- **Side effects:** Streams and re-hashes the attachment through the private download handoff, validates the fixed header and rows, then appends one `csv_certified` report per row.
+
+### `extrachill/list-booking-ticket-sales`
+
+- **Purpose:** List a booking's sales reports.
+- **Input:** Paging input (callback defaults `limit` 100, `offset` 0).
+- **Output:** Array of report objects, at most 200.
+- **Permission:** Booking authorization.
+
+### `extrachill/diagnose-booking-ticket-sales`
+
+- **Purpose:** Show which reports are admitted, excluded or unresolved before settlement.
+- **Input:** Paging input (only `booking_id` is used).
+- **Output:** `{booking_id, reports: array<{report_id, report_index, ticket_source_id, reconciliation_version, decision, issues, state}>, counts: {admitted, excluded, unresolved}, ready_for_settlement}`. Issues are `unattributed`, `file_missing`, `currency_mismatch`, `duplicate`, `contradictory`, `overlap`.
+- **Permission:** Booking authorization.
+
+### `extrachill/resolve-booking-ticket-sales`
+
+- **Purpose:** Admit or exclude one report, optionally correcting its source attribution.
+- **Input:** **Required:** `booking_id`, `report_id`, `expected_version` (integer ≥0), `decision` (`admit` or `exclude`), `reason` (1–1000). Optional: `ticket_source_id` (integer|null).
+- **Output:** Resolution object `{id, public_id, booking_id, report_id, venue_term_id, version, decision, ticket_source_id, supersedes_resolution_id, reason, request_hash, created_by_user_id, created_at}`.
+- **Permission:** Finance authorization.
+- **Side effects:** Appends a resolution; a stale version conflicts, and resolutions are rejected after the settlement is finalized.
+
+### `extrachill/calculate-booking-settlement`
+
+- **Purpose:** Preview the commission from currently admitted evidence without saving it.
+- **Input:** **Required:** `booking_id`. Optional: `basis` (`gross_ticket_sales`, `net_ticket_sales`), `basis_points` (0–10000), `currency`, `adjustment_minor`.
+- **Output:** `{booking_id, booking_version, event_id, venue_term_id, basis, basis_points, currency, formula_version: 3, included_report_ids, evidence_hash, basis_amount_minor, share_amount_minor, adjustment_minor, amount_due_minor}`.
+- **Permission:** Booking authorization.
+- **Side effects:** None persisted; re-authenticates private CSV evidence bytes.
+
+### `extrachill/finalize-booking-settlement`
+
+- **Purpose:** Freeze the booking's commission settlement.
+- **Input:** **Required:** `booking_id`, `expected_booking_version`, `expected_report_ids` (1–10000 unique IDs), `basis`, `basis_points`, `currency`, `formula_version` (1, 2 or 3), `adjustment_minor`. `expected_evidence_hash` is required unless `formula_version` is 1.
+- **Output:** Settlement object.
+- **Permission:** Finance authorization.
+- **Side effects:** Inserts the single frozen settlement row. Stale booking versions, evidence or decisions conflict; an exact retry returns the frozen settlement.
+
+### `extrachill/mark-booking-settlement-paid`
+
+- **Purpose:** Record payment of the commission.
+- **Input:** **Required:** `booking_id`, `expected_booking_version`, `expected_version`, `payment_reference` (1–191).
+- **Output:** Settlement object.
+- **Permission:** Finance authorization.
+- **Side effects:** Moves a finalized settlement to `paid`; requires a `completed` booking.
+
+### `extrachill/void-booking-settlement`
+
+- **Purpose:** Void the commission settlement.
+- **Input:** **Required:** `booking_id`, `expected_booking_version`, `expected_version`, `reason` (1–1000).
+- **Output:** Settlement object.
+- **Permission:** Finance authorization.
+- **Side effects:** Moves the settlement to `void` with the reason and actor.
+
+## Show settlements
+
+Registration: [`ShowSettlementAbilities.php`](../inc/Abilities/ShowSettlementAbilities.php). The model, formula, evidence and acknowledgement rules are described in [complete show settlements](../../extrachill-events/docs/show-settlements.md). A show settlement builds on the frozen commission settlement and calculates the artist payout.
+
+Shared rules:
+
+- **Permission:** Finance authorization (`ec_manage_venue_finances` on the booking's venue), except acknowledgement.
+- **Exposure:** `show_in_rest: true`; all operations are annotated idempotent, and writes destructive. API/CLI none found.
+- **Output:** Show settlement revision `{id, public_id, booking_id, event_id, venue_term_id, revision, corrects_revision_id, commission_settlement_id, commission_integrity_hash, currency, formula_version, terms, evidence, calculation, integrity_hash, created_by_user_id, created_at, status, version, actions}`. Status is `draft`, `finalized`, `acknowledged`, `disputed`, `corrected`, `paid` or `void`. Evidence exposes only attachment ID, public UUID, MIME and size.
+- **Revision input:** **Required:** `booking_id`, `commission_settlement_id`, `currency`, `ticket_gross_minor`, `door_gross_minor`, `fees_minor`, `taxes_minor`, `refunds_minor`, `venue_expenses_minor`, `production_expenses_minor`, `artist_guarantee_minor` (integers; deductions and guarantee ≥0), `artist_split_basis_points` (0–10000), `adjustments` (≤100 `{amount_minor, reason}`), `door_report_attachment_ids` (≤20 unique IDs), `idempotency_key` (1–191).
+- **Transition input:** **Required:** `booking_id`, `revision_id`, `expected_version`, `idempotency_key`.
+- **Side effects (writes):** Revisions and lifecycle actions are append-only rows. Exact retries return the prior result; reusing an idempotency key with changed input conflicts.
+
+### `extrachill/draft-booking-show-settlement`
+
+- **Purpose:** Create the first draft revision.
+- **Input:** Revision input.
+- **Side effects:** Verifies the commission settlement and private evidence bytes, then appends revision 1 as a draft.
+
+### `extrachill/read-booking-show-settlement`
+
+- **Purpose:** Read the latest revision, or a specific one.
+- **Input:** **Required:** `booking_id`. Optional: `revision` (integer).
+- **Output:** The verified revision; `show_settlement_not_found` (404) when none exists.
+
+### `extrachill/revise-booking-show-settlement`
+
+- **Purpose:** Replace a draft with a new draft revision.
+- **Input:** Revision input plus required `expected_revision_id`.
+- **Side effects:** Appends the successor draft; the prior draft stays readable.
+
+### `extrachill/finalize-booking-show-settlement`
+
+- **Purpose:** Finalize a draft revision.
+- **Input:** Transition input.
+- **Side effects:** Records `finalized` after re-verifying evidence and the commission.
+
+### `extrachill/acknowledge-booking-show-settlement`
+
+- **Purpose:** Record that the artist accepted a finalized settlement.
+- **Input:** Transition input plus required `acknowledgement_type` (`counterparty_verified` or `venue_recorded`) and `acknowledgement_evidence_attachment_ids` (≤20). Optional: `note` (≤1000).
+- **Permission:** `counterparty_verified` requires a manager of the booking's canonical artist; `venue_recorded` requires finance authorization and at least one evidence attachment.
+- **Side effects:** Records `acknowledged` with the canonical artist IDs; the attesting user is stored only for direct counterparty acknowledgement.
+
+### `extrachill/dispute-booking-show-settlement`
+
+- **Purpose:** Dispute a finalized or acknowledged settlement.
+- **Input:** Transition input plus required `reason` (1–1000).
+- **Side effects:** Records `disputed`.
+
+### `extrachill/correct-booking-show-settlement`
+
+- **Purpose:** Start a correction of a finalized, acknowledged or disputed revision.
+- **Input:** Revision input plus required `expected_revision_id`, `expected_version` and `reason` (1–1000).
+- **Side effects:** Appends a linked correction draft and marks the prior revision `corrected`.
+
+### `extrachill/mark-booking-artist-payout-paid`
+
+- **Purpose:** Record the artist payout.
+- **Input:** Transition input plus required `payment_reference` (1–191), `payment_date` (`YYYY-MM-DD`), `payout_evidence_attachment_ids` (1–20).
+- **Side effects:** Records `paid` for a finalized or acknowledged revision; requires a `completed` booking. Reads return only a `payment_reference_recorded` marker.
+
+### `extrachill/void-booking-show-settlement`
+
+- **Purpose:** Void a draft, finalized, acknowledged or disputed revision.
+- **Input:** Transition input plus required `reason` (1–1000).
+- **Side effects:** Records `void`.
+
+## Reporting
+
+Registration: [`BookingReportingAbilities.php`](../inc/Abilities/BookingReportingAbilities.php). Both reports are read-only snapshots over canonical booking records.
+
+Shared rules:
+
+- **Input:** **Required:** `venue_term_ids` (1–20 unique integers), `from`, `to` (datetimes; a positive half-open UTC period of at most 366 days). Optional: `limit` (1–200, default 100; the revenue report caps it at 25).
+- **Permission:** The action below on every listed venue. Requesting more than one venue also requires a team administrator.
+- **Exposure:** `show_in_rest: true` (read-only, idempotent); API/CLI none found.
+- **Output scope:** `scope` echoes the venues and period with `timezone: UTC`, `interval: half_open`, `basis` and `outcomes_as_of`; `bounded` reports any limits applied.
+
+### `extrachill/get-venue-booking-performance-report`
+
+- **Purpose:** Report the booking funnel and operational outcomes.
+- **Permission:** `ec_access_venue`.
+- **Output:** `{scope, state (empty|incomplete|complete), bounded, availability, funnel, operations, marketing}`.
+
+### `extrachill/get-venue-booking-revenue-report`
+
+- **Purpose:** Report commission, show-settlement and artist-payout totals.
+- **Permission:** `ec_manage_venue_finances`.
+- **Output:** `{scope, state (empty|incomplete|corrected|finalized), bounded, coverage, commission_statuses, show_settlement_statuses, currencies}`; `currencies` maps each currency to integer totals.

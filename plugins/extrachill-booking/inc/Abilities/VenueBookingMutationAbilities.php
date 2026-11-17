@@ -46,6 +46,8 @@ class VenueBookingMutationAbilities {
 	}
 
 	private function register_ability( string $name, string $label, array $input, string $callback ): void {
+		// abilities-docs: extrachill/correct-venue-booking-intake, extrachill/select-venue-booking-performance, extrachill/update-venue-booking-production.
+		// abilities-docs: extrachill/update-venue-booking-deal.
 		wp_register_ability(
 			$name,
 			array(

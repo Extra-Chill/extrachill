@@ -118,6 +118,8 @@ function extrachill_users_register_artist_dispatch_abilities() {
 	);
 
 	foreach ( $definitions as $name => $definition ) {
+		// abilities-docs: extrachill/get-artist-dispatch-access, extrachill/request-artist-dispatch-access, extrachill/list-artist-dispatch-access-requests.
+		// abilities-docs: extrachill/approve-artist-dispatch-access, extrachill/reject-artist-dispatch-access, extrachill/revoke-artist-dispatch-access.
 		wp_register_ability(
 			$name,
 			array(

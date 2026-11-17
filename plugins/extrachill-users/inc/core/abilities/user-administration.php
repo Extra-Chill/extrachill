@@ -119,6 +119,8 @@ function extrachill_users_register_user_administration_abilities() {
 			continue;
 		}
 
+		// abilities-docs: extrachill/grant-lifetime-membership, extrachill/revoke-lifetime-membership, extrachill/sync-team-members.
+		// abilities-docs: extrachill/manage-team-member.
 		wp_register_ability(
 			$name,
 			array(

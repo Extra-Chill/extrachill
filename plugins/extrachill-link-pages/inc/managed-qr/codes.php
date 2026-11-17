@@ -376,6 +376,8 @@ function ec_managed_qr_public_route( $route, string $path ) {
 /** Register deliberate core abilities transport, with team checks inside callbacks. */
 function ec_register_managed_qr_abilities(): void {
 	foreach ( array( 'create', 'list', 'update', 'delete', 'get-stats' ) as $operation ) {
+		// abilities-docs: extrachill/create-managed-qr-code, extrachill/list-managed-qr-code, extrachill/update-managed-qr-code.
+		// abilities-docs: extrachill/delete-managed-qr-code, extrachill/get-stats-managed-qr-code.
 		wp_register_ability(
 			'extrachill/' . $operation . '-managed-qr-code',
 			array(

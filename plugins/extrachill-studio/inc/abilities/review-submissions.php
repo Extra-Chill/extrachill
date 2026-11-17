@@ -89,6 +89,7 @@ function ec_studio_read_review_submission( array $input ) {
 /** Register read-only abilities on core's REST transport. */
 function ec_studio_register_review_abilities(): void {
 	foreach ( array( 'list', 'read' ) as $action ) {
+		// abilities-docs: extrachill/list-review-submissions, extrachill/read-review-submissions.
 		wp_register_ability(
 			'extrachill/' . $action . '-review-submissions',
 			array(
