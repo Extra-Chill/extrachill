@@ -209,6 +209,39 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 	}
 }
 
+// HTTP doubles for the homepage fetch qualification performs (#1427).
+if ( ! function_exists( 'wp_remote_get' ) ) {
+	function wp_remote_get( $url, $args = array() ) {
+		$GLOBALS['event_source_http_calls'][] = $url;
+		$page = $GLOBALS['event_source_http'][ $url ] ?? array( 'code' => 404, 'body' => '' );
+		return array( 'response' => array( 'code' => $page['code'] ), 'body' => $page['body'], 'headers' => array() );
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
+	function wp_remote_retrieve_response_code( $response ) {
+		return $response['response']['code'] ?? '';
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
+	function wp_remote_retrieve_body( $response ) {
+		return $response['body'] ?? '';
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_header' ) ) {
+	function wp_remote_retrieve_header( $response, $header ) {
+		return $response['headers'][ $header ] ?? '';
+	}
+}
+
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	function untrailingslashit( $value ) {
+		return rtrim( (string) $value, '/\\' );
+	}
+}
+
 final class EventSourceWpdb {
 	public string $base_prefix = 'wp_';
 	public string $prefix = 'wp_';
@@ -276,9 +309,15 @@ final class EventSourceWpdb {
 final class EventSourceAbilityDouble {
 	public array $calls = array();
 	private $result;
+	private string $name;
 
-	public function __construct( $result ) {
+	public function __construct( $result, string $name = '' ) {
 		$this->result = $result;
+		$this->name   = $name;
+	}
+
+	public function get_name(): string {
+		return $this->name;
 	}
 
 	public function execute( array $input ) {
@@ -1149,6 +1188,164 @@ final class EventSourceIntakeTest extends BookingTestCase {
 
 		$page['http_status'] = 404;
 		$this->assertSame( '', $method->invoke( $this->intake, 'https://venue.test', $page ) );
+	}
+
+	/**
+	 * Raw-mode test-event-scraper double: every submitted URL qualifies at
+	 * the direct candidate with three complete events.
+	 */
+	private function raw_scraper_double(): EventSourceAbilityDouble {
+		$events = array(
+			array( 'title' => 'The Band at The Room', 'startDate' => '2030-01-01', 'startTime' => '20:00', 'venue' => 'The Room', 'ticketUrl' => 'https://tix.test/1', 'performer' => 'The Band' ),
+			array( 'title' => 'The Band at The Hall', 'startDate' => '2030-01-02', 'startTime' => '20:00', 'venue' => 'The Hall', 'ticketUrl' => 'https://tix.test/2', 'performer' => 'The Band' ),
+			array( 'title' => 'The Band at The Barn', 'startDate' => '2030-01-03', 'startTime' => '20:00', 'venue' => 'The Barn', 'ticketUrl' => 'https://tix.test/3', 'performer' => 'The Band' ),
+		);
+		return new EventSourceAbilityDouble(
+			static function ( array $input ) use ( $events ) {
+				if ( 'https://source.test/events' !== $input['target_url'] ) {
+					return new WP_Error( 'scraper_failed', 'Scraper returned no results.' );
+				}
+				$packets = array();
+				foreach ( $events as $event ) {
+					$packets[] = array(
+						'type'      => 'event_import',
+						'timestamp' => 0,
+						'data'      => array( 'body' => wp_json_encode( array( 'event' => $event ) ) ),
+						'metadata'  => array( 'source_type' => 'universal_web_scraper', 'extraction_method' => 'jsonld' ),
+					);
+				}
+				$result = array(
+					'success'         => true,
+					'status'          => 'ok',
+					'target_url'      => $input['target_url'],
+					'event_data'      => array( 'title' => $events[0]['title'], 'items' => $events, 'event_count' => 3 ),
+					'extraction_info' => array(
+						'source_type'               => 'universal_web_scraper',
+						'extraction_method'         => 'jsonld',
+						'payload_type'              => 'event',
+						'event_count'               => 3,
+						'extracted_packet_count'    => 3,
+						'unique_source_event_count' => 3,
+					),
+				);
+				if ( 'raw' === ( $input['output_mode'] ?? '' ) ) {
+					$result += array(
+						'output_mode'          => 'raw',
+						'raw_events'           => $events,
+						'packets'              => $packets,
+						'packet_count'         => 3,
+						'omitted_packet_count' => 0,
+					);
+				}
+				return $result;
+			},
+			'data-machine-events/test-event-scraper'
+		);
+	}
+
+	public function test_qualification_scrapes_each_submitted_url_once_and_probe_reuses_it(): void {
+		$scraper                             = $this->raw_scraper_double();
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'data-machine-events/test-event-scraper' === $name ? $scraper : null;
+		$GLOBALS['event_source_http']        = array(
+			'https://source.test/events' => array( 'code' => 200, 'body' => '<html><head><title>The Band</title></head><body>Tour</body></html>' ),
+		);
+		$GLOBALS['event_source_http_calls']  = array();
+
+		try {
+			$result = $this->intake->executeQualifyEventSource( array( 'url' => 'https://source.test/events' ) );
+		} finally {
+			unset( $GLOBALS['ec_test_ability_resolver'], $GLOBALS['event_source_http'] );
+		}
+
+		$this->assertIsArray( $result );
+		$this->assertCount( 1, $scraper->calls, 'The submitted URL must be scraped exactly once.' );
+		$this->assertSame( 'raw', $scraper->calls[0]['output_mode'] );
+		$this->assertSame( array( 'https://source.test/events' ), $GLOBALS['event_source_http_calls'], 'The page fetched by qualification is reused.' );
+
+		$this->assertTrue( $result['qualified'] );
+		$this->assertSame( 3, $result['events_found'] );
+		$this->assertSame( 'jsonld', $result['detected_format'] );
+		$this->assertSame( 'jsonld', $result['extraction_method'] );
+		$this->assertSame( 'universal_web_scraper', $result['source_metadata']['source_type'] );
+		$this->assertCount( 3, $result['events_preview'] );
+		$this->assertSame(
+			array( 'title' => 'The Band at The Room', 'startDate' => '2030-01-01', 'startTime' => '20:00', 'venue' => 'The Room', 'ticketUrl' => 'https://tix.test/1' ),
+			$result['events_preview'][0]
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 'The Band', $result['recommended_binding']['name'] );
+		$this->assertArrayNotHasKey( 'scrape', $result );
+		$this->assertArrayNotHasKey( 'page', $result );
+		$this->assertStringNotContainsString( '"_scrape"', (string) wp_json_encode( $result ) );
+	}
+
+	public function test_qualification_scrape_pass_through_stays_out_of_fingerprint_and_public_output(): void {
+		$scraper                             = $this->raw_scraper_double();
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'data-machine-events/test-event-scraper' === $name ? $scraper : null;
+		$GLOBALS['event_source_http']        = array(
+			'https://source.test/events' => array( 'code' => 200, 'body' => '<html><body>Tour</body></html>' ),
+		);
+		$qualifier = ( new ReflectionClass( VenueQualificationAbilities::class ) )->newInstanceWithoutConstructor();
+		$input     = array( 'url' => 'https://source.test/events', 'persist_verdict' => false );
+
+		try {
+			$internal = $qualifier->qualifyWithPage( $input );
+			$public   = $qualifier->executeQualifyVenue( $input );
+		} finally {
+			unset( $GLOBALS['ec_test_ability_resolver'], $GLOBALS['event_source_http'] );
+		}
+
+		$this->assertSame( 'https://source.test/events', $internal['scrape']['url'] );
+		$this->assertCount( 3, $internal['scrape']['raw_events'] );
+		$this->assertSame( 'jsonld', $internal['scrape']['source_metadata']['extraction_method'] );
+
+		// The fingerprint is the persisted verdict payload: it keeps its shape.
+		foreach ( array( $internal, $public ) as $result ) {
+			foreach ( $result['fingerprint']['extractor_attempts'] as $attempt ) {
+				$this->assertArrayNotHasKey( '_scrape', $attempt );
+				$this->assertArrayNotHasKey( '_diagnostic_identifiers', $attempt );
+			}
+			$this->assertSame( 3, $result['event_count'] );
+		}
+		$this->assertArrayNotHasKey( 'scrape', $public );
+		$this->assertArrayNotHasKey( 'page', $public );
+		$this->assertCount( 2, $scraper->calls );
+	}
+
+	public function test_probe_is_empty_when_qualification_did_not_scrape_the_events_url(): void {
+		$scraper                             = $this->raw_scraper_double();
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'data-machine-events/test-event-scraper' === $name ? $scraper : null;
+		$method                              = new ReflectionMethod( ArtistUrlImportAbilities::class, 'probeUrl' );
+		$method->setAccessible( true );
+		$scrape = array(
+			'url'             => 'https://source.test/other',
+			'raw_events'      => array( array( 'title' => 'Elsewhere' ) ),
+			'source_metadata' => array( 'extraction_method' => 'jsonld' ),
+		);
+
+		try {
+			$mismatched = $method->invoke( $this->intake, 'https://source.test/events', array(), $scrape );
+			$missing    = $method->invoke( $this->intake, 'https://source.test/events', array(), array() );
+		} finally {
+			unset( $GLOBALS['ec_test_ability_resolver'] );
+		}
+
+		foreach ( array( $mismatched, $missing ) as $probe ) {
+			$this->assertSame( 0, $probe['events_found'] );
+			$this->assertSame( '', $probe['detected_format'] );
+			$this->assertSame( array(), $probe['raw_events'] );
+		}
+		$this->assertCount( 0, $scraper->calls, 'The probe never scrapes on its own.' );
+	}
+
+	public function test_probe_reports_unavailable_scraper(): void {
+		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'probeUrl' );
+		$method->setAccessible( true );
+
+		$probe = $method->invoke( $this->intake, 'https://source.test/events', array(), array() );
+
+		$this->assertInstanceOf( WP_Error::class, $probe );
+		$this->assertSame( 'scraper_unavailable', $probe->get_error_code() );
 	}
 
 	// ── Listings sources (#1515) ───────────────────────────────────────────

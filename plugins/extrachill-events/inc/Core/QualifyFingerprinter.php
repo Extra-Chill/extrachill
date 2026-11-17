@@ -273,6 +273,13 @@ class QualifyFingerprinter {
 	 * data-machine-events/test-event-scraper ability and inspecting the
 	 * result.
 	 *
+	 * The scraper runs in raw output mode so the same single handler
+	 * execution also yields the complete decoded events. They are kept on
+	 * the internal `_scrape` key (raw_events + first packet metadata) for
+	 * in-process callers that need full event records; callers must strip
+	 * it before persisting or returning the attempt, like
+	 * `_diagnostic_identifiers`.
+	 *
 	 * @param string     $url            URL to test.
 	 * @param array|null $handler_config Persisted handler configuration, when available.
 	 * @return array Attempt record.
@@ -304,7 +311,10 @@ class QualifyFingerprinter {
 			return $attempt;
 		}
 
-		$ability_input = array( 'target_url' => $url );
+		$ability_input = array(
+			'target_url'  => $url,
+			'output_mode' => 'raw',
+		);
 		if ( null !== $handler_config ) {
 			$ability_config = $handler_config;
 			if ( method_exists( $ability, 'get_input_schema' ) ) {
@@ -352,7 +362,35 @@ class QualifyFingerprinter {
 			}
 		}
 
+		if ( 'raw' === ( $result['output_mode'] ?? '' ) ) {
+			$attempt['_scrape'] = self::scrape_from_raw_result( $result );
+		}
+
 		return $attempt;
+	}
+
+	/**
+	 * Reduce a raw-mode scraper result to the event records in-process
+	 * callers reuse instead of scraping the same URL again.
+	 *
+	 * @param array $result Raw-mode test-event-scraper result.
+	 * @return array{raw_events: array<int, array>, source_metadata: array}
+	 */
+	private static function scrape_from_raw_result( array $result ): array {
+		$raw_events = array();
+		foreach ( (array) ( $result['raw_events'] ?? array() ) as $event ) {
+			if ( is_array( $event ) ) {
+				$raw_events[] = $event;
+			}
+		}
+
+		$packets    = is_array( $result['packets'] ?? null ) ? array_values( $result['packets'] ) : array();
+		$first_meta = $packets[0]['metadata'] ?? array();
+
+		return array(
+			'raw_events'      => $raw_events,
+			'source_metadata' => is_array( $first_meta ) ? $first_meta : array(),
+		);
 	}
 
 	/**
