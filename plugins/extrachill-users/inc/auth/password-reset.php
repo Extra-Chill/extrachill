@@ -434,6 +434,24 @@ function ec_process_reset_password_submission( $key, $login, $pass1, $pass2 ) {
 }
 
 /**
+ * Where a completed reset sends a member who must sign in again.
+ *
+ * A reset link proves only access to the email inbox. Signing a two-factor
+ * member straight in would skip their second factor, so they are sent to the
+ * login page instead, where the normal login asks for the code.
+ *
+ * @param WP_User $user User whose password was just reset.
+ * @return string|null Login URL, or null to sign the user in now.
+ */
+function ec_users_reset_password_login_url( WP_User $user ): ?string {
+	if ( ! function_exists( 'extrachill_users_user_uses_two_factor' ) || ! extrachill_users_user_uses_two_factor( $user ) ) {
+		return null;
+	}
+
+	return home_url( user_trailingslashit( '/login' ) );
+}
+
+/**
  * Handle password reset form submission (setting new password).
  */
 function ec_handle_reset_password() {
@@ -463,6 +481,15 @@ function ec_handle_reset_password() {
 			);
 		}
 		$redirect->error( $user->get_error_message(), $query_args );
+	}
+
+	$login_url = ec_users_reset_password_login_url( $user );
+	if ( null !== $login_url ) {
+		if ( function_exists( 'extrachill_set_notice' ) ) {
+			extrachill_set_notice( __( 'Your password has been updated. Sign in with your new password to continue.', 'extrachill-users' ), 'success' );
+		}
+		wp_safe_redirect( $login_url );
+		exit;
 	}
 
 	wp_set_auth_cookie( $user->ID, true );

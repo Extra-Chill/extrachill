@@ -56,6 +56,7 @@ Authenticate users with Google OAuth using ID tokens and return access + refresh
 - `400` - Missing/invalid ID token, invalid device_id format, or validation errors
 - `401` - Google ID token signature/issuer/audience invalid, or `email_verified` not true
 - `403` - User exists but is not a member of the community blog
+- `403` `two_factor_required` - The member uses two-factor authentication and in-app 2FA is unavailable on this site; they must sign in with their password
 - `500` - Google OAuth service unavailable or dependency missing
 
 **Implementation Details**:

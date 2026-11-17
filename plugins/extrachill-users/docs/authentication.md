@@ -57,7 +57,13 @@ The policy needs Two Factor's non-rendering login API
 (`Two_Factor_Core::verify_authentication_code()` and `get_login_challenge()`)
 and wp-native-auth's challenge loop. Until both are installed, the policy is
 not registered and password logins for 2FA members keep returning
-`{ requires_2fa, redirect_url }` to the Two Factor page.
+`{ requires_2fa, redirect_url }` to the Two Factor page. Google and Apple
+sign-in have no such fallback, so for a 2FA member they fail closed with
+`two_factor_required` (403) instead of skipping the second factor.
+
+Completing a password reset signs the member in, except for 2FA members: the
+reset link proves only access to the inbox, so they are sent to the login page
+with a notice and enter their code there.
 
 ## Registration System
 
