@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,Universal.Files.SeparateFunctionsFromOO,WordPress.WP.AlternativeFunctions,WordPress.WP.GlobalVariablesOverride -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 
 $runtime = getenv( 'LINK_PAGES_WORKTREE' );
 $ci_path = dirname( __DIR__, 2 ) . '/.ci/extrachill-link-pages';

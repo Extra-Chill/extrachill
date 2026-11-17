@@ -189,8 +189,8 @@ class QualifyDigestAbilities {
 		global $wpdb;
 
 		$timezone = wp_timezone();
-		$start    = wp_date( 'Y-m-d H:i:s', $start_ts, $timezone );
-		$end      = wp_date( 'Y-m-d H:i:s', $end_ts, $timezone );
+		$start    = (string) wp_date( 'Y-m-d H:i:s', $start_ts, $timezone );
+		$end      = (string) wp_date( 'Y-m-d H:i:s', $end_ts, $timezone );
 
 		$verdicts_table = QualifyVerdictsTable::table_name();
 		$flows_table    = $wpdb->prefix . 'datamachine_flows';

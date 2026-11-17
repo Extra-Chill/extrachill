@@ -59,7 +59,7 @@ class QualifyRecheckHandler {
 	/**
 	 * Action Scheduler callback.
 	 *
-	 * @param array $args { flow_id, url, verdict, consecutive_failures }
+	 * @param mixed $args Expected array{ flow_id, url, verdict, consecutive_failures }; untrusted scheduler payload.
 	 */
 	public static function handle( $args ): void {
 		// Action Scheduler hands us the first positional argument from the

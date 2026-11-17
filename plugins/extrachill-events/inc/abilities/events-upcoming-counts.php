@@ -175,7 +175,7 @@ function extrachill_events_query_upcoming_counts( string $taxonomy, string $loca
 	// count distinct venues of upcoming events also tagged with this location.
 	if ( '' !== $location_slug ) {
 		$location_term = get_term_by( 'slug', $location_slug, 'location' );
-		if ( ! $location_term || is_wp_error( $location_term ) ) {
+		if ( ! $location_term ) {
 			// Unknown location — return empty rather than unscoped results.
 			return array();
 		}
@@ -208,7 +208,7 @@ function extrachill_events_single_upcoming_count( string $slug, string $taxonomy
 	}
 
 	$term = get_term_by( 'slug', $slug, $taxonomy );
-	if ( ! $term || is_wp_error( $term ) ) {
+	if ( ! $term ) {
 		return null;
 	}
 

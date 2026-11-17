@@ -107,6 +107,10 @@ class RoundupPublishHandler extends PublishHandler {
 			)
 		);
 
+		if ( ! function_exists( 'wp_invoke_ability' ) ) {
+			return $this->errorResponse( 'Ability invocation API (wp_invoke_ability) is not available' );
+		}
+
 		$images_input = array();
 		foreach ( $image_paths as $index => $image_path ) {
 			$images_input[] = array(

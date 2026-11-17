@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions -- Standalone CLI guard runs without WordPress loaded.
 /**
  * Standalone provider-split guard (no WordPress or MySQL).
  *
@@ -12,10 +13,10 @@
 $root     = dirname( __DIR__ );
 $failures = array();
 
-$venue   = file_get_contents( $root . '/inc/Providers/VenueProvider.php' );
-$booking = file_get_contents( $root . '/../extrachill-booking/inc/Providers/BookingProvider.php' );
-$plugin  = file_get_contents( $root . '/inc/Core/Plugin.php' );
-$owned   = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-paths.json' ), true, 512, JSON_THROW_ON_ERROR );
+$venue         = file_get_contents( $root . '/inc/Providers/VenueProvider.php' );
+$booking       = file_get_contents( $root . '/../extrachill-booking/inc/Providers/BookingProvider.php' );
+$plugin_source = file_get_contents( $root . '/inc/Core/Plugin.php' );
+$owned         = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-paths.json' ), true, 512, JSON_THROW_ON_ERROR );
 
 $required_venue = array(
 	'VenueMembershipRepository',
@@ -55,14 +56,14 @@ if ( preg_match_all( '/VenueProvider::(\w+)\(/', $booking, $calls ) && array( 'r
 }
 
 preg_match_all( "#require_once EXTRACHILL_BOOKING_PLUGIN_DIR \\. '([^']+)'#", $booking, $loads );
-foreach ( $loads[1] as $path ) {
-	if ( ! in_array( $path, $owned, true ) ) {
-		$failures[] = "BookingProvider loads {$path}, which is not in tests/fixtures/booking-owned-paths.json.";
+foreach ( $loads[1] as $loaded_path ) {
+	if ( ! in_array( $loaded_path, $owned, true ) ) {
+		$failures[] = "BookingProvider loads {$loaded_path}, which is not in tests/fixtures/booking-owned-paths.json.";
 	}
 }
 
-$venue_at   = strpos( $plugin, 'VenueProvider::register()' );
-$booking_at = strpos( $plugin, 'BookingProvider::register()' );
+$venue_at   = strpos( $plugin_source, 'VenueProvider::register()' );
+$booking_at = strpos( $plugin_source, 'BookingProvider::register()' );
 if ( false === $venue_at || false !== $booking_at ) {
 	$failures[] = 'Plugin must register VenueProvider before BookingProvider.';
 }

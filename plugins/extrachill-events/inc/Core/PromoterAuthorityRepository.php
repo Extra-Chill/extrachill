@@ -490,9 +490,6 @@ class PromoterAuthorityRepository {
 		wp_cache_delete( $promoter_term_id, 'term_meta' );
 		$organization    = $this->get_organization( $promoter_term_id );
 		$membership_rows = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id );
-		if ( is_wp_error( $membership_rows ) ) {
-			return $membership_rows;
-		}
 		if ( is_wp_error( $organization ) ) {
 			return $organization;
 		}

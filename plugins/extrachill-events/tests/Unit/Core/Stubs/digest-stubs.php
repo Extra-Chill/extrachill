@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Minimal WP polyfills for QualifyDigestAbilityTest.
  *

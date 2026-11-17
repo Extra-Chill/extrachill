@@ -49,7 +49,7 @@ final class DoorAccessService {
 	/** @var TeamMembershipRepository */
 	private $members;
 
-	/** @var callable */
+	/** @var callable|null */
 	private $resolve_account;
 
 	/** @var bool */

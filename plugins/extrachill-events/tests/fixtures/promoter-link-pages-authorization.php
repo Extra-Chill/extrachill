@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Classes.DuplicateClassName,Generic.Files.OneObjectStructurePerFile -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 
 namespace ExtraChillEvents\Core;
 

@@ -40,7 +40,7 @@ function extrachill_events_local_scene_digest_subscription_entities( array $enti
  *
  * @param bool   $authorized Existing authorization decision.
  * @param string $producer   Requesting producer.
- * @param array  $entity     Normalized entity identity.
+ * @param mixed  $entity     Normalized entity identity (expected array).
  * @param string $delivery   Delivery channel.
  * @return bool
  */
@@ -109,7 +109,7 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 
 	$failures = array();
 	foreach ( $terms as $term ) {
-		if ( ! $term instanceof WP_Term || count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) < 2 ) {
+		if ( count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) < 2 ) {
 			continue;
 		}
 
@@ -131,8 +131,11 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		}
 		++$counts['locations_with_events'];
 
+		// Cross-plugin results are a trust boundary: fail closed on any unexpected shape.
+		/** @var mixed $recipient_ids */
 		$recipient_ids = extrachill_users_entity_subscription_recipients( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug, 'notification' );
-		$email_ids     = extrachill_users_entity_subscription_recipients( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug, 'email' );
+		/** @var mixed $email_ids */
+		$email_ids = extrachill_users_entity_subscription_recipients( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug, 'email' );
 		if ( is_wp_error( $recipient_ids ) || ! is_array( $recipient_ids ) || is_wp_error( $email_ids ) || ! is_array( $email_ids ) ) {
 			++$counts['retryable_failures'];
 			$failures['recipient_resolution_failed'] = ( $failures['recipient_resolution_failed'] ?? 0 ) + 1;
@@ -196,6 +199,7 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
  * @param WP_Term    $location Canonical location term.
  * @param int        $days     Upcoming window length.
  * @param array|null $evidence Aggregate query evidence populated by reference.
+ * @param-out array{failed:bool,truncated:bool} $evidence
  * @return array Qualified event rows.
  */
 function extrachill_events_local_scene_digest_candidates( WP_Term $location, int $days, ?array &$evidence = null ): array {
@@ -216,11 +220,12 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 			'tax_filters' => array( 'location' => array( (int) $location->term_id ) ),
 		)
 	);
-	if ( ! is_array( $query ) ) {
+	if ( ! isset( $query['posts'] ) || ! is_array( $query['posts'] ) ) {
+		// The query contract always returns a posts list; anything else is a failed read.
 		$evidence['failed'] = true;
 		return array();
 	}
-	$posts                 = is_array( $query['posts'] ?? null ) ? $query['posts'] : array();
+	$posts                 = $query['posts'];
 	$evidence['truncated'] = count( $posts ) > $cap;
 	$posts                 = array_slice( $posts, 0, $cap );
 	$priority_events       = array_fill_keys( array_map( 'absint', function_exists( 'extrachill_get_priority_event_ids' ) ? extrachill_get_priority_event_ids() : array() ), true );
@@ -291,7 +296,7 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 
 		$url   = get_permalink( $post );
 		$venue = reset( $venue_terms );
-		if ( ! is_string( $url ) || ! wp_http_validate_url( $url ) || ! $venue instanceof WP_Term ) {
+		if ( ! $url || ! wp_http_validate_url( $url ) ) {
 			continue;
 		}
 
@@ -473,7 +478,7 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 
 	$actor_id = absint( ec_get_network_bot_user_id() );
 	$link     = extrachill_events_local_scene_digest_tracked_url( get_term_link( $location ) );
-	if ( ! $actor_id || is_wp_error( $link ) || ! wp_http_validate_url( $link ) ) {
+	if ( ! $actor_id || ! wp_http_validate_url( $link ) ) {
 		return array(
 			'status' => 'failed',
 			'reason' => 'invalid_delivery_context',
@@ -495,7 +500,7 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 			'producer_owns_email' => true,
 		)
 	);
-	$recipient_receipt = is_array( $receipt ) && is_array( $receipt['recipients'][ $user_id ] ?? null ) ? $receipt['recipients'][ $user_id ] : array();
+	$recipient_receipt = is_array( $receipt['recipients'][ $user_id ] ?? null ) ? $receipt['recipients'][ $user_id ] : array();
 	$status            = $recipient_receipt['status'] ?? 'failed';
 	$notification_id   = absint( $recipient_receipt['notification_id'] ?? 0 );
 	$result            = array(
@@ -528,6 +533,7 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 	if ( empty( $email['subject'] ) || empty( $email['body_html'] ) ) {
 		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key );
 	}
+	/** @var mixed $queue Cross-plugin result; fail closed on any unexpected shape. */
 	$queue = ec_send_email_queued( // phpcs:ignore Generic.Formatting.MultipleStatementAlignment.NotSameWarning -- separated from the validated email assignment by a guard.
 		array(
 			'to'       => $user->user_email,
@@ -544,7 +550,7 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 			),
 		)
 	);
-	$result['email_queued'] = is_array( $queue ) && ! is_wp_error( $queue ) && ! empty( $queue['success'] );
+	$result['email_queued'] = is_array( $queue ) && ! empty( $queue['success'] );
 	if ( ! $result['email_queued'] ) {
 		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key, true );
 	}

@@ -2,13 +2,16 @@
 /** Term-meta API backed by the transaction-aware test database snapshot. */
 function ec_promoter_fake_table() { return 'wp_7_promoter_term_meta_fixture'; }
 if ( ! function_exists( 'metadata_exists' ) ) {
-	function metadata_exists( $type, $id, $key ) { unset( $type ); return '' !== get_term_meta( $id, $key, true ); }
+	function metadata_exists( $type, $id, $key ) { unset( $type );
+		return '' !== get_term_meta( $id, $key, true ); }
 }
 if ( ! function_exists( 'wp_cache_delete' ) ) {
-	function wp_cache_delete( $id, $group ) { unset( $id, $group ); return true; }
+	function wp_cache_delete( $id, $group ) { unset( $id, $group );
+		return true; }
 }
 if ( ! function_exists( 'get_term_meta' ) ) {
-	function get_term_meta( $id, $key, $single = true ) { unset( $single ); return ec_promoter_fake_get_meta( $id, $key ); }
+	function get_term_meta( $id, $key, $single = true ) { unset( $single );
+		return ec_promoter_fake_get_meta( $id, $key ); }
 }
 if ( ! function_exists( 'update_term_meta' ) ) {
 	function update_term_meta( $id, $key, $value ) { return ec_promoter_fake_update_meta( $id, $key, $value ); }

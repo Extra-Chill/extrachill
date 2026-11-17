@@ -316,13 +316,9 @@ class QualifyFingerprinter {
 			'output_mode' => 'raw',
 		);
 		if ( null !== $handler_config ) {
-			$ability_config = $handler_config;
-			if ( method_exists( $ability, 'get_input_schema' ) ) {
-				$input_schema      = (array) $ability->get_input_schema();
-				$config_properties = (array) ( $input_schema['properties']['handler_config']['properties'] ?? array() );
-				$ability_config    = array_intersect_key( $handler_config, $config_properties );
-			}
-			$ability_input['handler_config'] = $ability_config;
+			$input_schema                    = (array) $ability->get_input_schema();
+			$config_properties               = (array) ( $input_schema['properties']['handler_config']['properties'] ?? array() );
+			$ability_input['handler_config'] = array_intersect_key( $handler_config, $config_properties );
 		}
 
 		$result = self::execute_scraper_ability( $ability, $ability_input );
@@ -531,13 +527,14 @@ class QualifyFingerprinter {
 			return $attempt;
 		}
 
-		$context        = \DataMachine\Core\ExecutionContext::fromFlow(
+		$context = \DataMachine\Core\ExecutionContext::fromFlow(
 			(int) ( $flow_context['pipeline_id'] ?? 0 ),
 			(int) $flow_context['flow_id'],
 			(string) $flow_context['flow_step_id'],
 			(string) ( $flow_context['job_id'] ?? '' ),
 			'universal_web_scraper'
 		);
+		/** @var array<string,mixed> $classification Optional dependency: tolerate Data Machine versions that omit keys. */
 		$classification = $context->classifySourceItems(
 			$unique_identifiers,
 			max( 0, (int) ( $flow_context['handler_config']['max_items'] ?? 0 ) )
@@ -615,7 +612,7 @@ class QualifyFingerprinter {
 	 * Public so platform-derived attempts (added by build_attempts_for_platforms)
 	 * can use the same source of truth as scraper-derived attempts.
 	 *
-	 * @param string $class Extractor class basename (no namespace).
+	 * @param string $class_name Extractor class basename (no namespace).
 	 * @return bool
 	 */
 	public static function extractor_exists( string $class_name ): bool {
