@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.42.1] - 2026-11-17
+
+### Changed
+- single activity feed with comment source
+
 ## [2.42.0] - 2026-11-17
 
 ### Added
