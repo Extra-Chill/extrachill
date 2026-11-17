@@ -180,6 +180,24 @@
                 });
             })
             .then(function (data) {
+                // Two-factor: hand the challenge to the login block, which
+                // asks for the code inline and finishes the sign-in.
+                if (data && data.challenge_required) {
+                    setGlobalLoading(false);
+                    const event = new window.CustomEvent('extrachill:auth-challenge', {
+                        cancelable: true,
+                        detail: {
+                            challenge: data,
+                            deviceId,
+                            continueUrl: new URL('auth/login/continue', config.restUrl || utils.getRestRoot()).toString()
+                        }
+                    });
+                    if (window.dispatchEvent(event)) {
+                        showError('This sign-in needs a verification step. Please sign in from the login page.');
+                    }
+                    return;
+                }
+
                 const redirectUrl = data && data.redirect_url ? data.redirect_url : window.location.href;
                 window.location.assign(redirectUrl);
             })

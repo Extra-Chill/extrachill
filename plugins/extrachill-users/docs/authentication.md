@@ -26,6 +26,39 @@ Gutenberg block provides unified login interface with:
 - Error handling
 - Redirect management
 
+### Two-Factor Authentication
+
+Members who use the Two Factor plugin enter their code in the app or in the
+login block, never on `wp-login.php`. `inc/auth-tokens/two-factor.php`
+registers a `two-factor` challenge policy with wp-native-auth, and every login
+entry point runs wp-native-auth's challenge policies before a session exists:
+
+| Entry point | Path to the policy loop |
+|---|---|
+| Password (`/auth/login`, login block) | `extrachill_users_login_with_tokens()` → `extrachill_users_maybe_challenge_login()` |
+| Google (`/auth/google`, login block button) | `ec_oauth_complete_token_login()` → `extrachill_users_maybe_challenge_login()` |
+| Apple (`/auth/apple`) | `ec_oauth_complete_token_login()` → `extrachill_users_maybe_challenge_login()` |
+| OAuth authorize | Sends signed-out users to the login block, which uses the password or Google path |
+| wp-native-auth's own login ability | Runs the loop itself; this plugin only lifts Two Factor's API-login block for the password check |
+
+A challenged login returns
+`{ challenge_required, challenge_policy, challenge, continuation_token, continuation_expires_at }`
+untouched. `POST /extrachill/v1/auth/login/continue` calls
+`extrachill_users_continue_login_with_tokens()`, which completes it with the
+same response shape and destination as the route that started it. The login
+block shows the code step inline, with a provider switcher, resend for email
+codes, and errors for wrong codes, rate limits, and forced password resets.
+
+Bearer sessions report their 2FA time to Two Factor through
+`two_factor_current_session_two_factor_time`, and a Two Factor revalidation
+marks the bearer session verified through `two_factor_user_revalidated`.
+
+The policy needs Two Factor's non-rendering login API
+(`Two_Factor_Core::verify_authentication_code()` and `get_login_challenge()`)
+and wp-native-auth's challenge loop. Until both are installed, the policy is
+not registered and password logins for 2FA members keep returning
+`{ requires_2fa, redirect_url }` to the Two Factor page.
+
 ## Registration System
 
 ### User Registration Flow
@@ -115,6 +148,7 @@ function extrachill_generate_handoff_token($user_id) {
 
 ### Authentication Endpoints
 - `POST /extrachill/v1/auth/login` - User login
+- `POST /extrachill/v1/auth/login/continue` - Finish a login that returned a challenge
 - `POST /extrachill/v1/auth/register` - User registration
 - `POST /extrachill/v1/auth/logout` - User logout
 - `POST /extrachill/v1/auth/reset-password` - Password reset

@@ -49,6 +49,35 @@ Authenticate a user and return access + refresh tokens for API access. Supports 
 }
 ```
 
+**Challenge response** (HTTP 200): when the account needs another step,
+such as a two-factor code, no tokens are issued. The response is passed
+through from wp-native-auth unchanged:
+
+```json
+{
+  "challenge_required": true,
+  "challenge_policy": "two-factor",
+  "challenge": {
+    "type": "two_factor",
+    "provider": "Two_Factor_Totp",
+    "providers": [
+      { "key": "Two_Factor_Totp", "label": "Authenticator app", "resend": false },
+      { "key": "Two_Factor_Email", "label": "Email", "resend": true }
+    ]
+  },
+  "continuation_token": "...",
+  "continuation_expires_at": "2025-01-15T10:35:00+00:00"
+}
+```
+
+`challenge.status` is `"code_sent"` when an emailed code was sent with the
+challenge. Finish the login with [Auth Login Continue](login-continue.md).
+`/auth/google` and `/auth/apple` return the same shape.
+
+While the installed Two Factor plugin does not provide its login API, a
+two-factor account instead gets `{ "requires_2fa": true, "redirect_url": "..." }`
+pointing at the Two Factor page.
+
 **Error Responses**:
 - `400` - Missing credentials, invalid device_id format, or validation errors
 - `401` - Invalid username/email or password
@@ -142,6 +171,7 @@ const loginData = {
 - Supports both API-first and cookie-based authentication flows
 
 **Related Endpoints**:
+- [Auth Login Continue](login-continue.md) - Finish a login that returned a challenge
 - [Auth Refresh](refresh.md) - Refresh expired access tokens
 - [Auth Register](register.md) - Create new user accounts</content>
 <parameter name="filePath">docs/routes/auth/login.md

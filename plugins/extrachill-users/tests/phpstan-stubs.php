@@ -62,6 +62,8 @@ namespace {
 	function wp_native_auth_refresh_tokens( string $refresh_token, string $device_id ): array|\WP_Error {}
 
 	function wp_native_auth_revoke_refresh_token( int $user_id, string $device_id ): bool {}
+
+	function wp_native_auth_register_challenge_policy( string $policy_id, callable $challenge_callback, callable $verify_callback ): bool {}
 }
 
 namespace DataMachine\Core\OAuth {

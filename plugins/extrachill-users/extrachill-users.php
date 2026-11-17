@@ -161,6 +161,7 @@ function extrachill_users_init() {
 	// plugin keeps only the EC service + policy layer (service.php), the UUID
 	// helper (tokens.php), and the EC-specific browser-handoff semantics.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/tokens.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/two-factor.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/browser-handoff-token.php';
 

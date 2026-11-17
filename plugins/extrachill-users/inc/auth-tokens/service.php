@@ -14,7 +14,7 @@
  *   - the single determine_current_user @20 bearer filter
  *
  * This file keeps the Extra Chill SERVICE + POLICY layer that wp-native-auth
- * deliberately does not implement (2FA redirect, community-blog membership,
+ * deliberately does not implement (2FA fallback redirect, community-blog membership,
  * user blocking, invite redemption, onboarding response fields, cookie
  * issuance). Client-facing response shapes are UNCHANGED — every function
  * below returns exactly the same array shape it returned before the cutover.
@@ -132,14 +132,17 @@ function extrachill_users_revoke_refresh_token( int $user_id, string $device_id 
 }
 
 /**
- * Check if a user has Two-Factor Authentication enabled and handle the redirect.
+ * Fallback 2FA hand-off to the validate_2fa page.
  *
  * Resolves the user by identifier, validates their password, and if they have
  * 2FA enabled, creates a Two Factor login nonce and returns a response that
  * instructs the frontend to redirect to the wp-login.php validate_2fa page.
  *
- * wp-native-auth has no 2FA path, so this EC-specific behavior is preserved
- * here and runs BEFORE token minting in the login flow below.
+ * Fallback only: used while the installed Two Factor plugin lacks its
+ * non-rendering login API or wp-native-auth lacks its challenge loop (see
+ * extrachill_users_two_factor_policy_active()). With both present, the
+ * `two-factor` challenge policy asks for the code in the app or the login
+ * block and this function returns null.
  *
  * @param string $identifier Username or email.
  * @param string $password   Password.
@@ -148,7 +151,7 @@ function extrachill_users_revoke_refresh_token( int $user_id, string $device_id 
  * @return array|WP_Error|null Array with requires_2fa on 2FA redirect, WP_Error on bad credentials, null to continue normal flow.
  */
 function extrachill_users_maybe_handle_two_factor( string $identifier, string $password, bool $remember = false, string $redirect_to = '' ) {
-	if ( ! class_exists( 'Two_Factor_Core' ) ) {
+	if ( ! class_exists( 'Two_Factor_Core' ) || extrachill_users_two_factor_policy_active() ) {
 		return null;
 	}
 
@@ -223,14 +226,23 @@ function extrachill_users_maybe_handle_two_factor( string $identifier, string $p
 /**
  * Login service: authenticates, optionally sets cookies, and returns tokens.
  *
- * EC policy (2FA, community membership, user blocking) is enforced here; token
- * minting is delegated to the wp-native-auth primitives. Response shape is
- * unchanged.
+ * EC policy (community membership, user blocking) is enforced here, then
+ * wp-native-auth's challenge policies run; token minting is delegated to the
+ * wp-native-auth primitives.
+ *
+ * Returns one of:
+ * - the token response (access/refresh tokens, redirect_url, user);
+ * - a challenge, returned untouched from wp-native-auth:
+ *   { challenge_required: true, challenge_policy, challenge, continuation_token,
+ *   continuation_expires_at }. Finish it with
+ *   extrachill_users_continue_login_with_tokens();
+ * - the fallback { requires_2fa: true, redirect_url } when in-app 2FA is
+ *   unavailable (see extrachill_users_maybe_handle_two_factor()).
  *
  * @param string $identifier Username or email.
  * @param string $password Password.
  * @param string $device_id Device ID (UUIDv4).
- * @param array  $options Optional. { 'device_name' => string, 'remember' => bool, 'set_cookie' => bool }.
+ * @param array  $options Optional. { 'device_name' => string, 'remember' => bool, 'set_cookie' => bool, 'redirect_to' => string }.
  * @return array|WP_Error
  */
 function extrachill_users_login_with_tokens( string $identifier, string $password, string $device_id, array $options = array() ) {
@@ -253,22 +265,23 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 	}
 
 	/*
-	 * Two-Factor Authentication compatibility.
+	 * Two-Factor Authentication.
 	 *
-	 * The Two Factor plugin's filter_authenticate() (priority 31) blocks REST API
-	 * login for 2FA users by returning WP_Error('invalid_application_credentials').
-	 * Its wp_login action handler also calls exit after rendering HTML.
+	 * With the `two-factor` challenge policy active, a 2FA user's password
+	 * passes through the normal authenticate stack and the challenge loop
+	 * below returns a continuation; the code step happens in the client.
 	 *
-	 * To avoid both interception points, we detect 2FA users before calling
-	 * wp_authenticate(), validate the password manually, create a Two Factor
-	 * login nonce, and return a redirect URL to the existing validate_2fa page.
+	 * Without it, Two Factor's filter_authenticate() (priority 31) rejects
+	 * REST logins for 2FA users and its wp_login handler exits after
+	 * rendering HTML, so 2FA users are detected first and handed to the
+	 * validate_2fa page instead.
 	 */
 	$two_factor_redirect = extrachill_users_maybe_handle_two_factor( $identifier, $password, $remember, $safe_redirect_to );
 	if ( null !== $two_factor_redirect ) {
 		return $two_factor_redirect;
 	}
 
-	$user = wp_authenticate( $identifier, $password );
+	$user = extrachill_users_authenticate_primary( $identifier, $password );
 	if ( is_wp_error( $user ) ) {
 		return new WP_Error(
 			'invalid_credentials',
@@ -293,6 +306,23 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		);
 	}
 
+	$challenge = extrachill_users_maybe_challenge_login(
+		$user,
+		$device_id,
+		array(
+			'device_name' => $device_name,
+			'remember'    => $remember,
+			'set_cookie'  => $set_cookie,
+		),
+		array(
+			'flow'        => 'password',
+			'redirect_to' => $safe_redirect_to,
+		)
+	);
+	if ( null !== $challenge ) {
+		return $challenge;
+	}
+
 	if ( $set_cookie ) {
 		wp_set_current_user( $user->ID, $user->user_login );
 		wp_set_auth_cookie( $user->ID, $remember );
@@ -301,14 +331,104 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 
 	$tokens = extrachill_users_mint_token_pair( (int) $user->ID, $device_id, $device_name );
 
+	return extrachill_users_password_login_response(
+		$user,
+		array(
+			'access_token'       => $tokens['access']['token'],
+			'access_expires_at'  => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
+			'refresh_token'      => $tokens['refresh']['token'],
+			'refresh_expires_at' => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
+		),
+		$safe_redirect_to
+	);
+}
+
+/**
+ * Shape a completed password login for Extra Chill clients.
+ *
+ * @param WP_User              $user         Logged-in user.
+ * @param array<string,string> $tokens       access_token, access_expires_at, refresh_token, refresh_expires_at.
+ * @param string               $redirect_url Validated destination.
+ * @return array<string,mixed>
+ */
+function extrachill_users_password_login_response( WP_User $user, array $tokens, string $redirect_url ): array {
 	return array(
-		'access_token'       => $tokens['access']['token'],
-		'access_expires_at'  => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
-		'refresh_token'      => $tokens['refresh']['token'],
-		'refresh_expires_at' => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
-		'redirect_url'       => $safe_redirect_to,
+		'access_token'       => $tokens['access_token'],
+		'access_expires_at'  => $tokens['access_expires_at'],
+		'refresh_token'      => $tokens['refresh_token'],
+		'refresh_expires_at' => $tokens['refresh_expires_at'],
+		'redirect_url'       => $redirect_url,
 		'user'               => extrachill_users_token_user_payload( $user ),
 	);
+}
+
+/**
+ * Continue a login paused by a challenge policy (for example 2FA).
+ *
+ * Verification, attempt limits, and session minting belong to wp-native-auth.
+ * A completed login is reshaped to the response of the entry point that
+ * started it (password or Google/Apple), including the destination bound
+ * when the challenge was issued. A re-challenge (a re-sent code) comes back
+ * unchanged with the same continuation token.
+ *
+ * @param string              $continuation_token Opaque continuation from the login response.
+ * @param string              $device_id          Device UUID used for the login.
+ * @param array<string,mixed> $challenge_response Policy response, e.g. { provider, code } or { provider, resend: true }.
+ * @return array<string,mixed>|WP_Error
+ */
+function extrachill_users_continue_login_with_tokens( string $continuation_token, string $device_id, array $challenge_response ) {
+	if ( ! function_exists( 'wp_native_auth_continue_login' ) ) {
+		return new WP_Error(
+			'extrachill_dependency_missing',
+			'wp-native-auth is required to continue a login.',
+			array( 'status' => 500 )
+		);
+	}
+
+	extrachill_users_continued_login_flow( array() );
+
+	$result = wp_native_auth_continue_login( $continuation_token, $device_id, $challenge_response );
+	if ( is_wp_error( $result ) || ! empty( $result['challenge_required'] ) ) {
+		return $result;
+	}
+
+	$user = get_user_by( 'id', (int) ( $result['user']['id'] ?? 0 ) );
+	if ( ! $user ) {
+		return new WP_Error(
+			'invalid_user',
+			'User not found.',
+			array( 'status' => 500 )
+		);
+	}
+
+	$tokens = array(
+		'access_token'       => (string) $result['access_token'],
+		'access_expires_at'  => (string) $result['access_expires_at'],
+		'refresh_token'      => (string) $result['refresh_token'],
+		'refresh_expires_at' => (string) $result['refresh_expires_at'],
+	);
+
+	$flow = extrachill_users_continued_login_flow();
+
+	if ( 'oauth' === ( $flow['flow'] ?? '' ) && function_exists( 'ec_oauth_token_login_response' ) ) {
+		return ec_oauth_token_login_response(
+			$user,
+			$tokens,
+			array(
+				'is_new'               => ! empty( $flow['is_new'] ),
+				'set_cookie'           => ! empty( $flow['set_cookie'] ),
+				'from_join'            => ! empty( $flow['from_join'] ),
+				'success_redirect_url' => isset( $flow['success_redirect_url'] ) ? (string) $flow['success_redirect_url'] : '',
+			)
+		);
+	}
+
+	$redirect_to = isset( $flow['redirect_to'] ) ? (string) $flow['redirect_to'] : '';
+	if ( ! function_exists( 'ec_users_is_valid_return_to_url' ) || ! ec_users_is_valid_return_to_url( $redirect_to ) ) {
+		$redirect_to = home_url();
+	}
+
+	return extrachill_users_password_login_response( $user, $tokens, esc_url_raw( $redirect_to ) );
 }
 
 /**

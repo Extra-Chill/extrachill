@@ -275,3 +275,17 @@
 .login-register-prompt a {
     color: var(--link-color);
 }
+
+/* Inline two-factor step: layout only, controls use design-system classes. */
+.login-two-factor form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.login-two-factor-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+	margin-top: var(--spacing-md);
+}

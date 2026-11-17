@@ -182,4 +182,181 @@ class Test_Auth_Routes extends WP_UnitTestCase {
 		$this->assertSame( 'extrachill_dependency_missing', $result->get_error_code() );
 		$this->assertSame( 500, $result->get_error_data()['status'] );
 	}
+
+	/** The login continuation is a public POST transport. */
+	public function test_login_continue_route_is_registered() {
+		$route = rest_get_server()->get_routes()['/extrachill/v1/auth/login/continue'][0];
+		$this->assertTrue( $route['methods']['POST'] );
+		$this->assertSame( '__return_true', $route['permission_callback'] );
+		$this->assertSame( 'extrachill_api_auth_login_continue_handler', $route['callback'] );
+		foreach ( array( 'continuation_token', 'device_id', 'challenge_response' ) as $arg ) {
+			$this->assertTrue( $route['args'][ $arg ]['required'] );
+		}
+	}
+
+	/** REST rejects omitted continuation fields before calling the service. */
+	public function test_login_continue_requires_token_device_and_response() {
+		foreach ( array( 'continuation_token', 'device_id', 'challenge_response' ) as $missing ) {
+			$request = new WP_REST_Request( 'POST', '/extrachill/v1/auth/login/continue' );
+			$request->set_header( 'Content-Type', 'application/json' );
+			$params = array(
+				'continuation_token' => 'continuation-token',
+				'device_id'          => '550e8400-e29b-41d4-a716-446655440000',
+				'challenge_response' => array( 'code' => '123456' ),
+			);
+			unset( $params[ $missing ] );
+			$request->set_body( wp_json_encode( $params ) );
+			$response = rest_get_server()->dispatch( $request );
+			$this->assertSame( 400, $response->get_status() );
+			$this->assertSame( 'rest_missing_callback_param', $response->get_data()['code'] );
+		}
+	}
+
+	/** The continuation reports the missing optional dependency before processing input. */
+	public function test_login_continue_fails_closed_without_users_dependency() {
+		if ( function_exists( 'extrachill_users_continue_login_with_tokens' ) ) {
+			$this->markTestSkipped( 'extrachill-users is loaded.' );
+		}
+
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/auth/login/continue' );
+		$result  = extrachill_api_auth_login_continue_handler( $request );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'extrachill_dependency_missing', $result->get_error_code() );
+		$this->assertSame( 500, $result->get_error_data()['status'] );
+	}
+
+	/**
+	 * The continuation validates the device and hands the response to Users
+	 * unchanged; Users-owned results and errors come back unchanged.
+	 */
+	public function test_login_continue_service_boundary() {
+		require_once __DIR__ . '/fixtures/login-continue-service.php';
+		if ( ! $this->continue_service_is_double() ) {
+			$this->markTestSkipped( 'The real extrachill-users continuation service is loaded.' );
+		}
+
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/auth/login/continue' );
+		$request->set_header( 'Content-Type', 'application/json' );
+		$request->set_body(
+			wp_json_encode(
+				array(
+					'continuation_token' => 'continuation-token',
+					'device_id'          => 'not-a-uuid',
+					'challenge_response' => array(
+						'provider' => 'Two_Factor_Totp',
+						'code'     => '123456',
+					),
+				)
+			)
+		);
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'invalid_device_id', $response->get_data()['code'] );
+		$this->assertArrayNotHasKey( 'login_continue_service_call', $GLOBALS );
+
+		$request->set_body(
+			wp_json_encode(
+				array(
+					'continuation_token' => 'continuation-token',
+					'device_id'          => '550e8400-e29b-41d4-a716-446655440000',
+					'challenge_response' => array(
+						'provider' => 'Two_Factor_Totp',
+						'code'     => '123456',
+					),
+				)
+			)
+		);
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'access_token' => 'service-token' ), $response->get_data() );
+		$this->assertSame(
+			array(
+				'continuation-token',
+				'550e8400-e29b-41d4-a716-446655440000',
+				array(
+					'provider' => 'Two_Factor_Totp',
+					'code'     => '123456',
+				),
+			),
+			$GLOBALS['login_continue_service_call']
+		);
+
+		$rechallenge = $this->challenge_response();
+
+		$rechallenge['challenge']['status']       = 'code_sent';
+		$GLOBALS['login_continue_service_result'] = $rechallenge;
+
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( $rechallenge, $response->get_data() );
+
+		$GLOBALS['login_continue_service_result'] = new WP_Error(
+			'two_factor_too_fast',
+			'Slow down.',
+			array(
+				'status'      => 429,
+				'retry_after' => 30,
+			)
+		);
+
+		$response = rest_get_server()->dispatch( $request );
+		$this->assertSame( 429, $response->get_status() );
+		$this->assertSame( 'two_factor_too_fast', $response->get_data()['code'] );
+		$this->assertSame( 30, $response->get_data()['data']['retry_after'] );
+
+		unset( $GLOBALS['login_continue_service_call'], $GLOBALS['login_continue_service_result'] );
+	}
+
+	/** /auth/login returns a challenge from Users untouched. */
+	public function test_login_returns_the_challenge_untouched() {
+		require_once __DIR__ . '/fixtures/login-continue-service.php';
+		if ( ! $this->continue_service_is_double() ) {
+			$this->markTestSkipped( 'The real extrachill-users login service is loaded.' );
+		}
+
+		$GLOBALS['login_service_result'] = $this->challenge_response();
+
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/auth/login' );
+		$request->set_param( 'identifier', 'chubes' );
+		$request->set_param( 'password', 'password' );
+		$request->set_param( 'device_id', '550e8400-e29b-41d4-a716-446655440000' );
+		$response = extrachill_api_auth_login_handler( $request );
+
+		$this->assertInstanceOf( WP_REST_Response::class, $response );
+		$this->assertSame( $this->challenge_response(), $response->get_data() );
+		unset( $GLOBALS['login_service_result'] );
+	}
+
+	/** Whether the Users continuation service is this suite's double. */
+	private function continue_service_is_double(): bool {
+		$function = new ReflectionFunction( 'extrachill_users_continue_login_with_tokens' );
+
+		return str_contains( (string) $function->getFileName(), '/fixtures/' );
+	}
+
+	/**
+	 * A two-factor challenge as returned by Users.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function challenge_response(): array {
+		return array(
+			'challenge_required'      => true,
+			'challenge_policy'        => 'two-factor',
+			'challenge'               => array(
+				'type'      => 'two_factor',
+				'provider'  => 'Two_Factor_Totp',
+				'providers' => array(
+					array(
+						'key'    => 'Two_Factor_Totp',
+						'label'  => 'Authenticator app',
+						'resend' => false,
+					),
+				),
+			),
+			'continuation_token'      => 'continuation-token',
+			'continuation_expires_at' => '2030-01-01T00:00:00+00:00',
+		);
+	}
 }
