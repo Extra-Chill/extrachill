@@ -264,35 +264,6 @@ export interface UpdateUserLinksResponse {
   links: UserLink[];
 }
 
-// ─── User Subscriptions ─────────────────────────────────────────────────────
-
-export interface ArtistEmailConsent {
-  artist_id: number;
-  name: string;
-  url: string;
-  email_consent: boolean;
-}
-
-/** @deprecated Use ArtistEmailConsent. */
-export type FollowedArtist = ArtistEmailConsent;
-
-export interface UserSubscriptions {
-  user_id: number;
-  artist_email_consents?: ArtistEmailConsent[];
-  /** @deprecated Compatibility field from extrachill-users. */
-  followed_artists: ArtistEmailConsent[];
-}
-
-export interface UpdateSubscriptionsRequest {
-  consented_artists: number[];
-}
-
-export interface UpdateSubscriptionsResponse {
-  success: boolean;
-  message: string;
-  user_id: number;
-}
-
 // ─── Artist Access Request ──────────────────────────────────────────────────
 
 export interface RequestArtistAccessRequest {

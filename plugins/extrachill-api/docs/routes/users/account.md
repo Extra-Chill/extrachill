@@ -46,17 +46,9 @@ Paths are relative to `/wp-json/extrachill/v1`. All routes below require login t
 
 **Ability:** `extrachill/change-user-password` with current `user_id`. **Response:** `{success: true, message}`. Password verification, policy and session effects are not implemented by the API adapter.
 
-## GET /users/me/subscriptions
+## Retired: /users/me/subscriptions
 
-**Source:** `inc/routes/users/subscriptions.php`. **Parameters:** none.
-
-**Ability:** `extrachill/get-subscriptions` with current `user_id`. **Response:** if the legacy ability is registered, its result passes through unchanged. In the current Users plugin this ability has been retired (see `tests/unit/AccountEmailSharingRetirementTest.php`), so the registered API route returns `ability_not_found` (500), not working subscription state.
-
-## POST /users/me/subscriptions
-
-**Source:** `subscriptions.php`. **Parameters:** required `consented_artists` array of integers.
-
-**Ability:** `extrachill/update-subscriptions` with current `user_id`. **Response:** if the legacy ability exists, its update result passes through unchanged. The current Users plugin retires this ability as well; this route therefore returns `ability_not_found` (500). Documentation does not imply that the retired email-sharing feature remains available.
+`GET` and `POST /users/me/subscriptions` were removed (#726). They wrapped the retired email-sharing abilities `extrachill/get-subscriptions` and `extrachill/update-subscriptions`, so every request returned `ability_not_found`. A member's artist list subscriptions are served by `GET /artists/me/subscriptions` and `DELETE /artists/me/subscriptions/{subscriber_id}` (see [Artist subscribers](../artists/subscribers.md)).
 
 ## POST /users/me/artist-access
 
