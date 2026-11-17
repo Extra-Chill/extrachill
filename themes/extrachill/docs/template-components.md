@@ -375,36 +375,35 @@ get_search_form();
 
 ## Community Activity Component
 
-**Location**: `/inc/core/templates/community-activity.php`
+**Location**: extrachill-network `inc/community-activity/community-activity.php`
 **Functions**: `extrachill_get_community_activity_items()`, `extrachill_render_community_activity()`
 
-Centralized shared helper library for displaying bbPress activity from multiple sites.
+Network-wide adapter onto the one community activity feed (`extrachill_build_activity_feed()` in extrachill-community), for the sidebar widget and the blog homepage community card.
 
 ### Features
 
-- **Community Queries**: Fetches activities from community.extrachill.com (blog ID 2)
-- **Chronological Merging**: Combines activities from both sites into unified timeline
+- **One feed**: Reads the `extrachill/community-recent-public-activity` ability cross-site, so forum topics, replies, and article and event comments arrive already merged by date. Nothing here queries or merges activity.
+- **Type narrowing**: `activity_types` limits items to `discussion`, `reply`, and/or `comment`.
 - **Configurable Rendering**: Customizable HTML structure and CSS classes
-- **WordPress Object Cache**: 10-minute caching for optimal performance
-- **Reusable Library**: Eliminates code duplication across sidebar and homepage widgets
+- **Network cache**: 10-minute site transient per input (1 minute after a failed read)
 
 ### Data Function
 
-**Function**: `extrachill_get_community_activity_items( $limit )`
+**Function**: `extrachill_get_community_activity_items( $limit, $args = array() )`
 
 **Parameters**:
-- `$limit` (int) - Number of activity items to return from cached pool
+- `$limit` (int) - Number of activity items to return (1-20)
+- `$args['activity_types']` (string[]) - Optional item types (`discussion`, `reply`, `comment`). Default all.
 
-**Returns**: Array of activity items with metadata:
-- `id` - Post ID
-- `type` - 'Topic' or 'Reply'
-- `username` - Author username
-- `user_profile_url` - Profile URL (via extrachill-users plugin)
-- `topic_title` - Topic title
-- `forum_title` - Forum title
+**Returns**: Array of activity items, newest first:
+- `type` - 'Topic', 'Reply', or 'Comment'
+- `username` - Author display name
+- `user_profile_url` - Profile URL ('' for guests)
+- `topic_title` - Topic title, or the article/event title for comments
+- `forum_title` - Forum title ('' for comments)
 - `date_time` - ISO 8601 datetime
-- `forum_url` - Forum permalink
-- `topic_url` - Topic permalink
+- `forum_url` - Forum permalink ('' for comments)
+- `topic_url` - Item permalink (topic, reply, or comment anchor)
 
 ### Render Function
 
@@ -467,7 +466,7 @@ extrachill_render_community_activity( array(
 
 ### Caching
 
-Activities cached for 10 minutes using WordPress object cache with key `extrachill_community_activity_all`. Cache contains results from community site.
+Activities are cached for 10 minutes in a network site transient keyed by the ability input (`ec_community_activity_<md5>`); a failed read is cached for 1 minute.
 
 ## Filter Bar Component
 

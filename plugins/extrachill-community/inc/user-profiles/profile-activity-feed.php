@@ -17,6 +17,13 @@
  * bbp_get_user_engaged_topic_ids() — maintained by bbPress whenever a user
  * creates a topic or replies to one. No custom aggregation.
  *
+ * This list is threads, not the chronological activity feed
+ * (extrachill_build_activity_feed()), so it does not take feed sources such
+ * as network comments: a comment on an article or event has no community
+ * thread to join. A member's comments already have their own surface (the
+ * /blog-comments feed, inc/content/main-site-comments.php) and count toward
+ * rank points and the heatmap.
+ *
  * @package ExtraChillCommunity
  */
 

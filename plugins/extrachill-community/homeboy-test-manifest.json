@@ -70,6 +70,9 @@
     "tests/recent-public-activity-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/activity-feed-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/subscription-inventory-smoke.php": {
       "environment": "standalone-php"
     },

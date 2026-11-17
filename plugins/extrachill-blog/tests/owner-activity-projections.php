@@ -15,6 +15,10 @@ $projection_request  = array();
 $projection_throw    = false;
 
 function add_action() {}
+function wp_json_encode( $value ) { return json_encode( $value ); } // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test stub.
+function get_transient() { return false; }
+function set_transient() { return true; }
+const MINUTE_IN_SECONDS = 60;
 function __( $text ) { return $text; }
 function get_posts() { return array(); }
 function absint( $value ) { return abs( (int) $value ); }
@@ -63,6 +67,7 @@ $GLOBALS['projection_response'] = array(
 			'timestamp'     => '2026-08-06T12:00:00+00:00',
 			'activity_type' => 'discussion',
 			'actor'         => array(
+				'user_id'      => 7,
 				'display_name' => 'Test User',
 				'profile_url'  => null,
 			),
@@ -81,7 +86,14 @@ $community = extrachill_blog_get_artist_community_activity( new WP_Term() );
 projection_assert( 1 === count( $community ), 'Community success should map one activity item.' );
 projection_assert( 'Community discussion' === $community[0]['source'], 'Community mapping should preserve the Blog source label.' );
 projection_assert( 'community' === $GLOBALS['projection_request']['site_key'], 'Community requests must target the owner site.' );
-projection_assert( array( 'artist_slug' => 'test-artist', 'limit' => 4 ) === $GLOBALS['projection_request']['args']['query']['input'], 'Artist filtering must be delegated to the owner contract.' );
+projection_assert(
+	array(
+		'artist_slug'    => 'test-artist',
+		'limit'          => 4,
+		'activity_types' => array( 'discussion', 'reply' ),
+	) === $GLOBALS['projection_request']['args']['query']['input'],
+	'Artist filtering and the forum-only item types must be delegated to the owner contract.'
+);
 projection_assert( empty( $GLOBALS['projection_filters']['ec_cross_site_use_http_loopback'] ), 'Successful dispatch must remove its temporary filter.' );
 
 $GLOBALS['projection_response'] = array(
