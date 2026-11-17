@@ -17,19 +17,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Provide co-authors display for post meta
  * Hooks into theme's extrachill_post_meta_author filter
  *
- * @param string  $author_html Current author HTML (empty by default)
- * @param WP_Post $post        Current post object
+ * @param string $author_html Current author HTML (empty by default)
  * @return string Author HTML with co-authors links, or empty to use default
  */
-function extrachill_blog_coauthors_display( $author_html, $post ) {
+function extrachill_blog_coauthors_display( $author_html ) {
 	if ( function_exists( 'coauthors_posts_links' ) ) {
 		ob_start();
 		coauthors_posts_links();
-		return ob_get_clean();
+		return (string) ob_get_clean();
 	}
 	return $author_html;
 }
-add_filter( 'extrachill_post_meta_author', 'extrachill_blog_coauthors_display', 10, 2 );
+add_filter( 'extrachill_post_meta_author', 'extrachill_blog_coauthors_display', 10, 1 );
 
 /**
  * Register co-authors REST API fields
@@ -67,24 +66,27 @@ if ( function_exists( 'get_coauthors' ) ) {
 
 	/**
 	 * Get co-authors data for REST API
+	 *
+	 * @param array $post_data Prepared REST post data.
+	 * @return array<int,array{display_name:string,user_nicename:string}> Co-author profiles.
 	 */
-	function extrachill_blog_get_coauthors( $object, $field_name, $request ) {
-		$coauthors = get_coauthors( $object['id'] );
+	function extrachill_blog_get_coauthors( $post_data ) {
+		$coauthors = function_exists( 'get_coauthors' ) ? get_coauthors( $post_data['id'] ) : array();
 
 		$authors = array();
 		if ( ! empty( $coauthors ) ) {
 			foreach ( $coauthors as $author ) {
 				$authors[] = array(
-					'display_name' => $author->display_name,
-					'user_nicename' => $author->user_nicename
+					'display_name'  => $author->display_name,
+					'user_nicename' => $author->user_nicename,
 				);
 			}
 		} else {
-			$default_author = get_userdata( get_post_field( 'post_author', $object['id'] ) );
+			$default_author = get_userdata( (int) get_post_field( 'post_author', $post_data['id'] ) );
 			if ( $default_author ) {
 				$authors[] = array(
-					'display_name' => $default_author->display_name,
-					'user_nicename' => $default_author->user_nicename
+					'display_name'  => $default_author->display_name,
+					'user_nicename' => $default_author->user_nicename,
 				);
 			}
 		}

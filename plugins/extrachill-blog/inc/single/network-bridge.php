@@ -63,7 +63,7 @@ add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_geographic_bridge_sc
 /**
  * Register the code-owned geographic bridge holdout.
  *
- * @param array $definitions Existing experiment definitions.
+ * @param mixed $definitions Existing experiment definitions (filter input).
  * @return array Experiment definitions.
  */
 function extrachill_blog_register_bridge_experiment( $definitions ) {
@@ -173,7 +173,7 @@ function extrachill_blog_network_bridge_cards( $args ) {
 /**
  * Re-resolve whether a published post has vacant geographic bridge capacity.
  *
- * @param array  $context Assignment context.
+ * @param mixed  $context Assignment context (filter input).
  * @param string $surface Requested experiment surface.
  * @return bool Whether the post is eligible for geographic treatment.
  */
