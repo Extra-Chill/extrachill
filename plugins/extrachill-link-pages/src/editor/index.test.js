@@ -24,6 +24,8 @@ import {
 	exitLinksFor,
 	Preview,
 	registerAdapter,
+	trackingIdError,
+	validateDraft,
 } from './index';
 
 describe( 'card background controls', () => {
@@ -873,6 +875,155 @@ describe( 'portable editor behavior', () => {
 			container.querySelector( '#extrch-subscribe-modal' )
 		).toBeNull();
 		await act( async () => root.unmount() );
+	} );
+
+	const fieldFor = ( container, label ) =>
+		[ ...container.querySelectorAll( '.ec-lpe-field' ) ].find(
+			( field ) => label === field.querySelector( 'label' ).textContent
+		);
+
+	const openAdvanced = async ( container ) =>
+		act( async () =>
+			[ ...container.querySelectorAll( '[role="tab"]' ) ]
+				.find( ( tab ) => 'Advanced' === tab.textContent )
+				.click()
+		);
+
+	const submit = async ( container ) =>
+		act( async () =>
+			container
+				.querySelector( 'form' )
+				.dispatchEvent(
+					new Event( 'submit', { bubbles: true, cancelable: true } )
+				)
+		);
+
+	it( 'labels tracking ID fields generically and blocks malformed IDs', async () => {
+		const save = jest.fn();
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async ( id ) => documentFor( id ) ),
+			save,
+		};
+		const { container, root } = await renderEditor();
+		await openAdvanced( container );
+		expect( container.textContent ).not.toContain( 'Meta Pixel ID' );
+		expect( container.textContent ).not.toContain( 'Google Tag ID' );
+		const adField = fieldFor( container, 'Ad tracking ID' );
+		const tagField = fieldFor( container, 'Analytics tag ID' );
+		expect( adField.querySelector( 'small' ).textContent ).toContain(
+			'Events Manager'
+		);
+		expect( tagField.querySelector( 'small' ).textContent ).toContain(
+			'GT-'
+		);
+
+		await input( tagField.querySelector( 'input' ), 'g-abc1234' );
+		const inline = tagField.querySelector( '.notice.notice-error' );
+		expect( inline ).not.toBeNull();
+		expect( inline.textContent ).toContain( 'analytics tag ID' );
+		await submit( container );
+		expect( save ).not.toHaveBeenCalled();
+		const editorNotice = container.querySelector(
+			'.ec-editor > .notice.notice-error, form > .notice.notice-error'
+		);
+		expect( editorNotice ).not.toBeNull();
+		expect( editorNotice.textContent ).toContain( 'analytics tag ID' );
+
+		await input( tagField.querySelector( 'input' ), 'GT-ABCD123' );
+		expect( tagField.querySelector( '.notice' ) ).toBeNull();
+		await input( adField.querySelector( 'input' ), '12345' );
+		expect(
+			adField.querySelector( '.notice.notice-error' ).textContent
+		).toContain( 'ad tracking ID' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'shows a server-side tracking ID rejection as an error notice', async () => {
+		const save = jest.fn( async () => {
+			throw new Error(
+				'The ad tracking ID must be 13 to 16 digits with no letters, spaces, or symbols.'
+			);
+		} );
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async ( id ) => documentFor( id ) ),
+			save,
+		};
+		const { container, root } = await renderEditor();
+		await openAdvanced( container );
+		await input(
+			fieldFor( container, 'Ad tracking ID' ).querySelector( 'input' ),
+			'1234567890123456'
+		);
+		await submit( container );
+		await flush();
+		expect( save ).toHaveBeenCalled();
+		const notices = [
+			...container.querySelectorAll( '.notice.notice-error' ),
+		];
+		expect(
+			notices.some( ( notice ) =>
+				notice.textContent.includes( '13 to 16 digits' )
+			)
+		).toBe( true );
+		await act( async () => root.unmount() );
+	} );
+} );
+
+describe( 'tracking ID validation', () => {
+	it( 'accepts valid ad tracking IDs and rejects malformed ones', () => {
+		for ( const id of [
+			'',
+			'1234567890123456',
+			'123456789012345',
+			'1559507561216',
+		] ) {
+			expect( trackingIdError( 'meta_pixel_id', id ) ).toBe( '' );
+		}
+		for ( const id of [
+			'123456789012',
+			'12345678901234567',
+			'12345678901234a',
+			'G-ABC1234',
+		] ) {
+			expect( trackingIdError( 'meta_pixel_id', id ) ).toContain(
+				'ad tracking ID'
+			);
+		}
+	} );
+
+	it( 'accepts G-, AW-, GT-, and DC- analytics tags in uppercase only', () => {
+		for ( const id of [
+			'',
+			'G-4NRPL4Z17C',
+			'AW-123456789',
+			'GT-ABCD123',
+			'DC-1234567',
+			' G-ABC1234 ',
+		] ) {
+			expect( trackingIdError( 'google_tag_id', id ) ).toBe( '' );
+		}
+		for ( const id of [
+			'G-abc1234',
+			'gt-ABCD123',
+			'UA-1234567-1',
+			'GTM-ABC1234',
+			'G-',
+			'G-ABC");x',
+		] ) {
+			expect( trackingIdError( 'google_tag_id', id ) ).toContain(
+				'analytics tag ID'
+			);
+		}
+	} );
+
+	it( 'reports malformed tracking IDs from draft validation', () => {
+		const draft = {
+			identity: { name: 'Name' },
+			page: { bio: '', links: [], settings: { google_tag_id: 'X-1' } },
+		};
+		expect( validateDraft( draft ) ).toContain( 'analytics tag ID' );
+		draft.page.settings = { google_tag_id: 'GT-ABCD123' };
+		expect( validateDraft( draft ) ).toBe( '' );
 	} );
 } );
 

@@ -610,15 +610,14 @@ function ec_render_link_page_public_head( $link_page_id, $data, $projection ) {
 	 */
 	do_action( 'ec_link_page_public_head', $link_page_id );
 	wp_print_styles();
-	$meta_id = $data['settings']['meta_pixel_id'];
-	if ( $meta_id && ctype_digit( (string) $meta_id ) ) {
-		$meta_id = (string) $meta_id;
+	$meta_id = (string) ( $data['settings']['meta_pixel_id'] ?? '' );
+	if ( '' !== $meta_id && true === ec_validate_link_page_ad_tracking_id( $meta_id ) ) {
 		// phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Per-page tracking ID must be emitted in the isolated minimal head.
 		echo '<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");fbq("init","' . esc_js( $meta_id ) . '");fbq("track","PageView");</script>';
 		echo '<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=' . esc_attr( $meta_id ) . '&ev=PageView&noscript=1"></noscript>';
 	}
-	$tag_id = $data['settings']['google_tag_id'];
-	if ( $tag_id && preg_match( '/^(G|AW)-[a-zA-Z0-9]+$/', $tag_id ) ) {
+	$tag_id = (string) ( $data['settings']['google_tag_id'] ?? '' );
+	if ( '' !== $tag_id && true === ec_validate_link_page_analytics_tag_id( $tag_id ) ) {
 		// phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Per-page tracking ID must be emitted in the isolated minimal head.
 		echo '<script async src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr( $tag_id ) . '"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","' . esc_js( $tag_id ) . '");</script>';
 	}

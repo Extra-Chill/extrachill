@@ -490,6 +490,47 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	return $sanitized;
 }
 
+/**
+ * Validate an ad tracking (pixel) ID.
+ *
+ * Pixel IDs are numeric. Current IDs are 15 or 16 digits; older pixels still in
+ * use on stored Link Pages have 13, so 13 to 16 digits are accepted. An empty
+ * value is valid and disables tracking.
+ *
+ * @param mixed $id Candidate ID.
+ * @return true|WP_Error
+ */
+function ec_validate_link_page_ad_tracking_id( $id ) {
+	if ( '' === $id ) {
+		return true;
+	}
+	if ( is_string( $id ) && preg_match( '/^[0-9]{13,16}$/D', $id ) ) {
+		return true;
+	}
+	return new WP_Error( 'invalid_link_page_ad_tracking_id', 'The ad tracking ID must be 13 to 16 digits with no letters, spaces, or symbols.', array( 'field' => 'meta_pixel_id' ) );
+}
+
+/**
+ * Validate an analytics tag ID.
+ *
+ * Accepts the tag formats the standard gtag.js snippet loads: G- (analytics
+ * measurement), AW- (ads conversion), GT- (combined tag), and DC- (floodlight),
+ * followed by uppercase letters and digits. An empty value is valid and
+ * disables tracking.
+ *
+ * @param mixed $id Candidate ID.
+ * @return true|WP_Error
+ */
+function ec_validate_link_page_analytics_tag_id( $id ) {
+	if ( '' === $id ) {
+		return true;
+	}
+	if ( is_string( $id ) && preg_match( '/^(?:G|AW|GT|DC)-[A-Z0-9]{4,20}$/D', $id ) ) {
+		return true;
+	}
+	return new WP_Error( 'invalid_link_page_analytics_tag_id', 'The analytics tag ID must start with G-, AW-, GT-, or DC- followed by uppercase letters and digits, for example G-ABC123XYZ.', array( 'field' => 'google_tag_id' ) );
+}
+
 /** Sanitize generic settings into save keys. */
 function ec_sanitize_link_page_settings( $settings ) {
 	if ( ! is_array( $settings ) ) {
@@ -510,6 +551,13 @@ function ec_sanitize_link_page_settings( $settings ) {
 					return new WP_Error( 'invalid_link_page_redirect_url', 'The Link Page redirect target must use HTTP or HTTPS.' );
 				}
 				$sanitized[ $field ] = $url;
+			} elseif ( 'meta_pixel_id' === $field || 'google_tag_id' === $field ) {
+				$id    = trim( sanitize_text_field( $value ) );
+				$valid = 'meta_pixel_id' === $field ? ec_validate_link_page_ad_tracking_id( $id ) : ec_validate_link_page_analytics_tag_id( $id );
+				if ( is_wp_error( $valid ) ) {
+					return $valid;
+				}
+				$sanitized[ $field ] = $id;
 			} else {
 				$sanitized[ $field ] = sanitize_text_field( $value );
 			}

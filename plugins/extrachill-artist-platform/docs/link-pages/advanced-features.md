@@ -50,8 +50,9 @@ Configuration via Gutenberg block editor to enable YouTube video embedding with 
 
 Analytics integration configured via Gutenberg block editor with support for:
 
-- Google Tag Manager (GTM) tracking IDs
-- Meta Pixel (Facebook) conversion tracking
+- Ad tracking ID (`meta_pixel_id`): 13–16 digit pixel ID, validated by `ec_validate_link_page_ad_tracking_id()`
+- Analytics tag ID (`google_tag_id`): `G-`, `AW-`, `GT-`, or `DC-` tag rendered with the standard gtag.js snippet, validated by `ec_validate_link_page_analytics_tag_id()`
+- Malformed tracking IDs are rejected on save with a `WP_Error` that the editor shows as an error notice
 - Custom event tracking via REST API endpoints
 - Real-time click tracking via sendBeacon API
 - Page view tracking with automatic daily aggregation

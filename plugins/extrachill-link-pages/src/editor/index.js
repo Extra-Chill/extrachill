@@ -64,6 +64,34 @@ const limitsFor = ( configured = {} ) => ( {
 	...configured,
 } );
 
+const TRACKING_ID_RULES = {
+	meta_pixel_id: {
+		pattern: /^[0-9]{13,16}$/,
+		error: 'The ad tracking ID must be 13 to 16 digits with no letters, spaces, or symbols.',
+	},
+	google_tag_id: {
+		pattern: /^(?:G|AW|GT|DC)-[A-Z0-9]{4,20}$/,
+		error: 'The analytics tag ID must start with G-, AW-, GT-, or DC- followed by uppercase letters and digits, for example G-ABC123XYZ.',
+	},
+};
+
+/**
+ * Mirror the server-side tracking ID validators so malformed IDs are flagged
+ * before saving. The server remains authoritative.
+ *
+ * @param {string} field Settings key (`meta_pixel_id` or `google_tag_id`).
+ * @param {string} value Candidate ID.
+ * @return {string} Error message, or an empty string when valid or empty.
+ */
+export const trackingIdError = ( field, value ) => {
+	const rule = TRACKING_ID_RULES[ field ];
+	const id = typeof value === 'string' ? value.trim() : '';
+	if ( ! rule || '' === id ) {
+		return '';
+	}
+	return rule.pattern.test( id ) ? '' : rule.error;
+};
+
 export const validateDraft = ( draft, configuredLimits = {} ) => {
 	const limits = limitsFor( configuredLimits );
 	if ( ! draft || draft.identity.name.length > limits.displayNameLength ) {
@@ -104,6 +132,13 @@ export const validateDraft = ( draft, configuredLimits = {} ) => {
 			} catch {
 				return 'Every link needs a valid URL.';
 			}
+		}
+	}
+	const settings = draft.page.settings || {};
+	for ( const field of Object.keys( TRACKING_ID_RULES ) ) {
+		const error = trackingIdError( field, settings[ field ] );
+		if ( error ) {
+			return error;
 		}
 	}
 	return '';
@@ -1194,6 +1229,14 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 
 function AdvancedPanel( { draft, change } ) {
 	const settings = draft.page.settings;
+	const adTrackingError = trackingIdError(
+		'meta_pixel_id',
+		settings.meta_pixel_id
+	);
+	const analyticsTagError = trackingIdError(
+		'google_tag_id',
+		settings.google_tag_id
+	);
 	const set = ( key, value ) =>
 		change(
 			{
@@ -1244,21 +1287,38 @@ function AdvancedPanel( { draft, change } ) {
 					}
 				/>
 			</Field>
-			<Field label="Meta Pixel ID">
+			<Field
+				label="Ad tracking ID"
+				help="The numeric pixel ID from your ad account, such as Meta Events Manager. Leave blank to turn off."
+			>
 				<input
+					inputMode="numeric"
 					value={ settings.meta_pixel_id || '' }
 					onChange={ ( event ) =>
 						set( 'meta_pixel_id', event.target.value )
 					}
 				/>
+				{ adTrackingError && (
+					<div className="notice notice-error" role="alert">
+						<p>{ adTrackingError }</p>
+					</div>
+				) }
 			</Field>
-			<Field label="Google Tag ID">
+			<Field
+				label="Analytics tag ID"
+				help="Starts with G-, AW-, GT-, or DC-. Find it in your Google Analytics or Google Ads tag settings. Leave blank to turn off."
+			>
 				<input
 					value={ settings.google_tag_id || '' }
 					onChange={ ( event ) =>
 						set( 'google_tag_id', event.target.value )
 					}
 				/>
+				{ analyticsTagError && (
+					<div className="notice notice-error" role="alert">
+						<p>{ analyticsTagError }</p>
+					</div>
+				) }
 			</Field>
 		</div>
 	);
@@ -1702,6 +1762,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		configuration.status === 'not_provisioned' ? 'absent' : 'loading'
 	);
 	const [ message, setMessage ] = useState( '' );
+	const [ saveError, setSaveError ] = useState( '' );
 	const [ qrCode, setQrCode ] = useState( '' );
 	const [ qrError, setQrError ] = useState( '' );
 	const [ dirty, setDirty ] = useState( false );
@@ -1798,6 +1859,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		const token = beginRequest( requestedIdentity );
 		setPhase( 'loading' );
 		setMessage( '' );
+		setSaveError( '' );
 		try {
 			const saved = window.sessionStorage.getItem(
 				storageKey( configuration.adapter, requestedIdentity )
@@ -1885,7 +1947,8 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		const validationError = validateDraft( draft, limits );
 		if ( ! formRef.current?.checkValidity() || validationError ) {
 			formRef.current?.reportValidity();
-			setMessage(
+			setMessage( '' );
+			setSaveError(
 				validationError || 'Complete all required Link Page fields.'
 			);
 			return;
@@ -1896,6 +1959,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		savingRef.current = true;
 		setPhase( 'saving' );
 		setMessage( '' );
+		setSaveError( '' );
 		try {
 			const result = await adapter.save( token.id, payload, {
 				dirtyAreas: [ ...dirtyAreasRef.current ],
@@ -1906,7 +1970,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		} catch ( error ) {
 			if ( isCurrentRequest( token ) ) {
 				savingRef.current = false;
-				setMessage( error?.message || 'Changes could not be saved.' );
+				setSaveError( error?.message || 'Changes could not be saved.' );
 				setPhase( 'ready' );
 			}
 		}
@@ -2165,6 +2229,11 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 					</button>
 				</div>
 			</header>
+			{ saveError && (
+				<div className="notice notice-error" role="alert">
+					<p>{ saveError }</p>
+				</div>
+			) }
 			{ ! hasContent && ! dirty && (
 				<div className="notice notice-info ec-editor__first-steps">
 					<p>

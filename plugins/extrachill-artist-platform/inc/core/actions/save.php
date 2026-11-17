@@ -365,15 +365,14 @@ function ec_prepare_link_page_save_data( $post_data ) {
 	// YouTube embed (inverted logic - checkbox disables feature)
 	$save_data['youtube_embed_enabled'] = isset( $post_data['disable_youtube_inline_embed'] ) && '1' === $post_data['disable_youtube_inline_embed'] ? '0' : '1';
 
-	// Tracking IDs
+	// Tracking IDs: the Link Pages runtime validates the format on save and
+	// rejects malformed values instead of silently discarding them.
 	if ( isset( $post_data['link_page_meta_pixel_id'] ) ) {
-		$meta_pixel                 = trim( wp_unslash( $post_data['link_page_meta_pixel_id'] ) );
-		$save_data['meta_pixel_id'] = empty( $meta_pixel ) ? '' : ( ctype_digit( $meta_pixel ) ? $meta_pixel : '' );
+		$save_data['meta_pixel_id'] = trim( sanitize_text_field( wp_unslash( $post_data['link_page_meta_pixel_id'] ) ) );
 	}
 
 	if ( isset( $post_data['link_page_google_tag_id'] ) ) {
-		$google_tag                 = trim( wp_unslash( $post_data['link_page_google_tag_id'] ) );
-		$save_data['google_tag_id'] = empty( $google_tag ) ? '' : ( preg_match( '/^(G|AW)-[a-zA-Z0-9]+$/', $google_tag ) ? $google_tag : '' );
+		$save_data['google_tag_id'] = trim( sanitize_text_field( wp_unslash( $post_data['link_page_google_tag_id'] ) ) );
 	}
 
 	// UI settings
@@ -636,6 +635,9 @@ function ec_admin_post_save_link_page() {
 		);
 		$error_code     = isset( $error_data['error_code'] ) ? $error_data['error_code'] : 'general';
 		$message        = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : $error_messages['general'];
+		if ( in_array( $result->get_error_code(), array( 'invalid_link_page_ad_tracking_id', 'invalid_link_page_analytics_tag_id' ), true ) ) {
+			$message = $result->get_error_message();
+		}
 		// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
 		extrachill_set_notice( $message, 'error' );
 
