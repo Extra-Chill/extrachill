@@ -1056,6 +1056,9 @@ class BookingHoldRepository {
 		if ( false === $local_start || false === $local_end || $local_start->format( 'Y-m-d H:i:s' ) !== $start_at || $local_end->format( 'Y-m-d H:i:s' ) !== $end_at || $local_end <= $local_start ) {
 			return new \WP_Error( 'booking_availability_interval_invalid', __( 'Choose a valid space, start time, and end time.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
+		if ( $local_start->format( 'Y-m-d' ) < ( new \DateTimeImmutable( 'now', $timezone ) )->format( 'Y-m-d' ) ) {
+			return new \WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
 		$utc     = new \DateTimeZone( 'UTC' );
 		$booking = array(
 			'id'                   => 0,

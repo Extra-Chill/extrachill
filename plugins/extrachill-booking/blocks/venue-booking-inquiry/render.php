@@ -49,7 +49,15 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 		$logo_url = is_array( $profile ) ? (string) ( $profile['logo_url'] ?? '' ) : '';
 		$logo_url = filter_var( $logo_url, FILTER_VALIDATE_URL ) ? $logo_url : '';
 
+		$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : array();
+		try {
+			$min_date = ( new DateTimeImmutable( 'now', new DateTimeZone( is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '' ) ) )->format( 'Y-m-d' );
+		} catch ( Exception $exception ) {
+			$min_date = '';
+		}
+
 		return array(
+			'min_date'       => $min_date,
 			'booking_config' => $booking_config,
 			'venue'          => array(
 				'id'          => $venue_id,
@@ -94,6 +102,7 @@ $public_config = array(
 	),
 	'restNonce'            => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
 	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
+	'minDate'              => $canonical['min_date'],
 	'revision'             => (int) $booking_config['revision'],
 	'venue'                => $canonical['venue'],
 	'spaces'               => array_values( $booking_config['spaces'] ),

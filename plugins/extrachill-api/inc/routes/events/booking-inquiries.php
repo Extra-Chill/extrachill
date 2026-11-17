@@ -704,6 +704,7 @@ function extrachill_api_booking_public_error( WP_Error $error ) {
 		'invalid_booking_attachment_size'           => array( 'booking_attachment_rejected', 413, __( 'A booking attachment is outside the allowed size.', 'extrachill-api' ), array() ),
 		'invalid_booking_attachment_aggregate_size' => array( 'booking_attachment_rejected', 413, __( 'The combined booking attachments are too large.', 'extrachill-api' ), array() ),
 		'booking_tax_document_denied'               => array( 'booking_attachment_rejected', 400, __( 'Tax identity documents are not accepted here.', 'extrachill-api' ), array() ),
+		'booking_availability_date_past'            => array( 'booking_availability_date_past', 400, __( 'That date has already passed. Choose today or a later date.', 'extrachill-api' ), array() ),
 		'turnstile_missing_token'                   => array( 'turnstile_missing_token', 403, __( 'Security verification is required.', 'extrachill-api' ), array() ),
 		'turnstile_failed'                          => array( 'turnstile_failed', 403, __( 'Security verification failed. Refresh the challenge and retry.', 'extrachill-api' ), array() ),
 	);
