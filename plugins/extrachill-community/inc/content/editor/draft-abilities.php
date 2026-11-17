@@ -139,7 +139,7 @@ function extrachill_community_register_draft_abilities() {
  *    uses to gate cross-author content edits).
  *  - Otherwise (no user_id supplied, or it matches the current user), pass.
  *
- * @param array $input Ability input payload.
+ * @param mixed $input Ability input payload (may be absent or non-array).
  * @return bool True if the caller may execute the ability.
  */
 function extrachill_community_ability_bbpress_draft_permission( $input = array() ) {

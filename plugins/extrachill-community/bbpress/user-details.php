@@ -35,7 +35,7 @@ defined( 'ABSPATH' ) || exit;
 		?>
 		<p class="bbp-user-title-rank">
 			<b>Title:</b> <?php echo esc_html(bbp_get_user_display_role()); ?>
-			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
+			| <b>Points:</b> <?php echo esc_html( (string) extrachill_display_user_points( bbp_get_displayed_user_id() ) ); ?>
 			<a class="button-3 button-small" href="<?php echo esc_url( extrachill_community_docs_url( 'understanding-ranks' ) ); ?>" data-ec-track="docs-help-understanding-ranks"><?php esc_html_e( 'How does this work?', 'extra-chill-community' ); ?></a>
 		</p>
 		<?php
@@ -80,7 +80,7 @@ defined( 'ABSPATH' ) || exit;
 		if ( function_exists( 'ec_get_rank_progress' ) ) {
 			$rank_progress = ec_get_rank_progress( (float) extrachill_display_user_points( bbp_get_displayed_user_id() ) );
 
-			$rp_percent = isset( $rank_progress['percent'] ) ? (float) $rank_progress['percent'] : 0.0;
+			$rp_percent = (float) $rank_progress['percent'];
 			$rp_percent = max( 0.0, min( 100.0, $rp_percent ) );
 
 			$rp_current_label = isset( $rank_progress['current']['label'] ) ? (string) $rank_progress['current']['label'] : '';
@@ -110,7 +110,7 @@ defined( 'ABSPATH' ) || exit;
 			<div class="rank-progress" role="img" aria-label="<?php echo esc_attr( $rp_aria_label ); ?>">
 				<div class="rank-progress-meta">
 					<span class="rank-progress-current"><?php echo esc_html( $rp_current_text ); ?></span>
-					<span class="rank-progress-percent"><?php echo esc_html( (int) round( $rp_percent ) ); ?>%</span>
+					<span class="rank-progress-percent"><?php echo esc_html( (string) (int) round( $rp_percent ) ); ?>%</span>
 					<?php
 					if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) ) :
 						$rp_next_text = sprintf(
@@ -125,7 +125,7 @@ defined( 'ABSPATH' ) || exit;
 					<?php endif; ?>
 				</div>
 				<div class="rank-progress-track">
-					<div class="rank-progress-fill<?php echo $rp_is_max ? ' is-max' : ''; ?>" style="width:<?php echo esc_attr( $rp_percent ); ?>%"></div>
+					<div class="rank-progress-fill<?php echo $rp_is_max ? ' is-max' : ''; ?>" style="width:<?php echo esc_attr( (string) $rp_percent ); ?>%"></div>
 				</div>
 				<?php
 				if ( ! $rp_is_max && ! empty( $rank_progress['next']['label'] ) && null !== $rank_progress['points_to_next'] ) :

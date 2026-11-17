@@ -61,7 +61,7 @@
  * @package ExtraChillCommunity
  */
 
-if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) ) {
 	return;
 }
 
@@ -264,9 +264,7 @@ $affected = array_unique(
 	)
 );
 foreach ( $affected as $forum_id ) {
-	if ( $forum_id > 0 ) {
-		$recalc_forum( $forum_id );
-	}
+	$recalc_forum( $forum_id );
 }
 
 WP_CLI::success( $dry_run ? 'Dry run complete.' : 'Phase 4 follow-up cleanup complete.' );

@@ -15,7 +15,7 @@ if ( ! defined('ABSPATH') ) {
 /**
  * Render a single notification card
  *
- * @param array $notification Notification data array
+ * @param mixed $notification Notification data array (validated below).
  * @return string Formatted HTML for notification card
  */
 function extrachill_render_notification_card($notification) {

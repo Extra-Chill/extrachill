@@ -18,14 +18,14 @@ defined( 'ABSPATH' ) || exit;
 		<h2>Recently Active</h2>
 		<ul>
 			<?php
-			$recent_topics_query = ec_get_recently_active_topics( 6, get_the_ID() );
+			$recent_topics_query = ec_get_recently_active_topics( 6, (int) get_the_ID() );
 
 			if ( $recent_topics_query->have_posts() ) { // Use curly braces
 				$displayed_count = 0;
 
 				while ( $recent_topics_query->have_posts() ) {
 					$recent_topics_query->the_post();
-					$topic_id = get_the_ID();
+					$topic_id = (int) get_the_ID();
 
 
 					// Stop if we have already displayed 3 topics
@@ -77,9 +77,9 @@ defined( 'ABSPATH' ) || exit;
 				if ( 0 === $displayed_count ) {
 					echo '<li>No recent topics found.</li>';
 				}
-			} else { // Use curly braces for outer if
+			} else {
 				echo '<li>No recent topics found.</li>';
-			} // End if have_posts()
+			}
 			?>
 		</ul>
 	</div>
