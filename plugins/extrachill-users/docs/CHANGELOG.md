@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.74.1] - 2026-11-17
+
+### Fixed
+- shape recent comment activity items inside the comment's site
+
 ## [0.74.0] - 2026-11-17
 
 ### Added
