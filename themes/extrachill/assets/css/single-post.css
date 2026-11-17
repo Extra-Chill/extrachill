@@ -27,9 +27,18 @@
     box-shadow: none;
   }
 
+  .single-post-card .wp-block-image,
+  .single-post-card .wp-block-embed,
+  .single-post-card figure.wp-block-image {
+    margin-left: calc(-1 * var(--spacing-md));
+    margin-right: calc(-1 * var(--spacing-md));
+  }
+
   .single-post-card .wp-block-image img,
   .single-post-card .wp-block-embed iframe {
     width: 100%;
+    max-width: none;
+    border-radius: 0;
   }
 
   .content-column > aside {

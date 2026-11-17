@@ -30,13 +30,10 @@ if ( ! preg_match( '/\.single-post-card\s*>\s*\.below-entry-meta\s+\.meta-top-ro
 	}
 }
 
-// 2. In-article images and embeds must not break out of the card padding on phones.
+// 2. Mobile in-article images and embeds intentionally run edge to edge (Chubes, 2026-11-17).
 if ( preg_match( '/@media\s*\(max-width:\s*480px\)\s*\{(.*?)\n\}/s', $css, $mobile ) ) {
-	if ( preg_match( '/margin-(left|right)\s*:\s*calc\(\s*-1\s*\*/', $mobile[1] ) ) {
-		$failures[] = 'Mobile single-post rules still apply negative side margins (image breakout).';
-	}
-	if ( preg_match( '/\.wp-block-(image|embed)[^{]*\{[^}]*border-radius\s*:\s*0\s*;/', $mobile[1] ) ) {
-		$failures[] = 'Mobile single-post rules still strip image/embed border-radius.';
+	if ( ! preg_match( '/margin-left\s*:\s*calc\(\s*-1\s*\*/', $mobile[1] ) || ! preg_match( '/margin-right\s*:\s*calc\(\s*-1\s*\*/', $mobile[1] ) ) {
+		$failures[] = 'Mobile single-post images/embeds lost their intentional edge-to-edge breakout.';
 	}
 } else {
 	$failures[] = 'Could not find the 480px single-post media query.';
@@ -47,4 +44,4 @@ if ( $failures ) {
 	exit( 1 );
 }
 
-echo "Single-post byline is bold/linked and mobile images stay inside the card.\n";
+echo "Single-post byline is bold/linked and mobile images stay edge to edge.\n";
