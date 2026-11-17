@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.75.0] - 2026-11-17
+
+### Added
+- manage two-step sign-in from Settings → Security
+
+### Fixed
+- merge duplicate extrachill_users_user_uses_two_factor() declarations
+- refresh never turns a session that skipped 2FA into a web session
+- point Two Factor member links at Extra Chill pages
+- hand 2FA members off without Two Factor's stock screen
+- stop Google/Apple and password reset from skipping 2FA
+
 ## [0.74.1] - 2026-11-17
 
 ### Fixed
