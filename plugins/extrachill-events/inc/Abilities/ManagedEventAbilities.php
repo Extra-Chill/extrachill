@@ -392,7 +392,9 @@ class ManagedEventAbilities {
 	/**
 	 * Update permission: the event exists, is published, and is inside the
 	 * current user's managed scope (or they hold edit_others_posts under the
-	 * principal ceiling).
+	 * principal ceiling). Scope also covers events the shared authority,
+	 * extrachill_events_user_can_manage_event(), lets the user manage, such
+	 * as their own events (ManagedEventScope::covers_event()).
 	 *
 	 * @param array|null $input Ability input.
 	 * @return true|\WP_Error

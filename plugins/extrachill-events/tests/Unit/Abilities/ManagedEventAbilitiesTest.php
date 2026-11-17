@@ -15,7 +15,12 @@
 namespace {
 	foreach ( array(
 		'get_current_user_id'                      => static fn() => $GLOBALS['me_user'],
-		'user_can'                                 => static fn( $user_id, $cap, ...$args ) => in_array( $cap, $GLOBALS['me_caps'][ (int) $user_id ] ?? array(), true ),
+		'user_can'                                 => static fn( $user_id, $cap, ...$args ) => 'edit_post' === $cap
+			? in_array( (int) ( $args[0] ?? 0 ), $GLOBALS['me_edit_post'][ (int) $user_id ] ?? array(), true ) || in_array( 'edit_others_posts', $GLOBALS['me_caps'][ (int) $user_id ] ?? array(), true )
+			: in_array( $cap, $GLOBALS['me_caps'][ (int) $user_id ] ?? array(), true ),
+		'map_meta_cap'                             => static fn( $cap, $user_id, ...$args ) => (int) ( $GLOBALS['me_posts'][ (int) ( $args[0] ?? 0 ) ]->post_author ?? 0 ) === (int) $user_id
+			? array( 'edit_published_posts' )
+			: array( 'edit_others_posts', 'edit_published_posts' ),
 		'get_post'                                 => static fn( $id ) => $GLOBALS['me_posts'][ (int) $id ] ?? null,
 		'wp_get_post_terms'                        => static fn( $id, $tax ) => array_map( static fn( $term_id ) => (object) array( 'term_id' => $term_id ), $GLOBALS['me_post_terms'][ (int) $id ][ $tax ] ?? array() ),
 		'get_term'                                 => static fn( $id, $tax ) => isset( $GLOBALS['me_terms'][ $tax ][ $id ] ) ? (object) array(
@@ -52,6 +57,19 @@ namespace DataMachineEvents\Core {
 		class EventOwnership {
 			public static function markHumanOwned( int $post_id, int $user_id ): void {
 				$GLOBALS['me_owned'][] = array( $post_id, $user_id );
+			}
+		}
+	}
+}
+
+namespace ExtraChillEvents\Core {
+	// The shared authority, extrachill_events_user_can_manage_event(), reads
+	// venue memberships here; the fixture reports the same teams the
+	// injected scope readers do.
+	if ( ! class_exists( VenueMembershipRepository::class, false ) ) {
+		class VenueMembershipRepository {
+			public function get_active( int $venue_term_id, int $user_id ) {
+				return in_array( $venue_term_id, $GLOBALS['me_venue_members'][ $user_id ] ?? array(), true ) ? array( 'status' => 'active' ) : null;
 			}
 		}
 	}
@@ -123,6 +141,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 		private const VENUE_MG = 2;
 		private const PROMOTER = 3;
 		private const RANDOM   = 4;
+		private const AUTHOR   = 5;
 
 		private const VENUE_A    = 601;
 		private const VENUE_B    = 602;
@@ -152,7 +171,9 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 				self::VENUE_MG => array( 'read' ),
 				self::PROMOTER => array( 'read' ),
 				self::RANDOM   => array( 'read' ),
+				self::AUTHOR   => array( 'read', 'edit_published_posts' ),
 			);
+			$GLOBALS['me_edit_post']  = array( self::AUTHOR => array( 103 ) );
 			$GLOBALS['me_terms']      = array(
 				'venue'    => array(
 					self::VENUE_A => 'The A Room',
@@ -164,21 +185,22 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			$GLOBALS['me_post_terms'] = array();
 			$this->event( 101, array( self::VENUE_A ), array() );
 			$this->event( 102, array( self::VENUE_B ), array( self::PROMOTER_X ) );
-			$this->event( 103, array( self::VENUE_B ), array() );
+			$this->event( 103, array( self::VENUE_B ), array(), 'publish', self::AUTHOR );
 			$this->event( 104, array( self::VENUE_A ), array(), 'draft' );
 
-			$memberships   = array(
+			$memberships                 = array(
 				'venue'    => array( self::VENUE_MG => array( self::VENUE_A ) ),
 				'promoter' => array( self::PROMOTER => array( self::PROMOTER_X ) ),
 			);
-			$scope         = new ManagedEventScope(
+			$GLOBALS['me_venue_members'] = $memberships['venue'];
+			$scope                       = new ManagedEventScope(
 				static fn( int $user_id ) => $memberships['venue'][ $user_id ] ?? array(),
 				static fn( int $user_id ) => $memberships['promoter'][ $user_id ] ?? array()
 			);
-			$this->finder  = new FixtureEventFinder();
-			$this->updates = array();
-			$updates       = &$this->updates;
-			$this->ability = new ManagedEventAbilities(
+			$this->finder                = new FixtureEventFinder();
+			$this->updates               = array();
+			$updates                     = &$this->updates;
+			$this->ability               = new ManagedEventAbilities(
 				$scope,
 				$this->finder,
 				static function ( array $update ) use ( &$updates ) {
@@ -202,9 +224,10 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			unset( $GLOBALS['promoter_link_page_fixture']['principal_user_id'], $GLOBALS['promoter_link_page_fixture']['principal_capabilities'] );
 		}
 
-		private function event( int $id, array $venues, array $promoters, string $status = 'publish' ): void {
+		private function event( int $id, array $venues, array $promoters, string $status = 'publish', int $author = self::ADMIN ): void {
 			$GLOBALS['me_posts'][ $id ]      = (object) array(
 				'ID'          => $id,
+				'post_author' => $author,
 				'post_type'   => 'data_machine_events',
 				'post_status' => $status,
 				'post_title'  => 'Show ' . $id,
@@ -367,6 +390,33 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			$this->assertSame( 403, $error->get_error_data()['status'] );
 			$this->assertSame( array(), $this->updates );
 			$this->assertSame( 'managed_event_not_found', $this->ability->can_update( array( 'event' => 999 ) )->get_error_code() );
+		}
+
+		public function test_event_author_outside_team_scope_updates_own_event(): void {
+			$GLOBALS['me_user'] = self::AUTHOR;
+			$this->assertTrue( $this->ability->can_update( array( 'event' => 103 ) ) );
+			$result = $this->ability->update_event( array(
+				'event'       => 103,
+				'description' => 'Flyer attached.',
+			) );
+			$this->assertSame( true, $result['success'] );
+			$this->assertSame( array( array( 103, self::AUTHOR ) ), $GLOBALS['me_owned'] );
+
+			foreach ( array( 101, 102 ) as $id ) {
+				$this->assertSame( 'managed_event_forbidden', $this->ability->can_update( array( 'event' => $id ) )->get_error_code() );
+			}
+		}
+
+		public function test_event_author_grant_respects_principal_ceiling(): void {
+			$GLOBALS['me_user'] = self::AUTHOR;
+			$this->as_principal( self::AUTHOR, array( 'read' ) );
+			$this->assertSame( 'managed_event_forbidden', $this->ability->can_update( array( 'event' => 103 ) )->get_error_code() );
+
+			$this->as_principal( self::AUTHOR, array( 'read', 'edit_published_posts' ) );
+			$this->assertTrue( $this->ability->can_update( array( 'event' => 103 ) ) );
+
+			$this->as_principal( self::AUTHOR, null );
+			$this->assertTrue( $this->ability->can_update( array( 'event' => 103 ) ) );
 		}
 
 		public function test_manager_cannot_edit_unpublished_event(): void {
