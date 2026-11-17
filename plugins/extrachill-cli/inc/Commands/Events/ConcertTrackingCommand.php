@@ -6,9 +6,9 @@
  * Designed for both admin operators and authenticated agents.
  *
  * Commands:
- *   wp extrachill shows mark <event_id> [--user=<user>]
- *   wp extrachill shows unmark <event_id> [--user=<user>]
- *   wp extrachill shows check <event_id> [--user=<user>]
+ *   wp extrachill shows mark <event_id>
+ *   wp extrachill shows unmark <event_id>
+ *   wp extrachill shows check <event_id>
  *   wp extrachill shows list [<user>] [--period=<period>] [--year=<year>] [--format=<format>]
  *   wp extrachill shows stats [<user>] [--year=<year>] [--format=<format>]
  *   wp extrachill shows event <event_id> [--attendees] [--format=<format>]
@@ -31,13 +31,12 @@ class ConcertTrackingCommand {
 	/**
 	 * Mark an event for a user (Going / Check In / I Was There).
 	 *
+	 * The user is the current user; pick it with the global --user flag.
+	 *
 	 * ## OPTIONS
 	 *
 	 * <event_id>
 	 * : Event post ID.
-	 *
-	 * [--user=<user>]
-	 * : User ID, login, or email. Defaults to current CLI user (admin).
 	 *
 	 * ## EXAMPLES
 	 *
@@ -84,13 +83,12 @@ class ConcertTrackingCommand {
 	/**
 	 * Unmark an event for a user.
 	 *
+	 * The user is the current user; pick it with the global --user flag.
+	 *
 	 * ## OPTIONS
 	 *
 	 * <event_id>
 	 * : Event post ID.
-	 *
-	 * [--user=<user>]
-	 * : User ID, login, or email. Defaults to current CLI user.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -130,13 +128,12 @@ class ConcertTrackingCommand {
 	/**
 	 * Check if a user has marked an event.
 	 *
+	 * The user is the current user; pick it with the global --user flag.
+	 *
 	 * ## OPTIONS
 	 *
 	 * <event_id>
 	 * : Event post ID.
-	 *
-	 * [--user=<user>]
-	 * : User ID, login, or email. Defaults to current CLI user.
 	 *
 	 * [--format=<format>]
 	 * : Output format.
@@ -706,14 +703,16 @@ class ConcertTrackingCommand {
 		return $labels[ $timing ] ?? $timing;
 	}
 
+	/**
+	 * The user being marked: the current user, which the global --user flag
+	 * selects. WP-CLI consumes --user itself, so commands never see it in
+	 * $assoc_args. Bare runs fall back to the administrator (user 1).
+	 */
 	private function resolve_user( $assoc_args ) {
-		if ( ! empty( $assoc_args['user'] ) ) {
-			$user = $this->resolve_user_by_identifier( $assoc_args['user'] );
-		} else {
-			$user = wp_get_current_user();
-			if ( ! $user->ID ) {
-				$user = get_user_by( 'id', 1 );
-			}
+		unset( $assoc_args );
+		$user = wp_get_current_user();
+		if ( ! $user->ID ) {
+			$user = get_user_by( 'id', 1 );
 		}
 
 		if ( ! $user ) {
