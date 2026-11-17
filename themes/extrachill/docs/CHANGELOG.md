@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.22.0] - 2026-11-17
+
+### Added
+- all activity consumers show forum, blog and event comments
+
+### Changed
+- single activity feed with comment source
+
 ## [2.21.0] - 2026-11-17
 
 ### Added
