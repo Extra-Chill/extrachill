@@ -226,7 +226,6 @@ function extrachill_build_activity_feed($per_page = 15, $paged = null, $author =
 	}
 	$paged = max(1, (int) $paged);
 
-	$args    = is_array( $args ) ? $args : array();
 	$sources = extrachill_get_activity_feed_sources();
 	$types   = isset( $args['types'] ) ? array_map( 'strval', (array) $args['types'] ) : null;
 	$depth   = max( $per_page, (int) apply_filters( 'ec_activity_feed_max_depth', EXTRACHILL_ACTIVITY_FEED_MAX_DEPTH ) );

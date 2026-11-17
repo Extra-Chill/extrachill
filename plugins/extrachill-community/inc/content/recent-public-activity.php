@@ -218,7 +218,7 @@ function extrachill_community_register_recent_public_activity_ability() {
 /**
  * Return recent public activity without exposing Community storage details.
  *
- * @param array $input Ability input.
+ * @param array|null $input Ability input (null when the caller sent none).
  * @return array{schema_version:string,items:array}
  */
 function extrachill_community_ability_recent_public_activity( $input ) {
