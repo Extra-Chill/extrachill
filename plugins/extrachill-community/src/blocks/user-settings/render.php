@@ -52,6 +52,20 @@ if ( function_exists( 'extrachill_users_can_delete_own_account' ) ) {
 }
 
 /*
+ * Two-step sign-in. extrachill-users answers whether Two Factor's management
+ * routes are registered; the section talks to those routes directly. When
+ * they are missing the Security tab shows nothing about two-step sign-in and
+ * never links to a WordPress or Two Factor screen.
+ */
+$two_factor_settings = function_exists( 'extrachill_users_two_factor_settings_available' )
+	&& extrachill_users_two_factor_settings_available();
+
+// Reuse the QR library Two Factor registers so desktop members can scan the setup code.
+if ( $two_factor_settings && wp_script_is( 'two-factor-qr-code-generator', 'registered' ) ) {
+	wp_enqueue_script( 'two-factor-qr-code-generator' );
+}
+
+/*
  * Result of a front-end email change confirmation link. extrachill-users owns
  * the confirmation and the notice copy; this only renders it.
  */
@@ -70,12 +84,13 @@ if ( $email_change_notice ) {
 }
 
 printf(
-	'<div class="%1$s" data-artist-site-url="%2$s" data-has-artists="%3$s" data-can-create-artists="%4$s" data-user-id="%5$d" data-account-deletion="%6$s" data-home-url="%7$s"></div>',
+	'<div class="%1$s" data-artist-site-url="%2$s" data-has-artists="%3$s" data-can-create-artists="%4$s" data-user-id="%5$d" data-account-deletion="%6$s" data-home-url="%7$s" data-two-factor="%8$s"></div>',
 	esc_attr( $class ),
 	esc_url( $artist_site_url ),
 	$has_artists ? '1' : '0',
 	$can_create_artists ? '1' : '0',
 	(int) $current_user_id,
 	esc_attr( $account_deletion ),
-	esc_url( home_url( '/' ) )
+	esc_url( home_url( '/' ) ),
+	$two_factor_settings ? '1' : '0'
 );

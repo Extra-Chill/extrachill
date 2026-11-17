@@ -133,6 +133,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/artist-access-approval.php';
 	// Defines extrachill_users_settings_url(), used by the access-control and menu files below.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/email-change-confirmation.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/two-factor-settings.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/wp-admin-permissions.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/moderation/bootstrap.php';
