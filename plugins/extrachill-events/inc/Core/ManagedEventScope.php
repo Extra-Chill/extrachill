@@ -23,6 +23,13 @@
  *    agent acting for an editor or administrator without
  *    `edit_others_posts` in its ceiling falls back to team authority only.
  *
+ * A single event is also covered whenever the shared event-management
+ * authority, extrachill_events_user_can_manage_event(), says the user
+ * manages it: its author, anyone holding `edit_post` on it, and network
+ * admins (extrachill#1625). Under an agent principal, that grant also needs
+ * the ceiling to admit the primitive capabilities `edit_post` maps to for
+ * that event, so an agent restricted to `read` stays on team authority.
+ *
  * @package ExtraChillEvents\Core
  */
 
@@ -31,6 +38,7 @@ namespace ExtraChillEvents\Core;
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/TeamAuthorization.php';
+require_once dirname( __DIR__ ) . '/core/event-management-authority.php';
 
 /** Resolves a user's managed venue and promoter scope. */
 final class ManagedEventScope {
@@ -129,7 +137,41 @@ final class ManagedEventScope {
 			}
 		}
 
-		return false;
+		return $this->event_authority_allows( (int) ( $scope['user_id'] ?? 0 ), $event_id );
+	}
+
+	/**
+	 * Whether the shared event-management authority grants this event,
+	 * bounded by an active agent principal's ceiling.
+	 *
+	 * @param int $user_id  Represented user ID.
+	 * @param int $event_id Event post ID.
+	 * @return bool
+	 */
+	private function event_authority_allows( int $user_id, int $event_id ): bool {
+		if ( $user_id < 1 || ! extrachill_events_user_can_manage_event( $user_id, $event_id ) ) {
+			return false;
+		}
+
+		$principal = TeamAuthorization::execution_principal();
+		if ( null === $principal ) {
+			return true;
+		}
+		if ( false === $principal ) {
+			return false;
+		}
+
+		$required = (array) map_meta_cap( 'edit_post', $user_id, $event_id );
+		if ( empty( $required ) || in_array( 'do_not_allow', $required, true ) ) {
+			return false;
+		}
+		foreach ( $required as $capability ) {
+			if ( ! TeamAuthorization::user_can( $user_id, (string) $capability ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
