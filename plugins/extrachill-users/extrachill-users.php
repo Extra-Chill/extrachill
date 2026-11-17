@@ -221,6 +221,9 @@ function extrachill_users_init() {
 	// Review-notify: alert the editor when a main-site post enters core's
 	// pending status, however it was submitted.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/review-notify.php';
+	// Comment-notify: replies to a member's comment and comments on events
+	// they marked as going, across the comment activity sites (#1634).
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/comment-notify.php';
 	// Click-to-read redirect: marks a single notification read on click.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
 	// Header notification bell — renders network-wide via the theme header hook.

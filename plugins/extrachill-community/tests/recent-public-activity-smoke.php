@@ -73,7 +73,10 @@ if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $id ) { return $GLOBALS['_recent_activity_posts'][ $id ] ?? null; }
 	function get_the_title( $post ) { return $post->post_title; }
-	function get_userdata( $id ) { return $id && 999 !== $id ? (object) array( 'ID' => $id, 'display_name' => 'User ' . $id ) : false; }
+	function get_userdata( $id ) { return $id && 999 !== $id ? (object) array(
+		'ID'           => $id,
+		'display_name' => 'User ' . $id,
+	) : false; }
 	function get_post_meta() { return ''; }
 	function get_the_terms( $id ) { return $GLOBALS['_recent_activity_terms'][ $id ] ?? array(); }
 	function get_term_link( $term ) { return 'https://community.example.test/artist/' . $term->slug; }
@@ -88,14 +91,14 @@ function recent_activity_post( $id, $type, $status, $parent = 10, $author = 7 ) 
 	if ( ! $GLOBALS['_recent_activity_standalone'] ) {
 		$post_id = wp_insert_post(
 			array(
-				'import_id'    => $id,
-				'post_type'    => $type,
-				'post_status'  => $status,
-				'post_parent'  => $parent,
-				'post_author'  => $author,
-				'post_title'   => ucfirst( $type ) . ' ' . $id,
-				'post_name'    => $type . '-' . $id,
-				'post_date'    => '2026-08-01 12:00:00',
+				'import_id'     => $id,
+				'post_type'     => $type,
+				'post_status'   => $status,
+				'post_parent'   => $parent,
+				'post_author'   => $author,
+				'post_title'    => ucfirst( $type ) . ' ' . $id,
+				'post_name'     => $type . '-' . $id,
+				'post_date'     => '2026-08-01 12:00:00',
 				'post_date_gmt' => '2026-08-01 12:00:00',
 			)
 		);
@@ -135,8 +138,16 @@ if ( $standalone ) {
 	recent_activity_assert( 20 === $ability['input_schema']['properties']['limit']['maximum'], 'Input must declare the strict limit.' );
 	recent_activity_assert( 20 === $ability['output_schema']['properties']['items']['maxItems'], 'Output must declare the strict limit.' );
 	recent_activity_assert( false === $ability['output_schema']['additionalProperties'], 'Top-level output must be exact.' );
-	$actor_schema = $ability['output_schema']['properties']['items']['items']['properties']['actor'];
+	$item_schemas = $ability['output_schema']['properties']['items']['items']['oneOf'];
+	recent_activity_assert( 2 === count( $item_schemas ), 'Items are exactly one of a forum item or a comment item.' );
+	$actor_schema = $item_schemas[0]['properties']['actor'];
 	recent_activity_assert( 'integer' === $actor_schema['properties']['user_id']['type'] && in_array( 'user_id', $actor_schema['required'], true ), 'Actor must require an integer user ID.' );
+	recent_activity_assert( array( 'discussion', 'reply' ) === $item_schemas[0]['properties']['activity_type']['enum'], 'Forum items keep their activity types.' );
+	recent_activity_assert( array( 'forum', 'artists' ) === $item_schemas[0]['properties']['relationships']['required'], 'Forum items keep their required relationships.' );
+	recent_activity_assert( array( 'comment' ) === $item_schemas[1]['properties']['activity_type']['enum'], 'Comment items use a distinct activity type.' );
+	recent_activity_assert( false === $item_schemas[1]['additionalProperties'], 'Comment items must be exact.' );
+	$include_schema = $ability['input_schema']['properties']['include_comments'];
+	recent_activity_assert( 'boolean' === $include_schema['type'] && false === $include_schema['default'], 'Comments are opt-in and default off for existing callers.' );
 } else {
 	register_post_type( 'forum', array( 'public' => true ) );
 	register_post_type( 'topic', array( 'public' => true ) );
@@ -145,21 +156,21 @@ if ( $standalone ) {
 	register_taxonomy( 'artist', 'topic', array( 'public' => true ) );
 }
 
-$forum         = recent_activity_post( 10, 'forum', 'publish', 0 );
-$private_forum = recent_activity_post( 11, 'forum', 'private', 0 );
-$nested_forum  = recent_activity_post( 12, 'forum', 'publish', $private_forum->ID );
-$public        = recent_activity_post( 20, 'topic', 'publish', $forum->ID );
-$closed        = recent_activity_post( 21, 'topic', 'closed', $forum->ID );
-$reply         = recent_activity_post( 30, 'reply', 'publish', $forum->ID );
-$reply->topic_id = $public->ID;
-$private = recent_activity_post( 22, 'topic', 'private', $forum->ID );
-$draft   = recent_activity_post( 23, 'topic', 'draft', $forum->ID );
-$trash   = recent_activity_post( 24, 'topic', 'trash', $forum->ID );
-$nested  = recent_activity_post( 25, 'topic', 'publish', $nested_forum->ID );
-$orphan  = recent_activity_post( 31, 'reply', 'publish', $forum->ID );
+$forum            = recent_activity_post( 10, 'forum', 'publish', 0 );
+$private_forum    = recent_activity_post( 11, 'forum', 'private', 0 );
+$nested_forum     = recent_activity_post( 12, 'forum', 'publish', $private_forum->ID );
+$public           = recent_activity_post( 20, 'topic', 'publish', $forum->ID );
+$closed           = recent_activity_post( 21, 'topic', 'closed', $forum->ID );
+$reply            = recent_activity_post( 30, 'reply', 'publish', $forum->ID );
+$reply->topic_id  = $public->ID;
+$private          = recent_activity_post( 22, 'topic', 'private', $forum->ID );
+$draft            = recent_activity_post( 23, 'topic', 'draft', $forum->ID );
+$trash            = recent_activity_post( 24, 'topic', 'trash', $forum->ID );
+$nested           = recent_activity_post( 25, 'topic', 'publish', $nested_forum->ID );
+$orphan           = recent_activity_post( 31, 'reply', 'publish', $forum->ID );
 $orphan->topic_id = 999;
 
-$GLOBALS['_recent_activity_posts'] = array(
+$GLOBALS['_recent_activity_posts']                = array(
 	$forum->ID         => $forum,
 	$private_forum->ID => $private_forum,
 	$nested_forum->ID  => $nested_forum,
@@ -172,7 +183,12 @@ $GLOBALS['_recent_activity_posts'] = array(
 	$reply->ID         => $reply,
 	$orphan->ID        => $orphan,
 );
-$GLOBALS['_recent_activity_terms'][ $public->ID ] = array( (object) array( 'name' => 'Test Artist', 'slug' => 'test-artist' ) );
+$GLOBALS['_recent_activity_terms'][ $public->ID ] = array(
+	(object) array(
+		'name' => 'Test Artist',
+		'slug' => 'test-artist',
+	),
+);
 if ( ! $standalone ) {
 	wp_set_object_terms( $public->ID, 'Test Artist', 'artist' );
 }
@@ -197,11 +213,12 @@ if ( $standalone ) {
 	recent_activity_assert( 0 === extrachill_community_recent_activity_actor( $guest )['user_id'], 'Guest actors use zero.' );
 	recent_activity_assert( 0 === extrachill_community_recent_activity_actor( $unknown )['user_id'], 'Unknown actors use zero.' );
 }
-$artist_rows = array_filter( $result['items'], static function ( $item ) { return ! empty( $item['relationships']['artists'] ); } );
+$artist_rows = array_filter( $result['items'], static function ( $item ) { return ! empty( $item['relationships']['artists'] );
+} );
 recent_activity_assert( 'test-artist' === reset( $artist_rows )['relationships']['artists'][0]['slug'], 'Artist relationships must be portable owner data.' );
 
 $GLOBALS['_recent_activity_query_posts'] = array( $private, $draft, $trash, $orphan );
-$empty = extrachill_community_ability_recent_public_activity( array( 'artist_slug' => 'no-matches' ) );
+$empty                                   = extrachill_community_ability_recent_public_activity( array( 'artist_slug' => 'no-matches' ) );
 recent_activity_assert( array() === $empty['items'], 'An all-hidden query must return a versioned empty result.' );
 if ( $standalone ) {
 	recent_activity_assert( 'no-matches' === $GLOBALS['_recent_activity_query_args']['tax_query'][0]['terms'], 'Artist scoping must stay inside the owner query.' );
@@ -214,6 +231,139 @@ if ( $standalone ) {
 	extrachill_community_ability_recent_public_activity( array() );
 	recent_activity_assert( array( 7, 8 ) === $GLOBALS['_recent_activity_query_args']['author__not_in'], 'Activity hides authors the viewer has blocked.' );
 	$GLOBALS['_recent_activity_viewer'] = 0;
+}
+
+// ─── Comments in activity (#1634) ───────────────────────────────────────────
+if ( $standalone ) {
+	$GLOBALS['_recent_activity_comments'] = array(
+		array(
+			'blog_id'     => 3,
+			'comment_id'  => 501,
+			'post_id'     => 90,
+			'post_type'   => 'data_machine_events',
+			'post_title'  => 'Amanda Russell at The Royal',
+			'post_url'    => 'https://events.example.test/events/amanda-russell/',
+			'comment_url' => 'https://events.example.test/events/amanda-russell/#comment-501',
+			'user_id'     => 9,
+			'author_name' => 'User 9',
+			'date_gmt'    => '2026-08-02 12:00:00',
+		),
+		array(
+			'blog_id'     => 1,
+			'comment_id'  => 77,
+			'post_id'     => 15,
+			'post_type'   => 'post',
+			'post_title'  => 'A Review',
+			'post_url'    => 'https://example.test/a-review/',
+			'comment_url' => 'https://example.test/a-review/#comment-77',
+			'user_id'     => 8,
+			'author_name' => 'User 8',
+			'date_gmt'    => '2026-07-30 12:00:00',
+		),
+		array(
+			'blog_id'     => 1,
+			'comment_id'  => 76,
+			'post_id'     => 15,
+			'post_type'   => 'post',
+			'post_title'  => 'A Review',
+			'post_url'    => 'https://example.test/a-review/',
+			'comment_url' => 'https://example.test/a-review/#comment-76',
+			'user_id'     => 0,
+			'author_name' => 'Guest',
+			'date_gmt'    => '2026-07-29 12:00:00',
+		),
+	);
+	function ec_users_get_recent_comment_activity( $limit = 10 ) {
+		return array_slice( $GLOBALS['_recent_activity_comments'], 0, $limit );
+	}
+
+	$GLOBALS['_recent_activity_query_posts'] = array( $public, $closed, $reply );
+
+	// Back-compat: callers that omit the flag (extrachill-blog) get forum items only.
+	$default = extrachill_community_ability_recent_public_activity( array( 'limit' => 20 ) );
+	recent_activity_assert( ! in_array( 'comment', array_column( $default['items'], 'activity_type' ), true ), 'Default output contains forum items only.' );
+	recent_activity_assert( 3 === count( $default['items'] ), 'Default output is unchanged by comment activity.' );
+	$off = extrachill_community_ability_recent_public_activity(
+		array(
+			'limit'            => 20,
+			'include_comments' => 'false',
+		)
+	);
+	recent_activity_assert( $default === $off, 'A false-y flag keeps forum-only output.' );
+
+	$with = extrachill_community_ability_recent_public_activity(
+		array(
+			'limit'            => 20,
+			'include_comments' => true,
+		)
+	);
+	recent_activity_assert( 6 === count( $with['items'] ), 'Opted-in output merges forum items and comments.' );
+	$times  = array_map( 'strtotime', array_column( $with['items'], 'timestamp' ) );
+	$sorted = $times;
+	rsort( $sorted );
+	recent_activity_assert( $sorted === $times, 'Merged activity is chronological, newest first.' );
+	recent_activity_assert( 'comment' === $with['items'][0]['activity_type'], 'The newest comment leads the merged feed.' );
+
+	$comment_item = $with['items'][0];
+	recent_activity_assert( array( 'canonical_url', 'title', 'timestamp', 'activity_type', 'actor', 'relationships' ) === array_keys( $comment_item ), 'Comment items expose the portable item keys.' );
+	recent_activity_assert( 'https://events.example.test/events/amanda-russell/#comment-501' === $comment_item['canonical_url'], 'Comment items link to the comment anchor.' );
+	recent_activity_assert( 'Comment on Amanda Russell at The Royal' === $comment_item['title'], 'Comment items are labelled with their post or event.' );
+	recent_activity_assert(
+		array(
+			'user_id'      => 9,
+			'display_name' => 'User 9',
+			'profile_url'  => 'https://community.example.test/members/9',
+		) === $comment_item['actor'],
+		'Comment actors carry the member identity.'
+	);
+	recent_activity_assert(
+		array(
+			'post' => array(
+				'name'          => 'Amanda Russell at The Royal',
+				'kind'          => 'event',
+				'canonical_url' => 'https://events.example.test/events/amanda-russell/',
+			),
+		) === $comment_item['relationships'],
+		'Comment relationships name the event.'
+	);
+	$by_url  = array_column( $with['items'], null, 'canonical_url' );
+	$article = array( $by_url['https://example.test/a-review/#comment-77'] );
+	recent_activity_assert( 'article' === $article[0]['relationships']['post']['kind'], 'Article comments are labelled as articles.' );
+	$guest_items = array( $by_url['https://example.test/a-review/#comment-76'] );
+	recent_activity_assert( 0 === $guest_items[0]['actor']['user_id'] && null === $guest_items[0]['actor']['profile_url'], 'Guest comments carry no member identity.' );
+	recent_activity_assert( false === strpos( serialize( $with ), 'blog_id' ) && false === strpos( serialize( $with ), 'comment_id' ), 'Comment items do not leak storage fields.' );
+
+	$limited = extrachill_community_ability_recent_public_activity(
+		array(
+			'limit'            => 2,
+			'include_comments' => '1',
+		)
+	);
+	recent_activity_assert( 2 === count( $limited['items'] ), 'Merged activity honours the limit.' );
+	recent_activity_assert( 'comment' === $limited['items'][0]['activity_type'] && 'discussion' === $limited['items'][1]['activity_type'], 'Limit applies after the chronological merge (string flag accepted).' );
+
+	$scoped = extrachill_community_ability_recent_public_activity(
+		array(
+			'artist_slug'      => 'test-artist',
+			'include_comments' => true,
+		)
+	);
+	recent_activity_assert( ! in_array( 'comment', array_column( $scoped['items'], 'activity_type' ), true ), 'Artist scoping never returns comments.' );
+
+	$GLOBALS['_recent_activity_viewer'] = 5; // Blocks members 7 and 8.
+	$blocked                            = extrachill_community_ability_recent_public_activity(
+		array(
+			'limit'            => 20,
+			'include_comments' => true,
+		)
+	);
+	recent_activity_assert( ! in_array( 8, array_column( array_column( $blocked['items'], 'actor' ), 'user_id' ), true ), 'Comments by members the viewer blocked are hidden.' );
+	$GLOBALS['_recent_activity_viewer'] = 0;
+
+	// Consumer back-compat: extrachill-blog's validator accepts every default item shape key-for-key.
+	foreach ( $default['items'] as $item ) {
+		recent_activity_assert( array( 'forum', 'artists' ) === array_keys( $item['relationships'] ), 'Default forum items keep the relationships the artist page validates.' );
+	}
 }
 
 echo "PASS: Recent public activity is bounded, exact, and visibility-safe.\n";

@@ -5,6 +5,12 @@
  * Provides community activity data fetching and rendering for the multisite network.
  * Queries bbPress activity from community site with caching.
  *
+ * Callers can opt in to recent approved article and event comments
+ * (`include_comments`), read from extrachill-users' cached network reader
+ * (ec_users_get_recent_comment_activity()) and merged chronologically with
+ * topics and replies. Without the flag the items stay forum-only, so existing
+ * callers (the blog homepage community card) are unchanged.
+ *
  * @package ExtraChill\Network
  */
 
@@ -16,11 +22,36 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 	/**
 	 * Retrieve recent community activity items from community site.
 	 *
-	 * @param int $limit Number of items to return.
+	 * @param int   $limit Number of items to return.
+	 * @param array $args {
+	 *     Optional. Query arguments.
+	 *
+	 *     @type bool $include_comments Merge recent article and event comments
+	 *                                  into the list. Default false.
+	 * }
 	 * @return array[] Array of activity items.
 	 */
-	function extrachill_get_community_activity_items( $limit = 5 ) {
-		$limit      = max( 1, absint( $limit ) );
+	function extrachill_get_community_activity_items( $limit = 5, $args = array() ) {
+		$limit = max( 1, absint( $limit ) );
+		$args  = wp_parse_args( $args, array( 'include_comments' => false ) );
+
+		$activities = extrachill_get_community_forum_activity_items();
+
+		if ( $args['include_comments'] ) {
+			$activities = extrachill_merge_community_activity_items( $activities, extrachill_get_community_comment_activity_items( $limit ) );
+		}
+
+		return array_slice( $activities, 0, $limit );
+	}
+}
+
+if ( ! function_exists( 'extrachill_get_community_forum_activity_items' ) ) {
+	/**
+	 * Retrieve (cached) recent forum topics and replies from the community site.
+	 *
+	 * @return array[] Up to 10 forum activity items, newest first.
+	 */
+	function extrachill_get_community_forum_activity_items() {
 		$cache_key  = 'extrachill_community_activity_all';
 		$activities = wp_cache_get( $cache_key );
 
@@ -31,7 +62,7 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 			$activities        = array();
 
 			if ( ! $community_blog_id ) {
-				return array_slice( $activities, 0, $limit );
+				return $activities;
 			}
 
 			$switched = false;
@@ -108,7 +139,89 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 			wp_cache_set( $cache_key, $activities, '', 10 * MINUTE_IN_SECONDS );
 		}
 
-		return array_slice( $activities, 0, $limit );
+		return $activities;
+	}
+}
+
+if ( ! function_exists( 'extrachill_get_community_comment_activity_items' ) ) {
+	/**
+	 * Map recent network comments onto the community activity item shape.
+	 *
+	 * Comment items use `type` 'Comment'. `topic_title`/`topic_url` carry the
+	 * article or event title and the comment anchor; the forum fields are empty.
+	 *
+	 * @param int $limit Maximum items.
+	 * @return array[] Comment activity items, newest first.
+	 */
+	function extrachill_get_community_comment_activity_items( $limit = 5 ) {
+		if ( ! function_exists( 'ec_users_get_recent_comment_activity' ) ) {
+			return array();
+		}
+
+		$items = array();
+		foreach ( (array) ec_users_get_recent_comment_activity( max( 1, absint( $limit ) ) ) as $comment ) {
+			if ( ! is_array( $comment ) || empty( $comment['comment_url'] ) || empty( $comment['date_gmt'] ) ) {
+				continue;
+			}
+
+			$user_id          = isset( $comment['user_id'] ) ? (int) $comment['user_id'] : 0;
+			$user_profile_url = ( $user_id > 0 && function_exists( 'extrachill_get_user_profile_url' ) )
+				? extrachill_get_user_profile_url( $user_id )
+				: '';
+			$timestamp        = strtotime( $comment['date_gmt'] . ' UTC' );
+
+			if ( false === $timestamp ) {
+				continue;
+			}
+
+			$items[] = array(
+				'id'               => (int) $comment['comment_id'],
+				'type'             => 'Comment',
+				'username'         => isset( $comment['author_name'] ) ? (string) $comment['author_name'] : '',
+				'user_profile_url' => $user_profile_url,
+				'topic_title'      => isset( $comment['post_title'] ) ? (string) $comment['post_title'] : '',
+				'forum_title'      => '',
+				'date_time'        => gmdate( 'c', $timestamp ),
+				'forum_url'        => '',
+				'topic_url'        => (string) $comment['comment_url'],
+			);
+		}
+
+		return $items;
+	}
+}
+
+if ( ! function_exists( 'extrachill_merge_community_activity_items' ) ) {
+	/**
+	 * Merge forum and comment activity items chronologically, newest first.
+	 *
+	 * Stable: items with the same timestamp keep forum-before-comment order.
+	 *
+	 * @param array[] $forum_items   Forum activity items.
+	 * @param array[] $comment_items Comment activity items.
+	 * @return array[]
+	 */
+	function extrachill_merge_community_activity_items( array $forum_items, array $comment_items ) {
+		$merged = array();
+		foreach ( array_merge( $forum_items, $comment_items ) as $index => $item ) {
+			$merged[] = array(
+				'time'  => (int) strtotime( (string) $item['date_time'] ),
+				'index' => $index,
+				'item'  => $item,
+			);
+		}
+
+		usort(
+			$merged,
+			static function ( $a, $b ) {
+				if ( $a['time'] !== $b['time'] ) {
+					return $b['time'] <=> $a['time'];
+				}
+				return $a['index'] <=> $b['index'];
+			}
+		);
+
+		return array_column( $merged, 'item' );
 	}
 }
 
@@ -121,20 +234,21 @@ if ( ! function_exists( 'extrachill_render_community_activity' ) ) {
 	 */
 	function extrachill_render_community_activity( $args = array() ) {
 		$defaults = array(
-			'limit'          => 5,
-			'wrapper_tag'    => 'div',
-			'wrapper_class'  => 'community-activity-list',
-			'item_class'     => '',
-			'empty_class'    => '',
-			'render_wrapper' => true,
-			'counter_offset' => 0,
-			'items'          => null,
+			'limit'            => 5,
+			'wrapper_tag'      => 'div',
+			'wrapper_class'    => 'community-activity-list',
+			'item_class'       => '',
+			'empty_class'      => '',
+			'render_wrapper'   => true,
+			'counter_offset'   => 0,
+			'items'            => null,
+			'include_comments' => false,
 		);
 
 		$args  = wp_parse_args( $args, $defaults );
 		$items = is_array( $args['items'] )
 			? array_slice( $args['items'], 0, $args['limit'] )
-			: extrachill_get_community_activity_items( $args['limit'] );
+			: extrachill_get_community_activity_items( $args['limit'], array( 'include_comments' => (bool) $args['include_comments'] ) );
 
 		$item_class = trim( $args['item_class'] );
 		$item_class = $item_class ? 'community-activity-card ' . $item_class : 'community-activity-card';
@@ -177,16 +291,24 @@ if ( ! function_exists( 'extrachill_render_community_activity' ) ) {
 					esc_html( $activity['forum_title'] )
 				);
 
-				$content = ( 'Reply' === $activity['type'] )
-					? sprintf(
+				if ( 'Comment' === $activity['type'] ) {
+					$content = sprintf(
+						'%1$s %2$s %3$s',
+						$username_html,
+						esc_html__( 'commented on', 'extrachill-network' ),
+						$topic_html
+					);
+				} elseif ( 'Reply' === $activity['type'] ) {
+					$content = sprintf(
 						'%1$s %2$s %3$s %4$s %5$s',
 						$username_html,
 						esc_html__( 'replied to', 'extrachill-network' ),
 						$topic_html,
 						esc_html__( 'in', 'extrachill-network' ),
 						$forum_html
-					)
-					: sprintf(
+					);
+				} else {
+					$content = sprintf(
 						'%1$s %2$s %3$s %4$s %5$s',
 						$username_html,
 						esc_html__( 'posted', 'extrachill-network' ),
@@ -194,6 +316,7 @@ if ( ! function_exists( 'extrachill_render_community_activity' ) ) {
 						esc_html__( 'in', 'extrachill-network' ),
 						$forum_html
 					);
+				}
 
 				printf(
 					'<div class="%1$s">%2$s - %3$s</div>',

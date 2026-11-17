@@ -247,9 +247,9 @@ Registered in `inc/core/infrastructure-abilities.php`.
 
 ### `extrachill/community-recent-public-activity`
 
-- **Purpose:** Returns a bounded, portable list of recent public topics ("discussions") and replies, newest first. With `artist_slug`, it returns only topics tagged with that artist. Authors blocked by the viewer are excluded. Defined in `inc/content/recent-public-activity.php`.
-- **Input:** `limit` (integer 1–20, default 5), `artist_slug` (slug string, max 200, optional). No additional properties are allowed.
-- **Output:** `{schema_version: "1", items: [{canonical_url, title, timestamp, activity_type: "discussion"|"reply", actor: {user_id, display_name, profile_url|null}, relationships: {forum: {name, slug, canonical_url}, artists: [≤10 terms]}}]}`. The actor is the post's public voice when one is set.
+- **Purpose:** Returns a bounded, portable list of recent public topics ("discussions") and replies, newest first. With `include_comments: true` it also returns approved comments on articles and events (the comment activity sites from extrachill-users), merged chronologically. With `artist_slug`, it returns only topics tagged with that artist and never comments. Authors blocked by the viewer are excluded. Defined in `inc/content/recent-public-activity.php`.
+- **Input:** `limit` (integer 1–20, default 5), `artist_slug` (slug string, max 200, optional), `include_comments` (boolean, default `false`). No additional properties are allowed. Existing callers that omit `include_comments` get forum items only.
+- **Output:** `{schema_version: "1", items: [...]}`. Forum items: `{canonical_url, title, timestamp, activity_type: "discussion"|"reply", actor: {user_id, display_name, profile_url|null}, relationships: {forum: {name, slug, canonical_url}, artists: [≤10 terms]}}`. The actor is the post's public voice when one is set. Comment items (opt-in only): `{canonical_url (comment anchor), title ("Comment on <title>"), timestamp, activity_type: "comment", actor, relationships: {post: {name, kind: "article"|"event", canonical_url}}}`.
 - **Permission:** `__return_true`. Items are dropped unless the post, its topic and the full forum chain are all public.
 - **Exposure:** `show_in_rest: true`. Used in-process by extrachill-blog (`inc/archive/artist-pillar.php`). No extrachill-api route or CLI command found.
 

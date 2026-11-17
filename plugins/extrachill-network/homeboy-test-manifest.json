@@ -126,6 +126,9 @@
     },
     "tests/commerce-credential-smoke.php": {
       "environment": "standalone-php"
+    },
+    "tests/community-activity-comments-smoke.php": {
+      "environment": "standalone-php"
     }
   }
 }

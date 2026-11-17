@@ -951,6 +951,22 @@ function ec_notifications_email_group_label( $type, $count, $title ) {
 				$title_html
 			);
 
+		case 'comment_reply':
+			return sprintf(
+				/* translators: 1: number of new replies, 2: article or event title (already escaped). */
+				esc_html( _n( '%1$d new reply to your comment on %2$s', '%1$d new replies to your comments on %2$s', $count, 'extrachill-users' ) ),
+				$count,
+				$title_html
+			);
+
+		case 'event_comment':
+			return sprintf(
+				/* translators: 1: number of new comments, 2: event title (already escaped). */
+				esc_html( _n( '%1$d new comment on %2$s', '%1$d new comments on %2$s', $count, 'extrachill-users' ) ),
+				$count,
+				$title_html
+			);
+
 		default:
 			return sprintf(
 				/* translators: 1: number of new notifications, 2: title (already escaped). */

@@ -147,6 +147,15 @@ function ec_users_notification_push_types(): array {
 			'scope' => 'forum',
 		),
 
+		// Direct replies to the recipient's article or event comment
+		// (extrachill-users comment-notify). The body is the published,
+		// non-password-protected post title.
+		'comment_reply'                         => array(
+			/* translators: %s: name of the member who replied. */
+			'title' => __( '%s replied to your comment', 'extrachill-users' ),
+			'scope' => 'public',
+		),
+
 		// Approvals and decisions on the recipient's own requests/submissions.
 		'artist_dispatch_approved'              => array(
 			'title' => __( 'Artist Dispatch access approved', 'extrachill-users' ),
