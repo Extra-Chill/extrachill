@@ -2,6 +2,10 @@
 
 Network-activated WordPress plugin providing the network administration foundation for the ExtraChill Platform.
 
+## Documentation
+
+- [Abilities reference](docs/abilities.md) — inputs, outputs, permissions, transports, and side effects.
+
 ## Overview
 
 This WordPress network plugin serves as the **network administration foundation** for the ExtraChill multisite network, providing essential network-wide functionality that supports all 11 active sites (Blog IDs 1–5, 7–12).

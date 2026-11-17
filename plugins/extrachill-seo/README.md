@@ -6,6 +6,10 @@ Network-activated plugin.
 
 Lean SEO plugin for the Extra Chill Platform, replacing Yoast SEO with code-first meta tags, structured data, and robots directives.
 
+## Documentation
+
+- [Abilities reference](docs/abilities.md) — inputs, outputs, permissions, transports, and side effects.
+
 ## Requirements
 
 - WordPress 6.0+
