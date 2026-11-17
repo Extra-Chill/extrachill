@@ -15,6 +15,10 @@ Network-activated WordPress plugin providing universal multisite search function
 - **Pagination 404 Fix** - Automatically resolves WordPress 404 errors on paginated search across network sites
 - **Site Badges** - Visual indicators showing which site each result originates from
 
+## Abilities
+
+See [docs/abilities.md](docs/abilities.md) for the `extrachill/multisite-search` ability contract.
+
 ## Requirements
 
 - **WordPress**: 5.0+

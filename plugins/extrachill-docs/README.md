@@ -33,6 +33,8 @@ php scripts/check-user-docs-voice.php ../extrachill-events/docs/user
 - `inc/core/sync-cleanup.php` performs one-shot cleanup of old scheduled jobs and page metadata; it does not publish documentation.
 - `extrachill-api/inc/routes/docs/docs-info.php` provides the separate live public metadata route.
 
+Ability contracts (input, output, permission, side effects) are in [docs/abilities.md](docs/abilities.md).
+
 The theme supplies shared styling and navigation. Team-only pages use WordPress private-page visibility.
 
 ## Docs Agent

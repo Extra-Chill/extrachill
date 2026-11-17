@@ -17,6 +17,10 @@ Extra Chill News Wire provides a specialized platform for automated festival new
 - **Shared Authentication**: Uses network-wide WordPress multisite authentication.
 - **Dynamic URLs**: Uses `ec_get_site_url('community')` and other helpers for cross-site navigation.
 
+## Abilities
+
+The plugin exposes a public, read-only recent-activity projection for cross-site consumers. See [abilities.md](abilities.md).
+
 ## Templates
 
 The plugin implements a robust template override system:

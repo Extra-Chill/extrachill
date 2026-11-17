@@ -92,6 +92,8 @@ Important boundaries:
 
 Studio orchestrates these owner-layer capabilities. It does not create parallel identity, post, autosave, social, or analytics systems.
 
+Studio's abilities (review queue, giveaways, Sweatpants tokens) are documented in [docs/abilities.md](docs/abilities.md).
+
 ## Editorial Lifecycle
 
 ```text

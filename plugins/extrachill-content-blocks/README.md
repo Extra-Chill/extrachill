@@ -22,6 +22,8 @@ It is the content-block layer for:
 | **Rapper Name Generator** | Generates rapper stage names based on user input |
 | **Band Name Generator** | Generates band names by genre with customizable options |
 
+Every ability the plugin registers (generators, image voting, photo contests, trivia) is documented in [docs/abilities.md](docs/abilities.md).
+
 ## Namespace
 
 All blocks keep the portable `extrachill/*` namespace for saved-content compatibility and cross-site reuse.

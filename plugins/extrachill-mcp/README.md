@@ -100,6 +100,10 @@ The flow is correct on both ends; the two halves are just on different hosts. Br
 
 The adapter ships a default server at `/wp-json/mcp/mcp-adapter-default-server` carrying generic `discover-abilities` / `get-ability-info` / `execute-ability` tools, exposed by a static `meta.mcp.public` flag rather than by caller identity. This plugin suppresses it — Extra Chill's surface is mediated through one endpoint with one access policy.
 
+## Abilities
+
+The two meta-abilities this server advertises, `extrachill/ability-search` and `extrachill/ability-call`, are documented in [docs/abilities.md](docs/abilities.md).
+
 ## Filters
 
 | Filter | Purpose |

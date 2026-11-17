@@ -119,6 +119,10 @@ The plugin is **stateless on the server**. There is no transcript table and no c
 - `AgentConversationLoop` runs with `max_turns = 1` and a `NullAgentConversationTranscriptPersister` is the implicit default.
 - Public turns use Extra Chill API's atomic persistent-cache admission primitive for per-client and verified-session limits.
 
+## Abilities
+
+See [docs/abilities.md](docs/abilities.md) for the `extrachill/progress-story` ability contract.
+
 ## Requirements
 
 - WordPress 7.0+ (provides core's AI Client: `wp_ai_client_prompt()`, `\WordPress\AiClient\*`).

@@ -12,5 +12,10 @@ Blog-specific functionality for the Extra Chill Platform's main site (extrachill
 
 Shared content-creation blocks now live in the standalone `extrachill-content-blocks` plugin.
 
+## Documentation
+
+- [Abilities](docs/abilities.md): the `extrachill/blog-public-entity-projections` ability contract.
+- [Homepage system](docs/homepage-system.md)
+
 ## Development
 

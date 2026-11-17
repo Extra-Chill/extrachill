@@ -162,6 +162,10 @@ Works with any WordPress theme that supports shortcodes. No template modificatio
 - Test email functionality thoroughly
 - Ensure mobile responsiveness
 
+## Abilities
+
+See [docs/abilities.md](docs/abilities.md) for the `extrachill/contact-submit` ability contract (input, output, permission, side effects).
+
 ## Changelog
 
 See [docs/CHANGELOG.md](docs/CHANGELOG.md) for full version history.

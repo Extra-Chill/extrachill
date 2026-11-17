@@ -122,6 +122,8 @@ The plugin provides subscription and campaign functionality via REST API (endpoi
 - `POST /wp-json/extrachill/v1/newsletter/subscribe` - Public newsletter subscription
 - `POST /wp-json/extrachill/v1/newsletter/campaign/push` - Admin campaign push to Sendy
 
+Every Newsletter ability (subscription, campaigns, settings, metrics) is documented in [docs/abilities.md](docs/abilities.md).
+
 ## Hooks and Filters
 
 ### Actions
