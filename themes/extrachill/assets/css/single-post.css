@@ -154,6 +154,11 @@ border-bottom: 2px solid var(--accent);
   border:none;
 }
 
+/* Byline: bolder author name(s), incl. Co-Authors Plus. Color unchanged. */
+.single-post-card > .below-entry-meta .meta-top-row a[rel="author"] {
+	font-weight: 600;
+}
+
 .single #content .post {
 	margin-bottom: 0;
 }
