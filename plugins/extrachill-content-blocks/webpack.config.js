@@ -2,7 +2,14 @@
  * Custom webpack extends @wordpress/scripts defaults
  * CopyWebpackPlugin: Block index.php files + trivia assets/ directory
  */
+/**
+ * WordPress dependencies
+ */
 const defaultConfig = require('@wordpress/scripts/config/webpack.config');
+
+/**
+ * External dependencies
+ */
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 
