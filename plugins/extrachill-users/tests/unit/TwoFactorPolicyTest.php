@@ -99,8 +99,8 @@ class Test_Two_Factor_Policy extends WP_UnitTestCase {
 	}
 
 	public function test_an_email_primary_sends_a_code_with_the_challenge(): void {
+		$user = $this->user();
 		Two_Factor_Core::$challenge['provider'] = 'Two_Factor_Email';
-		$user                                   = $this->user();
 
 		$challenge = extrachill_users_two_factor_challenge( $user, array() );
 
