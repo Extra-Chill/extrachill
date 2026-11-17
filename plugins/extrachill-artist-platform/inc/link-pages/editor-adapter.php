@@ -6,6 +6,22 @@ defined( 'ABSPATH' ) || exit;
 add_filter( 'ec_link_page_editor_configuration', 'extrachill_artist_link_page_editor_configuration', 10, 3 );
 
 /**
+ * URL of the managed QR code panel (team-owned, editable QR codes).
+ *
+ * The generator block lives on the main site; `?view=mine` opens the panel
+ * for the signed-in user's artist, venue and promoter teams.
+ *
+ * @return string Absolute URL, or an empty string when the main site is unknown.
+ */
+function extrachill_artist_platform_managed_qr_url() {
+	$main = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'main' ) : '';
+	if ( '' === $main ) {
+		return '';
+	}
+	return add_query_arg( 'view', 'mine', trailingslashit( $main ) . 'qr-code-generator/' );
+}
+
+/**
  * Supply only presentation context; canonical APIs reauthorize every operation.
  *
  * @param mixed $configuration Existing configuration.
@@ -94,6 +110,10 @@ function extrachill_artist_link_page_editor_configuration( $configuration, $attr
 			array(
 				'label' => __( 'Analytics', 'extrachill-artist-platform' ),
 				'url'   => site_url( '/analytics' ),
+			),
+			array(
+				'label' => __( 'QR Codes', 'extrachill-artist-platform' ),
+				'url'   => extrachill_artist_platform_managed_qr_url(),
 			),
 			array(
 				'label' => __( 'Artist Platform', 'extrachill-artist-platform' ),

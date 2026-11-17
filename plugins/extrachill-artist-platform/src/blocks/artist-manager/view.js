@@ -64,6 +64,7 @@ const useConfig = () => {
 			selectedId: config.selectedId || 0,
 			artistSiteUrl: config.artistSiteUrl || '',
 			eventsSubmitUrl: config.eventsSubmitUrl || '',
+			qrCodesUrl: config.qrCodesUrl || '',
 			assets: config.assets || {},
 		}),
 		[ config ]
@@ -696,6 +697,14 @@ const App = () => {
 									className="button-3 button-small"
 								>
 									View Profile
+								</a>
+							)}
+							{config.qrCodesUrl && (
+								<a
+									href={config.qrCodesUrl}
+									className="button-3 button-small"
+								>
+									{ __( 'QR Codes', 'extrachill-artist-platform' ) }
 								</a>
 							)}
 							<button
