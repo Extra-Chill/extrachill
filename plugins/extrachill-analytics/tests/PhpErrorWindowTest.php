@@ -79,7 +79,7 @@ final class PhpErrorWindowTest extends TestCase {
 				'Persisted daily rows are bounded by last_seen inside the window.'
 			);
 
-			$legacy  = extrachill_analytics_ability_get_php_error_summary( array( 'days' => 7 ) );
+			$legacy = extrachill_analytics_ability_get_php_error_summary( array( 'days' => 7 ) );
 			$this->assertNotNull( $this->find_row( $legacy, $old ), 'days-only callers keep the full window.' );
 			$this->assertNotNull( $this->find_row( $legacy, $fresh ) );
 			$this->assertSame( '', $legacy['window_note'] );
