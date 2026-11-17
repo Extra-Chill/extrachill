@@ -86,6 +86,16 @@ class Test_Core_Signup_Surface extends WP_UnitTestCase {
 		$redirect_filter           = static function ( $location, $status ) {
 			throw new RuntimeException( wp_json_encode( compact( 'location', 'status' ) ) );
 		};
+		// In production the main site's home host is the network domain, so
+		// wp_safe_redirect() accepts the network URL. The test harness serves
+		// home_url() from a different host than the network domain; allow the
+		// network host so the redirect is not replaced by the admin fallback.
+		$network_host  = (string) wp_parse_url( network_home_url(), PHP_URL_HOST );
+		$allowed_hosts = static function ( $hosts ) use ( $network_host ) {
+			$hosts[] = $network_host;
+			return $hosts;
+		};
+		add_filter( 'allowed_redirect_hosts', $allowed_hosts );
 		add_filter( 'wp_redirect', $redirect_filter, 10, 2 );
 
 		try {
@@ -98,6 +108,7 @@ class Test_Core_Signup_Surface extends WP_UnitTestCase {
 			$this->assertSame( $registration_setting, get_site_option( 'registration' ) );
 		} finally {
 			remove_filter( 'wp_redirect', $redirect_filter, 10 );
+			remove_filter( 'allowed_redirect_hosts', $allowed_hosts );
 		}
 	}
 
@@ -109,7 +120,14 @@ class Test_Core_Signup_Surface extends WP_UnitTestCase {
 		switch_to_blog( $subsite_id );
 
 		try {
-			$this->assertSame( network_site_url( 'wp-signup.php' ), get_site_url( get_main_site_id(), 'wp-signup.php' ) );
+			// Compare against the main site's network record rather than its
+			// siteurl option: the test harness serves siteurl from a different
+			// host than the network domain, which production never does.
+			$canonical = network_site_url( 'wp-signup.php' );
+			$main_site = get_site( get_main_site_id() );
+			$this->assertInstanceOf( WP_Site::class, $main_site );
+			$this->assertSame( $main_site->domain, wp_parse_url( $canonical, PHP_URL_HOST ) );
+			$this->assertSame( $main_site->path . 'wp-signup.php', wp_parse_url( $canonical, PHP_URL_PATH ) );
 		} finally {
 			restore_current_blog();
 		}

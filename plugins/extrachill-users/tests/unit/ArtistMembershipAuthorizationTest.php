@@ -63,7 +63,12 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		$artist_side_id = self::factory()->user->create();
 		$artist_id      = $this->create_artist( self::factory()->user->create() );
 		$this->set_artist_members( $artist_id, array( $user_side_id ) );
-		$this->assertTrue( ec_remove_artist_membership( $user_side_id, $artist_id ) );
+		// Revoke through the users-owned team repository: ec_remove_artist_membership()
+		// lives in extrachill-artist-platform, which is not loaded in this suite.
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$membership = $repository->get( 'artist', $artist_id, $user_side_id );
+		$this->assertIsArray( $membership );
+		$this->assertSame( 1, $repository->mutate( 'artist', $artist_id, $user_side_id, (int) $membership['version'], null, true, 0 ) );
 		$other_artist_id = $this->create_artist( self::factory()->user->create() );
 		$this->set_artist_members( $other_artist_id, array( $artist_side_id ) );
 

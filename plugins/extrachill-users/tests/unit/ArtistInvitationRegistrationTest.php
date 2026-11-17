@@ -9,8 +9,9 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 	}
 
 	public function test_old_invite_payload_is_silently_ignored(): void {
-		add_filter( 'extrachill_users_registration_turnstile_verifier', '__return_true' );
-		add_filter( 'extrachill_users_registration_admitter', '__return_true' );
+		// Both filters return the callable to run, not its result.
+		add_filter( 'extrachill_users_registration_turnstile_verifier', static fn() => '__return_true' );
+		add_filter( 'extrachill_users_registration_admitter', static fn() => '__return_true' );
 		$requests = 0;
 		add_filter( 'pre_http_request', static function ( $preempt ) use ( &$requests ) {
 			++$requests;

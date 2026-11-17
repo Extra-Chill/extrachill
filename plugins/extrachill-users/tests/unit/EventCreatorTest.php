@@ -35,6 +35,11 @@ class Test_Event_Creator extends WP_UnitTestCase {
 		}
 	}
 
+	protected function tearDown(): void {
+		wp_set_current_user( 0 );
+		parent::tearDown();
+	}
+
 	public function test_find_by_external_id_returns_null_when_no_match_exists(): void {
 		$this->assertNull(
 			EventCreator::find_by_external_id( 'setlist-fm', 'nonexistent-id' )
@@ -110,6 +115,13 @@ class Test_Event_Creator extends WP_UnitTestCase {
 				'source_id'  => 'created-by-test-123',
 			)
 		);
+
+		// datamachine/upsert-post enforces publish + protected-meta caps. In
+		// production the import runs under Action Scheduler, which Data Machine
+		// trusts; here an explicit super admin stands in for that context.
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		grant_super_admin( $admin_id );
+		wp_set_current_user( $admin_id );
 
 		$post_id = EventCreator::create( $event, 'setlist-fm' );
 		$this->assertIsInt( $post_id );

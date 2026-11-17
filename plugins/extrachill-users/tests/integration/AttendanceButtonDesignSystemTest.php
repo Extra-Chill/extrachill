@@ -92,6 +92,9 @@ class Test_Attendance_Button_Design_System extends WP_UnitTestCase {
 
 		$classes = array();
 		foreach ( $matches[1] as $attr ) {
+			// Dynamic segments are not static class names; drop them before
+			// splitting so their PHP tokens are not mistaken for classes.
+			$attr = (string) preg_replace( '/<\?php.*?\?>/s', ' ', $attr );
 			foreach ( preg_split( '/\s+/', trim( $attr ) ) as $class ) {
 				if ( '' !== $class && false === strpos( $class, '<?php' ) ) {
 					$classes[] = $class;
