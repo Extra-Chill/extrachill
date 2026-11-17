@@ -239,6 +239,8 @@ add_filter( 'authenticate', 'extrachill_intercept_auth_error', 99, 3 );
  * /login/ with no way to set a new password. We catch action=rp /
  * action=resetpass explicitly and redirect to the community
  * /reset-password/ page so the key + login survive the hop.
+ * action=lostpassword / action=retrievepassword links (Two Factor's
+ * compromised-password email) go to the same page to request a new link.
  */
 function extrachill_redirect_wp_login_access() {
 	if ( false === strpos( strtolower( $_SERVER['REQUEST_URI'] ), '/wp-login.php' ) ) {
@@ -259,6 +261,13 @@ function extrachill_redirect_wp_login_access() {
 	// Allow two-factor authentication challenge pages through.
 	if ( in_array( $action, array( 'validate_2fa', 'revalidate_2fa' ), true ) ) {
 		return;
+	}
+
+	// "Create a new password" links (Two Factor's compromised-password email
+	// and login notice build them from wp_login_url()) go to the reset page.
+	if ( in_array( $action, array( 'lostpassword', 'retrievepassword' ), true ) ) {
+		wp_safe_redirect( wp_lostpassword_url() );
+		exit;
 	}
 
 	// Route password reset links to the community /reset-password/ handler.

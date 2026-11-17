@@ -302,6 +302,34 @@ function extrachill_users_two_factor_api_login_enable( $enabled ): bool {
 }
 add_filter( 'two_factor_user_api_login_enable', 'extrachill_users_two_factor_api_login_enable' );
 
+/**
+ * Point Two Factor's "settings changed" email at the member Settings page.
+ *
+ * Two Factor (0.18.0+) tells the member to review their security settings at
+ * wp-admin/profile.php. Members without wp-admin access are bounced from
+ * there, so their copy links to Settings instead.
+ *
+ * @param array<string,mixed> $email Email args for wp_mail(): to, subject, message, headers.
+ * @param WP_User|null        $user  Member whose 2FA settings changed.
+ * @return array<string,mixed>
+ */
+function extrachill_users_two_factor_settings_changed_email( $email, $user = null ) {
+	if ( ! is_array( $email ) || ! isset( $email['message'] ) || ! is_string( $email['message'] ) ) {
+		return $email;
+	}
+	if ( ! $user instanceof WP_User || ec_users_can_access_wp_admin( $user ) ) {
+		return $email;
+	}
+
+	$message = preg_replace( '#https?://\S*/wp-admin/(?:network/|user/)?profile\.php(?:[?\#][^\s]*)?#i', extrachill_users_settings_url(), $email['message'] );
+	if ( is_string( $message ) ) {
+		$email['message'] = $message;
+	}
+
+	return $email;
+}
+add_filter( 'two_factor_settings_changed_email', 'extrachill_users_two_factor_settings_changed_email', 10, 2 );
+
 /** Lower the allowance when the primary credential fails. */
 function extrachill_users_two_factor_reset_api_primary_login(): void {
 	extrachill_users_two_factor_allow_api_primary_login( false );
