@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.72.0] - 2026-11-17
+
+### Added
+- complete two-factor sign-in in the app and login block
+
 ## [0.71.0] - 2026-11-17
 
 ### Added
