@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.56.1] - 2026-11-17
+
+### Fixed
+- retire /users/me/subscriptions routes that wrap retired abilities
+
 ## [0.56.0] - 2026-11-17
 
 ### Added
