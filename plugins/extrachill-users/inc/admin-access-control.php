@@ -28,6 +28,29 @@ function ec_users_admin_access_redirect_url( $user ) {
 	return home_url( '/' );
 }
 
+/**
+ * Send members' "edit profile" links to Settings instead of wp-admin.
+ *
+ * Covers core and plugin links built from get_edit_profile_url(), such as
+ * Two Factor's "generate new recovery codes" email link and its post-login
+ * redirect after the last recovery code. Members without wp-admin access are
+ * bounced from wp-admin/profile.php, so those links would otherwise dead-end
+ * on the home page.
+ *
+ * @param string $url     Edit profile URL.
+ * @param int    $user_id User the URL is for.
+ * @return string
+ */
+function ec_users_member_edit_profile_url( $url, $user_id ) {
+	$user = get_userdata( (int) $user_id );
+	if ( ! $user instanceof WP_User || ec_users_can_access_wp_admin( $user ) ) {
+		return $url;
+	}
+
+	return extrachill_users_settings_url();
+}
+add_filter( 'edit_profile_url', 'ec_users_member_edit_profile_url', 10, 2 );
+
 function extrachill_redirect_admin() {
 	global $pagenow;
 
