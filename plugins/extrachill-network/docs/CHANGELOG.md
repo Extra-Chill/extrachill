@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.41.4] - 2026-11-17
+
+### Fixed
+- link pre-2024 comment authors whose account email matches
+
 ## [2.41.3] - 2026-11-16
 
 ### Fixed
