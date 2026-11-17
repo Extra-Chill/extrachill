@@ -942,6 +942,8 @@ class CommunityCommand {
 	/**
 	 * Create a new topic in a forum.
 	 *
+	 * The author is the current user; pick it with the global --user flag.
+	 *
 	 * ## OPTIONS
 	 *
 	 * <forum_id>
@@ -961,9 +963,6 @@ class CommunityCommand {
 	 *   - html
 	 *   - markdown
 	 * ---
-	 *
-	 * [--user=<user>]
-	 * : Author user ID, login, or email (defaults to current user).
 	 *
 	 * ## EXAMPLES
 	 *
@@ -1006,15 +1005,6 @@ class CommunityCommand {
 			'format'   => $format,
 		);
 
-		if ( isset( $assoc_args['user'] ) ) {
-			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user instanceof \WP_User ) {
-				WP_CLI::error( 'User not found.' );
-				return;
-			}
-			$input['user_id'] = (int) $user->ID;
-		}
-
 		$result = $ability->execute( $input );
 
 		if ( is_wp_error( $result ) ) {
@@ -1027,6 +1017,8 @@ class CommunityCommand {
 
 	/**
 	 * Create a reply to a topic.
+	 *
+	 * The author is the current user; pick it with the global --user flag.
 	 *
 	 * ## OPTIONS
 	 *
@@ -1047,9 +1039,6 @@ class CommunityCommand {
 	 *
 	 * [--reply-to=<reply_id>]
 	 * : Parent reply ID for threaded replies.
-	 *
-	 * [--user=<user>]
-	 * : Author user ID, login, or email (defaults to current user).
 	 *
 	 * ## EXAMPLES
 	 *
@@ -1087,15 +1076,6 @@ class CommunityCommand {
 			'format'   => $format,
 			'reply_to' => isset( $assoc_args['reply-to'] ) ? (int) $assoc_args['reply-to'] : 0,
 		);
-
-		if ( isset( $assoc_args['user'] ) ) {
-			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user instanceof \WP_User ) {
-				WP_CLI::error( 'User not found.' );
-				return;
-			}
-			$input['user_id'] = (int) $user->ID;
-		}
 
 		$result = $ability->execute( $input );
 

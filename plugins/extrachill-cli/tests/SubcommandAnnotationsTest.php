@@ -75,4 +75,17 @@ foreach ( array(
 	}
 }
 
+// WP-CLI consumes --user as a global flag (it sets the current user) and never
+// passes it to commands, so a command-level --user option is dead code.
+$commands_dir = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( dirname( __DIR__ ) . '/inc/Commands', FilesystemIterator::SKIP_DOTS ) );
+foreach ( $commands_dir as $file ) {
+	if ( 'php' !== $file->getExtension() ) {
+		continue;
+	}
+	$source = file_get_contents( $file->getPathname() );
+	if ( preg_match( '/\[--user=<|\$assoc_args\[\s*[\'"]user[\'"]\s*\]/', $source ) ) {
+		throw new RuntimeException( $file->getFilename() . ' declares or reads a command-level --user; WP-CLI never passes it. Use the current user.' );
+	}
+}
+
 fwrite( STDOUT, 'Subcommand annotation tests passed (' . count( $checked ) . " methods).\n" );

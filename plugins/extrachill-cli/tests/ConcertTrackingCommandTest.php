@@ -243,25 +243,36 @@ namespace {
 
 		$command = new ConcertTrackingCommand();
 
-		// Bare WP-CLI execution adopts the administrator as actor while retaining the explicit target.
-		$command->mark( array( 10 ), array( 'user' => 'chubes' ) );
-		$command->mark( array( 10 ), array( 'user' => 'chubes' ) );
-		concert_tracking_assert_same( 1, $concert_tracking_current_blog_id, 'Mark must restore the main-site invocation context.' );
+		// Bare WP-CLI execution adopts the administrator as both actor and target.
+		$command->mark( array( 11 ), array() );
 		concert_tracking_assert_same( 1, $concert_tracking_current_user_id, 'Bare CLI execution must establish the deterministic administrator actor.' );
+		concert_tracking_assert_same( 1, $set_ability->inputs[0]['user_id'], 'Bare CLI execution must mark for the administrator.' );
+		unset( $concert_tracking_marks['1:11'] );
+		$set_ability->inputs = array();
+
+		// WP-CLI consumes the global --user flag and sets the current user;
+		// a stray $assoc_args['user'] must not redirect the target.
+		wp_set_current_user( 7 );
+		$command->mark( array( 10 ), array( 'user' => 'listener' ) );
+		$command->mark( array( 10 ), array() );
+		concert_tracking_assert_same( 1, $concert_tracking_current_blog_id, 'Mark must restore the main-site invocation context.' );
+		concert_tracking_assert_same( 7, $concert_tracking_current_user_id, 'An authenticated CLI user must remain the actor.' );
 		concert_tracking_assert_same( true, $concert_tracking_marks['7:10'], 'Repeated marks must leave the event marked.' );
 		concert_tracking_assert_same( array( 'user_id' => 7, 'event_id' => 10, 'marked' => true ), $set_ability->inputs[0], 'Mark must use the canonical desired-state contract.' );
 		concert_tracking_assert_contains( 'already marked', implode( "\n", WP_CLI::$messages ), 'Repeated mark must report an unchanged state.' );
 
 		WP_CLI::$messages = array();
-		$command->unmark( array( 11 ), array( 'user' => 'chubes' ) );
-		$command->unmark( array( 11 ), array( 'user' => 'chubes' ) );
+		$command->unmark( array( 11 ), array() );
+		$command->unmark( array( 11 ), array() );
 		concert_tracking_assert_same( 1, $concert_tracking_current_blog_id, 'Unmark must restore the main-site invocation context.' );
 		concert_tracking_assert_same( false, $concert_tracking_marks['7:11'], 'Repeated unmarks must leave the event unmarked.' );
 		concert_tracking_assert_contains( 'was not marked', implode( "\n", WP_CLI::$messages ), 'Repeated unmark must report an unchanged state.' );
 
 		$writes_before = count( $set_ability->inputs );
-		$command->check( array( 10 ), array( 'user' => 'chubes' ) );
-		$command->check( array( 10 ), array( 'user' => 'listener' ) );
+		$command->check( array( 10 ), array() );
+		wp_set_current_user( 8 );
+		$command->check( array( 10 ), array() );
+		wp_set_current_user( 1 );
 		concert_tracking_assert_same( 1, $concert_tracking_current_blog_id, 'Check must restore the main-site invocation context.' );
 		concert_tracking_assert_same( $writes_before, count( $set_ability->inputs ), 'Checks for any user must not execute a mutation ability.' );
 		concert_tracking_assert_same( array( 'event_id' => 10, 'user_id' => 8 ), $check_ability->inputs[1], 'Check must pass the selected user explicitly.' );
@@ -288,7 +299,7 @@ namespace {
 		// A colliding event ID that exists only on the invocation site must be rejected.
 		$writes_before = count( $set_ability->inputs );
 		try {
-			$command->mark( array( 12 ), array( 'user' => 'chubes' ) );
+			$command->mark( array( 12 ), array() );
 			throw new \RuntimeException( 'Wrong-site event IDs should fail.' );
 		} catch ( ConcertTrackingCommandTestError $error ) {
 			concert_tracking_assert_contains( 'canonical Events site', $error->getMessage(), 'Validation must reject invocation-site posts.' );
@@ -310,7 +321,7 @@ namespace {
 
 		$concert_tracking_events_blog_id = 99;
 		try {
-			$command->check( array( 10 ), array( 'user' => 'chubes' ) );
+			$command->check( array( 10 ), array() );
 			throw new \RuntimeException( 'Unavailable canonical site should fail direct commands.' );
 		} catch ( ConcertTrackingCommandTestError $error ) {
 			concert_tracking_assert_contains( 'canonical Events site is unavailable', $error->getMessage(), 'Direct commands must fail when the canonical site is unavailable.' );
