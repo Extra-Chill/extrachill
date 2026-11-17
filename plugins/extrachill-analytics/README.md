@@ -6,6 +6,10 @@ Network-wide analytics tracking and reporting for the ExtraChill Platform WordPr
 
 The ExtraChill Analytics plugin provides comprehensive view tracking and analytics reporting across all sites in the ExtraChill Platform multisite network. It tracks eligible public routes through a signed, asynchronous browser request to the WordPress Abilities API, excluding previews and rejecting writes that do not match the rendered host, path, route family, and optional post. A network admin dashboard displays analytics data across all sites.
 
+## Documentation
+
+- [Abilities reference](docs/abilities.md) — inputs, outputs, permissions, transport exposure, and side effects for all registered abilities.
+
 ## Features
 
 - **Unified Event Tracking**: Network-wide custom table for tracking newsletters, registrations, and more
