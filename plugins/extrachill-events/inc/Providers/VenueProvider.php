@@ -25,6 +25,13 @@ final class VenueProvider {
 	private static $registered = false;
 
 	/**
+	 * Whether registration was deferred until plugins_loaded.
+	 *
+	 * @var bool
+	 */
+	private static $deferred = false;
+
+	/**
 	 * Load venue dependencies and register venue hooks once.
 	 *
 	 * @return bool Whether the provider is registered.
@@ -35,6 +42,14 @@ final class VenueProvider {
 		}
 
 		if ( ! class_exists( \ExtraChill\Users\Teams\TeamMembershipRepository::class ) ) {
+			// extrachill-users may load after this plugin (alphabetical site
+			// activation, or a test harness that loads the component before its
+			// dependencies). Retry once every plugin has loaded, ahead of the
+			// abilities layer on plugins_loaded:25.
+			if ( ! self::$deferred && function_exists( 'add_action' ) && function_exists( 'did_action' ) && ! did_action( 'plugins_loaded' ) ) {
+				self::$deferred = true;
+				add_action( 'plugins_loaded', array( self::class, 'register_deferred' ), 5 );
+			}
 			return false;
 		}
 
@@ -55,6 +70,11 @@ final class VenueProvider {
 
 		self::$registered = true;
 		return true;
+	}
+
+	/** Retry registration after every plugin has loaded. */
+	public static function register_deferred(): void {
+		self::register();
 	}
 
 	/**
