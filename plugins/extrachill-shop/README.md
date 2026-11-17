@@ -69,3 +69,4 @@ composer run lint:php
 
 ## Documentation
 
+- [Abilities](docs/abilities.md): every ability the plugin registers, with inputs, outputs, permissions, exposure and side effects.
