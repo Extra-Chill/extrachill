@@ -160,7 +160,7 @@ class ErrorsCommand {
 			WP_CLI::warning( sprintf( '%s ability not found; %s responses are not instrumented.', $name, $label ) );
 			return;
 		}
-		$format = $assoc_args['format'] ?? 'table';
+		$format  = $assoc_args['format'] ?? 'table';
 		$seconds = $this->parse_window( $assoc_args['since'] ?? '7d' );
 		$hours   = min( 168, max( 1, 0 === $seconds ? 168 : (int) ceil( $seconds / 3600 ) ) );
 		if ( $seconds !== $hours * 3600 ) {
@@ -315,10 +315,17 @@ class ErrorsCommand {
 		if ( 0 === $seconds ) {
 			return 'all available history';
 		}
-		foreach ( array( 86400 => 'days', 3600 => 'hours', 60 => 'minutes' ) as $unit => $label ) {
+		$units = array(
+			86400 => 'day',
+			3600  => 'hour',
+			60    => 'minute',
+		);
+		foreach ( $units as $unit => $label ) {
 			if ( 0 === $seconds % $unit ) {
-				return sprintf( 'the last %d %s', $seconds / $unit, $label );
+				$count = (int) ( $seconds / $unit );
+				return sprintf( 'the last %d %s%s', $count, $label, 1 === $count ? '' : 's' );
 			}
 		}
+		return sprintf( 'the last %d seconds', $seconds );
 	}
 }
