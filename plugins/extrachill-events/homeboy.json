@@ -193,6 +193,11 @@
             "name": "venue-calendar-feed",
             "config": "phpunit-venue-calendar-feed.xml.dist",
             "runtime": "host"
+          },
+          {
+            "name": "dme-ability-capabilities-unit",
+            "config": "phpunit-dme-ability-capabilities-unit.xml.dist",
+            "runtime": "host"
           }
         ],
         "wp_config_defines": {

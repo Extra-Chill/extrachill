@@ -45,6 +45,7 @@
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestGuestTest.php</exclude>
+			<exclude>tests/Unit/Core/DataMachineEventsAbilityCapabilitiesTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
 			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
 			<!-- Pure-PHP Eventbrite import test with file-level doubles; runs in
