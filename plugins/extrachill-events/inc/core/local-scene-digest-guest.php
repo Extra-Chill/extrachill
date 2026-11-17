@@ -15,7 +15,9 @@
  *   4. Confirming records the subscription through the extrachill-users
  *      entity-subscription service, so the existing sender and signed
  *      unsubscribe work unchanged, and saves the city as the account's
- *      Local Scene only when it has none.
+ *      Local Scene only when it has none. The sender keys delivery on the
+ *      subscribed city (#1569), so an existing different Local Scene never
+ *      blocks the confirmed city's digest.
  *
  * Every request also records which city was asked for on the account
  * (`_ec_local_scene_digest_requests` user meta, #465) so an unconfirmed

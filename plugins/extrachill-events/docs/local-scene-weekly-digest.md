@@ -1,6 +1,6 @@
 # Local Scene Weekly Digest
 
-The weekly digest is an explicit opt-in to both a weekly email and its in-app update through the Events-owned `local_scene_digest/location/<slug>` entity subscription. Events registers that entity-to-taxonomy mapping through `extrachill_users_entity_subscription_entities`; the generic Users layer does not know about this product. Saving Local Scene does not create a subscription. The location archive renders a read-only status check followed by a user-triggered subscribe/unsubscribe toggle only when that archive is the user's current Local Scene.
+The weekly digest is an explicit opt-in to both a weekly email and its in-app update through the Events-owned `local_scene_digest/location/<slug>` entity subscription. Events registers that entity-to-taxonomy mapping through `extrachill_users_entity_subscription_entities`; the generic Users layer does not know about this product. Saving or changing Local Scene does not create, move, or remove a subscription. The location archive renders a read-only status check followed by a user-triggered subscribe/unsubscribe toggle only when that archive is the user's current Local Scene.
 
 ## Delivery
 
@@ -17,7 +17,7 @@ For each canonical selectable location term, Events:
 - collapses local duplicates by normalized title, venue term, and local start date;
 - orders Going events first for each recipient, then priority event, priority venue, completeness, known price/free status, datetime, and post ID;
 - caps repeated venues and performers when enough inventory exists, sends all qualified sparse inventory, and sends nothing for an empty scene;
-- resolves only explicit digest subscribers and rechecks that the canonical location slug still equals `extrachill_users_get_local_scene()` at execution time;
+- resolves only explicit digest subscribers for that location and sends each one that location's digest, regardless of their saved Local Scene (#1569): the subscription is the consent, while Local Scene is a profile field that email-only signup never overwrites and members can change at any time. A user subscribed to several locations gets one digest per location; recipient IDs are de-duplicated per location;
 - resolves Going attendance only against the canonical Events blog returned by `ec_get_blog_id( 'events' )` and fails closed if that identity is unavailable.
 
 `ec_users_notify_with_receipts()` claims one delivery per user, ISO week, and location with `producer_owns_email=true`, which suppresses the generic Users email sweep. Only an `inserted` receipt for a recipient still eligible under the master email preference queues the branded email through `ec_send_email_queued()`; an `existing` replay and a master-suppressed delivery never queue or release. Explicit rich-email preflight or queue-admission failures release the exact notification receipt through `ec_users_release_notification_receipt()` so a later full replay can retry. The network bot is the notification actor.
