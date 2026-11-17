@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.32.3] - 2026-11-17
+
+### Fixed
+- give artist subscribers a way to unsubscribe
+
 ## [1.32.2] - 2026-11-16
 
 ### Fixed
