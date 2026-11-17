@@ -503,6 +503,9 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 		global $wpdb;
 		$table    = extrachill_users_concert_tracking_table_name();
 		$user_ids = array();
+		// Anchor once: re-reading time() per row lets a clock tick mid-loop give
+		// two rows the same created_at, flipping the id DESC tiebreak order.
+		$base_time = time();
 		for ( $index = 0; $index < $count; ++$index ) {
 			$user_id    = self::factory()->user->create();
 			$user_ids[] = $user_id;
@@ -513,7 +516,7 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 					'user_id'    => $user_id,
 					'event_id'   => $this->event_id,
 					'blog_id'    => $this->events_blog_id,
-					'created_at' => gmdate( 'Y-m-d H:i:s', time() - $index ),
+					'created_at' => gmdate( 'Y-m-d H:i:s', $base_time - $index ),
 				),
 				array( '%d', '%d', '%d', '%s' )
 			);
