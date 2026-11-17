@@ -68,7 +68,7 @@ function festival_wire_modify_archive_query( $query ) {
 		$location = get_query_var( 'location' );
 		if ( ! empty( $location ) ) {
 			$tax_query_clauses[] = array(
-					'taxonomy' => 'location',
+				'taxonomy' => 'location',
 				'field'    => 'slug',
 				'terms'    => $location,
 			);
@@ -103,21 +103,21 @@ add_action( 'pre_get_posts', 'festival_wire_modify_archive_query' );
  * @param WP_Query $query The WordPress query object
  */
 function festival_wire_include_in_archives( $query ) {
-    // Skip admin, non-main queries, and Festival Wire specific pages
-    if ( is_admin() || ! $query->is_main_query() || is_post_type_archive( 'festival_wire' ) ) {
-        return;
-    }
+	// Skip admin, non-main queries, and Festival Wire specific pages
+	if ( is_admin() || ! $query->is_main_query() || is_post_type_archive( 'festival_wire' ) ) {
+		return;
+	}
 
 	// Exclude Festival Wire when another integration explicitly adds it to the homepage.
 	if ( $query->is_home() ) {
 		$post_types = $query->get( 'post_type' );
-        // Remove Festival Wire from post type arrays
-        if ( is_array( $post_types ) && in_array( 'festival_wire', $post_types ) ) {
-            $post_types = array_diff( $post_types, array( 'festival_wire' ) );
-            $query->set( 'post_type', $post_types );
-        } elseif ( is_string( $post_types ) && $post_types === 'festival_wire' ) {
-             $query->set( 'post_type', 'post' );
-        }
+		// Remove Festival Wire from post type arrays
+		if ( is_array( $post_types ) && in_array( 'festival_wire', $post_types, true ) ) {
+			$post_types = array_diff( $post_types, array( 'festival_wire' ) );
+			$query->set( 'post_type', $post_types );
+		} elseif ( is_string( $post_types ) && 'festival_wire' === $post_types ) {
+			$query->set( 'post_type', 'post' );
+		}
 	}
 
 	// Exclude from the custom aggregate feed independently of homepage context.
@@ -142,20 +142,18 @@ function festival_wire_include_in_archives( $query ) {
 			$post_types[] = 'festival_wire';
 			$query->set( 'post_type', $post_types );
 		}
+	} elseif ( $query->is_author() ) {
+		// Include Festival Wire in author archives only.
+		$post_types = $query->get( 'post_type' );
+
+		if ( empty( $post_types ) || 'any' === $post_types ) {
+			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
+		} elseif ( is_string( $post_types ) && 'post' === $post_types ) {
+			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
+		} elseif ( is_array($post_types) && ! in_array( 'festival_wire', $post_types, true ) ) {
+			$post_types[] = 'festival_wire';
+			$query->set( 'post_type', $post_types );
+		}
 	}
-
-	// Include Festival Wire in author archives only
-	elseif ( $query->is_author() ) {
-        $post_types = $query->get( 'post_type' );
-
-		if ( empty( $post_types ) || $post_types === 'any' ) {
-			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
-		} elseif ( is_string( $post_types ) && $post_types === 'post' ) {
-			$query->set( 'post_type', array( 'post', 'festival_wire' ) );
-        } elseif ( is_array($post_types) && ! in_array( 'festival_wire', $post_types ) ) {
-            $post_types[] = 'festival_wire';
-            $query->set( 'post_type', $post_types );
-        }
-    }
 }
 add_action( 'pre_get_posts', 'festival_wire_include_in_archives' );

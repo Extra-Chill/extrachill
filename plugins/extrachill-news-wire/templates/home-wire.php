@@ -9,7 +9,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-extrachill_breadcrumbs();
+if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+	extrachill_breadcrumbs();
+}
 
 $festival_wire_archive_url = get_post_type_archive_link( 'festival_wire' );
 
@@ -44,7 +46,7 @@ $latest_posts = get_posts(
 			<div class="festival-wire-grid">
 				<?php
 				global $post;
-				foreach ( $latest_posts as $post ) {
+				foreach ( $latest_posts as $post ) { // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- intentional loop swap so the shared content card reads each post via template tags; restored by wp_reset_postdata().
 					setup_postdata( $post );
 					require __DIR__ . '/content-card.php';
 				}
