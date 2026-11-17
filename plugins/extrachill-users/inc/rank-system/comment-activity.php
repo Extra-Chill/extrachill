@@ -232,7 +232,7 @@ function ec_users_bust_comment_activity_caches( $comment ) {
 	$bust();
 
 	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'community' ) : 0;
-	if ( $community_blog_id > 0 && $community_blog_id !== get_current_blog_id() && get_site( $community_blog_id ) ) {
+	if ( $community_blog_id > 0 && get_current_blog_id() !== $community_blog_id && get_site( $community_blog_id ) ) {
 		switch_to_blog( $community_blog_id );
 		try {
 			$bust();
