@@ -306,7 +306,8 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
  * @param string $device_id         Validated UUIDv4.
  * @param array  $options           Token and browser login options.
  * @param array  $registration_data Sanitized registration metadata.
- * @return array|WP_Error Token response or error.
+ * @return array|WP_Error Token response, a challenge returned untouched from
+ *                        wp-native-auth's policy loop (for example 2FA), or error.
  */
 function ec_oauth_complete_token_login( $result, $device_id, $options, $registration_data ) {
 	$device_name          = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
@@ -350,6 +351,30 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
 		);
 	}
 
+	// Social sign-in must not skip 2FA: run wp-native-auth's challenge
+	// policies before any cookie or token exists. The flow data rides with
+	// the continuation so the continued response matches this one.
+	$challenge = extrachill_users_maybe_challenge_login(
+		$user,
+		$device_id,
+		array(
+			'device_name' => $device_name,
+			'remember'    => $remember,
+			'set_cookie'  => $set_cookie,
+		),
+		array(
+			'flow'                 => 'oauth',
+			'provider'             => isset( $options['registration_method'] ) ? (string) $options['registration_method'] : '',
+			'is_new'               => (bool) $is_new,
+			'set_cookie'           => $set_cookie,
+			'from_join'            => $from_join,
+			'success_redirect_url' => (string) $success_redirect_url,
+		)
+	);
+	if ( null !== $challenge ) {
+		return $challenge;
+	}
+
 	// Set cookies if requested.
 	if ( $set_cookie ) {
 		wp_set_current_user( $user_id, $user->user_login );
@@ -360,6 +385,40 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
 	// Generate tokens via the single wp-native-auth token stack (eu#76).
 	$access  = wp_native_auth_generate_access_token( (int) $user_id, $device_id );
 	$refresh = wp_native_auth_issue_refresh_token( (int) $user_id, $device_id, $device_name );
+
+	return ec_oauth_token_login_response(
+		$user,
+		array(
+			'access_token'       => $access['token'],
+			'access_expires_at'  => gmdate( 'c', (int) $access['expires_at'] ),
+			'refresh_token'      => $refresh['token'],
+			'refresh_expires_at' => gmdate( 'c', (int) $refresh['expires_at'] ),
+		),
+		array(
+			'is_new'               => (bool) $is_new,
+			'set_cookie'           => $set_cookie,
+			'from_join'            => $from_join,
+			'success_redirect_url' => (string) $success_redirect_url,
+		)
+	);
+}
+
+/**
+ * Shape a completed OAuth (Google/Apple) login for Extra Chill clients.
+ *
+ * Shared by the direct login and by a login continued after a challenge.
+ *
+ * @param WP_User              $user   Logged-in user.
+ * @param array<string,string> $tokens access_token, access_expires_at, refresh_token, refresh_expires_at.
+ * @param array<string,mixed>  $flow   is_new, set_cookie, from_join, success_redirect_url.
+ * @return array<string,mixed>
+ */
+function ec_oauth_token_login_response( WP_User $user, array $tokens, array $flow ): array {
+	$user_id              = (int) $user->ID;
+	$is_new               = ! empty( $flow['is_new'] );
+	$set_cookie           = ! empty( $flow['set_cookie'] );
+	$from_join            = ! empty( $flow['from_join'] );
+	$success_redirect_url = isset( $flow['success_redirect_url'] ) ? (string) $flow['success_redirect_url'] : '';
 
 	// Preserve profile-completion state for progressive onboarding without
 	// making it an entry gate for ordinary OAuth registrations.
@@ -374,10 +433,10 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
 	// success_redirect_url=https://phishing.example.com/fake-login/ and the
 	// browser would 302 there immediately after a successful Google auth.
 	$safe_success_redirect_url = '';
-	if ( '' !== (string) $success_redirect_url
+	if ( '' !== $success_redirect_url
 		&& function_exists( 'ec_users_is_valid_return_to_url' )
 		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
-		$safe_success_redirect_url = (string) $success_redirect_url;
+		$safe_success_redirect_url = $success_redirect_url;
 	}
 
 	if ( $from_join && ! $onboarding_completed ) {
@@ -389,25 +448,25 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
 		}
 	}
 
-	$account_created_token = $is_new && $set_cookie ? ec_users_create_account_created_token( (int) $user_id ) : '';
+	$account_created_token = $is_new && $set_cookie ? ec_users_create_account_created_token( $user_id ) : '';
 	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, $onboarding_completed, $safe_success_redirect_url, $account_created_token );
 
 	return array(
 		'success'              => true,
-		'access_token'         => $access['token'],
-		'access_expires_at'    => gmdate( 'c', (int) $access['expires_at'] ),
-		'refresh_token'        => $refresh['token'],
-		'refresh_expires_at'   => gmdate( 'c', (int) $refresh['expires_at'] ),
+		'access_token'         => $tokens['access_token'],
+		'access_expires_at'    => $tokens['access_expires_at'],
+		'refresh_token'        => $tokens['refresh_token'],
+		'refresh_expires_at'   => $tokens['refresh_expires_at'],
 		'onboarding_completed' => $onboarding_completed,
 		'redirect_url'         => $redirect_url,
 		'user'                 => array(
-			'id'           => (int) $user->ID,
+			'id'           => $user_id,
 			'username'     => $user->user_login,
 			'email'        => $user->user_email,
 			'display_name' => $user->display_name,
-			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
+			'avatar_url'   => get_avatar_url( $user_id, array( 'size' => 96 ) ),
 			'profile_url'  => function_exists( 'extrachill_get_user_profile_url' )
-				? extrachill_get_user_profile_url( $user->ID, $user->user_email )
+				? extrachill_get_user_profile_url( $user_id, $user->user_email )
 				: '',
 		),
 	);

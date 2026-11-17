@@ -68,6 +68,9 @@ function extrachill_users_wp_native_pre_login_check( null|WP_Error $result, WP_U
 	return $result;
 }
 add_filter( 'wp_native_auth_pre_login', 'extrachill_users_wp_native_pre_login_check', 10, 3 );
+// A login paused by a challenge (for example 2FA) is checked again before it
+// completes, so a member suspended in the meantime cannot finish signing in.
+add_filter( 'wp_native_auth_revalidate_login', 'extrachill_users_wp_native_pre_login_check', 10, 3 );
 
 /**
  * User payload decorator: adds profile_url to the User object.

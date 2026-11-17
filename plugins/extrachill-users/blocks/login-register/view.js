@@ -192,7 +192,224 @@ function LoggedInCard( { config } ) {
 	);
 }
 
-export function LoginPanel( { config, notice, setNotice } ) {
+export const AUTH_CHALLENGE_EVENT = 'extrachill:auth-challenge';
+
+// Errors after which the pending sign-in cannot be finished: start over.
+const TERMINAL_CHALLENGE_ERRORS = [
+	'continuation_expired',
+	'continuation_rate_limited',
+	'invalid_continuation',
+	'challenge_policy_unavailable',
+	'two_factor_password_reset_required',
+];
+
+export function isTwoFactorChallenge( data ) {
+	return Boolean( data?.challenge_required && data?.continuation_token && data?.challenge?.type === 'two_factor' );
+}
+
+function providerPrompt( provider ) {
+	if ( provider?.resend ) {
+		return 'Enter the code we emailed you.';
+	}
+	if ( /backup|recovery/i.test( provider?.key || '' ) ) {
+		return 'Enter one of your backup codes.';
+	}
+	return 'Enter the code from your authenticator app.';
+}
+
+/**
+ * Inline second step of a login paused by two-factor authentication.
+ *
+ * Posts { provider, code } or { provider, resend: true } to the login
+ * continuation route until the server returns a session or a terminal error.
+ *
+ * @param {Object}                    props
+ * @param {Object}                    props.challenge           challenge_required response from a login route.
+ * @param {string}                    props.deviceId            Device UUID used for the login.
+ * @param {string}                    props.continueUrl         extrachill/v1/auth/login/continue URL on the same site.
+ * @param {string}                    props.fallbackRedirectUrl Destination when the response carries none.
+ * @param {string}                    props.resetPasswordUrl    Password reset page.
+ * @param {(notice: ?Object) => void} props.onCancel            Return to the login form, with an optional notice.
+ * @param {(url: string) => void}     [props.navigate]          Leave the page once signed in.
+ */
+export function TwoFactorStep( {
+	challenge,
+	deviceId,
+	continueUrl,
+	fallbackRedirectUrl,
+	resetPasswordUrl,
+	onCancel,
+	navigate = ( url ) => window.location.assign( url ),
+} ) {
+	const providers = Array.isArray( challenge?.challenge?.providers ) ? challenge.challenge.providers : [];
+	const [ token, setToken ] = useState( challenge.continuation_token );
+	const [ providerKey, setProviderKey ] = useState( challenge?.challenge?.provider || providers[ 0 ]?.key || '' );
+	const [ code, setCode ] = useState( '' );
+	const [ busy, setBusy ] = useState( false );
+	const [ retryAfter, setRetryAfter ] = useState( 0 );
+	const [ notice, setNotice ] = useState(
+		challenge?.challenge?.status === 'code_sent' ? { type: 'info', message: 'We sent a code to your email.' } : null
+	);
+	const inputRef = useRef( null );
+
+	const provider = providers.find( ( item ) => item.key === providerKey ) || { key: providerKey };
+	const otherProviders = providers.filter( ( item ) => item.key !== providerKey );
+
+	useEffect( () => {
+		if ( inputRef.current ) {
+			inputRef.current.focus();
+		}
+	}, [ providerKey ] );
+
+	useEffect( () => {
+		if ( retryAfter <= 0 ) {
+			return undefined;
+		}
+		const timer = window.setTimeout( () => setRetryAfter( ( seconds ) => Math.max( 0, seconds - 1 ) ), 1000 );
+		return () => window.clearTimeout( timer );
+	}, [ retryAfter ] );
+
+	const send = async ( challengeResponse ) => {
+		setBusy( true );
+		setNotice( null );
+
+		try {
+			const response = await fetch( continueUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify( {
+					continuation_token: token,
+					device_id: deviceId,
+					challenge_response: challengeResponse,
+				} ),
+			} );
+			const data = await response.json();
+
+			if ( ! response.ok ) {
+				const errorCode = data?.code || '';
+				if ( TERMINAL_CHALLENGE_ERRORS.includes( errorCode ) ) {
+					if ( errorCode === 'two_factor_password_reset_required' ) {
+						const message = 'For your security, your password was reset after too many failed codes. Check your email to set a new one.';
+						onCancel( {
+							type: 'error',
+							message,
+							html: ` ${ message } <a href="${ resetPasswordUrl }">Reset your password</a>`,
+						} );
+						return;
+					}
+					onCancel( { type: 'error', message: 'Your sign-in timed out. Please log in again.' } );
+					return;
+				}
+
+				if ( errorCode === 'two_factor_too_fast' ) {
+					const seconds = Math.max( 1, parseInt( data?.data?.retry_after, 10 ) || 30 );
+					setRetryAfter( seconds );
+					setNotice( { type: 'error', message: 'Too many attempts. Wait a moment, then try again.' } );
+				} else if ( errorCode === 'two_factor_invalid' ) {
+					setNotice( { type: 'error', message: 'That code did not work. Check it and try again.' } );
+				} else {
+					setNotice( { type: 'error', message: data?.message || 'Verification failed. Please try again.' } );
+				}
+				setCode( '' );
+				setBusy( false );
+				return;
+			}
+
+			if ( data?.challenge_required ) {
+				setToken( data.continuation_token || token );
+				if ( data?.challenge?.status === 'code_sent' ) {
+					setNotice( { type: 'success', message: 'We sent a new code to your email.' } );
+				}
+				setBusy( false );
+				return;
+			}
+
+			navigate( data?.redirect_url || fallbackRedirectUrl );
+		} catch {
+			setNotice( { type: 'error', message: 'Verification failed. Please try again.' } );
+			setBusy( false );
+		}
+	};
+
+	const handleSubmit = ( event ) => {
+		event.preventDefault();
+		const trimmed = code.trim();
+		if ( ! trimmed ) {
+			setNotice( { type: 'error', message: 'Enter your verification code.' } );
+			return;
+		}
+		send( { provider: providerKey, code: trimmed } );
+	};
+
+	const switchProvider = ( next ) => {
+		setProviderKey( next.key );
+		setCode( '' );
+		setNotice( null );
+		if ( next.resend ) {
+			send( { provider: next.key, resend: true } );
+		}
+	};
+
+	const locked = busy || retryAfter > 0;
+
+	return (
+		<div className="login-two-factor">
+			<h3>Two-factor verification</h3>
+			{ notice && (
+				<div className={ `notice notice-${ notice.type }` } role={ notice.type === 'error' ? 'alert' : 'status' }>
+					<p>{ notice.message }</p>
+				</div>
+			) }
+			<form onSubmit={ handleSubmit }>
+				<label htmlFor="two_factor_code">{ providerPrompt( provider ) }</label>
+				<input
+					ref={ inputRef }
+					type="text"
+					name="two_factor_code"
+					id="two_factor_code"
+					className="input"
+					inputMode={ /backup|recovery/i.test( providerKey ) ? 'text' : 'numeric' }
+					autoComplete="one-time-code"
+					value={ code }
+					onChange={ ( event ) => setCode( event.target.value ) }
+					required
+				/>
+				<button type="submit" className="button-2 button-medium" disabled={ locked }>
+					{ retryAfter > 0 ? `Try again in ${ retryAfter }s` : 'Verify' }
+				</button>
+			</form>
+			<div className="login-two-factor-actions">
+				{ provider.resend && (
+					<button
+						type="button"
+						className="button-3 button-small"
+						disabled={ locked }
+						onClick={ () => send( { provider: providerKey, resend: true } ) }
+					>
+						Resend code
+					</button>
+				) }
+				{ otherProviders.map( ( item ) => (
+					<button
+						type="button"
+						key={ item.key }
+						className="button-3 button-small"
+						disabled={ busy }
+						onClick={ () => switchProvider( item ) }
+					>
+						{ `Use ${ item.label || item.key }` }
+					</button>
+				) ) }
+				<button type="button" className="button-3 button-small" disabled={ busy } onClick={ () => onCancel( null ) }>
+					Back to login
+				</button>
+			</div>
+		</div>
+	);
+}
+
+export function LoginPanel( { config, notice, setNotice, setChallenge = () => {} } ) {
 	const panelRef = useRef( null );
 
 	useEffect( () => {
@@ -257,7 +474,21 @@ export function LoginPanel( { config, notice, setNotice } ) {
 				throw new Error( data?.message || 'Login failed. Please try again.' );
 			}
 
-			// Two-Factor Authentication: redirect to the 2FA challenge page.
+			// Two-factor: ask for the code right here.
+			if ( data?.challenge_required ) {
+				if ( ! isTwoFactorChallenge( data ) ) {
+					throw new Error( 'This sign-in needs a step this page cannot complete. Please try again later.' );
+				}
+				restore();
+				setChallenge( {
+					challenge: data,
+					deviceId,
+					continueUrl: new URL( 'extrachill/v1/auth/login/continue', utils.getRestRoot() ).toString(),
+				} );
+				return;
+			}
+
+			// Fallback while in-app 2FA is unavailable: the 2FA challenge page.
 			if ( data?.requires_2fa && data?.redirect_url ) {
 				window.location.assign( data.redirect_url );
 				return;
@@ -492,13 +723,31 @@ function waitForGoogleIdentity( timeoutMs = 5000 ) {
 	} );
 }
 
-export function LoginRegisterApp( { config } ) {
+export function LoginRegisterApp( { config, navigate } ) {
 	const [ activeTab, setActiveTab ] = useState( 'login' );
 	const [ loginNotice, setLoginNotice ] = useState( null );
 	const [ registerNotice, setRegisterNotice ] = useState(
 		config.initialNotice ? { type: config.initialNotice.type, message: config.initialNotice.message } : null
 	);
 	const [ googleReady, setGoogleReady ] = useState( () => isGoogleIdentityReady() );
+	const [ challenge, setChallenge ] = useState( null );
+
+	// Google sign-in runs outside React (google-signin.js) and hands a 2FA
+	// challenge over with this event, from either tab.
+	useEffect( () => {
+		const onChallenge = ( event ) => {
+			const detail = event.detail || {};
+			if ( ! isTwoFactorChallenge( detail.challenge ) ) {
+				return;
+			}
+			event.preventDefault();
+			setLoginNotice( null );
+			setChallenge( detail );
+		};
+
+		window.addEventListener( AUTH_CHALLENGE_EVENT, onChallenge );
+		return () => window.removeEventListener( AUTH_CHALLENGE_EVENT, onChallenge );
+	}, [] );
 
 	useEffect( () => {
 		if ( ! config.googleOAuthEnabled ) {
@@ -551,6 +800,32 @@ export function LoginRegisterApp( { config } ) {
 		return <LoggedInCard config={ config } />;
 	}
 
+	if ( challenge ) {
+		return (
+			<BlockShell>
+				<BlockShellInner maxWidth="narrow">
+					<Panel>
+						<div className="login-register-form">
+							<TwoFactorStep
+								challenge={ challenge.challenge }
+								deviceId={ challenge.deviceId }
+								continueUrl={ challenge.continueUrl }
+								fallbackRedirectUrl={ config.loginRedirectUrl }
+								resetPasswordUrl={ config.resetPasswordUrl }
+								navigate={ navigate }
+								onCancel={ ( cancelNotice ) => {
+									setChallenge( null );
+									setLoginNotice( cancelNotice || null );
+									setActiveTab( 'login' );
+								} }
+							/>
+						</div>
+					</Panel>
+				</BlockShellInner>
+			</BlockShell>
+		);
+	}
+
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
@@ -560,7 +835,7 @@ export function LoginRegisterApp( { config } ) {
 					onChange={ setActiveTab }
 					renderPanel={ ( id ) =>
 						id === 'login' ? (
-							<LoginPanel config={ config } notice={ loginNotice } setNotice={ setLoginNotice } />
+							<LoginPanel config={ config } notice={ loginNotice } setNotice={ setLoginNotice } setChallenge={ setChallenge } />
 						) : (
 							<RegisterPanel config={ config } notice={ registerNotice } setNotice={ setRegisterNotice } />
 						)

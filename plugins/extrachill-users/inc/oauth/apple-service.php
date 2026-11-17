@@ -165,7 +165,9 @@ function ec_get_user_by_apple_id( $apple_id ) {
  * @param string $identity_token Apple identity JWT.
  * @param string $device_id      UUIDv4 device identifier.
  * @param array  $options        Nonce, profile, device and registration metadata.
- * @return array|WP_Error Standard native token response.
+ * @return array|WP_Error Standard native token response, or a challenge from
+ *                        wp-native-auth's policy loop (for example 2FA) to finish
+ *                        through extrachill/v1/auth/login/continue.
  */
 function ec_apple_login_with_tokens( string $identity_token, string $device_id, array $options ) {
 	if ( empty( $device_id ) || ! extrachill_users_is_uuid_v4( $device_id ) ) {
