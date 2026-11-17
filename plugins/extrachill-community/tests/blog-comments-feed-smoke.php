@@ -80,11 +80,11 @@ function ec_get_blog_id() {
 
 $GLOBALS['_test_current_user'] = 42;
 $html                          = extrachill_community_render_blog_comments_feed( 0, 'https://community.extrachill.com/blog-comments' );
-check( 'logged-in bare feed queries the current user\'s comments', str_contains( $html, 'Main site not configured.' ) );
+check( 'logged-in bare feed queries the current user\'s comments', str_contains( $html, 'Comment sites not configured.' ) );
 
 $GLOBALS['_test_current_user'] = 0;
 $html                          = extrachill_community_render_blog_comments_feed( '510' );
-check( 'explicit user_id queries that user\'s comments when logged out', str_contains( $html, 'Main site not configured.' ) );
+check( 'explicit user_id queries that user\'s comments when logged out', str_contains( $html, 'Comment sites not configured.' ) );
 
 if ( $failures > 0 ) {
 	echo "\n$failures failure(s)\n";

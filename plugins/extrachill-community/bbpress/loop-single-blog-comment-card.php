@@ -1,8 +1,9 @@
 <?php
 /**
- * Blog Comment Card - Main Site Comments Display
+ * Blog Comment Card - Network Comments Display
  *
- * Displays comments from extrachill.com main site in card format.
+ * Displays a member's comment from a comment activity site (main articles,
+ * events) in card format.
  * Reuses .bbp-reply-card structure to inherit base styling.
  *
  * @package ExtraChillCommunity
@@ -27,8 +28,10 @@ $author_name     = $comment_data['author_name'];
 $author_avatar   = $comment_data['author_avatar'];
 $upvote_count    = isset( $comment_data['upvote_count'] ) ? $comment_data['upvote_count'] : 0;
 
-// Format comment permalink
-$comment_permalink = esc_url( $post_permalink . '#comment-' . $comment_id );
+// Link to the comment anchor on its post or event.
+$comment_permalink = ! empty( $comment_data['comment_permalink'] )
+	? $comment_data['comment_permalink']
+	: $post_permalink . '#comment-' . $comment_id;
 
 // Get user info from community site
 $user_info   = get_userdata( $author_id );
@@ -123,7 +126,7 @@ $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
 
 			<div class="bbp-reply-meta-right">
 				<a href="<?php echo esc_url( $comment_permalink ); ?>" class="blog-comment-main-site-link" target="_blank">
-					View on Main Site &rarr;
+					<?php esc_html_e( 'View comment', 'extra-chill-community' ); ?> &rarr;
 				</a>
 			</div>
 		</div><!-- .bbp-reply-content-area -->
