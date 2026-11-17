@@ -6,7 +6,7 @@ Booking inquiries are open to a small number of venues right now. To take inquir
 
 To get started:
 
-1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings/).
+1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings).
 2. Pick your venue.
 3. Open the **Booking Form** tab or the **Booking Rules** tab.
 

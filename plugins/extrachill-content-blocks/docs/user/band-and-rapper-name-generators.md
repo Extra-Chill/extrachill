@@ -6,7 +6,7 @@ You don't need an account or an email address to use either generator.
 
 ## Band Name Generator
 
-Use the [Extra Chill Band Name Generator](https://extrachill.com/band-name-generator) to come up with band name ideas in the style of your favorite genre.
+Use the [Extra Chill Band Name Generator](https://extrachill.com/band-name-generator/) to come up with band name ideas in the style of your favorite genre.
 
 1. Type your name or any word in **Your Name/Word**. It always goes at the start of your band name.
 2. Pick a **Genre**: Rock, Country, Metal, Indie, Punk, Jam, Electronic, or Random. Random mixes words from every genre, plus a few wild cards.
@@ -19,7 +19,7 @@ Your band name appears below the form. Press the button again for a new one, or 
 
 ## Rapper Name Generator
 
-Use the [Extra Chill Rapper Name Generator](https://extrachill.com/rap-name-generator) to find a stage name that fits your style.
+Use the [Extra Chill Rapper Name Generator](https://extrachill.com/rap-name-generator/) to find a stage name that fits your style.
 
 1. Type your real name, nickname, or any word in **Your Name**. It's worked into your rapper name.
 2. Pick a **Gender**: Non-binary, Male, or Female. This changes the titles you might get, like "King," "Queen," or "MC."

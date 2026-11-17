@@ -35,10 +35,10 @@ Read [Concert History Privacy](https://docs.extrachill.com/events-calendar/conce
 ## Next Steps
 
 - [Marking Shows](https://docs.extrachill.com/events-calendar/marking-shows/)
-- [Importing Your Concert History](https://docs.extrachill.com/events-calendar/importing-concert-history/)
-- [Exploring Your Concert History](https://docs.extrachill.com/events-calendar/exploring-concert-history/)
-- [Show Reminders and Milestones](https://docs.extrachill.com/events-calendar/show-reminders-and-milestones/)
+- [Importing Your Concert History](https://docs.extrachill.com/events-calendar/importing-concert-history)
+- [Exploring Your Concert History](https://docs.extrachill.com/events-calendar/exploring-concert-history)
+- [Show Reminders and Milestones](https://docs.extrachill.com/events-calendar/show-reminders-and-milestones)
 
 ## Support
 
-If a show is missing or something does not look right, read [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows/) or visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.
+If a show is missing or something does not look right, read [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows) or visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

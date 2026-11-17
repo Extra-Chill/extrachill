@@ -30,4 +30,4 @@ Use **Music Discussion** for general music posts. Use **Live Shows & Scenes** wh
 
 Your public profile may show your picture, bio, links, activity, and rank. Only add details and links you are comfortable sharing. See [Set up your profile](setting-up-your-user-profile.md).
 
-For help from community members, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us).
+For help from community members, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us/).

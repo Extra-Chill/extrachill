@@ -70,7 +70,7 @@ The **Artist Platform** tab is where musicians and music industry folks ask for 
 
 ## Getting a copy of your data
 
-There is no download button for your account data yet. To ask for a copy, send a request through the [contact form](https://extrachill.com/contact-us) from the email address on your account. The Extra Chill team will follow up with you.
+There is no download button for your account data yet. To ask for a copy, send a request through the [contact form](https://extrachill.com/contact-us/) from the email address on your account. The Extra Chill team will follow up with you.
 
 ## Deleting your account
 

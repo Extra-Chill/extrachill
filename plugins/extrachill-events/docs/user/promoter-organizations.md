@@ -17,7 +17,7 @@ To add someone to your team or remove them, [contact Extra Chill](https://extrac
 
 ## Open Your Promoter Workspace
 
-1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings/).
+1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings).
 2. Under **Active identity**, pick your organization from **Promoter organizations**.
 
 Switching identities only changes what you're looking at. It doesn't change what you're allowed to do.

@@ -4,7 +4,7 @@ Have a question, an idea, or a problem? The contact form sends your message stra
 
 ## Send a message
 
-1. Open the [contact form](https://extrachill.com/contact-us).
+1. Open the [contact form](https://extrachill.com/contact-us/).
 2. Enter your **Name** and **Email**. Use the email address on your Extra Chill account if your message is about your account.
 3. Pick a **Subject** that fits best: **General Inquiry**, **Partnership/Collaboration**, **Promoter or Collective Link Page**, **Venue Link Page**, **Shop/Store Support**, **Technical Issue**, or **Other**.
 4. Write your **Message**. Include links, order details, or the page where you saw a problem so the team can help faster.
