@@ -8,6 +8,15 @@ const path = require('path');
 
 module.exports = {
 	...defaultConfig,
+	resolve: {
+		...defaultConfig.resolve,
+		alias: {
+			...( defaultConfig.resolve?.alias || {} ),
+			// Compile the shared design-system components from monorepo source so
+			// builds never depend on a pre-built packages/components/dist.
+			'@extrachill/components$': path.resolve( __dirname, '../../packages/components/src/index.tsx' ),
+		},
+	},
 	plugins: [
 		...defaultConfig.plugins,
 		new CopyWebpackPlugin({
