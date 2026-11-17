@@ -40,7 +40,7 @@ function extrachill_analytics_register_php_error_summary_ability() {
 						'description' => __( 'Number of days to look back. 0 for all available history.', 'extrachill-analytics' ),
 						'default'     => 7,
 					),
-					'seconds' => array(
+					'seconds'  => array(
 						'type'        => 'integer',
 						'minimum'     => 0,
 						'description' => __( 'Look-back seconds, overriding days. 0 for all history. Live entries use exact timestamps; daily persisted rows use last_seen and cannot be split.', 'extrachill-analytics' ),
@@ -296,7 +296,7 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	// Normalize to the requested duration, including fractional days. With no
 	// bound, use the number of UTC days represented by the available data.
 	$days_covered = count( $covered_days );
-	$denominator = $seconds > 0 ? $seconds / DAY_IN_SECONDS : max( 1, $days_covered );
+	$denominator  = $seconds > 0 ? $seconds / DAY_IN_SECONDS : max( 1, $days_covered );
 
 	// Build, sort, and compute per-day rates.
 	$rows = array_values( $agg );
