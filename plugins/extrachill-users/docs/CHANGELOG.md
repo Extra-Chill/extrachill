@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.74.0] - 2026-11-17
+
+### Added
+- all activity consumers show forum, blog and event comments
+
+### Changed
+- single activity feed with comment source
+
 ## [0.73.0] - 2026-11-17
 
 ### Added
