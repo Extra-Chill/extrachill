@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_admin_link_artist_relationship( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_admin_link_artist_relationship( array $input ) {
 	if ( ! extrachill_artist_platform_ability_admin_permission() ) {
 		return new WP_Error(
 			'admin_access_denied',

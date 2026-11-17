@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_admin_list_artist_relationships( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_admin_list_artist_relationships( array $input ) {
 	$view   = isset( $input['view'] ) ? sanitize_text_field( $input['view'] ) : 'artists';
 	$search = isset( $input['search'] ) ? sanitize_text_field( $input['search'] ) : '';
 

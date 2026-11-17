@@ -2,8 +2,7 @@
 /** Artist Platform embedding adapter for the portable Link Page editor. */
 defined( 'ABSPATH' ) || exit;
 
-// @phpstan-ignore phpstan.arguments.count (cross-plugin filter signature; argument count is correct for the wired callback.)
-add_filter( 'ec_link_page_editor_configuration', 'extrachill_artist_link_page_editor_configuration', 10, 3 );
+add_filter( 'ec_link_page_editor_configuration', 'extrachill_artist_link_page_editor_configuration', 10, 2 );
 
 /**
  * URL of the managed QR code panel (team-owned, editable QR codes).
@@ -34,7 +33,6 @@ function extrachill_artist_link_page_editor_configuration( $configuration, $attr
 	$identities        = array();
 	$requested_page_id = is_array( $attributes ) ? absint( $attributes['link_page_id'] ?? 0 ) : 0;
 	$requested_artist  = 0;
-	// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	foreach ( ec_get_artists_for_user( get_current_user_id(), true ) as $artist_id ) {
 		$post         = get_post( $artist_id );
 		$link_page_id = function_exists( 'ec_get_link_page_for_artist' ) ? ec_get_link_page_for_artist( $artist_id ) : 0;

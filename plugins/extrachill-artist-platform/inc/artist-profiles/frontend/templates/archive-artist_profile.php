@@ -14,7 +14,11 @@ get_header();
 
 <?php do_action( 'extrachill_before_body_content' ); ?>
 
-<?php extrachill_breadcrumbs(); ?>
+<?php
+if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+	extrachill_breadcrumbs();
+}
+?>
 
 <div class="ec-edge-gutter">
 	<header class="page-header">

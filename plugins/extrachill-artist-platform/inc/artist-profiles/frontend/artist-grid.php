@@ -28,14 +28,14 @@ function ec_get_artist_profile_last_activity_timestamp( $artist_profile_id ) {
 		$profile_modified_gmt = get_post_time( 'U', true, $artist_profile_id );
 	}
 
-	$latest_activity_timestamp = ( $profile_modified_gmt ? $profile_modified_gmt : 0 );
+	$latest_activity_timestamp = ( $profile_modified_gmt ? (int) $profile_modified_gmt : 0 );
 
 	// Check link page activity
 	$link_page_id = apply_filters( 'ec_get_link_page_id', $artist_profile_id );
 	if ( $link_page_id ) {
 		$link_page_modified = get_post_modified_time( 'U', true, $link_page_id );
 		if ( $link_page_modified && $link_page_modified > $latest_activity_timestamp ) {
-			$latest_activity_timestamp = $link_page_modified;
+			$latest_activity_timestamp = (int) $link_page_modified;
 		}
 	}
 
@@ -139,12 +139,14 @@ function ec_display_artist_cards_grid( $limit = 24, $exclude_user_artists = fals
 
 	if ( $show_pagination && $total_pages > 1 ) {
 		$pagination_query                               = new WP_Query();
-		$pagination_query->max_num_pages                = $total_pages;
+		$pagination_query->max_num_pages                = (int) $total_pages;
 		$pagination_query->found_posts                  = $total_artists;
 		$pagination_query->query_vars['posts_per_page'] = $limit;
 
 		echo '<div class="artist-grid-pagination">';
-		extrachill_pagination( $pagination_query, 'artist-archive', 'artist' );
+		if ( function_exists( 'extrachill_pagination' ) ) {
+			extrachill_pagination( $pagination_query, 'artist-archive', 'artist' );
+		}
 		echo '</div>';
 	}
 
