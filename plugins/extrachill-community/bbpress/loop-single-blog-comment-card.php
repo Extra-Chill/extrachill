@@ -33,9 +33,10 @@ $comment_permalink = ! empty( $comment_data['comment_permalink'] )
 	? $comment_data['comment_permalink']
 	: $post_permalink . '#comment-' . $comment_id;
 
-// Get user info from community site
-$user_info   = get_userdata( $author_id );
+// Get user info from community site. Guest commenters have no profile.
+$user_info   = $author_id ? get_userdata( $author_id ) : false;
 $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
+$author_url  = $user_info ? bbp_get_user_profile_url( $author_id ) : '';
 ?>
 
 <div id="blog-comment-<?php echo esc_attr( $comment_id ); ?>"
@@ -56,19 +57,27 @@ $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
 				<div class="author-header-column">
 					<div class="author-details-header">
 						<div class="bbp-author-avatar">
-							<a href="<?php echo esc_url( bbp_get_user_profile_url( $author_id ) ); ?>" title="View profile">
+							<?php if ( $author_url ) : ?>
+							<a href="<?php echo esc_url( $author_url ); ?>" title="View profile">
+							<?php endif; ?>
 								<img src="<?php echo esc_url( $author_avatar ); ?>"
 									alt="<?php echo esc_attr( $author_name ); ?>"
 									class="avatar"
 									width="80"
 									height="80">
+							<?php if ( $author_url ) : ?>
 							</a>
+							<?php endif; ?>
 						</div>
 
 						<div class="author-name-badges">
-							<a href="<?php echo esc_url( bbp_get_user_profile_url( $author_id ) ); ?>" class="bbp-author-name">
+							<?php if ( $author_url ) : ?>
+							<a href="<?php echo esc_url( $author_url ); ?>" class="bbp-author-name">
 								<?php echo esc_html( $author_name ); ?>
 							</a>
+							<?php else : ?>
+							<span class="bbp-author-name"><?php echo esc_html( $author_name ); ?></span>
+							<?php endif; ?>
 
 							<div class="forum-badges">
 								<?php
@@ -86,8 +95,8 @@ $author_role = $user_info ? bbp_get_user_display_role( $author_id ) : '';
 
 					<div class="header-rankpoints">
 						<?php
-						if ( function_exists( 'extrachill_add_rank_and_points_to_reply' ) ) {
-							extrachill_add_rank_and_points_to_reply();
+						if ( $user_info && function_exists( 'extrachill_add_rank_and_points_to_reply' ) ) {
+							extrachill_add_rank_and_points_to_reply( $author_id );
 						}
 						?>
 					</div>

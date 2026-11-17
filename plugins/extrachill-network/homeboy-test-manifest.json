@@ -127,7 +127,7 @@
     "tests/commerce-credential-smoke.php": {
       "environment": "standalone-php"
     },
-    "tests/community-activity-comments-smoke.php": {
+    "tests/community-activity-feed-smoke.php": {
       "environment": "standalone-php"
     }
   }

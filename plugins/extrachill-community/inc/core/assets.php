@@ -157,7 +157,8 @@ function modular_bbpress_styles() {
 add_action('wp_enqueue_scripts', 'modular_bbpress_styles');
 
 function enqueue_blog_comments_feed_styles() {
-	if ( is_page_template('page-templates/main-blog-comments-feed.php') ) {
+	// /recent renders network comment items through the same blog comment card.
+	if ( is_page_template('page-templates/main-blog-comments-feed.php') || is_page('recent') ) {
 		// Load replies-loop.css for base card styling
 		wp_enqueue_style(
 			'replies-loop',

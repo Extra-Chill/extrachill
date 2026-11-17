@@ -23,9 +23,12 @@
  * never call switch_to_blog().
  *
  * The same site list feeds the network-wide recent comment activity reader
- * (ec_users_get_recent_comment_activity()), which the community activity
- * widget and the `extrachill/community-recent-public-activity` ability merge
- * chronologically with forum topics and replies.
+ * (ec_users_get_recent_comment_activity()). It is registered as the
+ * `comments` source on the community activity feed (`ec_activity_feed_sources`,
+ * owned by extrachill_build_activity_feed() in extrachill-community), which
+ * merges it chronologically with forum topics and replies for /recent, the
+ * network sidebar widget, and the `extrachill/community-recent-public-activity`
+ * ability.
  *
  * @package ExtraChill\Users
  */
@@ -55,7 +58,17 @@ const EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP = 'ec_comment_activity';
 /**
  * Object-cache key for the network recent comment activity list.
  */
-const EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_KEY = 'recent_v1';
+const EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_KEY = 'recent_v2';
+
+/**
+ * Object-cache key for the unscoped network comment activity count.
+ */
+const EC_USERS_RECENT_COMMENT_ACTIVITY_COUNT_CACHE_KEY = 'recent_count_v1';
+
+/**
+ * Most items one uncached recent comment activity read returns (feed depth).
+ */
+const EC_USERS_COMMENT_ACTIVITY_QUERY_MAX = 1000;
 
 /**
  * Backstop TTL for the recent comment activity list. Status changes bust it.
@@ -190,21 +203,33 @@ function ec_users_get_user_comment_activity_timestamps( $user_id ) {
  *
  * Reads every comment activity site, keeps approved discussion comments on
  * published, non-password-protected posts, and merges them chronologically.
- * The list is cached network-wide (global object-cache group) and busted
- * whenever a comment enters or leaves the approved state. It never ranks:
- * order is purely by comment date.
+ * The unscoped head of the list (up to EC_USERS_RECENT_COMMENT_ACTIVITY_MAX
+ * items) is cached network-wide (global object-cache group) and busted
+ * whenever a comment enters or leaves the approved state. Scoped reads (one
+ * author, excluded authors) and deeper reads (pagination) query directly. It
+ * never ranks: order is purely by comment date.
  *
  * Each item:
  *   - blog_id, comment_id, post_id (int)
  *   - post_type, post_title, post_url, comment_url (string)
  *   - user_id (int, 0 for guests), author_name (string)
- *   - date_gmt (string, MySQL UTC)
+ *   - date_gmt (string, MySQL UTC), content (string, raw comment text)
  *
- * @param int $limit Items to return (1-EC_USERS_RECENT_COMMENT_ACTIVITY_MAX).
+ * @param int   $limit Items to return (1-EC_USERS_COMMENT_ACTIVITY_QUERY_MAX).
+ * @param array $args {
+ *     Optional. Scope.
+ *
+ *     @type int   $user_id          Only this member's comments. Default 0 (all).
+ *     @type int[] $exclude_user_ids Drop these members' comments. Default none.
+ * }
  * @return array<int, array<string, mixed>>
  */
-function ec_users_get_recent_comment_activity( $limit = 10 ) {
-	$limit = max( 1, min( EC_USERS_RECENT_COMMENT_ACTIVITY_MAX, (int) $limit ) );
+function ec_users_get_recent_comment_activity( $limit = 10, $args = array() ) {
+	$limit = max( 1, min( EC_USERS_COMMENT_ACTIVITY_QUERY_MAX, (int) $limit ) );
+
+	if ( ec_users_is_scoped_comment_activity_query( ec_users_recent_comment_activity_query_args( $args ) ) || $limit > EC_USERS_RECENT_COMMENT_ACTIVITY_MAX ) {
+		return ec_users_query_recent_comment_activity( $limit, $args );
+	}
 
 	$items = wp_cache_get( EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_KEY, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP );
 	if ( ! is_array( $items ) ) {
@@ -216,40 +241,88 @@ function ec_users_get_recent_comment_activity( $limit = 10 ) {
 }
 
 /**
+ * Build the get_comments() arguments shared by the recent activity readers.
+ *
+ * @param array $args Scope, see ec_users_get_recent_comment_activity().
+ * @return array
+ */
+function ec_users_recent_comment_activity_query_args( $args ) {
+	$query   = array(
+		'status'      => 'approve',
+		'type'        => 'comment',
+		'post_status' => 'publish',
+	);
+	$user_id = (int) ( $args['user_id'] ?? 0 );
+	$exclude = array_values( array_filter( array_map( 'intval', (array) ( $args['exclude_user_ids'] ?? array() ) ) ) );
+
+	if ( $user_id > 0 ) {
+		$query['user_id'] = $user_id;
+	}
+	if ( $exclude ) {
+		$query['author__not_in'] = $exclude;
+	}
+
+	return $query;
+}
+
+/**
+ * Whether recent comment activity query arguments carry an author scope.
+ *
+ * Only unscoped reads share the network cache.
+ *
+ * @param array $query Arguments from ec_users_recent_comment_activity_query_args().
+ * @return bool
+ */
+function ec_users_is_scoped_comment_activity_query( array $query ) {
+	return isset( $query['user_id'] ) || isset( $query['author__not_in'] );
+}
+
+/**
+ * Run get_comments() on one comment activity site.
+ *
+ * @param int   $blog_id Site to read.
+ * @param array $query   get_comments() arguments.
+ * @return array|int Comments, or a count when `count` is set.
+ */
+function ec_users_comment_activity_query_blog( $blog_id, array $query ) {
+	$switched = get_current_blog_id() !== $blog_id;
+	if ( $switched ) {
+		switch_to_blog( $blog_id );
+	}
+
+	try {
+		return get_comments( $query );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
  * Query the recent comment activity list without the cache.
  *
+ * Fetches up to `$limit` comments from each activity site, merges them, and
+ * keeps the newest `$limit`.
+ *
+ * @param int   $limit Items to return. Default EC_USERS_RECENT_COMMENT_ACTIVITY_MAX.
+ * @param array $args  Scope, see ec_users_get_recent_comment_activity().
  * @return array<int, array<string, mixed>>
  */
-function ec_users_query_recent_comment_activity() {
+function ec_users_query_recent_comment_activity( $limit = EC_USERS_RECENT_COMMENT_ACTIVITY_MAX, $args = array() ) {
+	$limit = max( 1, min( EC_USERS_COMMENT_ACTIVITY_QUERY_MAX, (int) $limit ) );
+	$query = ec_users_recent_comment_activity_query_args( $args );
 	$items = array();
 
+	$query['number']  = $limit;
+	$query['orderby'] = 'comment_date_gmt';
+	$query['order']   = 'DESC';
+
 	foreach ( ec_users_get_comment_activity_blog_ids() as $blog_id ) {
-		$switched = get_current_blog_id() !== $blog_id;
-		if ( $switched ) {
-			switch_to_blog( $blog_id );
-		}
-
-		try {
-			$comments = get_comments(
-				array(
-					'status'      => 'approve',
-					'type'        => 'comment',
-					'post_status' => 'publish',
-					'number'      => EC_USERS_RECENT_COMMENT_ACTIVITY_MAX,
-					'orderby'     => 'comment_date_gmt',
-					'order'       => 'DESC',
-				)
-			);
-
-			foreach ( (array) $comments as $comment ) {
-				$item = ec_users_prepare_recent_comment_activity_item( $comment, $blog_id );
-				if ( null !== $item ) {
-					$items[] = $item;
-				}
-			}
-		} finally {
-			if ( $switched ) {
-				restore_current_blog();
+		foreach ( (array) ec_users_comment_activity_query_blog( $blog_id, $query ) as $comment ) {
+			$item = ec_users_prepare_recent_comment_activity_item( $comment, $blog_id );
+			if ( null !== $item ) {
+				$items[] = $item;
 			}
 		}
 	}
@@ -262,7 +335,42 @@ function ec_users_query_recent_comment_activity() {
 		}
 	);
 
-	return array_slice( $items, 0, EC_USERS_RECENT_COMMENT_ACTIVITY_MAX );
+	return array_slice( $items, 0, $limit );
+}
+
+/**
+ * Count the comments the recent activity readers can return.
+ *
+ * Counts approved discussion comments on published posts across the activity
+ * sites. Password-protected posts are only filtered when items are shaped, so
+ * the count can run slightly high on sites with protected posts; it sizes
+ * pagination, nothing else. The unscoped count is cached alongside the list.
+ *
+ * @param array $args Scope, see ec_users_get_recent_comment_activity().
+ * @return int
+ */
+function ec_users_count_recent_comment_activity( $args = array() ) {
+	$query    = ec_users_recent_comment_activity_query_args( $args );
+	$unscoped = ! ec_users_is_scoped_comment_activity_query( $query );
+
+	if ( $unscoped ) {
+		$cached = wp_cache_get( EC_USERS_RECENT_COMMENT_ACTIVITY_COUNT_CACHE_KEY, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP );
+		if ( false !== $cached ) {
+			return (int) $cached;
+		}
+	}
+
+	$query['count'] = true;
+	$total          = 0;
+	foreach ( ec_users_get_comment_activity_blog_ids() as $blog_id ) {
+		$total += (int) ec_users_comment_activity_query_blog( $blog_id, $query );
+	}
+
+	if ( $unscoped ) {
+		wp_cache_set( EC_USERS_RECENT_COMMENT_ACTIVITY_COUNT_CACHE_KEY, $total, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_TTL );
+	}
+
+	return $total;
 }
 
 /**
@@ -306,6 +414,7 @@ function ec_users_prepare_recent_comment_activity_item( $comment, $blog_id ) {
 		'user_id'     => $user ? $user_id : 0,
 		'author_name' => $author_name,
 		'date_gmt'    => (string) $comment->comment_date_gmt,
+		'content'     => (string) $comment->comment_content,
 	);
 }
 
@@ -314,6 +423,75 @@ function ec_users_prepare_recent_comment_activity_item( $comment, $blog_id ) {
  */
 function ec_users_flush_recent_comment_activity_cache() {
 	wp_cache_delete( EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_KEY, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP );
+	wp_cache_delete( EC_USERS_RECENT_COMMENT_ACTIVITY_COUNT_CACHE_KEY, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP );
+}
+
+/**
+ * Register network comments as a source on the community activity feed.
+ *
+ * The feed builder (extrachill_build_activity_feed() in extrachill-community)
+ * owns the `ec_activity_feed_sources` registry, the chronological merge, and
+ * pagination. This source only answers "the newest N comments, and how many
+ * exist" for the requested scope, through the reader above.
+ *
+ * @param array $sources Source-id => source definition.
+ * @return array
+ */
+function ec_users_comment_activity_feed_source( $sources ) {
+	$sources['comments'] = array(
+		'types' => array( 'comment' ),
+		'query' => 'ec_users_query_comment_activity_feed_source',
+	);
+
+	return $sources;
+}
+add_filter( 'ec_activity_feed_sources', 'ec_users_comment_activity_feed_source', 10 );
+
+/**
+ * Answer an activity feed source query with recent network comments.
+ *
+ * @param array $query {
+ *     Feed source query from the builder.
+ *
+ *     @type int    $limit           Newest items wanted.
+ *     @type int    $author          Only this member's comments (0 = all).
+ *     @type int[]  $exclude_authors Members to drop (viewer blocks).
+ *     @type string $artist          Artist scope. Comments carry no artist, so
+ *                                   an artist-scoped query returns nothing.
+ * }
+ * @return array{items:array[],total:int}
+ */
+function ec_users_query_comment_activity_feed_source( array $query ) {
+	if ( '' !== (string) ( $query['artist'] ?? '' ) ) {
+		return array(
+			'items' => array(),
+			'total' => 0,
+		);
+	}
+
+	$scope = array(
+		'user_id'          => (int) ( $query['author'] ?? 0 ),
+		'exclude_user_ids' => (array) ( $query['exclude_authors'] ?? array() ),
+	);
+
+	$items = array();
+	foreach ( ec_users_get_recent_comment_activity( (int) ( $query['limit'] ?? 10 ), $scope ) as $comment ) {
+		$timestamp = strtotime( $comment['date_gmt'] . ' UTC' );
+		if ( false === $timestamp ) {
+			continue;
+		}
+		$items[] = array(
+			'type'      => 'comment',
+			'timestamp' => $timestamp,
+			'author_id' => (int) $comment['user_id'],
+			'comment'   => $comment,
+		);
+	}
+
+	return array(
+		'items' => $items,
+		'total' => ec_users_count_recent_comment_activity( $scope ),
+	);
 }
 
 /**

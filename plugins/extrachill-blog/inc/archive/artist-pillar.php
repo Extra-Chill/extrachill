@@ -211,6 +211,9 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 /**
  * Gather Community-owned recent artist activity.
  *
+ * Reads the community activity feed narrowed to forum item types; comments
+ * carry no artist relationships, so the artist page stays forum-only.
+ *
  * @param WP_Term $term Artist term.
  * @return array[] Activity items.
  */
@@ -219,8 +222,9 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 		'community',
 		'extrachill/community-recent-public-activity',
 		array(
-			'artist_slug' => (string) $term->slug,
-			'limit'       => 4,
+			'artist_slug'    => (string) $term->slug,
+			'limit'          => 4,
+			'activity_types' => array( 'discussion', 'reply' ),
 		)
 	);
 
@@ -264,7 +268,8 @@ function extrachill_blog_is_community_activity_item( $item ) {
 		&& false !== strtotime( $item['timestamp'] )
 		&& in_array( $item['activity_type'], array( 'discussion', 'reply' ), true )
 		&& is_array( $item['actor'] )
-		&& array( 'display_name', 'profile_url' ) === array_keys( $item['actor'] )
+		&& array( 'user_id', 'display_name', 'profile_url' ) === array_keys( $item['actor'] )
+		&& is_int( $item['actor']['user_id'] )
 		&& is_string( $item['actor']['display_name'] )
 		&& ( null === $item['actor']['profile_url'] || ( is_string( $item['actor']['profile_url'] ) && false !== filter_var( $item['actor']['profile_url'], FILTER_VALIDATE_URL ) ) )
 		&& is_array( $item['relationships'] )

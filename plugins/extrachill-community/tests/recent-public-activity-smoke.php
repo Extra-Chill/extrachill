@@ -1,5 +1,11 @@
 <?php
-/** Focused coverage for the bounded recent public activity owner contract. */
+/**
+ * Focused coverage for the bounded recent public activity owner contract.
+ *
+ * The ability is a projection of the one activity feed
+ * (extrachill_build_activity_feed()); comment items come from the comment
+ * source registered on `ec_activity_feed_sources`.
+ */
 
 $standalone = ! defined( 'ABSPATH' );
 if ( $standalone ) {
@@ -20,10 +26,12 @@ if ( ! class_exists( 'WP_Post' ) ) {
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public $posts;
+		public $found_posts;
 
 		public function __construct( $args ) {
 			$GLOBALS['_recent_activity_query_args'] = $args;
-			$this->posts                            = $GLOBALS['_recent_activity_query_posts'];
+			$this->posts                            = array_slice( $GLOBALS['_recent_activity_query_posts'], 0, $args['posts_per_page'] );
+			$this->found_posts                      = count( $GLOBALS['_recent_activity_query_posts'] );
 		}
 	}
 }
@@ -38,7 +46,20 @@ if ( ! function_exists( 'add_action' ) ) {
 	function add_action() {}
 }
 if ( ! function_exists( 'add_filter' ) ) {
-	function add_filter() {}
+	$GLOBALS['_recent_activity_filters'] = array();
+	function add_filter( $hook, $callback, $priority = 10 ) {
+		$GLOBALS['_recent_activity_filters'][ $hook ][ $priority ][] = $callback;
+	}
+	function apply_filters( $hook, $value ) {
+		$callbacks = $GLOBALS['_recent_activity_filters'][ $hook ] ?? array();
+		ksort( $callbacks );
+		foreach ( $callbacks as $priority_callbacks ) {
+			foreach ( $priority_callbacks as $callback ) {
+				$value = $callback( $value );
+			}
+		}
+		return $value;
+	}
 }
 $GLOBALS['_recent_activity_viewer'] = 0;
 if ( ! function_exists( 'get_current_user_id' ) ) {
@@ -64,6 +85,7 @@ if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
 	function bbp_get_forum_post_type() { return 'forum'; }
 	function bbp_get_public_status_id() { return 'publish'; }
 	function bbp_get_closed_status_id() { return 'closed'; }
+	function bbp_get_reply_forum_id( $id ) { return 10; }
 	function bbp_get_reply_topic_id( $id ) { return (int) ( $GLOBALS['_recent_activity_posts'][ $id ]->topic_id ?? 0 ); }
 	function bbp_get_topic_forum_id( $id ) { return (int) ( $GLOBALS['_recent_activity_posts'][ $id ]->post_parent ?? 0 ); }
 	function bbp_get_reply_url( $id ) { return 'https://community.example.test/reply/' . (int) $id; }
@@ -72,7 +94,11 @@ if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
 }
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $id ) { return $GLOBALS['_recent_activity_posts'][ $id ] ?? null; }
-	function get_the_title( $post ) { return $post->post_title; }
+	function get_permalink( $id ) { return 'https://community.example.test/p/' . (int) $id; }
+	function wp_get_post_parent_id( $id ) { return (int) ( $GLOBALS['_recent_activity_posts'][ $id ]->post_parent ?? 0 ); }
+	function get_the_author_meta( $field, $id ) { return 'User ' . (int) $id; }
+	function get_avatar() { return '<img src="https://example.test/avatar.png">'; }
+	function get_the_title( $post ) { return is_object( $post ) ? $post->post_title : ( $GLOBALS['_recent_activity_posts'][ $post ]->post_title ?? '' ); }
 	function get_userdata( $id ) { return $id && 999 !== $id ? (object) array(
 		'ID'           => $id,
 		'display_name' => 'User ' . $id,
@@ -129,6 +155,7 @@ function recent_activity_assert( $condition, $message ) {
 
 require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';
 require dirname( __DIR__ ) . '/inc/moderation/member-blocks.php';
+require_once dirname( __DIR__ ) . '/inc/content/recent-feed.php';
 require dirname( __DIR__ ) . '/inc/content/recent-public-activity.php';
 if ( $standalone ) {
 	extrachill_community_register_recent_public_activity_ability();
@@ -146,8 +173,9 @@ if ( $standalone ) {
 	recent_activity_assert( array( 'forum', 'artists' ) === $item_schemas[0]['properties']['relationships']['required'], 'Forum items keep their required relationships.' );
 	recent_activity_assert( array( 'comment' ) === $item_schemas[1]['properties']['activity_type']['enum'], 'Comment items use a distinct activity type.' );
 	recent_activity_assert( false === $item_schemas[1]['additionalProperties'], 'Comment items must be exact.' );
-	$include_schema = $ability['input_schema']['properties']['include_comments'];
-	recent_activity_assert( 'boolean' === $include_schema['type'] && false === $include_schema['default'], 'Comments are opt-in and default off for existing callers.' );
+	recent_activity_assert( ! isset( $ability['input_schema']['properties']['include_comments'] ), 'The include_comments flag is gone; item types are the one narrowing input.' );
+	$types_schema = $ability['input_schema']['properties']['activity_types'];
+	recent_activity_assert( array( 'discussion', 'reply', 'comment' ) === $types_schema['items']['enum'], 'activity_types lists every portable item type.' );
 } else {
 	register_post_type( 'forum', array( 'public' => true ) );
 	register_post_type( 'topic', array( 'public' => true ) );
@@ -233,7 +261,7 @@ if ( $standalone ) {
 	$GLOBALS['_recent_activity_viewer'] = 0;
 }
 
-// ─── Comments in activity (#1634) ───────────────────────────────────────────
+// ─── Comments from the feed's comment source (#1653) ────────────────────────
 if ( $standalone ) {
 	$GLOBALS['_recent_activity_comments'] = array(
 		array(
@@ -273,36 +301,51 @@ if ( $standalone ) {
 			'date_gmt'    => '2026-07-29 12:00:00',
 		),
 	);
-	function ec_users_get_recent_comment_activity( $limit = 10 ) {
-		return array_slice( $GLOBALS['_recent_activity_comments'], 0, $limit );
-	}
+	$GLOBALS['_recent_activity_comment_queries'] = array();
+	// Stands in for extrachill-users' comment source (covered by its unit test).
+	add_filter(
+		'ec_activity_feed_sources',
+		static function ( $sources ) {
+			$sources['comments'] = array(
+				'types' => array( 'comment' ),
+				'query' => static function ( $query ) {
+					$GLOBALS['_recent_activity_comment_queries'][] = $query;
+					$rows = array_values(
+						array_filter(
+							$GLOBALS['_recent_activity_comments'],
+							static function ( $row ) use ( $query ) {
+								return ! in_array( $row['user_id'], $query['exclude_authors'], true );
+							}
+						)
+					);
+					$items = array();
+					foreach ( array_slice( $rows, 0, $query['limit'] ) as $row ) {
+						$items[] = array(
+							'type'      => 'comment',
+							'timestamp' => strtotime( $row['date_gmt'] . ' UTC' ),
+							'comment'   => $row,
+						);
+					}
+					return array(
+						'items' => $items,
+						'total' => count( $rows ),
+					);
+				},
+			);
+			return $sources;
+		}
+	);
 
 	$GLOBALS['_recent_activity_query_posts'] = array( $public, $closed, $reply );
 
-	// Back-compat: callers that omit the flag (extrachill-blog) get forum items only.
-	$default = extrachill_community_ability_recent_public_activity( array( 'limit' => 20 ) );
-	recent_activity_assert( ! in_array( 'comment', array_column( $default['items'], 'activity_type' ), true ), 'Default output contains forum items only.' );
-	recent_activity_assert( 3 === count( $default['items'] ), 'Default output is unchanged by comment activity.' );
-	$off = extrachill_community_ability_recent_public_activity(
-		array(
-			'limit'            => 20,
-			'include_comments' => 'false',
-		)
-	);
-	recent_activity_assert( $default === $off, 'A false-y flag keeps forum-only output.' );
-
-	$with = extrachill_community_ability_recent_public_activity(
-		array(
-			'limit'            => 20,
-			'include_comments' => true,
-		)
-	);
-	recent_activity_assert( 6 === count( $with['items'] ), 'Opted-in output merges forum items and comments.' );
+	$with = extrachill_community_ability_recent_public_activity( array( 'limit' => 20 ) );
+	recent_activity_assert( 6 === count( $with['items'] ), 'The ability returns forum items and comments from the one feed.' );
 	$times  = array_map( 'strtotime', array_column( $with['items'], 'timestamp' ) );
 	$sorted = $times;
 	rsort( $sorted );
-	recent_activity_assert( $sorted === $times, 'Merged activity is chronological, newest first.' );
-	recent_activity_assert( 'comment' === $with['items'][0]['activity_type'], 'The newest comment leads the merged feed.' );
+	recent_activity_assert( $sorted === $times, 'Feed items are chronological, newest first.' );
+	recent_activity_assert( 'comment' === $with['items'][0]['activity_type'], 'The newest comment leads the feed.' );
+	recent_activity_assert( array( 'publish', 'closed' ) === $GLOBALS['_recent_activity_query_args']['post_status'], 'The ability reads the feed with the public audience.' );
 
 	$comment_item = $with['items'][0];
 	recent_activity_assert( array( 'canonical_url', 'title', 'timestamp', 'activity_type', 'actor', 'relationships' ) === array_keys( $comment_item ), 'Comment items expose the portable item keys.' );
@@ -326,44 +369,50 @@ if ( $standalone ) {
 		) === $comment_item['relationships'],
 		'Comment relationships name the event.'
 	);
-	$by_url  = array_column( $with['items'], null, 'canonical_url' );
-	$article = array( $by_url['https://example.test/a-review/#comment-77'] );
-	recent_activity_assert( 'article' === $article[0]['relationships']['post']['kind'], 'Article comments are labelled as articles.' );
-	$guest_items = array( $by_url['https://example.test/a-review/#comment-76'] );
-	recent_activity_assert( 0 === $guest_items[0]['actor']['user_id'] && null === $guest_items[0]['actor']['profile_url'], 'Guest comments carry no member identity.' );
+	$by_url = array_column( $with['items'], null, 'canonical_url' );
+	recent_activity_assert( 'article' === $by_url['https://example.test/a-review/#comment-77']['relationships']['post']['kind'], 'Article comments are labelled as articles.' );
+	$guest_item = $by_url['https://example.test/a-review/#comment-76'];
+	recent_activity_assert( 0 === $guest_item['actor']['user_id'] && null === $guest_item['actor']['profile_url'], 'Guest comments carry no member identity.' );
 	recent_activity_assert( false === strpos( serialize( $with ), 'blog_id' ) && false === strpos( serialize( $with ), 'comment_id' ), 'Comment items do not leak storage fields.' );
 
-	$limited = extrachill_community_ability_recent_public_activity(
+	$limited = extrachill_community_ability_recent_public_activity( array( 'limit' => 2 ) );
+	recent_activity_assert( 2 === count( $limited['items'] ), 'The feed honours the limit.' );
+	recent_activity_assert( 'comment' === $limited['items'][0]['activity_type'] && 'discussion' === $limited['items'][1]['activity_type'], 'The limit applies after the chronological merge.' );
+	recent_activity_assert( 2 === end( $GLOBALS['_recent_activity_comment_queries'] )['limit'], 'Sources are asked for no more than the page needs.' );
+
+	// Item-type narrowing.
+	$queries = count( $GLOBALS['_recent_activity_comment_queries'] );
+	$forum   = extrachill_community_ability_recent_public_activity(
 		array(
-			'limit'            => 2,
-			'include_comments' => '1',
+			'limit'          => 20,
+			'activity_types' => array( 'discussion', 'reply' ),
 		)
 	);
-	recent_activity_assert( 2 === count( $limited['items'] ), 'Merged activity honours the limit.' );
-	recent_activity_assert( 'comment' === $limited['items'][0]['activity_type'] && 'discussion' === $limited['items'][1]['activity_type'], 'Limit applies after the chronological merge (string flag accepted).' );
+	recent_activity_assert( 3 === count( $forum['items'] ) && ! in_array( 'comment', array_column( $forum['items'], 'activity_type' ), true ), 'Forum types return forum items only.' );
+	recent_activity_assert( count( $GLOBALS['_recent_activity_comment_queries'] ) === $queries, 'Sources outside the requested types are not queried.' );
+	$only = extrachill_community_ability_recent_public_activity( array( 'activity_types' => array( 'comment' ) ) );
+	recent_activity_assert( array( 'comment' ) === array_values( array_unique( array_column( $only['items'], 'activity_type' ) ) ), 'The comment type returns comments only.' );
+	recent_activity_assert( array() === extrachill_community_ability_recent_public_activity( array( 'activity_types' => array( 'bogus' ) ) )['items'], 'Unknown types match nothing.' );
 
+	// The blog artist page: artist scope is forum-only.
 	$scoped = extrachill_community_ability_recent_public_activity(
 		array(
-			'artist_slug'      => 'test-artist',
-			'include_comments' => true,
+			'artist_slug'    => 'test-artist',
+			'activity_types' => array( 'discussion', 'reply', 'comment' ),
 		)
 	);
 	recent_activity_assert( ! in_array( 'comment', array_column( $scoped['items'], 'activity_type' ), true ), 'Artist scoping never returns comments.' );
+	recent_activity_assert( count( $GLOBALS['_recent_activity_comment_queries'] ) === $queries + 1, 'Artist scoping does not query the comment source.' );
+	recent_activity_assert( 'topic' === $GLOBALS['_recent_activity_query_args']['post_type'] && 'test-artist' === $GLOBALS['_recent_activity_query_args']['tax_query'][0]['terms'], 'Artist scoping queries tagged discussions only.' );
+	foreach ( $scoped['items'] as $item ) {
+		recent_activity_assert( array( 'forum', 'artists' ) === array_keys( $item['relationships'] ), 'Artist items keep the relationships the artist page validates.' );
+	}
 
 	$GLOBALS['_recent_activity_viewer'] = 5; // Blocks members 7 and 8.
-	$blocked                            = extrachill_community_ability_recent_public_activity(
-		array(
-			'limit'            => 20,
-			'include_comments' => true,
-		)
-	);
+	$blocked                            = extrachill_community_ability_recent_public_activity( array( 'limit' => 20 ) );
+	recent_activity_assert( array( 7, 8 ) === end( $GLOBALS['_recent_activity_comment_queries'] )['exclude_authors'], 'Every source receives the viewer blocks.' );
 	recent_activity_assert( ! in_array( 8, array_column( array_column( $blocked['items'], 'actor' ), 'user_id' ), true ), 'Comments by members the viewer blocked are hidden.' );
 	$GLOBALS['_recent_activity_viewer'] = 0;
-
-	// Consumer back-compat: extrachill-blog's validator accepts every default item shape key-for-key.
-	foreach ( $default['items'] as $item ) {
-		recent_activity_assert( array( 'forum', 'artists' ) === array_keys( $item['relationships'] ), 'Default forum items keep the relationships the artist page validates.' );
-	}
 }
 
 echo "PASS: Recent public activity is bounded, exact, and visibility-safe.\n";

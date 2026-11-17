@@ -2,9 +2,9 @@
 /**
  * Homepage Community Card
  *
- * Shows live recent activity from community.extrachill.com via the
- * extrachill-multisite community-activity primitive (cached cross-blog read),
- * with CTAs below.
+ * Shows recent forum activity from community.extrachill.com via the
+ * extrachill-network community-activity adapter (a cached cross-site read of
+ * the community activity feed), with CTAs below.
  *
  * @package ExtraChillBlog
  * @since 0.1.0
@@ -20,8 +20,10 @@ if ( $is_logged_in && function_exists( 'extrachill_get_user_profile_url' ) ) {
 	}
 }
 
+// Forum items only: this card introduces the forums. It reads the one
+// community activity feed and narrows it by item type.
 $community_activity = function_exists( 'extrachill_get_community_activity_items' )
-	? extrachill_get_community_activity_items( 3 )
+	? extrachill_get_community_activity_items( 3, array( 'activity_types' => array( 'discussion', 'reply' ) ) )
 	: array();
 ?>
 <div class="home-network-card" aria-labelledby="community-header">

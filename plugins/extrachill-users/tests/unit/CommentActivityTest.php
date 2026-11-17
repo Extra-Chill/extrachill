@@ -245,7 +245,7 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 
 		$item = $items[0];
 		$this->assertSame(
-			array( 'blog_id', 'comment_id', 'post_id', 'post_type', 'post_title', 'post_url', 'comment_url', 'user_id', 'author_name', 'date_gmt' ),
+			array( 'blog_id', 'comment_id', 'post_id', 'post_type', 'post_title', 'post_url', 'comment_url', 'user_id', 'author_name', 'date_gmt', 'content' ),
 			array_keys( $item )
 		);
 		$this->assertSame( $item['post_url'] . '#comment-' . $event, $item['comment_url'] );
@@ -292,6 +292,63 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 		}
 
 		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20 ) );
+	}
+
+	public function test_recent_comment_activity_scopes_by_author_and_exclusions(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		$other_user = (int) self::factory()->user->create();
+		$mine       = $this->comment_on( $this->main_blog_id, array(), '2026-03-10 15:00:00' );
+		$theirs     = $this->comment_on( $this->events_blog_id, array( 'user_id' => $other_user ), '2026-03-11 15:00:00' );
+
+		$this->assertSame( array( $mine ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'user_id' => $this->user_id ) ), 'comment_id' ) );
+		$this->assertSame( array( $theirs ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'exclude_user_ids' => array( $this->user_id ) ) ), 'comment_id' ) );
+		$this->assertSame( 2, ec_users_count_recent_comment_activity() );
+		$this->assertSame( 1, ec_users_count_recent_comment_activity( array( 'user_id' => $other_user ) ) );
+	}
+
+	public function test_recent_comment_activity_reads_past_the_cached_head(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		for ( $i = 0; $i < EC_USERS_RECENT_COMMENT_ACTIVITY_MAX + 2; $i++ ) {
+			$this->comment_on( $this->main_blog_id, array(), gmdate( 'Y-m-d H:i:s', strtotime( '2026-03-01 00:00:00 UTC' ) + $i * 60 ) );
+		}
+
+		$this->assertCount( EC_USERS_RECENT_COMMENT_ACTIVITY_MAX, ec_users_get_recent_comment_activity( 20 ) );
+		$this->assertCount( EC_USERS_RECENT_COMMENT_ACTIVITY_MAX + 2, ec_users_get_recent_comment_activity( 40 ) );
+		$this->assertSame( EC_USERS_RECENT_COMMENT_ACTIVITY_MAX + 2, ec_users_count_recent_comment_activity() );
+	}
+
+	public function test_comment_feed_source_registers_and_answers_queries(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		$sources = apply_filters( 'ec_activity_feed_sources', array() );
+		$this->assertArrayHasKey( 'comments', $sources );
+		$this->assertSame( array( 'comment' ), $sources['comments']['types'] );
+
+		$comment_id = $this->comment_on( $this->events_blog_id, array(), '2026-03-12 09:00:00' );
+		$result     = call_user_func(
+			$sources['comments']['query'],
+			array(
+				'limit'           => 10,
+				'author'          => $this->user_id,
+				'exclude_authors' => array(),
+				'artist'          => '',
+			)
+		);
+		$this->assertSame( 1, $result['total'] );
+		$this->assertSame( 'comment', $result['items'][0]['type'] );
+		$this->assertSame( strtotime( '2026-03-12 09:00:00 UTC' ), $result['items'][0]['timestamp'] );
+		$this->assertSame( $comment_id, $result['items'][0]['comment']['comment_id'] );
+
+		$artist = call_user_func(
+			$sources['comments']['query'],
+			array(
+				'limit'  => 10,
+				'artist' => 'some-artist',
+			)
+		);
+		$this->assertSame( array(), $artist['items'], 'Comments carry no artist, so artist scope returns none.' );
 	}
 
 	/**

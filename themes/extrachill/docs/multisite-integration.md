@@ -106,10 +106,10 @@ extrachill_render_community_activity(array(
 ));
 ```
 
-**Data Function**: `extrachill_get_community_activity_items( $limit )`
-- Queries blog ID 2 (community) for bbPress activities
-- Returns array of activity items with full metadata
-- 10-minute WordPress object cache
+**Data Function**: `extrachill_get_community_activity_items( $limit, $args = array() )`
+- Reads the community activity feed (topics, replies, and comments, merged by date) through the `extrachill/community-recent-public-activity` ability
+- `$args['activity_types']` narrows item types
+- 10-minute network cache
 
 
 **Render Function**: `extrachill_render_community_activity( $args )`
@@ -215,7 +215,7 @@ Provided by the `extrachill-multisite` plugin:
 
 ### 3. Community Activity Components
 **Location**: `/inc/core/templates/community-activity.php`
-**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Queries community.extrachill.com (blog ID 2) for bbPress activities via `switch_to_blog()` with 10-minute caching. Sidebar rendering lives in `/inc/sidebar/community-activity.php`; homepage grids now live in plugins via `extrachill_homepage_content`.
+**Integration**: Centralized shared helper library with reusable `extrachill_get_community_activity_items()` and `extrachill_render_community_activity()` functions. Reads the community activity feed (`extrachill_build_activity_feed()`) through the `extrachill/community-recent-public-activity` ability with 10-minute caching. Sidebar rendering lives in `/inc/sidebar/community-activity.php`; homepage grids now live in plugins via `extrachill_homepage_content`.
 
 ### 5. Search Site Badges
 **Integration**: extrachill-search plugin injects badges alongside each multisite result entry so users know which network site provided the content

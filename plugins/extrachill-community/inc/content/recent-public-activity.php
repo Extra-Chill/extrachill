@@ -5,14 +5,16 @@
  * Owns the portable, read-only projection of public Community activity.
  * bbPress storage details remain contained in this file.
  *
- * By default the projection lists forum discussions and replies only, which is
- * the contract existing consumers (extrachill-blog's artist pages) validate.
- * Callers that pass `include_comments: true` also receive approved comments on
- * the network's discussion-hosting sites (main articles and events, from
- * extrachill-users' ec_users_get_recent_comment_activity()), merged
- * chronologically. Comment items carry `activity_type: "comment"` and a
- * `post` relationship instead of `forum` and `artists`. Comments carry no
- * artist relationships, so `artist_slug` scoping never returns them.
+ * A portable view of the one activity feed (extrachill_build_activity_feed()
+ * in inc/content/recent-feed.php): it holds no query or merge logic of its
+ * own, only the projection of feed items into the versioned item shape.
+ * Discussions and replies come from the forum source; comments come from the
+ * network comment source extrachill-users registers. `activity_types` narrows
+ * the item types. `artist_slug` scopes to discussions tagged with that artist
+ * (artist relationships only exist on discussions), which keeps the blog
+ * artist page forum-only. This ability is also the cross-site door to the
+ * feed: the network sidebar widget and the blog community card read it from
+ * other sites, where the community plugin is not loaded.
  *
  * @package ExtraChillCommunity
  */
@@ -20,6 +22,15 @@
 defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_MAX = 20;
+
+/**
+ * Portable activity types mapped to activity feed item types.
+ */
+const EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES = array(
+	'discussion' => 'topic',
+	'reply'      => 'reply',
+	'comment'    => 'comment',
+);
 
 add_action( 'wp_abilities_api_init', 'extrachill_community_register_recent_public_activity_ability' );
 
@@ -143,27 +154,31 @@ function extrachill_community_register_recent_public_activity_ability() {
 		'extrachill/community-recent-public-activity',
 		array(
 			'label'               => __( 'Get Recent Public Community Activity', 'extra-chill-community' ),
-			'description'         => __( 'Get a bounded, portable projection of recent public discussions and replies, optionally merged with recent article and event comments.', 'extra-chill-community' ),
+			'description'         => __( 'Get a bounded, portable projection of the recent public activity feed: discussions, replies, and article and event comments.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'default'              => array(),
 				'type'                 => 'object',
 				'properties'           => array(
-					'limit'            => array(
+					'limit'          => array(
 						'type'    => 'integer',
 						'minimum' => 1,
 						'maximum' => EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_MAX,
 						'default' => 5,
 					),
-					'artist_slug'      => array(
+					'artist_slug'    => array(
 						'type'      => 'string',
 						'pattern'   => '^[a-z0-9]+(?:-[a-z0-9]+)*$',
 						'maxLength' => 200,
 					),
-					'include_comments' => array(
-						'type'        => 'boolean',
-						'default'     => false,
-						'description' => 'Also return approved article and event comments, merged chronologically. Ignored with artist_slug.',
+					'activity_types' => array(
+						'type'        => 'array',
+						'items'       => array(
+							'type' => 'string',
+							'enum' => array_keys( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES ),
+						),
+						'uniqueItems' => true,
+						'description' => 'Item types to include. Default every type. artist_slug always narrows to discussions.',
 					),
 				),
 				'additionalProperties' => false,
@@ -207,53 +222,33 @@ function extrachill_community_register_recent_public_activity_ability() {
  * @return array{schema_version:string,items:array}
  */
 function extrachill_community_ability_recent_public_activity( $input ) {
-	if ( ! function_exists( 'bbp_get_topic_post_type' ) || ! function_exists( 'bbp_get_reply_post_type' ) ) {
-		return array(
-			'schema_version' => '1',
-			'items'          => array(),
-		);
-	}
-
-	$limit            = min( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_MAX, max( 1, (int) ( $input['limit'] ?? 5 ) ) );
-	$artist_slug      = isset( $input['artist_slug'] ) ? (string) $input['artist_slug'] : '';
-	$include_comments = '' === $artist_slug && extrachill_community_recent_activity_flag( $input['include_comments'] ?? false );
-	$query_args       = array(
-		'post_type'              => '' === $artist_slug ? array( bbp_get_topic_post_type(), bbp_get_reply_post_type() ) : bbp_get_topic_post_type(),
-		'post_status'            => array( bbp_get_public_status_id(), bbp_get_closed_status_id() ),
-		'posts_per_page'         => $limit,
-		'orderby'                => 'date',
-		'order'                  => 'DESC',
-		'no_found_rows'          => true,
-		'ignore_sticky_posts'    => true,
-		'update_post_term_cache' => true,
-		'update_post_meta_cache' => true,
-	);
-
+	$input       = is_array( $input ) ? $input : array();
+	$limit       = min( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_MAX, max( 1, (int) ( $input['limit'] ?? 5 ) ) );
+	$artist_slug = isset( $input['artist_slug'] ) ? (string) $input['artist_slug'] : '';
+	$requested   = isset( $input['activity_types'] ) ? array_intersect_key( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES, array_flip( array_map( 'strval', (array) $input['activity_types'] ) ) ) : EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES;
 	if ( '' !== $artist_slug ) {
-		$query_args['tax_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Explicit bounded relationship filter.
-			array(
-				'taxonomy' => 'artist',
-				'field'    => 'slug',
-				'terms'    => $artist_slug,
-			),
-		);
+		$requested = array_intersect_key( $requested, array( 'discussion' => true ) );
 	}
 
 	$items = array();
-	$query = new WP_Query( extrachill_community_exclude_member_blocked_authors( $query_args ) );
-	foreach ( $query->posts as $activity ) {
-		$activity = $activity instanceof WP_Post ? $activity : get_post( $activity );
-		if ( ! $activity ) {
-			continue;
-		}
-		$item = extrachill_community_prepare_recent_public_activity_item( $activity );
+	$feed  = empty( $requested ) ? false : extrachill_build_activity_feed(
+		$limit,
+		1,
+		0,
+		array(
+			'types'    => array_values( $requested ),
+			'artist'   => $artist_slug,
+			'audience' => 'public',
+		)
+	);
+
+	foreach ( $feed ? $feed['items'] : array() as $feed_item ) {
+		$item = 'comment' === $feed_item['type']
+			? extrachill_community_prepare_recent_comment_activity_item( $feed_item['comment'] ?? null )
+			: extrachill_community_prepare_recent_public_activity_item( $feed_item['post'] ?? null );
 		if ( $item ) {
 			$items[] = $item;
 		}
-	}
-
-	if ( $include_comments ) {
-		$items = extrachill_community_merge_recent_activity_items( $items, extrachill_community_recent_comment_activity_items( $limit ), $limit );
 	}
 
 	return array(
@@ -263,63 +258,15 @@ function extrachill_community_ability_recent_public_activity( $input ) {
 }
 
 /**
- * Read a boolean ability flag that may arrive as a REST query string.
- *
- * @param mixed $value Raw input value.
- * @return bool
- */
-function extrachill_community_recent_activity_flag( $value ) {
-	if ( is_bool( $value ) ) {
-		return $value;
-	}
-
-	return in_array( strtolower( trim( (string) $value ) ), array( '1', 'true' ), true );
-}
-
-/**
- * Project recent network comments as portable activity items.
- *
- * Reads extrachill-users' cached network reader, so nothing here touches
- * other sites' comment tables. Comments by members the viewer has blocked are
- * dropped, matching the forum read path.
- *
- * @param int $limit Maximum items.
- * @return array[] Comment activity items, newest first.
- */
-function extrachill_community_recent_comment_activity_items( $limit ) {
-	if ( ! function_exists( 'ec_users_get_recent_comment_activity' ) ) {
-		return array();
-	}
-
-	$blocked = function_exists( 'extrachill_community_viewer_member_blocked_ids' ) ? extrachill_community_viewer_member_blocked_ids() : array();
-	$items   = array();
-	foreach ( (array) ec_users_get_recent_comment_activity( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_MAX ) as $comment ) {
-		if ( count( $items ) >= $limit ) {
-			break;
-		}
-		$item = extrachill_community_prepare_recent_comment_activity_item( $comment, $blocked );
-		if ( $item ) {
-			$items[] = $item;
-		}
-	}
-
-	return $items;
-}
-
-/**
  * Shape one comment activity item.
  *
- * @param mixed $comment Row from ec_users_get_recent_comment_activity().
- * @param int[] $blocked Member IDs the viewer has blocked.
+ * Comments are labelled with the article or event they were left on.
+ *
+ * @param mixed $comment Comment row from extrachill-users' comment feed source.
  * @return array|null Portable item, or null when the row is unusable.
  */
-function extrachill_community_prepare_recent_comment_activity_item( $comment, array $blocked = array() ) {
+function extrachill_community_prepare_recent_comment_activity_item( $comment ) {
 	if ( ! is_array( $comment ) || empty( $comment['comment_url'] ) || empty( $comment['post_url'] ) || empty( $comment['date_gmt'] ) ) {
-		return null;
-	}
-
-	$user_id = (int) ( $comment['user_id'] ?? 0 );
-	if ( $user_id > 0 && in_array( $user_id, array_map( 'intval', $blocked ), true ) ) {
 		return null;
 	}
 
@@ -328,13 +275,13 @@ function extrachill_community_prepare_recent_comment_activity_item( $comment, ar
 		return null;
 	}
 
-	$post_title  = (string) ( $comment['post_title'] ?? '' );
+	$user_id     = (int) ( $comment['user_id'] ?? 0 );
 	$profile_url = $user_id > 0 && function_exists( 'extrachill_get_user_profile_url' ) ? (string) extrachill_get_user_profile_url( $user_id ) : '';
 
 	return array(
 		'canonical_url' => (string) $comment['comment_url'],
 		/* translators: %s: article or event title. */
-		'title'         => sprintf( __( 'Comment on %s', 'extra-chill-community' ), $post_title ),
+		'title'         => sprintf( __( 'Comment on %s', 'extra-chill-community' ), (string) ( $comment['post_title'] ?? '' ) ),
 		'timestamp'     => $timestamp,
 		'activity_type' => 'comment',
 		'actor'         => array(
@@ -344,7 +291,7 @@ function extrachill_community_prepare_recent_comment_activity_item( $comment, ar
 		),
 		'relationships' => array(
 			'post' => array(
-				'name'          => $post_title,
+				'name'          => (string) ( $comment['post_title'] ?? '' ),
 				'kind'          => 'data_machine_events' === ( $comment['post_type'] ?? '' ) ? 'event' : 'article',
 				'canonical_url' => (string) $comment['post_url'],
 			),
@@ -353,45 +300,16 @@ function extrachill_community_prepare_recent_comment_activity_item( $comment, ar
 }
 
 /**
- * Merge forum and comment activity chronologically (newest first).
- *
- * Stable: items with equal timestamps keep forum-before-comment order.
- *
- * @param array[] $forum_items   Forum activity items, newest first.
- * @param array[] $comment_items Comment activity items, newest first.
- * @param int     $limit         Maximum items.
- * @return array[]
- */
-function extrachill_community_merge_recent_activity_items( array $forum_items, array $comment_items, $limit ) {
-	$merged = array();
-	foreach ( array_merge( $forum_items, $comment_items ) as $index => $item ) {
-		$merged[] = array(
-			'time'  => (int) strtotime( (string) $item['timestamp'] ),
-			'index' => $index,
-			'item'  => $item,
-		);
-	}
-
-	usort(
-		$merged,
-		static function ( $a, $b ) {
-			if ( $a['time'] !== $b['time'] ) {
-				return $b['time'] <=> $a['time'];
-			}
-			return $a['index'] <=> $b['index'];
-		}
-	);
-
-	return array_slice( array_column( $merged, 'item' ), 0, max( 1, (int) $limit ) );
-}
-
-/**
  * Shape one public activity item.
  *
- * @param WP_Post $activity Activity post.
+ * @param WP_Post|null $activity Activity post.
  * @return array|null Portable item, or null when any owner visibility check fails.
  */
 function extrachill_community_prepare_recent_public_activity_item( $activity ) {
+	if ( ! $activity instanceof WP_Post || ! function_exists( 'bbp_get_topic_post_type' ) ) {
+		return null;
+	}
+
 	$topic_type = bbp_get_topic_post_type();
 	$reply_type = bbp_get_reply_post_type();
 	$is_reply   = $reply_type === $activity->post_type;

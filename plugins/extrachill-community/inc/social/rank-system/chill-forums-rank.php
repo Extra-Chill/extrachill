@@ -19,8 +19,8 @@ function extrachill_display_user_rank( $user_id ) {
 	return extrachill_determine_rank_by_points( $total_points );
 }
 
-function extrachill_add_rank_and_points_to_reply() {
-	$reply_author_id = bbp_get_reply_author_id();
+function extrachill_add_rank_and_points_to_reply( $user_id = 0 ) {
+	$reply_author_id = $user_id ? (int) $user_id : bbp_get_reply_author_id();
 
 	echo '<div class="rankpoints">';
 

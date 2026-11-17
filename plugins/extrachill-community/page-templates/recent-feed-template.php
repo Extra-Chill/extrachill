@@ -1,13 +1,14 @@
 <?php
 /*
  * Template Name: Recent Activity Feed
- * Description: A page template to show the most recent replies across all forums in a Twitter-like stream.
+ * Description: The most recent activity across the network in a Twitter-like stream.
  *
- * This template owns ONLY the global /recent activity page. It is intentionally
- * forum-scoped (topics + replies across all forums) and NOT cross-network — see
- * epic #53 Phase 3. The user-scoped profile activity feed lives in its own path
- * (inc/user-profiles/profile-activity-feed.php), so this page can be changed or
- * retired without touching profiles.
+ * This template owns ONLY the global /recent activity page. It renders the one
+ * activity feed (extrachill_build_activity_feed() in inc/content/recent-feed.php):
+ * forum topics and replies plus every source registered on
+ * `ec_activity_feed_sources`, such as network comments on articles and events,
+ * merged by date. The profile "Recent Conversations" list lives in its own
+ * path (inc/user-profiles/profile-activity-feed.php).
  */
 
 get_header();
@@ -25,7 +26,7 @@ if ( have_posts() ) :
 	endwhile;
 endif;
 
-// Global recent activity feed (unscoped, forum-wide).
+// Global recent activity feed (unscoped, every registered source).
 $recent_feed = extrachill_get_recent_feed_query( 15 );
 extrachill_render_recent_feed( $recent_feed );
 

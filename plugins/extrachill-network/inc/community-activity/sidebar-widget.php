@@ -2,9 +2,8 @@
 /**
  * Community Activity Sidebar Widget
  *
- * Displays recent community activity in the sidebar via theme hook: forum
- * topics and replies merged chronologically with recent approved article and
- * event comments.
+ * Displays the latest items of the one community activity feed (forum topics,
+ * replies, and article and event comments) in the sidebar via theme hook.
  *
  * @package ExtraChill\Network
  */
@@ -25,7 +24,7 @@ if ( ! function_exists( 'extrachill_network_community_activity_widget' ) ) :
 			return;
 		}
 
-		$activities = extrachill_get_community_activity_items( 5, array( 'include_comments' => true ) );
+		$activities = extrachill_get_community_activity_items( 5 );
 
 		if ( empty( $activities ) ) {
 			return;
