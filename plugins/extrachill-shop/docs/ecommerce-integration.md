@@ -28,6 +28,7 @@ The platform uses Stripe Connect Express. Every seller (artist, venue, or promot
 - Platform products (no payout seller) are charged on the platform account with no application fee
 - Who pays card processing on a direct charge is the connected account's `controller.fees.payer`, stored as `fee_payer` on the seller's Stripe account record (see [tickets.md](tickets.md#where-the-payer-is-stored)). Express accounts, which the shop creates, report `application_express`: Stripe debits processing from **Extra Chill's** balance. Standard accounts report `account`: the seller pays it
 - WooCommerce tax calculation is off. The seller, as merchant of record, is responsible for any sales tax.
+- Event tickets use the same direct charge without a cart. Each ticket sale is still a WooCommerce order, kind `extrachill_ticket` (`_extrachill_order_kind`): a product-less `Event tickets: <show>` line and a `Service fee` line. Ticket orders share the merch seller index, Checkout Session lookup, expiry path and refund records, but send no WooCommerce emails, change no stock, and stay out of the seller's Orders tab and shipping labels. See [tickets.md](tickets.md#storage-woocommerce-orders).
 
 ### 3. API Endpoints
 - `GET /shop/stripe-connect/status`: Checks account status and capabilities

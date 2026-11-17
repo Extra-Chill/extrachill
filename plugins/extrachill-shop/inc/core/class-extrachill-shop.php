@@ -48,6 +48,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/legal-documents.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/checkout-terms.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/order-seller-index.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/ticket-orders.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/shop-manager.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/woocommerce-templates.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';

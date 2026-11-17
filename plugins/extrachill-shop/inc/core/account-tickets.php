@@ -2,11 +2,11 @@
 /**
  * My Account > Tickets.
  *
- * Ticket orders skip WooCommerce (they are Shop option rows settled on the
- * seller's Stripe account), so WooCommerce's Orders tab never lists them.
- * This tab lists a logged-in buyer's ticket orders from the buyer index that
- * ticket checkout writes, with each order's passes read from Events through
- * the existing `get-ticket-order-status` service ability.
+ * Ticket orders are WooCommerce orders with no products (see
+ * ticket-orders.php). They stay out of the WooCommerce Orders tab, which is
+ * about merch, and show up here instead: the logged-in buyer's ticket orders
+ * (by customer and order kind), with each order's passes read from Events
+ * through the existing `get-ticket-order-status` service ability.
  *
  * @package ExtraChillShop
  */
@@ -16,8 +16,12 @@ defined( 'ABSPATH' ) || exit;
 /** My Account endpoint slug. */
 const EXTRACHILL_SHOP_TICKETS_ENDPOINT = 'tickets';
 
-/** Ticket order statuses a buyer sees. Pending/expired/failed Sessions were never paid. */
-const EXTRACHILL_SHOP_BUYER_TICKET_STATUSES = array( 'issued', 'refund_pending', 'refunded', 'disputed' );
+/**
+ * WooCommerce statuses of the ticket orders a buyer sees: issued (processing,
+ * completed), refunded and disputed (on-hold). Pending, cancelled and failed
+ * orders were never paid.
+ */
+const EXTRACHILL_SHOP_BUYER_TICKET_STATUSES = array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' );
 
 add_filter( 'woocommerce_get_query_vars', 'extrachill_shop_tickets_query_var' );
 add_filter( 'woocommerce_account_menu_items', 'extrachill_shop_tickets_menu_item' );
@@ -84,35 +88,45 @@ function extrachill_shop_maybe_flush_tickets_endpoint() {
 /**
  * A buyer's ticket orders, newest first, with their passes.
  *
- * Reads only references indexed under the buyer and re-checks each order's
- * recorded buyer, so one buyer never sees another buyer's tickets.
+ * Reads the buyer's own WooCommerce ticket orders (customer ID), so one buyer
+ * never sees another buyer's tickets.
  *
  * @param int $user_id Buyer user ID.
  * @param int $limit   Most orders to return.
  * @return array[]
  */
 function extrachill_shop_get_buyer_ticket_orders( int $user_id, int $limit = 50 ): array {
-	if ( $user_id < 1 ) {
+	if ( $user_id < 1 || ! function_exists( 'wc_get_orders' ) ) {
 		return array();
 	}
-	$references = array_reverse( array_unique( array_map( 'strval', (array) get_user_meta( $user_id, EXTRACHILL_SHOP_BUYER_TICKET_ORDER_META, false ) ) ) );
-	$orders     = array();
-	foreach ( $references as $reference ) {
-		if ( count( $orders ) >= $limit ) {
-			break;
-		}
-		$order = get_option( 'extrachill_ticket_order_' . $reference );
-		if ( ! is_array( $order ) || (int) ( $order['buyer_user_id'] ?? 0 ) !== $user_id || ! in_array( $order['status'] ?? '', EXTRACHILL_SHOP_BUYER_TICKET_STATUSES, true ) ) {
+	/** @var WC_Order[] $found Not paginated. */
+	$found  = wc_get_orders(
+		extrachill_shop_ticket_order_query(
+			array(
+				'customer_id' => $user_id,
+				'status'      => EXTRACHILL_SHOP_BUYER_TICKET_STATUSES,
+				'limit'       => $limit,
+				'orderby'     => 'date',
+				'order'       => 'DESC',
+			)
+		)
+	);
+	$orders = array();
+	foreach ( $found as $order ) {
+		if ( (int) $order->get_customer_id() !== $user_id || ! extrachill_shop_order_is_ticket( $order ) ) {
 			continue;
 		}
-		$orders[] = array(
+		$reference = (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFERENCE_META );
+		$created   = $order->get_date_created();
+		$orders[]  = array(
 			'reference'   => $reference,
-			'event_id'    => (int) ( $order['event'] ?? 0 ),
-			'event_title' => (string) ( $order['event_title'] ?? '' ),
-			'event_url'   => (string) ( $order['event_url'] ?? '' ),
-			'quantity'    => (int) ( $order['quantity'] ?? ( $order['sales']['tickets_sold'] ?? 0 ) ),
-			'status'      => (string) $order['status'],
-			'created_at'  => (string) ( $order['created_at'] ?? '' ),
+			'order_id'    => (int) $order->get_id(),
+			'event_id'    => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
+			'event_title' => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_TITLE_META ),
+			'event_url'   => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_URL_META ),
+			'quantity'    => extrachill_shop_ticket_order_quantity( $order ),
+			'status'      => extrachill_shop_ticket_order_state( $order ),
+			'created_at'  => $created ? gmdate( 'Y-m-d\\TH:i:s\\Z', $created->getTimestamp() ) : '',
 			'passes'      => extrachill_shop_buyer_ticket_passes( $reference ),
 		);
 	}

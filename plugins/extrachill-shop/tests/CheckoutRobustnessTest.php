@@ -8,6 +8,7 @@ require_once __DIR__ . '/MerchCheckoutTest.php';
 require_once __DIR__ . '/SellerOrderNotificationsTest.php';
 // Shares SellerListingTest's wc_get_orders() double through its callback hook.
 require_once __DIR__ . '/SellerListingTest.php';
+require_once __DIR__ . '/fixtures/ticket-wc-orders.php';
 
 final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 	private const VENUE = array( 'type' => 'venue', 'id' => 9911 );
@@ -336,36 +337,49 @@ final class CheckoutRobustnessTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'pending', $order->status );
 	}
 
-	private function ticket_order( string $status ): void {
-		$GLOBALS['test_options']['extrachill_ticket_order_cs_t'] = array( 'account' => 'acct_venue', 'seller' => self::VENUE, 'event' => 101, 'payment_intent' => '', 'status' => $status );
+	private function ticket_order( string $status ): TicketTestOrder {
+		$GLOBALS['test_orders'] = array();
+		$order                  = wc_create_order( array( 'status' => $status ) );
+		$order->update_meta_data( EXTRACHILL_SHOP_ORDER_KIND_META, EXTRACHILL_SHOP_TICKET_KIND );
+		$order->update_meta_data( '_extrachill_stripe_account', 'acct_venue' );
+		$order->update_meta_data( '_extrachill_checkout_sessions', array( 'cs_t' => 'acct_venue' ) );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_REFERENCE_META, 'cs_t' );
+		return $order;
 	}
 
 	private function ticket_event( string $type, string $account = 'acct_venue' ) {
+		$order_id = (string) ( array_key_first( $GLOBALS['test_orders'] ) ?? 0 );
 		return (object) array(
 			'type'    => $type,
 			'account' => $account,
-			'data'    => (object) array( 'object' => (object) array( 'id' => 'cs_t', 'payment_status' => 'unpaid', 'metadata' => (object) array( 'kind' => 'extrachill_ticket' ) ) ),
+			'data'    => (object) array( 'object' => (object) array( 'id' => 'cs_t', 'payment_status' => 'unpaid', 'metadata' => (object) array( 'kind' => 'extrachill_ticket', 'order_id' => $order_id ) ) ),
 		);
 	}
 
-	public function test_expired_or_failed_ticket_session_closes_the_pending_row(): void {
-		$this->ticket_order( 'pending' );
+	public function test_expired_or_failed_ticket_session_closes_the_pending_order(): void {
+		$order = $this->ticket_order( 'pending' );
 		$this->assertTrue( extrachill_shop_route_webhook_event( $this->ticket_event( 'checkout.session.expired' ) ) );
-		$this->assertSame( 'expired', $GLOBALS['test_options']['extrachill_ticket_order_cs_t']['status'] );
-		$this->ticket_order( 'pending' );
+		// Through the merch expiry path: an expired Session cancels the order.
+		$this->assertSame( 'cancelled', $order->get_status() );
+		$this->assertSame( 'expired', extrachill_shop_ticket_order_state( $order ) );
+		$order = $this->ticket_order( 'pending' );
 		$this->assertTrue( extrachill_shop_route_webhook_event( $this->ticket_event( 'checkout.session.async_payment_failed' ) ) );
-		$this->assertSame( 'failed', $GLOBALS['test_options']['extrachill_ticket_order_cs_t']['status'] );
+		$this->assertSame( 'failed', $order->get_status() );
 		// Events recorded nothing for an unpaid Session, so nothing is called there.
 		$this->assertSame( array(), $GLOBALS['test_owner_calls'] );
 	}
 
-	public function test_closing_ticket_session_leaves_issued_rows_and_checks_account(): void {
-		$this->ticket_order( 'issued' );
+	public function test_closing_ticket_session_leaves_paid_orders_and_checks_account(): void {
+		$order = $this->ticket_order( 'completed' );
 		$this->assertTrue( extrachill_shop_route_webhook_event( $this->ticket_event( 'checkout.session.expired' ) ) );
-		$this->assertSame( 'issued', $GLOBALS['test_options']['extrachill_ticket_order_cs_t']['status'] );
-		$this->ticket_order( 'pending' );
+		$this->assertSame( 'completed', $order->get_status() );
+		$order = $this->ticket_order( 'pending' );
 		$this->assertSame( 'ticket_account_mismatch', extrachill_shop_route_webhook_event( $this->ticket_event( 'checkout.session.expired', 'acct_other' ) )->get_error_code() );
-		$this->assertSame( 'pending', $GLOBALS['test_options']['extrachill_ticket_order_cs_t']['status'] );
+		$this->assertSame( 'pending', $order->get_status() );
+		// A merch order never closes through a ticket event, and vice versa.
+		$order->delete_meta_data( EXTRACHILL_SHOP_ORDER_KIND_META );
+		$this->assertSame( 'ticket_account_mismatch', extrachill_shop_route_webhook_event( $this->ticket_event( 'checkout.session.expired' ) )->get_error_code() );
+		$this->assertSame( 'pending', $order->get_status() );
 	}
 
 	// ── Merch disputes ────────────────────────────────────────────────────────

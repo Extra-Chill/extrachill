@@ -12,6 +12,9 @@ class Session {
 	public $status;
 
 	public static function create( $params, $options ) {
+		if ( ! empty( $GLOBALS['test_session_create_fail'] ) ) {
+			throw new \RuntimeException( 'Stripe unavailable' );
+		}
 		$GLOBALS['ticket_session_request']    = array( $params, $options );
 		$GLOBALS['stripe_sessions_created'][] = array( $params, $options );
 		$id                                   = empty( $GLOBALS['stripe_session_ids'] ) ? 'cs_ticket' : array_shift( $GLOBALS['stripe_session_ids'] );

@@ -249,6 +249,8 @@ function ec_can_manage_artist( $user_id, $artist_id ) {
 require_once dirname( __DIR__, 2 ) . '/extrachill-network/inc/core/service-assertions.php';
 require_once dirname( __DIR__ ) . '/inc/core/commerce-state.php';
 require_once dirname( __DIR__ ) . '/inc/core/seller-permissions.php';
+// Order kind checks (ticket vs merch) run in every order path.
+require_once dirname( __DIR__ ) . '/inc/core/ticket-orders.php';
 require_once dirname( __DIR__ ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__ ) . '/inc/products/priority-boost.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-stripe-status.php';

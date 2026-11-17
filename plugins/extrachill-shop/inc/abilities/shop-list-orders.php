@@ -106,7 +106,8 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 		'order'    => 'DESC',
 		'status'   => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
 	);
-	$args = extrachill_shop_scope_order_query_to_seller( $args, $seller );
+	// Ticket sales have nothing to ship; they never show up here.
+	$args = extrachill_shop_exclude_ticket_orders( extrachill_shop_scope_order_query_to_seller( $args, $seller ) );
 	if ( 'needs_fulfillment' === $status ) {
 		// Disputed orders are on hold but must not be shipped; they stay under All.
 		$args           = extrachill_shop_exclude_disputed_orders( $args );

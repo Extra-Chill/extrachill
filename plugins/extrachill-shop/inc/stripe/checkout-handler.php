@@ -233,18 +233,24 @@ function extrachill_shop_checkout_session_expires_at() {
 }
 
 /**
- * The merch order a Session event belongs to, checked against the account
- * the Session was created on.
+ * The order a Session event belongs to, checked against the order kind and
+ * the account the Session was created on.
  *
  * @param object $session Checkout Session.
  * @param string $account Connected account from the event ('' for platform).
+ * @param string $kind    `extrachill_merch` or `extrachill_ticket`.
  * @return WC_Order|WP_Error
  */
-function extrachill_shop_get_merch_session_order( $session, $account ) {
+function extrachill_shop_get_session_order( $session, $account, $kind = 'extrachill_merch' ) {
+	/** @var WC_Order|false $order Session metadata names an order, never a refund. */
 	$order    = wc_get_order( (int) ( $session->metadata->order_id ?? 0 ) );
 	$sessions = $order ? extrachill_shop_order_checkout_sessions( $order ) : array();
-	if ( ! $order || 'extrachill_stripe_checkout' !== $order->get_payment_method() || ! array_key_exists( (string) $session->id, $sessions ) || (string) $sessions[ $session->id ] !== (string) $account ) {
-		return new WP_Error( 'merch_account_mismatch', 'Unknown merch order or account.', array( 'status' => 409 ) );
+	$is_kind  = $order && ( EXTRACHILL_SHOP_TICKET_KIND === $kind
+		? extrachill_shop_order_is_ticket( $order )
+		: 'extrachill_stripe_checkout' === $order->get_payment_method() );
+	if ( ! $is_kind || ! array_key_exists( (string) $session->id, $sessions ) || (string) $sessions[ $session->id ] !== (string) $account ) {
+		$prefix = EXTRACHILL_SHOP_TICKET_KIND === $kind ? 'ticket' : 'merch';
+		return new WP_Error( $prefix . '_account_mismatch', 'Unknown ' . $prefix . ' order or account.', array( 'status' => 409 ) );
 	}
 	return $order;
 }
@@ -261,7 +267,7 @@ function extrachill_shop_fulfil_merch_session( $session, $account ) {
 	if ( 'paid' !== $session->payment_status ) {
 		return true;
 	}
-	$order = extrachill_shop_get_merch_session_order( $session, $account );
+	$order = extrachill_shop_get_session_order( $session, $account );
 	if ( is_wp_error( $order ) ) {
 		return $order;
 	}
@@ -277,21 +283,24 @@ function extrachill_shop_fulfil_merch_session( $session, $account ) {
 }
 
 /**
- * A merch Session ended without payment: it expired, or its delayed payment
- * (such as a bank debit) failed.
+ * A merch or ticket Session ended without payment: it expired, or its
+ * delayed payment (such as a bank debit) failed.
  *
  * The order is cancelled (expired) or marked failed only while it is still
- * unpaid and this is its latest Session. Starting a new checkout expires the
- * previous Session, and that expiry must not cancel the order the buyer is
- * still paying for.
+ * unpaid and this is its latest Session. Starting a new merch checkout
+ * expires the previous Session, and that expiry must not cancel the order
+ * the buyer is still paying for. Events records ticket sales and issues
+ * passes only once a Session is paid, so an unpaid ticket order has nothing
+ * on the Events side to undo.
  *
  * @param object $session Checkout Session.
  * @param string $account Connected account from the event.
  * @param string $outcome 'expired' or 'failed'.
+ * @param string $kind    `extrachill_merch` or `extrachill_ticket`.
  * @return true|WP_Error
  */
-function extrachill_shop_close_merch_session( $session, $account, $outcome ) {
-	$order = extrachill_shop_get_merch_session_order( $session, $account );
+function extrachill_shop_close_checkout_session( $session, $account, $outcome, $kind = 'extrachill_merch' ) {
+	$order = extrachill_shop_get_session_order( $session, $account, $kind );
 	if ( is_wp_error( $order ) ) {
 		return $order;
 	}
@@ -308,22 +317,22 @@ function extrachill_shop_close_merch_session( $session, $account, $outcome ) {
 }
 
 /**
- * The merch order paid by a PaymentIntent on a connected account.
+ * The order paid by a PaymentIntent on a connected account.
  *
  * Charges, refunds and disputes do not carry the Checkout Session metadata,
- * so webhooks find the order by the PaymentIntent fulfilment stored on it.
+ * so webhooks find the order (merch or ticket) by the PaymentIntent stored
+ * on it at payment.
  *
  * @param string $intent  PaymentIntent ID.
  * @param string $account Connected account the charge is on.
  * @return WC_Order|null Null when no order matches this intent and account.
  */
-function extrachill_shop_find_merch_order_by_payment_intent( string $intent, $account ) {
+function extrachill_shop_find_order_by_payment_intent( string $intent, $account ) {
 	$orders = '' === $intent ? array() : wc_get_orders(
 		array(
-			'limit'          => 1,
-			'payment_method' => 'extrachill_stripe_checkout',
-			'meta_key'       => '_extrachill_payment_intent', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One indexed lookup per webhook.
-			'meta_value'     => $intent, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One indexed lookup per webhook.
+			'limit'      => 1,
+			'meta_key'   => '_extrachill_payment_intent', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- One indexed lookup per webhook.
+			'meta_value' => $intent, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- One indexed lookup per webhook.
 		)
 	);
 	$order  = $orders ? $orders[0] : null;
@@ -331,6 +340,18 @@ function extrachill_shop_find_merch_order_by_payment_intent( string $intent, $ac
 		return null;
 	}
 	return $order;
+}
+
+/**
+ * The merch order paid by a PaymentIntent on a connected account.
+ *
+ * @param string $intent  PaymentIntent ID.
+ * @param string $account Connected account the charge is on.
+ * @return WC_Order|null
+ */
+function extrachill_shop_find_merch_order_by_payment_intent( string $intent, $account ) {
+	$order = extrachill_shop_find_order_by_payment_intent( $intent, $account );
+	return $order && ! extrachill_shop_order_is_ticket( $order ) ? $order : null;
 }
 
 /**
@@ -468,7 +489,7 @@ function extrachill_shop_merch_dispute_closed( $dispute, $account ) {
 		$note = sprintf( 'The dispute was settled in the seller\'s favor (Stripe dispute %1$s, %2$s). The hold is lifted and the order is back to %3$s.', $dispute_id, $status, $prior );
 		$next = $order->has_status( 'on-hold' ) ? $prior : '';
 	} else {
-		if ( ! in_array( $dispute_id, extrachill_shop_recorded_merch_refunds( $order ), true ) ) {
+		if ( ! in_array( $dispute_id, extrachill_shop_recorded_stripe_refunds( $order ), true ) ) {
 			$remaining = (int) round( (float) $order->get_remaining_refund_amount() * 100 );
 			$minor     = min( $amount_minor, $remaining );
 			if ( $minor > 0 ) {

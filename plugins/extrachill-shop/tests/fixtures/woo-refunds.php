@@ -35,23 +35,7 @@ if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
 }
 require_once dirname( __DIR__, 2 ) . '/inc/stripe/class-merch-gateway.php';
 
-/** Refund bookkeeping for test orders, computed the way WC_Order does. */
-trait WooRefundTracking {
-	/** Saved refund rows, in major units. */
-	public $refunds = array();
-
-	public function get_total_refunded() {
-		return round( array_sum( $this->refunds ), 2 );
-	}
-
-	public function get_remaining_refund_amount() {
-		return round( (float) $this->get_total() - $this->get_total_refunded(), 2 );
-	}
-
-	public function get_refunds() {
-		return $GLOBALS['test_wc_refund_objects'][ $this->get_id() ] ?? array();
-	}
-}
+require_once __DIR__ . '/woo-refund-tracking.php';
 
 if ( ! function_exists( 'wc_create_refund' ) ) {
 	function wc_create_refund( $args ) {
@@ -74,6 +58,10 @@ if ( ! function_exists( 'wc_create_refund' ) ) {
 				unset( $order->refunds[ $index ] );
 				return new WP_Error( 'error', is_wp_error( $result ) ? $result->get_error_message() : 'Gateway refund failed.' );
 			}
+		}
+		// WooCommerce marks a fully refunded order `refunded`.
+		if ( method_exists( $order, 'mark_fully_refunded' ) && $order->get_remaining_refund_amount() <= 0 ) {
+			$order->mark_fully_refunded();
 		}
 		$refund = new TestWcRefund( 900 + $index, $amount );
 		// Saved WooCommerce refunds, as WC_Order::get_refunds() returns them.

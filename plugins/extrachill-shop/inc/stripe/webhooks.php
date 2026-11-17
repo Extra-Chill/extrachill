@@ -88,9 +88,9 @@ function extrachill_shop_route_webhook_event( $event ) {
 		return extrachill_shop_handle_account_updated( $data );
 	}
 	if ( '' !== $account && in_array( $event_type, array( 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed' ), true ) ) {
-		// Charges and disputes do not inherit PaymentIntent metadata, so ticket
-		// payments are recognised by the index written at fulfilment.
-		$is_ticket = ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $account . '_' . $data->payment_intent );
+		// Charges and disputes do not inherit PaymentIntent metadata, so the
+		// order (and its kind) is found by the PaymentIntent stored at payment.
+		$is_ticket = extrachill_shop_order_is_ticket( extrachill_shop_find_order_by_payment_intent( (string) ( $data->payment_intent ?? '' ), $account ) );
 		if ( 'charge.refunded' === $event_type ) {
 			// Merch refunds made outside Extra Chill (the seller's payout
 			// dashboard) are recorded on the WooCommerce order.
@@ -116,30 +116,18 @@ function extrachill_shop_route_webhook_event( $event ) {
  * @return bool|WP_Error
  */
 function extrachill_shop_route_checkout_session_event( $event_type, $session, $account, $kind ) {
-	$paid = in_array( $event_type, array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ), true );
-	if ( 'extrachill_merch' === $kind ) {
-		if ( $paid ) {
-			return extrachill_shop_fulfil_merch_session( $session, $account );
-		}
-		if ( 'checkout.session.expired' === $event_type ) {
-			return extrachill_shop_close_merch_session( $session, $account, 'expired' );
-		}
-		if ( 'checkout.session.async_payment_failed' === $event_type ) {
-			return extrachill_shop_close_merch_session( $session, $account, 'failed' );
-		}
+	// Tickets are always charged on the seller's account.
+	if ( 'extrachill_merch' !== $kind && ( 'extrachill_ticket' !== $kind || '' === $account ) ) {
 		return true;
 	}
-	// Tickets are always charged on the seller's account.
-	if ( 'extrachill_ticket' === $kind && '' !== $account ) {
-		if ( $paid ) {
-			return extrachill_shop_fulfil_ticket_session( $session, $account );
-		}
-		if ( 'checkout.session.expired' === $event_type ) {
-			return extrachill_shop_close_ticket_session( $session, $account, 'expired' );
-		}
-		if ( 'checkout.session.async_payment_failed' === $event_type ) {
-			return extrachill_shop_close_ticket_session( $session, $account, 'failed' );
-		}
+	if ( in_array( $event_type, array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ), true ) ) {
+		return 'extrachill_merch' === $kind ? extrachill_shop_fulfil_merch_session( $session, $account ) : extrachill_shop_fulfil_ticket_session( $session, $account );
+	}
+	if ( 'checkout.session.expired' === $event_type ) {
+		return extrachill_shop_close_checkout_session( $session, $account, 'expired', $kind );
+	}
+	if ( 'checkout.session.async_payment_failed' === $event_type ) {
+		return extrachill_shop_close_checkout_session( $session, $account, 'failed', $kind );
 	}
 	return true;
 }
