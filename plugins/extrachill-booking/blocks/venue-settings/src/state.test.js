@@ -1,9 +1,9 @@
-import { toggleAllowedWeekday, validateConfig } from './booking-state';
 /* global describe, expect, it */
 
 /**
  * Internal dependencies
  */
+import { toggleAllowedWeekday, validateConfig } from './booking-state';
 import {
 	editableConfig,
 	normalizeKey,
