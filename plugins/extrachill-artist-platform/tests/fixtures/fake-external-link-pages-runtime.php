@@ -151,6 +151,8 @@ function ec_link_page_default( $category, $key, $fallback = null ) { return $fal
 function ec_sanitize_link_page_links( $links, $link_page_id = 0 ) { return $links; }
 function ec_sanitize_link_page_css_vars( $vars, $existing = array() ) { return $vars; }
 function ec_sanitize_link_page_settings( $settings ) { return $settings; }
+function ec_validate_link_page_ad_tracking_id( $id ) { return true; }
+function ec_validate_link_page_analytics_tag_id( $id ) { return true; }
 function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) { return $overrides; }
 function ec_save_link_page_persistence( $link_page_id, $data ) { return $data; }
 function ec_save_link_page_persistence_composed( $link_page_id, $data, $finalizer ) { return call_user_func( $finalizer, $link_page_id, $data ); }

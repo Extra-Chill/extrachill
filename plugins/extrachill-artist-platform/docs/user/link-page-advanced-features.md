@@ -28,11 +28,11 @@ Running ads for a release or a tour? Add your own tracking IDs so your ads accou
 
 The last two boxes in **Advanced** hold your tracking IDs:
 
-1. **Ad tracking ID:** in the first of the two boxes, paste the ID from your ads account. It's a number made of digits only.
-2. **Analytics tag ID:** in the second box, paste the tag ID from your analytics account. It starts with **G-** or **AW-**, such as G-AB12CD34.
+1. **Ad tracking ID:** paste the pixel ID from your ads account. It's 13 to 16 digits, with no letters or spaces.
+2. **Analytics tag ID:** paste the tag ID from your analytics or ads account. It starts with **G-**, **AW-**, **GT-**, or **DC-**, followed by capital letters and numbers, such as G-AB12CD34.
 3. Choose **Save changes**.
 
-Each time someone opens your public link page, it's counted in those accounts. If an ID isn't in the right format, nothing is added to your page, so double-check it if you don't see visits. Clear a box and save to stop tracking with that account.
+Each time someone opens your public link page, it's counted in those accounts. If an ID isn't in the right format, a red message appears under the box and your changes aren't saved until you fix it or clear the box. Clear a box and save to stop tracking with that account.
 
 You don't need your own tracking to see visits and clicks. Extra Chill already counts them for you. See [Understanding Link Page Analytics](https://docs.extrachill.com/artist-platform/understanding-link-page-analytics).
 
