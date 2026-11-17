@@ -2,6 +2,12 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.55.2] - 2026-11-17
+
+### Fixed
+- give artist subscribers a way to unsubscribe
+- make newsletter signup an unchecked opt-in on the contact form
+
 ## [0.55.1] - 2026-11-16
 
 ### Fixed
