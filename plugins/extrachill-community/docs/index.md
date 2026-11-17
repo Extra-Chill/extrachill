@@ -32,6 +32,7 @@ This plugin provides comprehensive community features organized by functionality
 
 ### Core Infrastructure
 - [Core Features](core-features.md) - bbPress integration, asset management, template system
+- [Abilities](abilities.md) - Every registered `extrachill-community` ability: inputs, outputs, permissions, exposure
 
 ## Quick Reference
 
