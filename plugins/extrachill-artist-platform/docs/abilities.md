@@ -228,6 +228,32 @@ Shared [actor helpers](../inc/abilities/helpers.php) resolve an Agents API princ
 - **Exposure:** `show_in_rest: true`. API route: `GET /artists/{id}/subscribers/export`. CLI command: none found.
 - **Side effects:** Unless `include_exported=true`, marks newly exported subscriber rows `exported=1`. Returns data for client-side CSV creation, not a file.
 
+### `extrachill/artist-subscriber-unsubscribe`
+
+- **Purpose:** Resolves a signed artist subscriber unsubscribe link (as included in subscriber exports). Without `confirm` it returns a scanner-safe confirmation page and changes nothing; with `confirm` it removes that email from the artist’s list.
+- **Input:** `token` (string, optional) — signed unsubscribe token; `confirm` (boolean, optional) — perform the unsubscribe (POST) instead of rendering the confirmation (GET). Additional properties are rejected.
+- **Output:** object {`status` (required): string [enum: `confirm`, `unsubscribed`, `invalid`, `unavailable`]; `title` (required): string; `message` (required): string; `html` (required): string (standalone HTML document)}. Invalid or missing tokens return `status: invalid` rather than an error. A valid token whose subscription is already gone returns `unsubscribed`.
+- **Permission:** `__return_true` (public). The signed token is the authorization; it never expires and only covers removing that email from that one artist’s list.
+- **Exposure:** `show_in_rest: false`. API route: `GET /artists/subscribers/unsubscribe` (confirmation page) and `POST /artists/subscribers/unsubscribe` (confirm), served as `text/html`. CLI command: none found.
+- **Side effects:** With `confirm=true`, deletes the matching row from the current blog’s `artist_subscribers` table (matched by the token’s email fingerprint, first on the hinted row ID, then across all of that artist’s rows in case the person resubscribed). Without `confirm`, read-only.
+
+### `extrachill/list-my-artist-subscriptions`
+
+- **Purpose:** Lists the artist mailing lists the current member is on, matched by account or account email.
+- **Input:** none (empty object). Additional properties are rejected.
+- **Output:** object {`subscriptions` (required): array of object {`subscriber_id`: integer; `artist_id`: integer; `artist_name`: string; `artist_url`: string; `subscribed_at`: string}}. Rows match the current blog’s `artist_subscribers` table by `user_id` or by the account’s `user_email` (so signed-out or pre-account signups appear), newest `subscribed_at` first. `artist_url` is empty when the artist profile no longer exists. A failed database read returns a 500 `artist_subscriptions_read_failed` error.
+- **Permission:** `is_user_logged_in`. Always scoped to the current user; no artist-management capability is required.
+- **Exposure:** `show_in_rest: true`. API route: `GET /artists/me/subscriptions`. CLI command: none found.
+
+### `extrachill/remove-my-artist-subscription`
+
+- **Purpose:** Removes the current member from one artist mailing list they are on.
+- **Input:** `subscriber_id` (integer, required) [minimum=1] — a subscription ID from `extrachill/list-my-artist-subscriptions`. Additional properties are rejected.
+- **Output:** object {`removed` (optional): boolean; `subscriber_id` (optional): integer}. Returns `removed: true` with the ID on success. A row that does not belong to the current user (by `user_id` or account email) returns a 404 `artist_subscription_not_found` error, so other people’s subscriptions are never revealed; a failed delete returns a 500 `artist_unsubscribe_failed` error.
+- **Permission:** `is_user_logged_in`. Ownership is enforced in the execute callback, not the permission callback.
+- **Exposure:** `show_in_rest: true`. API route: `DELETE /artists/me/subscriptions/{subscriber_id}`. CLI command: none found.
+- **Side effects:** Deletes the matching row from the current blog’s `artist_subscribers` table. Does not send email.
+
 ### `extrachill/artist-get-analytics`
 
 - **Purpose:** Returns link page analytics for an artist.
