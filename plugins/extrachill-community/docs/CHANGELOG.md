@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.33.1] - 2026-11-17
+
+### Fixed
+- repoint adapters at current community, newsletter and shop abilities
+
 ## [1.33.0] - 2026-11-17
 
 ### Added
