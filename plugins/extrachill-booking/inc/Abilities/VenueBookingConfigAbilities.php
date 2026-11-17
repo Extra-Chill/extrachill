@@ -451,6 +451,17 @@ class VenueBookingConfigAbilities {
 				'minimum' => 5,
 				'maximum' => VenueBookingConfig::HOLD_TTL_MAX_MINUTES,
 			),
+			'allowed_weekdays'          => array(
+				'type'        => 'array',
+				'description' => 'ISO-8601 weekdays (1 = Monday through 7 = Sunday) that public inquiries may request. Empty allows every day.',
+				'maxItems'    => 7,
+				'uniqueItems' => true,
+				'items'       => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+					'maximum' => 7,
+				),
+			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
 		$required            = array( 'version', 'enabled', 'intake', 'consent', 'attachment_policy', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );

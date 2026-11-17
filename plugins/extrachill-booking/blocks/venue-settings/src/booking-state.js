@@ -4,6 +4,36 @@
 import { normalizeBookingOrigin } from './booking-embed';
 
 export const HOLD_TTL_MAX_MINUTES = 20160;
+export const BOOKING_WEEKDAYS = [
+	[ 1, 'Monday' ],
+	[ 2, 'Tuesday' ],
+	[ 3, 'Wednesday' ],
+	[ 4, 'Thursday' ],
+	[ 5, 'Friday' ],
+	[ 6, 'Saturday' ],
+	[ 7, 'Sunday' ],
+];
+
+/**
+ * Toggle one ISO weekday in a venue's allow-list, keeping it unique and sorted.
+ *
+ * @param {number[]} allowedWeekdays Current allow-list; empty allows every day.
+ * @param {number}   weekday         ISO weekday, 1 = Monday ... 7 = Sunday.
+ * @param {boolean}  checked         Whether the weekday is now allowed.
+ * @return {number[]} Next allow-list.
+ */
+export const toggleAllowedWeekday = ( allowedWeekdays, weekday, checked ) => {
+	const next = new Set(
+		Array.isArray( allowedWeekdays ) ? allowedWeekdays : []
+	);
+	if ( checked ) {
+		next.add( weekday );
+	} else {
+		next.delete( weekday );
+	}
+	return [ ...next ].sort( ( a, b ) => a - b );
+};
+
 export const BOOKING_ATTACHMENT_PURPOSES = [
 	[ 'promo_image', 'Promotional image' ],
 	[ 'epk', 'Electronic press kit' ],
@@ -90,6 +120,15 @@ export const validateConfig = ( config ) => {
 	}
 	if ( ! Number.isFinite( config.hold_ttl_minutes ) ) {
 		errors.push( 'Hold duration must be a number.' );
+	}
+	if (
+		config.allowed_weekdays !== undefined &&
+		( ! Array.isArray( config.allowed_weekdays ) ||
+			config.allowed_weekdays.some(
+				( day ) => ! Number.isInteger( day ) || day < 1 || day > 7
+			) )
+	) {
+		errors.push( 'Booking days must be days of the week.' );
 	}
 	const attachmentPolicy = config.attachment_policy;
 	if (

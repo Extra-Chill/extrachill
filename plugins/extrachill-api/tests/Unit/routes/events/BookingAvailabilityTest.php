@@ -170,6 +170,39 @@ class Booking_AvailabilityTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'status' => 400 ), $inquiry->get_error_data() );
 	}
 
+	/** A disallowed weekday maps to one stable, human-readable 400 on every transport. */
+	public function test_weekday_unavailable_projection_is_stable_and_safe() {
+		$owner  = new WP_Error(
+			'booking_availability_weekday_unavailable',
+			'Owner details.',
+			array(
+				'status'           => 400,
+				'allowed_weekdays' => array( 3 ),
+			)
+		);
+		$direct = extrachill_api_booking_availability_public_error( $owner );
+
+		$this->assertWPError( $direct );
+		$this->assertSame( 'booking_availability_weekday_unavailable', $direct->get_error_code() );
+		$this->assertSame( array( 'status' => 400 ), $direct->get_error_data() );
+		$this->assertStringNotContainsString( 'Owner', wp_json_encode( $direct ) );
+
+		$affinity = extrachill_api_booking_availability_affinity_response(
+			array(
+				'code'    => 'booking_availability_weekday_unavailable',
+				'message' => 'Owner details.',
+			),
+			400,
+			array()
+		);
+		$this->assertSame( 400, $affinity->get_status() );
+		$this->assertSame( 'booking_availability_weekday_unavailable', $affinity->get_data()['code'] );
+
+		$inquiry = extrachill_api_booking_public_error( $owner );
+		$this->assertSame( 'booking_availability_weekday_unavailable', $inquiry->get_error_code() );
+		$this->assertSame( array( 'status' => 400 ), $inquiry->get_error_data() );
+	}
+
 	/** The advisory endpoint consumes the public-read budget, not Turnstile. */
 	public function test_public_read_rate_limit_returns_stable_429() {
 		add_filter( 'extrachill_api_booking_availability_rate_limit', static function () { return 1; } );

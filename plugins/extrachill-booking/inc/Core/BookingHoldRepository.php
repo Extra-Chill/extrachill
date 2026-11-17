@@ -1065,6 +1065,17 @@ class BookingHoldRepository {
 		if ( $local_start->format( 'Y-m-d' ) < ( new \DateTimeImmutable( 'now', $timezone ) )->format( 'Y-m-d' ) ) {
 			return new \WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
+		$allowed_weekdays = is_array( $config['allowed_weekdays'] ?? null ) ? $config['allowed_weekdays'] : array();
+		if ( $allowed_weekdays && ! in_array( (int) $local_start->format( 'N' ), $allowed_weekdays, true ) ) {
+			return new \WP_Error(
+				'booking_availability_weekday_unavailable',
+				__( 'This venue only takes booking inquiries on certain days of the week. Choose another date.', 'extrachill-booking' ),
+				array(
+					'status'           => 400,
+					'allowed_weekdays' => array_values( $allowed_weekdays ),
+				)
+			);
+		}
 		$utc     = new \DateTimeZone( 'UTC' );
 		$booking = array(
 			'id'                   => 0,

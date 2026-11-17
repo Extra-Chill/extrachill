@@ -206,6 +206,60 @@ export const bookingDateInterval = ( value ) => {
 	};
 };
 
+const WEEKDAY_NAMES = [
+	'Mondays',
+	'Tuesdays',
+	'Wednesdays',
+	'Thursdays',
+	'Fridays',
+	'Saturdays',
+	'Sundays',
+];
+
+/**
+ * Describe the ISO-8601 weekdays (1 = Monday ... 7 = Sunday) a venue books.
+ *
+ * @param {number[]} allowedWeekdays Venue weekday allow-list; empty allows all.
+ * @return {string} Plain sentence, or an empty string when every day is open.
+ */
+export const allowedWeekdaysLabel = ( allowedWeekdays ) => {
+	const days = ( Array.isArray( allowedWeekdays ) ? allowedWeekdays : [] )
+		.filter( ( day ) => Number.isInteger( day ) && day >= 1 && day <= 7 )
+		.sort( ( a, b ) => a - b )
+		.map( ( day ) => WEEKDAY_NAMES[ day - 1 ] );
+	if ( ! days.length || days.length === 7 ) {
+		return '';
+	}
+	let list = days[ 0 ];
+	if ( days.length === 2 ) {
+		list = `${ days[ 0 ] } and ${ days[ 1 ] }`;
+	} else if ( days.length > 2 ) {
+		list = `${ days.slice( 0, -1 ).join( ', ' ) }, and ${ days.at( -1 ) }`;
+	}
+	return `Booking inquiries are for ${ list } only.`;
+};
+
+/**
+ * Whether a YYYY-MM-DD date falls on a weekday the venue books.
+ *
+ * @param {number[]} allowedWeekdays Venue weekday allow-list; empty allows all.
+ * @param {string}   value           Requested date.
+ * @return {boolean} True when allowed or when no date is chosen yet.
+ */
+export const isAllowedWeekday = ( allowedWeekdays, value ) => {
+	if (
+		! value ||
+		! Array.isArray( allowedWeekdays ) ||
+		! allowedWeekdays.length
+	) {
+		return true;
+	}
+	const [ year, month, day ] = value.split( '-' ).map( Number );
+	const weekday =
+		new Date( Date.UTC( year, month - 1, day ) ).getUTCDay() || 7;
+	return allowedWeekdays.includes( weekday );
+};
+
 export const buildPayload = ( config, values, idempotencyKey, token ) => {
 	const interval = bookingDateInterval( values.requestedDate );
 	return {

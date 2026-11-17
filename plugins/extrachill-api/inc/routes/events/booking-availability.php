@@ -124,6 +124,11 @@ function extrachill_api_booking_availability_date_past_error() {
 	return new WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-api' ), array( 'status' => 400 ) );
 }
 
+/** Return the public error for a requested date on a weekday the venue does not book. */
+function extrachill_api_booking_availability_weekday_error() {
+	return new WP_Error( 'booking_availability_weekday_unavailable', __( 'This venue only takes booking inquiries on certain days of the week. Choose another date.', 'extrachill-api' ), array( 'status' => 400 ) );
+}
+
 /** Return the one retryable dependency/service response. */
 function extrachill_api_booking_availability_service_error() {
 	return new WP_Error(
@@ -147,6 +152,9 @@ function extrachill_api_booking_availability_public_error( WP_Error $error ) {
 	if ( 'booking_availability_date_past' === $code ) {
 		return extrachill_api_booking_availability_date_past_error();
 	}
+	if ( 'booking_availability_weekday_unavailable' === $code ) {
+		return extrachill_api_booking_availability_weekday_error();
+	}
 	if ( 'public_read_rate_limited' === $code ) {
 		$data = (array) $error->get_error_data();
 		return new WP_Error(
@@ -169,6 +177,9 @@ function extrachill_api_booking_availability_affinity_response( $data, $status, 
 	}
 	if ( 400 === $status && is_array( $data ) && 'booking_availability_date_past' === ( $data['code'] ?? null ) ) {
 		return rest_convert_error_to_response( extrachill_api_booking_availability_date_past_error() );
+	}
+	if ( 400 === $status && is_array( $data ) && 'booking_availability_weekday_unavailable' === ( $data['code'] ?? null ) ) {
+		return rest_convert_error_to_response( extrachill_api_booking_availability_weekday_error() );
 	}
 	if ( 400 === $status ) {
 		return rest_convert_error_to_response( extrachill_api_booking_availability_validation_error() );
