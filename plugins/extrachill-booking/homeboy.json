@@ -57,8 +57,10 @@
           }
         ],
         "validation_dependencies": [
-          "../extrachill-events",
-          "../extrachill-network"
+          "../extrachill-users",
+          "../extrachill-api",
+          "../extrachill-network",
+          "../extrachill-events"
         ],
         "local_workspace_dependencies": [
           {
@@ -67,17 +69,8 @@
           }
         ],
         "wp_codebox_database_service": {
-          "provider": "external",
-          "engine": "mysql",
-          "allowed_hosts": [
-            "127.0.0.1:3306"
-          ],
-          "secret_env": {
-            "host": "WP_CODEBOX_DB_HOST",
-            "port": "WP_CODEBOX_DB_PORT",
-            "username": "WP_CODEBOX_DB_USER",
-            "password": "WP_CODEBOX_DB_PASSWORD"
-          }
+          "provider": "docker",
+          "engine": "mysql"
         }
       }
     }
