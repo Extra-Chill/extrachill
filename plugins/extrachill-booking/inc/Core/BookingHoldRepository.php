@@ -14,6 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns hold persistence, expiration, conflicts, and hold-aware transitions. */
 class BookingHoldRepository {
 
+	/** Canonical overlaps read per page while checking booking conflicts. */
+	private const CANONICAL_OVERLAP_PER_PAGE = 100;
+
+	/** Upper bound on pages read before failing closed. */
+	private const CANONICAL_OVERLAP_MAX_PAGES = 10;
+
 	public const STATUSES        = array( 'active', 'released', 'expired', 'converted' );
 	public const EXPIRY_HOOK     = 'extrachill_events_expire_booking_hold';
 	public const SCHEDULER_GROUP = 'extrachill-events-booking-holds';
@@ -1140,13 +1146,64 @@ class BookingHoldRepository {
 		if ( false === $start || false === $end || $start->format( 'Y-m-d H:i:s' ) !== $booking['performance_start_at'] || $end->format( 'Y-m-d H:i:s' ) !== $booking['performance_end_at'] ) {
 			return new \WP_Error( 'booking_conflict_check_failed', __( 'Canonical event conflicts could not be checked for an invalid booking interval.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
+		$space_count = null;
+		for ( $page = 1; $page <= self::CANONICAL_OVERLAP_MAX_PAGES; ++$page ) {
+			$events = $this->canonical_overlap_page( $booking, $timezone, $start, $end, $page );
+			if ( is_wp_error( $events ) ) {
+				return $events;
+			}
+			foreach ( $events['events'] as $event_id ) {
+				$bound_space = $this->canonical_event_space( (int) $booking['venue_term_id'], $event_id );
+				if ( is_wp_error( $bound_space ) ) {
+					return $bound_space;
+				}
+				if ( null !== $bound_space ) {
+					// A booking-converted event occupies only its own space.
+					if ( $bound_space === $booking['space_key'] ) {
+						return $this->canonical_conflict( $event_id, 'space' );
+					}
+					continue;
+				}
+				// An event with no space binding blocks the whole venue only
+				// when the venue has a single space; at multi-space venues it
+				// cannot be attributed to the requested room.
+				if ( null === $space_count ) {
+					$space_count = $this->venue_space_count( (int) $booking['venue_term_id'] );
+					if ( is_wp_error( $space_count ) ) {
+						return $space_count;
+					}
+				}
+				if ( $space_count <= 1 ) {
+					return $this->canonical_conflict( $event_id, 'single_space_venue' );
+				}
+			}
+			if ( ! $events['has_more'] ) {
+				return null;
+			}
+		}
+		return new \WP_Error(
+			'booking_canonical_overlap_contract_invalid',
+			__( 'Canonical event conflict checking returned too many overlapping events to evaluate safely.', 'extrachill-events' ),
+			array(
+				'status'    => 502,
+				'retryable' => true,
+			)
+		);
+	}
+
+	/**
+	 * Read and validate one page of published canonical events overlapping a booking interval.
+	 *
+	 * @return array{events: int[], has_more: bool}|\WP_Error
+	 */
+	private function canonical_overlap_page( array $booking, \DateTimeZone $timezone, \DateTimeImmutable $start, \DateTimeImmutable $end, int $page ) {
 		$query  = array(
 			'venue_id' => (int) $booking['venue_term_id'],
 			'start'    => $start->format( 'Y-m-d\TH:i:s\Z' ),
 			'end'      => $end->format( 'Y-m-d\TH:i:s\Z' ),
 			'exclude'  => (int) $booking['event_id'] > 0 ? array( (int) $booking['event_id'] ) : array(),
-			'page'     => 1,
-			'per_page' => 1,
+			'page'     => $page,
+			'per_page' => self::CANONICAL_OVERLAP_PER_PAGE,
 			'statuses' => array( 'publish' ),
 		);
 		$result = data_machine_events_query_venue_interval_overlaps( $query );
@@ -1174,13 +1231,13 @@ class BookingHoldRepository {
 			&& $interval_end->format( DATE_RFC3339 ) === $result['interval']['end']
 			&& $interval_start->getTimestamp() === $start->getTimestamp()
 			&& $interval_end->getTimestamp() === $end->getTimestamp()
-			&& 1 === ( $result['page'] ?? null )
-			&& 1 === ( $result['per_page'] ?? null )
+			&& ( $result['page'] ?? null ) === $page
+			&& self::CANONICAL_OVERLAP_PER_PAGE === ( $result['per_page'] ?? null )
 			&& is_bool( $result['has_more'] ?? null )
 			&& isset( $result['events'] )
 			&& is_array( $result['events'] )
 			&& array_is_list( $result['events'] )
-			&& count( $result['events'] ) <= 1
+			&& count( $result['events'] ) <= self::CANONICAL_OVERLAP_PER_PAGE
 			&& ( ! empty( $result['events'] ) || false === $result['has_more'] );
 		if ( ! $valid_result ) {
 			return new \WP_Error(
@@ -1192,27 +1249,59 @@ class BookingHoldRepository {
 				)
 			);
 		}
-		if ( empty( $result['events'] ) ) {
-			return null;
-		}
-		$event       = $result['events'][0];
-		$event_id    = is_array( $event ) ? ( $event['event_id'] ?? null ) : null;
-		$event_start = is_array( $event ) && is_string( $event['start'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['start'] ) : false;
-		$event_end   = is_array( $event ) && is_string( $event['end'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['end'] ) : false;
-		if ( ! is_int( $event_id ) || $event_id < 1 || $event_id === (int) $booking['event_id'] || 'publish' !== ( $event['status'] ?? null ) || false === $event_start || false === $event_end || $event_start->format( DATE_RFC3339 ) !== $event['start'] || $event_end->format( DATE_RFC3339 ) !== $event['end'] || $event_start >= $event_end ) {
-			return new \WP_Error(
-				'booking_canonical_overlap_contract_invalid',
-				__( 'Canonical event conflict checking returned an invalid event.', 'extrachill-events' ),
-				array(
-					'status'    => 502,
-					'retryable' => true,
-				)
-			);
+		$event_ids = array();
+		foreach ( $result['events'] as $event ) {
+			$event_id    = is_array( $event ) ? ( $event['event_id'] ?? null ) : null;
+			$event_start = is_array( $event ) && is_string( $event['start'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['start'] ) : false;
+			$event_end   = is_array( $event ) && is_string( $event['end'] ?? null ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d\TH:i:sP', $event['end'] ) : false;
+			if ( ! is_int( $event_id ) || $event_id < 1 || $event_id === (int) $booking['event_id'] || 'publish' !== ( $event['status'] ?? null ) || false === $event_start || false === $event_end || $event_start->format( DATE_RFC3339 ) !== $event['start'] || $event_end->format( DATE_RFC3339 ) !== $event['end'] || $event_start >= $event_end ) {
+				return new \WP_Error(
+					'booking_canonical_overlap_contract_invalid',
+					__( 'Canonical event conflict checking returned an invalid event.', 'extrachill-events' ),
+					array(
+						'status'    => 502,
+						'retryable' => true,
+					)
+				);
+			}
+			$event_ids[] = $event_id;
 		}
 		return array(
-			'id'            => $event_id,
-			'event_id'      => $event_id,
-			'conflict_type' => 'canonical_event',
+			'events'   => $event_ids,
+			'has_more' => $result['has_more'],
+		);
+	}
+
+	/**
+	 * Return the booking space a canonical event was converted from, or null when unbound.
+	 *
+	 * @return string|null|\WP_Error
+	 */
+	private function canonical_event_space( int $venue_id, int $event_id ) {
+		global $wpdb;
+		$bookings = BookingSchema::bookings_table();
+		$row      = $wpdb->get_row( $wpdb->prepare( "SELECT space_key FROM {$bookings} WHERE venue_term_id = %d AND event_id = %d LIMIT 1", $venue_id, $event_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized canonical event space binding read.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_conflict_check_failed', __( 'Booking conflicts could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) && is_string( $row['space_key'] ?? null ) && '' !== $row['space_key'] ? $row['space_key'] : null;
+	}
+
+	/** Count the configured booking spaces for a venue. */
+	private function venue_space_count( int $venue_id ) {
+		$config = $this->config->get( $venue_id );
+		if ( is_wp_error( $config ) ) {
+			return $config;
+		}
+		return count( (array) ( $config['spaces'] ?? array() ) );
+	}
+
+	private function canonical_conflict( int $event_id, string $space_policy ): array {
+		return array(
+			'id'                           => $event_id,
+			'event_id'                     => $event_id,
+			'conflict_type'                => 'canonical_event',
+			'canonical_event_space_policy' => $space_policy,
 		);
 	}
 
@@ -1223,7 +1312,7 @@ class BookingHoldRepository {
 			array(
 				'status'                       => 409,
 				'conflict'                     => $conflict,
-				'canonical_event_space_policy' => 'venue_wide',
+				'canonical_event_space_policy' => $conflict['canonical_event_space_policy'] ?? 'space_aware',
 			)
 		);
 	}

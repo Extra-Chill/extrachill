@@ -105,6 +105,22 @@ final class BookingHoldTest extends BookingTestCase {
 		return $booking;
 	}
 
+	/** Reduce the fixture venue to its single default space. */
+	private function single_space_venue(): void {
+		$config           = &$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ];
+		$config['spaces'] = array( $config['spaces'][0] );
+	}
+
+	private function canonical_event( int $post_id, string $start, string $end ): void {
+		$GLOBALS['wpdb']->event_dates[] = array(
+			'post_id'        => $post_id,
+			'venue_term_id'  => 55,
+			'start_datetime' => $start,
+			'end_datetime'   => $end,
+			'post_status'    => 'publish',
+		);
+	}
+
 	private function holds(): BookingHoldRepository {
 		return new BookingHoldRepository( null, null, new BookingTestAuthorization() );
 	}
@@ -220,6 +236,7 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'patio', '2030-08-01 20:30:00', '2030-08-01 22:00:00' ) );
 
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] = array();
+		$this->single_space_venue();
 		$GLOBALS['wpdb']->event_dates[] = array(
 			'post_id'        => 901,
 			'venue_term_id' => 55,
@@ -263,6 +280,77 @@ final class BookingHoldTest extends BookingTestCase {
 		);
 		$this->assertSame( 'booking_availability_date_past', $admitted->get_error_code() );
 		$this->assertSame( 0, $called, 'Final admission must not run for a past date.' );
+	}
+
+	/** An unbound published event still blocks the only space of a single-space venue. */
+	public function test_unbound_canonical_event_blocks_single_space_venue(): void {
+		$holds = $this->holds();
+		$this->single_space_venue();
+		$this->canonical_event( 910, '2030-08-01 21:00:00', '2030-08-01 22:00:00' );
+
+		$this->assertSame( array( 'available' => false ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$booking = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00' );
+		$error   = $holds->create( $booking['id'], 1, 12 );
+		$this->assertSame( 'booking_time_conflict', $error->get_error_code() );
+		$this->assertSame( 'single_space_venue', $error->get_error_data()['canonical_event_space_policy'] );
+	}
+
+	/** At a multi-space venue an unbound event (e.g. a scraped karaoke night) cannot fill every room. */
+	public function test_unbound_canonical_event_does_not_block_multi_space_venue(): void {
+		$holds = $this->holds();
+		$this->canonical_event( 911, '2030-08-01 21:00:00', '2030-08-01 22:00:00' );
+
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'patio', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$called   = 0;
+		$admitted = $holds->admit_public_interval(
+			array(
+				'venue_term_id'       => 55,
+				'requested_space_key' => 'patio',
+				'requested_start_at'  => '2030-08-01 00:00:00',
+				'requested_end_at'    => '2030-08-02 00:00:00',
+				'intake'              => array( 'config_revision' => 1 ),
+			),
+			static function () use ( &$called ) {
+				++$called;
+				return 'admitted';
+			}
+		);
+		$this->assertSame( 'admitted', $admitted );
+		$this->assertSame( 1, $called );
+	}
+
+	/** An event converted from a booking blocks only the space it was booked into. */
+	public function test_booking_bound_canonical_event_blocks_only_its_space(): void {
+		$holds = $this->holds();
+		$bound = $this->booking( '2030-08-02 01:00:00', '2030-08-02 02:00:00', 'patio', array( 'status' => 'completed' ) );
+		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $bound['id'] ]['event_id'] = 912;
+		$this->canonical_event( 912, '2030-08-01 21:00:00', '2030-08-01 22:00:00' );
+
+		$this->assertSame( array( 'available' => false ), $holds->public_interval_availability( 55, 'patio', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+
+		$patio = $this->booking( '2030-08-02 00:00:00', '2030-08-02 03:00:00', 'patio' );
+		$error = $holds->create( $patio['id'], 1, 12 );
+		$this->assertSame( 'booking_time_conflict', $error->get_error_code() );
+		$this->assertSame( 'space', $error->get_error_data()['canonical_event_space_policy'] );
+		$this->assertSame( 912, $error->get_error_data()['conflict']['event_id'] );
+	}
+
+	/** Overlaps beyond the first page are still evaluated before declaring a date open. */
+	public function test_canonical_overlaps_are_paged_until_a_blocking_event_is_found(): void {
+		$holds = $this->holds();
+		$this->single_space_venue();
+		for ( $id = 1; $id <= 150; ++$id ) {
+			$other = $this->booking( '2031-01-01 00:00:00', '2031-01-01 01:00:00', 'main-room', array( 'status' => 'completed' ) );
+			$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $other['id'] ]['space_key'] = 'retired-room';
+			$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $other['id'] ]['event_id']  = 2000 + $id;
+			$this->canonical_event( 2000 + $id, '2030-08-01 19:00:00', '2030-08-01 20:00:00' );
+		}
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$this->canonical_event( 3000, '2030-08-01 21:00:00', '2030-08-01 22:00:00' );
+		$this->assertSame( array( 'available' => false ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+		$this->assertSame( 2, end( $GLOBALS['ec_artist_test']['overlap_calls'] )['page'] );
 	}
 
 	/** Final admission callback runs under the filled-state lock and loses a race clearly. */
@@ -892,6 +980,7 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 'confirmed_booking', $holds->create( $overlap['id'], 1, 12 )->get_error_data()['conflict']['conflict_type'] );
 
 		$GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ][ $confirmed['id'] ]['status'] = 'cancelled';
+		$this->single_space_venue();
 		$GLOBALS['wpdb']->event_dates[] = array(
 			'post_id'        => 900,
 			'venue_term_id'  => 55,
@@ -937,7 +1026,7 @@ final class BookingHoldTest extends BookingTestCase {
 			'interval' => array( 'start' => '2030-08-01T15:00:00-04:00', 'end' => '2030-08-01T19:00:00-04:00' ),
 			'events'   => array(),
 			'page'     => 1,
-			'per_page' => 1,
+			'per_page' => 100,
 			'has_more' => false,
 		);
 		$this->assertSame( 'booking_canonical_overlap_contract_invalid', $holds->create( $booking['id'], 1, 12 )->get_error_code(), 'A response for a different interval must not mean no conflict.' );
