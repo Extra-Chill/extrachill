@@ -29,7 +29,7 @@ export interface QRGeneratorConfig {
 	profileUrl?: string;
 	loggedIn?: boolean;
 	teams?: Team[];
-	quota?: number;
+	supporterUrl?: string;
 	viewMine?: boolean;
 }
 
@@ -185,7 +185,7 @@ export function QRCodeGenerator( {
 			{ config.loggedIn && !! config.teams?.length && (
 				<ManagedCodes
 					teams={ config.teams }
-					quota={ config.quota }
+					supporterUrl={ config.supporterUrl }
 					openInitially={ config.viewMine }
 				/>
 			) }

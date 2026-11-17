@@ -56,7 +56,10 @@ $ec_qr_config = array(
 	'profileUrl' => function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'artist' ) ) . 'join' : $ec_qr_join_url,
 	'loggedIn'   => is_user_logged_in(),
 	'teams'      => $ec_qr_teams,
-	'quota'      => 100,
+	'supporterUrl' => (string) apply_filters(
+		'extrachill_supporter_url',
+		function_exists( 'ec_get_site_url' ) ? trailingslashit( (string) ec_get_site_url( 'shop' ) ) . 'product/lifetime-extra-chill-membership/' : ''
+	),
 );
 ?>
 <div <?php echo get_block_wrapper_attributes(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WordPress-generated wrapper. ?>>

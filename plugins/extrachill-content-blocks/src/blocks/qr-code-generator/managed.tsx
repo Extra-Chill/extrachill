@@ -22,6 +22,13 @@ export interface Team {
 	id: number;
 	name: string;
 }
+export interface TeamUsage {
+	team_type: string;
+	team_id: number;
+	quota: number;
+	used: number;
+	unlimited: boolean;
+}
 export interface ManagedCode extends Record< string, unknown > {
 	id: number;
 	label: string;
@@ -53,13 +60,14 @@ function ability< T >(
 
 export function ManagedCodes( {
 	teams,
-	quota = 100,
+	supporterUrl = '',
 	openInitially = false,
 }: {
 	teams: Team[];
-	quota?: number;
+	supporterUrl?: string;
 	openInitially?: boolean;
 } ) {
+	const [ usage, setUsage ] = useState< TeamUsage[] >( [] );
 	const [ open, setOpen ] = useState( openInitially );
 	const [ items, setItems ] = useState< ManagedCode[] >( [] );
 	const [ loaded, setLoaded ] = useState( false );
@@ -80,6 +88,36 @@ export function ManagedCodes( {
 	const id = useRef(
 		`ec-managed-qr-${ Math.random().toString( 36 ).slice( 2 ) }`
 	).current;
+
+	function teamUsage( team: Team ) {
+		return usage.find(
+			( item ) => item.team_type === team.type && item.team_id === team.id
+		);
+	}
+
+	function atCap( team: Team, count: number ) {
+		const found = teamUsage( team );
+		return !! found && ! found.unlimited && count >= found.quota;
+	}
+
+	function quotaLabel( team: Team, count: number ) {
+		const found = teamUsage( team );
+		if ( ! found ) {
+			return '';
+		}
+		if ( found.unlimited ) {
+			return __(
+				'Unlimited QR codes: thanks for supporting Extra Chill.',
+				'extrachill-content-blocks'
+			);
+		}
+		return sprintf(
+			/* translators: 1: QR codes used, 2: free QR code limit. */
+			__( '%1$d of %2$d free QR codes used', 'extrachill-content-blocks' ),
+			count,
+			found.quota
+		);
+	}
 
 	async function run( action: () => Promise< void > ) {
 		if ( lock.current ) {
@@ -107,8 +145,12 @@ export function ManagedCodes( {
 
 	async function load() {
 		await run( async () => {
-			const result = await ability< { items: ManagedCode[] } >( 'list' );
+			const result = await ability< {
+				items: ManagedCode[];
+				teams?: TeamUsage[];
+			} >( 'list' );
 			setItems( result.items );
+			setUsage( result.teams ?? [] );
 			setLoaded( true );
 		} );
 	}
@@ -218,18 +260,26 @@ export function ManagedCodes( {
 									>
 										<PanelHeader
 											title={ team.name }
-											description={ sprintf(
-												/* translators: %d: number of QR codes the team can still create. */
-												__(
-													'%d codes remaining',
-													'extrachill-content-blocks'
-												),
-												Math.max(
-													0,
-													quota - codes.length
-												)
+											description={ quotaLabel(
+												team,
+												codes.length
 											) }
 										/>
+										{ atCap( team, codes.length ) &&
+											supporterUrl && (
+												<InlineStatus tone="info">
+													{ __(
+														'Supporters get unlimited QR codes and no ads.',
+														'extrachill-content-blocks'
+													) }{ ' ' }
+													<a href={ supporterUrl }>
+														{ __(
+															'Become a supporter',
+															'extrachill-content-blocks'
+														) }
+													</a>
+												</InlineStatus>
+											) }
 										<DataTable< ManagedCode >
 											data={ codes }
 											emptyMessage={ __(

@@ -3,6 +3,14 @@ namespace ExtraChill\Users\Teams {
 	class TeamMembershipRepository {
 		const TYPES = array( 'artist', 'venue', 'promoter' );
 		const STATUS_ACTIVE = 'active';
+		public function select( $type, $criteria, $order ) {
+			$rows = array();
+			foreach ( $GLOBALS['members'] as $key => $row ) {
+				list( $t, $id, $user ) = explode( ':', $key );
+				if ( $type === $t && (int) $criteria['term'] === (int) $id && $criteria['status'] === $row['status'] ) { $rows[] = array( 'user_id' => (int) $user ); }
+			}
+			return $rows;
+		}
 		public function get( $type, $id, $user ) { return $GLOBALS['members'][ "$type:$id:$user" ] ?? null; }
 		public function term_ids( $type, $criteria ) {
 			$ids = array();
@@ -24,6 +32,8 @@ namespace {
 	$GLOBALS['stack'] = array();
 	function add_action( ...$args ) {}
 	function add_filter( ...$args ) {}
+	function apply_filters( $hook, $value, ...$args ) { return $value; }
+	function ec_is_supporter( $user_id ) { return in_array( (int) $user_id, $GLOBALS['supporters'] ?? array(), true ); }
 	function get_current_user_id() { return $GLOBALS['user']; }
 	function is_super_admin() { return 99 === get_current_user_id(); }
 	function ec_get_blog_id( $name ) { return 42; }
@@ -101,8 +111,20 @@ namespace {
 		check( is_wp_error( ec_managed_qr_execute( 'update', array( 'id' => $id, 'destination' => $url ) ) ), 'invalid update URL rejected' );
 	}
 	check( ec_managed_qr_valid_url( 'http://example.com' ), 'HTTP accepted' );
-	for ( $i = 1; $i < 100; ++$i ) { check( ! is_wp_error( ec_managed_qr_execute( 'create', $input ) ), 'create up to quota' ); }
-	check( 'qr_quota' === ec_managed_qr_execute( 'create', $input )->code, 'per-team quota enforced' );
+	for ( $i = 1; $i < 10; ++$i ) { check( ! is_wp_error( ec_managed_qr_execute( 'create', $input ) ), 'create up to free quota' ); }
+	$capped = ec_managed_qr_execute( 'create', $input );
+	check( 'qr_quota' === $capped->code && 10 === $capped->data['quota'] && 10 === $capped->data['used'], 'free quota of 10 per team enforced' );
+	check( str_contains( $capped->message, 'Supporters get unlimited' ), 'cap message pitches supporters' );
+	$list = ec_managed_qr_execute( 'list', array() );
+	check( array( 'team_type' => 'artist', 'team_id' => 7, 'quota' => 10, 'used' => 10, 'unlimited' => false ) === $list['teams'][0], 'list reports team usage' );
+	$GLOBALS['supporters'] = array( 2 );
+	check( 'qr_quota' === ec_managed_qr_execute( 'create', $input )->code, 'revoked supporter does not lift the cap' );
+	$GLOBALS['supporters'] = array( 1 );
+	check( ! is_wp_error( ec_managed_qr_execute( 'create', $input ) ), 'active supporter member makes the team unlimited' );
+	check( true === ec_managed_qr_execute( 'list', array() )['teams'][0]['unlimited'], 'list reports unlimited' );
+	$GLOBALS['supporters'] = array();
+	check( 'qr_quota' === ec_managed_qr_execute( 'create', $input )->code, 'losing supporter status restores the cap' );
+	check( ! is_wp_error( ec_managed_qr_execute( 'update', array( 'id' => $id, 'destination' => 'https://band.example/new' ) ) ), 'over-cap codes stay editable' );
 	$GLOBALS['user'] = 3;
 	check( ! is_wp_error( ec_managed_qr_execute( 'create', array_merge( $input, array( 'team_type' => 'venue', 'team_id' => 8 ) ) ) ), 'quota independent across teams' );
 	$GLOBALS['user'] = 1;

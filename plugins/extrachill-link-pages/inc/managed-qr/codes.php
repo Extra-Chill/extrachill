@@ -25,6 +25,67 @@ function ec_register_managed_qr_codes(): void {
 }
 
 /**
+ * Free managed QR codes per team.
+ */
+const EC_MANAGED_QR_FREE_QUOTA = 10;
+
+/**
+ * Whether any active member of a team is an Extra Chill supporter.
+ *
+ * @param string $type    Team type.
+ * @param int    $team_id Team ID.
+ */
+function ec_managed_qr_team_has_supporter( string $type, int $team_id ): bool {
+	if ( ! function_exists( 'ec_is_supporter' ) || ! class_exists( TeamMembershipRepository::class ) ) {
+		return false;
+	}
+	$rows = ( new TeamMembershipRepository() )->select(
+		$type,
+		array(
+			'term'   => $team_id,
+			'status' => TeamMembershipRepository::STATUS_ACTIVE,
+		),
+		'id ASC'
+	);
+	foreach ( $rows as $row ) {
+		if ( ec_is_supporter( (int) ( $row['user_id'] ?? 0 ) ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Managed QR code quota for a team. Zero means unlimited.
+ *
+ * Teams get EC_MANAGED_QR_FREE_QUOTA codes; a team with any active supporter
+ * member is unlimited. The quota only limits creation, never editing.
+ *
+ * @param string $type    Team type.
+ * @param int    $team_id Team ID.
+ */
+function ec_managed_qr_team_quota( string $type, int $team_id ): int {
+	$quota = ec_managed_qr_team_has_supporter( $type, $team_id ) ? 0 : EC_MANAGED_QR_FREE_QUOTA;
+	return max( 0, (int) apply_filters( 'ec_managed_qr_team_quota', $quota, $type, $team_id ) );
+}
+
+/**
+ * Quota summary for one team.
+ *
+ * @param string $type    Team type.
+ * @param int    $team_id Team ID.
+ * @return array{quota:int,used:int,unlimited:bool}
+ */
+function ec_managed_qr_team_usage( string $type, int $team_id ): array {
+	$quota = ec_managed_qr_team_quota( $type, $team_id );
+	return array(
+		'quota'     => $quota,
+		'used'      => count( ec_managed_qr_team_posts( $type, $team_id ) ),
+		'unlimited' => 0 === $quota,
+	);
+}
+
+/**
  * Check the authoritative, current team relationship (never post_author).
  *
  * @param string $type Team type.
@@ -145,6 +206,7 @@ function ec_managed_qr_execute( string $operation, array $input ) {
 function ec_managed_qr_execute_local( string $operation, array $input ) {
 	if ( 'list' === $operation ) {
 		$items = array();
+		$teams = array();
 		if ( ! class_exists( TeamMembershipRepository::class ) ) {
 			return new WP_Error( 'qr_teams_unavailable', 'Team membership is unavailable.' );
 		}
@@ -162,10 +224,20 @@ function ec_managed_qr_execute_local( string $operation, array $input ) {
 					foreach ( ec_managed_qr_team_posts( $type, (int) $team_id ) as $post ) {
 						$items[] = ec_managed_qr_present( $post );
 					}
+					$teams[] = array_merge(
+						array(
+							'team_type' => $type,
+							'team_id'   => (int) $team_id,
+						),
+						ec_managed_qr_team_usage( $type, (int) $team_id )
+					);
 				}
 			}
 		}
-		return array( 'items' => $items );
+		return array(
+			'items' => $items,
+			'teams' => $teams,
+		);
 	}
 	$post = null;
 	$type = (string) ( $input['team_type'] ?? '' );
@@ -191,8 +263,13 @@ function ec_managed_qr_execute_local( string $operation, array $input ) {
 		return ec_with_link_page_lock_scope(
 			$team,
 			static function () use ( $input, $type, $team ) {
-				if ( count( ec_managed_qr_team_posts( $type, $team ) ) >= 100 ) {
-					return new WP_Error( 'qr_quota', 'Each team can have up to 100 QR codes.', array( 'status' => 409 ) );
+				$usage = ec_managed_qr_team_usage( $type, $team );
+				if ( ! $usage['unlimited'] && $usage['used'] >= $usage['quota'] ) {
+					return new WP_Error(
+						'qr_quota',
+						sprintf( "You've used %1\$d/%2\$d free QR codes. Supporters get unlimited QR codes and no ads.", $usage['used'], $usage['quota'] ),
+						array_merge( array( 'status' => 409 ), $usage )
+					);
 				}
 				$code = bin2hex( random_bytes( 6 ) );
 				$id   = wp_insert_post(

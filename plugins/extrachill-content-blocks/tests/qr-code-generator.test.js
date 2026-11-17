@@ -40,7 +40,7 @@ function harness( request, config = {}, managed = false ) {
 		} ) ),
 		'@wordpress/element': element,
 		'@wordpress/api-fetch': { __esModule: true, default: request },
-		'@wordpress/i18n': { __: ( text ) => text, sprintf: ( format, ...args ) => args.reduce( ( out, arg ) => out.replace( /%[sd]/, arg ), format ) },
+		'@wordpress/i18n': { __: ( text ) => text, sprintf: ( format, ...args ) => args.reduce( ( out, arg, i ) => out.replace( new RegExp( `%(${ i + 1 }\\$)?[sd]` ), arg ), format ) },
 	} );
 	const { ManagedCodes } = load( path.join( __dirname, '../src/blocks/qr-code-generator/managed.tsx' ) );
 	const { QRCodeGenerator } = load( path.join( __dirname, '../src/blocks/qr-code-generator/view.tsx' ) );
@@ -134,7 +134,7 @@ const code = { id: 1, label: 'Flyer', destination: 'https://example.com', short_
 const button = ( tree, text ) => find( tree, ( node ) => node.type === 'button' && node.children.includes( text ) );
 const textOf = ( tree ) => JSON.stringify( tree );
 function manager( request, openInitially = true ) {
-	return harness( request, { teams, quota: 100, openInitially }, true );
+	return harness( request, { teams, supporterUrl: 'https://shop.example/supporter', openInitially }, true );
 }
 async function loadCodes( render ) {
 	await button( render(), 'Load QR codes' ).props.onClick();
@@ -159,13 +159,19 @@ test( 'logged-in visitors without teams get the profile join CTA and static form
 
 test( 'panel lists codes grouped by team with fan reach and remaining quota', async () => {
 	const other = { ...code, id: 2, team_type: 'venue', team_id: 20, label: 'Door' };
-	const render = manager( async () => ( { items: [ code, other ] } ) );
+	const usage = [
+		{ team_type: 'artist', team_id: 10, quota: 10, used: 1, unlimited: false },
+		{ team_type: 'venue', team_id: 20, quota: 0, used: 1, unlimited: true },
+	];
+	const render = manager( async () => ( { items: [ code, other ], teams: usage } ) );
 	await loadCodes( render );
 	const tree = render();
 	assert.match( textOf( tree ), /The Band/ );
 	assert.match( textOf( tree ), /The Room/ );
 	assert.match( textOf( tree ), /Scanned 12 times/ );
-	assert.match( textOf( tree ), /99 codes remaining/ );
+	assert.match( textOf( tree ), /1 of 10 free QR codes used/ );
+	assert.match( textOf( tree ), /Unlimited QR codes/ );
+	assert.doesNotMatch( textOf( tree ), /Become a supporter/ );
 	const table = type( tree, 'table' );
 	assert.equal( table.props.data.length, 1 );
 	assert.equal( table.props.data[ 0 ].team_type, 'artist' );
@@ -209,7 +215,7 @@ test( 'delete requires confirmation and frees quota', async () => {
 	let deletes = 0;
 	const render = manager( async ( options ) => {
 		if ( options.path.includes( '/delete-' ) ) { deletes++; return { deleted: true }; }
-		return { items: [ code ] };
+		return { items: [ code ], teams: [ { team_type: 'artist', team_id: 10, quota: 10, used: 1, unlimited: false } ] };
 	} );
 	await loadCodes( render );
 	button( render(), 'Delete' ).props.onClick();
@@ -219,7 +225,7 @@ test( 'delete requires confirmation and frees quota', async () => {
 	button( render(), 'Delete' ).props.onClick();
 	await button( render(), 'Confirm delete' ).props.onClick();
 	assert.equal( deletes, 1 );
-	assert.match( textOf( render() ), /100 codes remaining/ );
+	assert.match( textOf( render() ), /0 of 10 free QR codes used/ );
 } );
 
 test( '?view=mine config opens panel and gives logged-out visitors a return-aware login', () => {
@@ -278,4 +284,17 @@ test( 'managed PNG generation uses the immutable short URL and offers download',
 	assert.equal( called.path, '/extrachill/v1/tools/qr-code' );
 	assert.equal( called.data.url, code.short_url );
 	assert.equal( download( render() ).props.href, image );
+} );
+
+test( 'teams at the free cap see the supporter upgrade, and existing codes stay editable', async () => {
+	const full = Array.from( { length: 10 }, ( _, i ) => ( { ...code, id: i + 1 } ) );
+	const usage = [ { team_type: 'artist', team_id: 10, quota: 10, used: 10, unlimited: false } ];
+	const render = manager( async () => ( { items: full, teams: usage } ) );
+	await loadCodes( render );
+	const tree = render();
+	assert.match( textOf( tree ), /10 of 10 free QR codes used/ );
+	const link = find( tree, ( node ) => node.type === 'a' && node.props.href === 'https://shop.example/supporter' );
+	assert.match( link.children.join( '' ), /Become a supporter/ );
+	assert.match( textOf( tree ), /Supporters get unlimited QR codes and no ads/ );
+	assert.ok( button( tree, 'Edit / rename' ) );
 } );

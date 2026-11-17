@@ -6,7 +6,7 @@ The public QR generator block at `/qr-code-generator` includes a team-grouped â€
 
 `ec_qr_code` posts exist only on `ec_get_blog_id( 'link_pages' )`. Public access and the admin post editor are disabled. Post author is the creator, not the owner. `team_type`, `team_id`, and `destination` post meta store ownership and the HTTP(S) destination; the post title stores the label. The random 12-character slug is immutable through the abilities.
 
-Every operation checks current active membership through `TeamMembershipRepository`, or permits a network admin. Listing returns codes across all active memberships, with team fields for grouping. Network admins can operate on any known code; listing still enumerates their active memberships. Creates are serialized with the existing advisory-lock helper and limited to 100 published codes per team. Trashing frees quota.
+Every operation checks current active membership through `TeamMembershipRepository`, or permits a network admin. Listing returns codes across all active memberships, with team fields for grouping. Network admins can operate on any known code; listing still enumerates their active memberships. Creates are serialized with the existing advisory-lock helper and limited to 10 published codes per team (`EC_MANAGED_QR_FREE_QUOTA`). A team with any active member who is an Extra Chill supporter (`ec_is_supporter()`) is unlimited. Override with the `ec_managed_qr_team_quota( $quota, $team_type, $team_id )` filter, where 0 means unlimited. The quota only limits creation: codes over the cap stay editable. Trashing frees quota. `list` returns per-team `quota` / `used` / `unlimited`.
 
 ## Transport
 
