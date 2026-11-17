@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0] - 2026-11-17
+
+### Added
+- team-owned editable QR codes, 10 free per team, unlimited for supporters
+
 ## [1.14.1] - 2026-11-16
 
 ### Fixed
