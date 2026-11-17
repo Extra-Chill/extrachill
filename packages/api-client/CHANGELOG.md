@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.2] - 2026-11-17
+
+### Fixed
+- retire /users/me/subscriptions routes that wrap retired abilities
+
 ## [0.13.1] - 2026-11-16
 
 ### Fixed
