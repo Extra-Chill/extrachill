@@ -189,7 +189,7 @@ class VenueQualificationAbilities {
 	public function executeQualifyVenue( array $input ): array|\WP_Error {
 		$result = $this->qualifyWithPage( $input );
 		if ( is_array( $result ) ) {
-			unset( $result['page'] );
+			unset( $result['page'], $result['scrape'] );
 		}
 		return $result;
 	}
@@ -201,10 +201,18 @@ class VenueQualificationAbilities {
 	 * already fetched (url, final_url, http_status, html) so in-process
 	 * callers such as event-source classification can reuse it instead of
 	 * fetching the same page again. It is empty when no fetch happened.
-	 * The public ability strips it; see {@see self::executeQualifyVenue()}.
+	 *
+	 * The `scrape` key carries the raw scraper output (url, raw_events,
+	 * source_metadata) for the resolved events URL — or the submitted URL
+	 * when no events URL was resolved — from the single scraper execution
+	 * qualification already ran for that candidate, so callers can build
+	 * event previews without scraping again. It is empty when the scraper
+	 * did not run (or failed) for that URL, e.g. short-circuited verdicts.
+	 *
+	 * The public ability strips both keys; see {@see self::executeQualifyVenue()}.
 	 *
 	 * @param array $input Qualification parameters.
-	 * @return array|\WP_Error Ability payload plus `page`, or an error.
+	 * @return array|\WP_Error Ability payload plus `page` and `scrape`, or an error.
 	 */
 	public function qualifyWithPage( array $input ): array|\WP_Error {
 		$url             = esc_url_raw( $input['url'] ?? '' );
@@ -280,7 +288,7 @@ class VenueQualificationAbilities {
 				'matched'      => (string) ( $tm_check['matched'] ?? '' ),
 			);
 			$fingerprint['elapsed_ms']            = (int) round( ( microtime( true ) - $started_at ) * 1000 );
-			return $this->with_page( $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict ), $url, $home );
+			return $this->with_page( $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict ), $url, $home, array() );
 		}
 
 		// ---- Capture homepage status/redirects/HTML (fetched once above). ----
@@ -322,6 +330,7 @@ class VenueQualificationAbilities {
 		// trip is pointless — we already know what the verdict will be and
 		// further requests would only burn time and tickle rate-limits.
 		$short_circuit_method = '';
+		$scrapes              = array();
 		if ( 0 === $fingerprint['http_status'] || $fingerprint['timeout']
 			|| 403 === $fingerprint['http_status'] || 429 === $fingerprint['http_status']
 			|| $fingerprint['cloudflare_challenge']
@@ -364,7 +373,10 @@ class VenueQualificationAbilities {
 					$attempt                           = QualifyFingerprinter::add_production_eligibility( $attempt, $flow_context );
 					$fingerprint['production_context'] = $attempt['production_context'];
 				}
-				unset( $attempt['_diagnostic_identifiers'] );
+				if ( isset( $attempt['_scrape'] ) ) {
+					$scrapes[ $candidate['url'] ] = $attempt['_scrape'];
+				}
+				unset( $attempt['_diagnostic_identifiers'], $attempt['_scrape'] );
 				if ( ! empty( $attempt['ran'] ) ) {
 					$ran_any = true;
 				}
@@ -395,24 +407,35 @@ class VenueQualificationAbilities {
 		$fingerprint['elapsed_ms'] = (int) round( ( microtime( true ) - $started_at ) * 1000 );
 
 		$method = '' !== $short_circuit_method ? $short_circuit_method : $this->resolve_method_from_attempts( $fingerprint['extractor_attempts'] );
-		return $this->with_page( $this->finalize_and_persist( $url, $name, $method, $fingerprint, $persist_verdict ), $url, $home );
+		return $this->with_page( $this->finalize_and_persist( $url, $name, $method, $fingerprint, $persist_verdict ), $url, $home, $scrapes );
 	}
 
 	/**
-	 * Attach the fetched homepage response to a qualification payload.
+	 * Attach the fetched homepage response and the events URL scrape to a
+	 * qualification payload.
 	 *
-	 * @param array      $result Qualification payload.
-	 * @param string     $url    Requested URL.
-	 * @param array|null $home   Homepage response, or null when not fetched.
-	 * @return array Payload with a `page` key.
+	 * @param array      $result  Qualification payload.
+	 * @param string     $url     Requested URL.
+	 * @param array|null $home    Homepage response, or null when not fetched.
+	 * @param array      $scrapes Raw scrapes keyed by candidate URL.
+	 * @return array Payload with `page` and `scrape` keys.
 	 */
-	private function with_page( array $result, string $url, ?array $home ): array {
+	private function with_page( array $result, string $url, ?array $home, array $scrapes ): array {
 		$result['page'] = null === $home ? array() : array(
 			'url'         => $url,
 			'final_url'   => (string) $home['final_url'],
 			'http_status' => (int) $home['http_status'],
 			'html'        => (string) $home['html'],
 		);
+
+		$scrape_url = (string) ( $result['events_url'] ?? '' );
+		if ( '' === $scrape_url ) {
+			$scrape_url = $url;
+		}
+		$result['scrape'] = isset( $scrapes[ $scrape_url ] )
+			? array_merge( array( 'url' => $scrape_url ), $scrapes[ $scrape_url ] )
+			: array();
+
 		return $result;
 	}
 

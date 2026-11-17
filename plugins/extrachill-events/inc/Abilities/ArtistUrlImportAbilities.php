@@ -6,12 +6,11 @@
  * venue, and regional listings event sources through the canonical generic
  * ability contracts.
  *
- * Substrate consumption (layer purity): the preview probe consumes the
- * generic scraping primitive by its *registered handler slug*
- * (`universal_web_scraper`) through Data Machine core's public
- * `HandlerAbilities` registry — never by referencing the internal
- * `\DataMachineEvents\…\UniversalWebScraper` class. The slug is a public
- * contract; the class is data-machine-events-internal. The approve path
+ * Substrate consumption (layer purity): the preview probe reuses the raw
+ * output of the single `data-machine-events/test-event-scraper` ability
+ * execution venue qualification already ran for the events URL — never
+ * a second scrape, and never the internal
+ * `\DataMachineEvents\…\UniversalWebScraper` class. The approve path
  * uses only public DM abilities (`datamachine/create-pipeline`,
  * `datamachine/create-flow`, `datamachine/get-pipeline-configuration`,
  * `datamachine/update-step-configuration`, `datamachine/run-flow`).
@@ -26,7 +25,6 @@
 namespace ExtraChillEvents\Abilities;
 
 use DataMachine\Core\Selection\SelectionMode;
-use DataMachine\Abilities\HandlerAbilities;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
 use ExtraChillEvents\Core\QualifyFingerprinter;
 use ExtraChillEvents\Core\QualifyVerdict;
@@ -43,7 +41,7 @@ class ArtistUrlImportAbilities {
 	private const NOTIFICATION_PRODUCER = 'extrachill-events-artist-url-import';
 
 	/**
-	 * Registered event-import handler slug consumed for the preview probe.
+	 * Registered event-import handler slug configured on created flows.
 	 * This is data-machine-events' public handler contract, not an internal
 	 * class reference.
 	 */
@@ -511,14 +509,15 @@ class ArtistUrlImportAbilities {
 			return $qualification;
 		}
 		$fetched_page = (array) ( $qualification['page'] ?? array() );
-		unset( $qualification['page'] );
+		$scrape       = (array) ( $qualification['scrape'] ?? array() );
+		unset( $qualification['page'], $qualification['scrape'] );
 
 		$events_url = $this->normalizeInputUrl( (string) ( $qualification['events_url'] ?? $url ) );
 		if ( is_wp_error( $events_url ) ) {
 			$events_url = $url;
 		}
 		$identity_url = ArtistUrlSubmissionsTable::normalize_url( $events_url );
-		$probe        = $this->probeUrl( $events_url, $fetched_page );
+		$probe        = $this->probeUrl( $events_url, $fetched_page, $scrape );
 		if ( is_wp_error( $probe ) ) {
 			return $probe;
 		}
@@ -1007,7 +1006,10 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		if ( 0 === $result['events_found'] ) {
+		// An already-covered source (e.g. Ticketmaster) may be short-circuited
+		// before scraping; return the coverage result instead of steering the
+		// submitter to the manual form for a duplicate.
+		if ( 0 === $result['events_found'] && empty( $result['existing_coverage']['covered'] ) ) {
 			return new \WP_Error(
 				'no_events_found',
 				__( "We couldn't extract events from that page. Try the manual form below.", 'extrachill-events' ),
@@ -1956,13 +1958,14 @@ class ArtistUrlImportAbilities {
 	// ────────────────────────────────────────────────────────────────────
 
 	/**
-	 * Probe a URL through the registered `universal_web_scraper` handler
-	 * and normalize the result.
+	 * Normalize the scrape venue qualification already ran for a URL into
+	 * the preview probe shape.
 	 *
-	 * Layer purity: resolves the handler class via Data Machine core's
-	 * public `HandlerAbilities` registry by its registered slug, never by
-	 * referencing the data-machine-events-internal scraper class. The slug
-	 * is the substrate's public contract.
+	 * Qualification runs `data-machine-events/test-event-scraper` once per
+	 * candidate in raw output mode and passes the events URL's raw output
+	 * through its internal `scrape` key; the probe reuses it so a submitted
+	 * URL is scraped exactly once. When qualification did not scrape this
+	 * URL (short-circuited verdicts, scraper error), the probe is empty.
 	 *
 	 * Returns an array with:
 	 *   detected_format (string)
@@ -1970,21 +1973,36 @@ class ArtistUrlImportAbilities {
 	 *   events_preview (array of up to 5 event records)
 	 *   source_metadata (array)
 	 *   raw_first_event (array)  ← used by suggestArtist()
+	 *   raw_events (array)
 	 *   page_html (string)       ← used by suggestArtist()
 	 *
-	 * On infrastructure error returns a WP_Error.
+	 * Returns a WP_Error only when the scraper ability is not registered.
 	 *
 	 * @param string $url          Already-normalized URL.
 	 * @param array  $fetched_page Page qualification already fetched, if any.
+	 * @param array  $scrape       Scrape qualification already ran, if any.
 	 * @return array|\WP_Error
 	 */
-	private function probeUrl( string $url, array $fetched_page = array() ) {
-		$results = $this->fetchScraperPackets( $url );
-		if ( is_wp_error( $results ) ) {
-			return $results;
+	private function probeUrl( string $url, array $fetched_page = array(), array $scrape = array() ) {
+		$scrape_url = $this->normalizeInputUrl( (string) ( $scrape['url'] ?? '' ) );
+		if ( is_wp_error( $scrape_url ) || $scrape_url !== $url ) {
+			$scrape = array();
 		}
 
-		if ( empty( $results ) ) {
+		if ( empty( $scrape ) ) {
+			$scraper = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'data-machine-events/test-event-scraper' ) : null;
+			if ( ! $scraper ) {
+				return new \WP_Error(
+					'scraper_unavailable',
+					sprintf(
+						/* translators: %s: handler slug */
+						__( 'The %s event-import handler is not registered.', 'extrachill-events' ),
+						self::SCRAPER_HANDLER_SLUG
+					),
+					array( 'status' => 500 )
+				);
+			}
+
 			return array(
 				'detected_format' => '',
 				'events_found'    => 0,
@@ -1996,40 +2014,16 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$packet_entries = array();
-		foreach ( $results as $packet_obj ) {
-			$packet_array = $packet_obj->addTo( array() );
-			$packet_entry = $packet_array[0] ?? array();
-			if ( ! empty( $packet_entry ) ) {
-				$packet_entries[] = $packet_entry;
-			}
-		}
+		$first_meta      = is_array( $scrape['source_metadata'] ?? null ) ? $scrape['source_metadata'] : array();
+		$detected_format = (string) ( $first_meta['extraction_method'] ?? $first_meta['source_type'] ?? '' );
 
-		$detected_format = '';
-		$first_meta      = $packet_entries[0]['metadata'] ?? array();
-		if ( is_array( $first_meta ) ) {
-			$detected_format = (string) ( $first_meta['extraction_method'] ?? $first_meta['source_type'] ?? '' );
-		}
-
-		$events_preview  = array();
-		$raw_first_event = array();
-		$raw_events      = array();
-		$count           = 0;
-		foreach ( $packet_entries as $entry ) {
-			$body    = (string) ( $entry['data']['body'] ?? '' );
-			$decoded = '' !== $body ? json_decode( $body, true ) : null;
-			if ( ! is_array( $decoded ) ) {
-				continue;
-			}
-			$event = $decoded['event'] ?? null;
+		$events_preview = array();
+		$raw_events     = array();
+		foreach ( (array) ( $scrape['raw_events'] ?? array() ) as $event ) {
 			if ( ! is_array( $event ) ) {
 				continue;
 			}
-			++$count;
 			$raw_events[] = $event;
-			if ( empty( $raw_first_event ) ) {
-				$raw_first_event = $event;
-			}
 			if ( count( $events_preview ) < 5 ) {
 				$events_preview[] = array(
 					'title'     => (string) ( $event['title'] ?? '' ),
@@ -2043,84 +2037,13 @@ class ArtistUrlImportAbilities {
 
 		return array(
 			'detected_format' => $detected_format,
-			'events_found'    => $count,
+			'events_found'    => count( $raw_events ),
 			'events_preview'  => $events_preview,
 			'source_metadata' => $first_meta,
-			'raw_first_event' => $raw_first_event,
+			'raw_first_event' => $raw_events[0] ?? array(),
 			'raw_events'      => $raw_events,
 			'page_html'       => $this->fetchPageHtml( $url, $fetched_page ),
 		);
-	}
-
-	/**
-	 * Run the registered universal web scraper handler for a URL and
-	 * return its DataPacket[] result.
-	 *
-	 * Consumes data-machine-events' generic scraping primitive by its
-	 * public registered slug through Data Machine core's `HandlerAbilities`
-	 * registry — the substrate-public way to obtain the handler class
-	 * without naming the internal class. This is the same instantiate +
-	 * `get_fetch_data()` shape Data Machine core's own
-	 * `datamachine/test-handler` ability uses.
-	 *
-	 * NOTE (substrate follow-up): the ideal long-term surface is the
-	 * `datamachine/test-handler` ability itself, but its packet summaries
-	 * truncate the body to a 200-char preview, which drops the structured
-	 * event JSON this preview needs (title/startDate/venue/ticketUrl +
-	 * the raw first event for artist suggestion). Until that ability gains
-	 * a full-body/non-truncating mode, we resolve and run the registered
-	 * handler class directly. Tracked as a substrate enhancement in the
-	 * #200 PR body.
-	 *
-	 * @param string $url Already-normalized URL.
-	 * @return array|\WP_Error DataPacket[] (possibly empty) or WP_Error.
-	 */
-	private function fetchScraperPackets( string $url ) {
-		if ( ! class_exists( '\\DataMachine\\Abilities\\HandlerAbilities' ) ) {
-			return new \WP_Error(
-				'scraper_unavailable',
-				__( 'Data Machine handler registry is not available.', 'extrachill-events' ),
-				array( 'status' => 500 )
-			);
-		}
-
-		$abilities     = new HandlerAbilities();
-		$info          = $abilities->getHandler( self::SCRAPER_HANDLER_SLUG );
-		$handler_class = is_array( $info ) ? ( $info['class'] ?? null ) : null;
-
-		if ( ! $handler_class || ! class_exists( $handler_class ) ) {
-			return new \WP_Error(
-				'scraper_unavailable',
-				sprintf(
-					/* translators: %s: handler slug */
-					__( 'The %s event-import handler is not registered.', 'extrachill-events' ),
-					self::SCRAPER_HANDLER_SLUG
-				),
-				array( 'status' => 500 )
-			);
-		}
-
-		$config = array(
-			'source_url'   => $url,
-			'flow_step_id' => 'preview_' . wp_generate_uuid4(),
-			'flow_id'      => 'preview',
-			'search'       => '',
-		);
-
-		// Fill in any handler defaults the same way test-handler does, so
-		// the probe matches a real flow run's config surface.
-		$config = $abilities->applyDefaults( self::SCRAPER_HANDLER_SLUG, $config );
-
-		/** @var \DataMachine\Core\Steps\Fetch\Handlers\FetchHandler $handler */
-		$handler = new $handler_class();
-
-		try {
-			$results = $handler->get_fetch_data( 'preview', $config, null );
-		} catch ( \Throwable $e ) {
-			return new \WP_Error( 'scraper_failed', $e->getMessage(), array( 'status' => 502 ) );
-		}
-
-		return $results;
 	}
 
 	/**
