@@ -144,7 +144,14 @@ function ec_managed_qr_team_posts( string $type, int $team_id ): array {
  * @param string $code Immutable code.
  */
 function ec_managed_qr_short_url( string $code ): string {
-	return trailingslashit( ec_get_site_url( 'link_pages' ) ) . 'q/' . rawurlencode( $code );
+	return trailingslashit( ec_managed_qr_base_url() ) . 'q/' . rawurlencode( $code );
+}
+
+/**
+ * Public extrachill.link base URL.
+ */
+function ec_managed_qr_base_url(): string {
+	return function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'link_pages' ) : home_url( '/' );
 }
 
 /**
@@ -361,7 +368,7 @@ function ec_managed_qr_public_route( $route, string $path ) {
 		}
 	);
 	return array(
-		'url'    => is_string( $result ) && '' !== $result ? $result : ec_get_site_url( 'link_pages' ),
+		'url'    => is_string( $result ) && '' !== $result ? $result : ec_managed_qr_base_url(),
 		'status' => 302,
 	);
 }
