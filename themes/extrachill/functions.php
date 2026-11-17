@@ -121,6 +121,7 @@ define( 'EXTRACHILL_THEME_VERSION', '2.0.14' );
 
 define( 'EXTRACHILL_INCLUDES_DIR', EXTRACHILL_PARENT_DIR . '/inc' );
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/post-meta.php';
+require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/comment-author.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/pagination.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/no-results.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/templates/share.php';

@@ -11,16 +11,17 @@ To streamline engagement, comments from logged-in users are automatically approv
 
 ### 2. Multisite Author Routing
 Comment author links are routed to centralized community profiles to maintain identity consistency across the multisite network.
-- **Implementation**: `extrachill-users/inc/author-links.php`
-- **Function**: `ec_get_comment_author_link_multisite()`
-- **Target**: `https://community.extrachill.com/u/{username}/`
+- **Implementation**: `extrachill-network/inc/cross-site-links/entity-links.php`, rendered by the theme's `extrachill_comment_author_html()` (`extrachill/inc/core/templates/comment-author.php`)
+- **Function**: `extrachill_get_comment_author_link_multisite()`
+- **Target**: `https://community.extrachill.com/u/{username}`
+- **Scope**: Only registered commenters (`user_id > 0`) on comments dated after 2024-02-09 are linked; guests keep WordPress's default author output.
 
 ### 3. Cross-Site Comment Aggregation
 User comments from the main journalism site (Blog ID 1) are aggregated and displayed within the community ecosystem.
 - **Implementation**: `extrachill-community/inc/content/main-site-comments.php`
 - **Display Locations**:
   - User Profiles (Comments tab)
-  - `/blog-comments` centralized feed
+  - `/blog-comments` centralized feed (`?user_id=` for a specific user; without it, logged-in visitors see their own comments and logged-out visitors get a login prompt)
 - **Mechanism**: Uses `switch_to_blog(1)` to retrieve comments for a specific user ID.
 
 ### 4. Gutenberg Integration

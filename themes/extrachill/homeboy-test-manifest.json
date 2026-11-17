@@ -12,6 +12,9 @@
     },
     "tests/app-prompt.php": {
       "environment": "standalone-php"
+    },
+    "tests/comment-author-links.php": {
+      "environment": "standalone-php"
     }
   }
 }

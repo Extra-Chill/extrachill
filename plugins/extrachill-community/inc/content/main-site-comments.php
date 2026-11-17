@@ -16,7 +16,8 @@
  * @return string HTML markup or error message
  */
 function display_main_site_comments_for_user($community_user_id) {
-	if ( empty($community_user_id) || ! is_numeric($community_user_id) ) {
+	$community_user_id = (int) $community_user_id;
+	if ( $community_user_id <= 0 ) {
 		return '<div class="bbpress-comments-error">Invalid user ID provided.</div>';
 	}
 
@@ -39,9 +40,12 @@ function display_main_site_comments_for_user($community_user_id) {
 		));
 
 		$comments = array();
-		if ( ! empty($user_comments) ) {
+		if ( is_array($user_comments) ) {
 			foreach ( $user_comments as $comment ) {
-				$post = get_post($comment->comment_post_ID);
+				if ( ! $comment instanceof WP_Comment ) {
+					continue;
+				}
+				$post = get_post( (int) $comment->comment_post_ID );
 				if ( $post ) {
 					$comments[] = array(
 						'comment_ID'       => $comment->comment_ID,
@@ -50,7 +54,7 @@ function display_main_site_comments_for_user($community_user_id) {
 						'comment_date_gmt' => $comment->comment_date_gmt,
 						'comment_content'  => $comment->comment_content,
 						'author_id'        => $comment->user_id,
-						'author_name'      => get_the_author_meta('display_name', $comment->user_id),
+						'author_name'      => get_the_author_meta( 'display_name', (int) $comment->user_id ),
 						'author_avatar'    => get_avatar_url($comment->user_id, array( 'size' => 80 )),
 						'upvote_count'     => 0,
 					);
@@ -79,7 +83,42 @@ function display_main_site_comments_for_user($community_user_id) {
 		?>
 	</div>
 	<?php
-	return ob_get_clean();
+	return (string) ob_get_clean();
+}
+
+/**
+ * Render the /blog-comments feed body.
+ *
+ * An explicit user_id shows that user's main-site comments. Without one, a
+ * logged-in visitor sees their own comments and a logged-out visitor gets a
+ * prompt to log in (returning to the feed afterwards).
+ *
+ * @param mixed  $requested_user_id User ID from the user_id query var (0 when absent).
+ * @param string $feed_url          Optional. Feed URL to return to after login.
+ * @return string HTML markup.
+ */
+function extrachill_community_render_blog_comments_feed( $requested_user_id, $feed_url = '' ) {
+	$user_id = absint( $requested_user_id );
+
+	if ( ! $user_id && is_user_logged_in() ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( $user_id ) {
+		return display_main_site_comments_for_user( $user_id );
+	}
+
+	$login_url = untrailingslashit( ec_get_site_url( 'community' ) ) . '/login';
+	if ( '' !== $feed_url ) {
+		$login_url = add_query_arg( 'redirect_to', rawurlencode( $feed_url ), $login_url );
+	}
+
+	return sprintf(
+		'<div class="bbpress-comments-list"><p>%1$s <a href="%2$s">%3$s</a></p></div>',
+		esc_html__( 'Log in to see the comments you have left on Extra Chill articles.', 'extrachill-community' ),
+		esc_url( $login_url ),
+		esc_html__( 'Log in', 'extrachill-community' )
+	);
 }
 
 /**
@@ -89,7 +128,8 @@ function display_main_site_comments_for_user($community_user_id) {
  * @return int Comment count
  */
 function get_user_main_site_comment_count($user_id) {
-	if ( empty($user_id) || ! is_numeric($user_id) ) {
+	$user_id = (int) $user_id;
+	if ( $user_id <= 0 ) {
 		return 0;
 	}
 
