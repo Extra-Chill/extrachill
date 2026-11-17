@@ -58,8 +58,11 @@ function extrachill_register_abilities() {
 					),
 					'post_status'  => array(
 						'type'        => 'array',
-						'items'       => array( 'type' => 'string' ),
-						'description' => __( 'Array of post statuses to include in search results.', 'extrachill-search' ),
+						'items'       => array(
+							'type' => 'string',
+							'enum' => array( 'publish' ),
+						),
+						'description' => __( 'Post statuses to include. Only published content is searchable through this ability.', 'extrachill-search' ),
 						'default'     => array( 'publish' ),
 					),
 					'orderby'      => array(
@@ -206,14 +209,7 @@ function extrachill_ability_multisite_search( $input = array() ) {
 
 	$search_term = $input['search_term'];
 	$site_urls   = isset( $input['site_urls'] ) ? $input['site_urls'] : array();
-	$args        = array(
-		'limit'        => isset( $input['limit'] ) ? (int) $input['limit'] : 10,
-		'offset'       => isset( $input['offset'] ) ? (int) $input['offset'] : 0,
-		'post_status'  => isset( $input['post_status'] ) ? $input['post_status'] : array( 'publish' ),
-		'orderby'      => isset( $input['orderby'] ) ? $input['orderby'] : 'date',
-		'order'        => isset( $input['order'] ) ? $input['order'] : 'DESC',
-		'return_count' => isset( $input['return_count'] ) ? (bool) $input['return_count'] : false,
-	);
+	$args        = extrachill_multisite_search_ability_args( $input );
 
 	if ( ! function_exists( 'extrachill_network_search' ) ) {
 		return new WP_Error(
@@ -224,4 +220,26 @@ function extrachill_ability_multisite_search( $input = array() ) {
 	}
 
 	return extrachill_network_search( $search_term, $site_urls, $args );
+}
+
+/**
+ * Build extrachill_network_search() arguments from ability input.
+ *
+ * The ability is REST-visible and only requires the `read` capability, which
+ * every logged-in network user has. It therefore always searches published
+ * content: a caller-supplied `post_status` is never forwarded, so drafts,
+ * private, pending and scheduled posts cannot leak across the network.
+ *
+ * @param array $input Ability input.
+ * @return array Search arguments.
+ */
+function extrachill_multisite_search_ability_args( $input = array() ) {
+	return array(
+		'limit'        => isset( $input['limit'] ) ? (int) $input['limit'] : 10,
+		'offset'       => isset( $input['offset'] ) ? (int) $input['offset'] : 0,
+		'post_status'  => array( 'publish' ),
+		'orderby'      => isset( $input['orderby'] ) ? $input['orderby'] : 'date',
+		'order'        => isset( $input['order'] ) ? $input['order'] : 'DESC',
+		'return_count' => isset( $input['return_count'] ) ? (bool) $input['return_count'] : false,
+	);
 }
