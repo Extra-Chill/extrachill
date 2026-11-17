@@ -338,12 +338,20 @@ function ec_users_comment_activity_artist_post_ids( $artist ) {
  * published posts tagged with the artist (`post__in`); a site where the
  * artist has no published posts, or no term, contributes nothing.
  *
- * @param int    $blog_id Site to read.
- * @param array  $query   get_comments() arguments.
- * @param string $artist  Optional. Artist term slug. Default '' (no scope).
- * @return array|int Comments, or a count when `count` is set.
+ * Results that depend on the site (posts, permalinks, titles) must be read
+ * while still switched, so callers pass `$shape`: it receives the
+ * get_comments() result and runs inside the site before the blog is
+ * restored. Its return value is returned.
+ *
+ * @param int           $blog_id Site to read.
+ * @param array         $query   get_comments() arguments.
+ * @param string        $artist  Optional. Artist term slug. Default '' (no scope).
+ * @param callable|null $shape   Optional. Maps the get_comments() result inside
+ *                               the site. Default null (raw result).
+ * @return mixed Comments, a count when `count` is set, or the `$shape` result.
  */
-function ec_users_comment_activity_query_blog( $blog_id, array $query, $artist = '' ) {
+function ec_users_comment_activity_query_blog( $blog_id, array $query, $artist = '', ?callable $shape = null ) {
+	$blog_id  = (int) $blog_id;
 	$switched = get_current_blog_id() !== $blog_id;
 	if ( $switched ) {
 		switch_to_blog( $blog_id );
@@ -353,12 +361,14 @@ function ec_users_comment_activity_query_blog( $blog_id, array $query, $artist =
 		if ( '' !== $artist ) {
 			$post_ids = ec_users_comment_activity_artist_post_ids( $artist );
 			if ( empty( $post_ids ) ) {
-				return empty( $query['count'] ) ? array() : 0;
+				$result = empty( $query['count'] ) ? array() : 0;
+				return null === $shape ? $result : $shape( $result );
 			}
 			$query['post__in'] = $post_ids;
 		}
 
-		return get_comments( $query );
+		$result = get_comments( $query );
+		return null === $shape ? $result : $shape( $result );
 	} finally {
 		if ( $switched ) {
 			restore_current_blog();
@@ -387,12 +397,25 @@ function ec_users_query_recent_comment_activity( $limit = EC_USERS_RECENT_COMMEN
 	$query['order']   = 'DESC';
 
 	foreach ( ec_users_get_comment_activity_blog_ids() as $blog_id ) {
-		foreach ( (array) ec_users_comment_activity_query_blog( $blog_id, $query, $artist ) as $comment ) {
-			$item = ec_users_prepare_recent_comment_activity_item( $comment, $blog_id );
-			if ( null !== $item ) {
-				$items[] = $item;
+		// Items are shaped inside the comment's site: get_post(), get_permalink()
+		// and get_the_title() read the current blog's tables.
+		$blog_items = ec_users_comment_activity_query_blog(
+			$blog_id,
+			$query,
+			$artist,
+			static function ( $comments ) use ( $blog_id ) {
+				$shaped = array();
+				foreach ( (array) $comments as $comment ) {
+					$item = ec_users_prepare_recent_comment_activity_item( $comment, $blog_id );
+					if ( null !== $item ) {
+						$shaped[] = $item;
+					}
+				}
+				return $shaped;
 			}
-		}
+		);
+
+		$items = array_merge( $items, (array) $blog_items );
 	}
 
 	usort(
