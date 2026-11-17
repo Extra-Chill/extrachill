@@ -87,6 +87,28 @@ function extrachill_render_notification_card($notification) {
 			);
 			break;
 
+		case 'comment_reply':
+			$icon_id = 'reply';
+			$message = sprintf(
+				'<a href="%s">%s</a> replied to your comment on "<a href="%s">%s</a>"',
+				esc_url( $actor_profile_link ),
+				esc_html( $actor_display_name ),
+				esc_url( $link ),
+				esc_html( $topic_title )
+			);
+			break;
+
+		case 'event_comment':
+			$icon_id = 'reply';
+			$message = sprintf(
+				'<a href="%s">%s</a> commented on "<a href="%s">%s</a>", a show you\'re going to',
+				esc_url( $actor_profile_link ),
+				esc_html( $actor_display_name ),
+				esc_url( $link ),
+				esc_html( $topic_title )
+			);
+			break;
+
 		default:
 			// Generic notification card for unknown types
 			$icon_id = 'bell';

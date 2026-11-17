@@ -230,6 +230,70 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_recent_comment_activity_merges_hosting_sites_newest_first(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		$article = $this->comment_on( $this->main_blog_id, array(), '2026-03-10 15:00:00' );
+		$event   = $this->comment_on( $this->events_blog_id, array(), '2026-03-12 09:00:00' );
+		$this->comment_on( $this->main_blog_id, array( 'comment_approved' => 0 ), '2026-03-13 09:00:00' );
+		$this->comment_on( $this->events_blog_id, array( 'comment_type' => 'pingback' ), '2026-03-13 10:00:00' );
+		$this->comment_on( $this->other_blog_id, array(), '2026-03-14 10:00:00' );
+
+		$items = ec_users_get_recent_comment_activity( 20 );
+		$this->assertSame( array( $event, $article ), wp_list_pluck( $items, 'comment_id' ) );
+		$this->assertSame( array( $this->events_blog_id, $this->main_blog_id ), wp_list_pluck( $items, 'blog_id' ) );
+
+		$item = $items[0];
+		$this->assertSame(
+			array( 'blog_id', 'comment_id', 'post_id', 'post_type', 'post_title', 'post_url', 'comment_url', 'user_id', 'author_name', 'date_gmt' ),
+			array_keys( $item )
+		);
+		$this->assertSame( $item['post_url'] . '#comment-' . $event, $item['comment_url'] );
+		$this->assertSame( $this->user_id, $item['user_id'] );
+		$this->assertSame( '2026-03-12 09:00:00', $item['date_gmt'] );
+		$this->assertCount( 1, ec_users_get_recent_comment_activity( 1 ) );
+	}
+
+	public function test_recent_comment_activity_cache_busts_on_approval(): void {
+		ec_users_flush_recent_comment_activity_cache();
+		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20 ) );
+
+		$comment_id = $this->comment_on( $this->events_blog_id, array( 'comment_approved' => 0 ) );
+		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20 ), 'The cached list is served until a status change.' );
+
+		switch_to_blog( $this->events_blog_id );
+		try {
+			wp_set_comment_status( $comment_id, 'approve' );
+		} finally {
+			restore_current_blog();
+		}
+
+		$this->assertSame( array( $comment_id ), wp_list_pluck( ec_users_get_recent_comment_activity( 20 ), 'comment_id' ) );
+	}
+
+	public function test_recent_comment_activity_skips_unpublished_and_protected_posts(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		switch_to_blog( $this->main_blog_id );
+		try {
+			$draft     = (int) self::factory()->post->create( array( 'post_status' => 'draft' ) );
+			$protected = (int) self::factory()->post->create( array( 'post_password' => 'secret' ) );
+			foreach ( array( $draft, $protected ) as $post_id ) {
+				self::factory()->comment->create(
+					array(
+						'comment_post_ID'  => $post_id,
+						'user_id'          => $this->user_id,
+						'comment_approved' => 1,
+					)
+				);
+			}
+		} finally {
+			restore_current_blog();
+		}
+
+		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20 ) );
+	}
+
 	/**
 	 * Sum every registered source except comments, for an isolated delta.
 	 */

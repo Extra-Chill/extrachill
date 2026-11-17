@@ -297,6 +297,42 @@ function ec_users_get_event_mark_count( int $event_id, int $blog_id = 0 ): int {
 }
 
 /**
+ * Get the IDs of every user who marked an event as going.
+ *
+ * A private recipient lookup for notifications about the event (e.g. a new
+ * comment on it). It ignores attendee visibility because the result is never
+ * shown to anyone; it only addresses each user's own notification. Not an
+ * attendee list: use ec_users_get_event_attendees() for public display.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $blog_id  Blog ID (default: current blog).
+ * @return int[] User IDs, oldest mark first.
+ */
+function ec_users_get_event_marked_user_ids( int $event_id, int $blog_id = 0 ): array {
+	global $wpdb;
+
+	if ( $event_id <= 0 ) {
+		return array();
+	}
+
+	if ( ! $blog_id ) {
+		$blog_id = get_current_blog_id();
+	}
+
+	$table = extrachill_users_concert_tracking_table_name();
+
+	$user_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT user_id FROM {$table} WHERE event_id = %d AND blog_id = %d ORDER BY id ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			$event_id,
+			$blog_id
+		)
+	);
+
+	return array_values( array_unique( array_filter( array_map( 'intval', (array) $user_ids ) ) ) );
+}
+
+/**
  * Count total events a user has marked.
  *
  * @param int $user_id User ID.
