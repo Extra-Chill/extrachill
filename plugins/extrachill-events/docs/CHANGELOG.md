@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.131.0] - 2026-11-17
+
+### Added
+- WordPress comments with block editor on single events
+
+### Fixed
+- let event managers pass managed-event scope
+- map DME ability capabilities to events team capability
+
 ## [0.130.5] - 2026-11-17
 
 ### Changed
