@@ -2,6 +2,8 @@
 
 This directory contains technical deep-dive documentation for the Artist Platform plugin.
 
+See the [abilities reference](abilities.md) for domain inputs, outputs, permissions, transport exposure, and side effects.
+
 **For architectural patterns and development guidelines**, see [the architecture overview](../../../docs/architecture.md)
 **For quick overview and installation**, see [../README.md](../README.md)
 
