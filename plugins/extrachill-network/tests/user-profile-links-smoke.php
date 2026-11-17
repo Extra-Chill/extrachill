@@ -116,6 +116,18 @@ function esc_url( string $url ): string {
 	return str_replace( '&', '&#038;', $url );
 }
 
+function get_comment_author( $comment ): string {
+	return $comment->comment_author;
+}
+
+function get_comment_author_link( $comment ): string {
+	return $comment->comment_author;
+}
+
+function get_author_posts_url( int $user_id ): string {
+	return 'https://extrachill.com/author/' . $user_id . '/';
+}
+
 require_once dirname( __DIR__ ) . '/inc/cross-site-links/entity-links.php';
 
 function upl_assert_same( $expected, $actual, string $message ): void {
@@ -168,5 +180,37 @@ upl_assert_same( 'https://community.extrachill.com/u/chris-huber/edit/', $fallba
 $defaults = extrachill_customize_comment_form_logged_in( array() );
 upl_assert( str_contains( $defaults['logged_in_as'], 'href="https://community.extrachill.com/u/chris-huber/edit/"' ), 'Comment UI uses the escaped canonical profile editor URL.' );
 upl_assert( in_array( 'https://community.extrachill.com/u/chris-huber/edit/', $GLOBALS['upl_escaped_urls'], true ), 'The profile editor URL is escaped at output.' );
+
+/**
+ * Build a comment fixture for the comment author link helpers.
+ */
+function upl_comment( int $user_id, string $email, string $date ): object {
+	return (object) array(
+		'user_id'              => (string) $user_id,
+		'comment_author'       => 'Chris Huber',
+		'comment_author_email' => $email,
+		'comment_date'         => $date,
+	);
+}
+
+$profile_link = '<a href="https://community.extrachill.com/u/chris-huber">Chris Huber</a>';
+$comment_cases = array(
+	'post-cutoff registered author links'                      => array( upl_comment( 44, 'chris@example.com', '2025-03-01 12:00:00' ), true ),
+	'post-cutoff registered author with a different email links' => array( upl_comment( 44, 'old@staging.example', '2025-03-01 12:00:00' ), true ),
+	'pre-cutoff author with matching email links'              => array( upl_comment( 44, 'chris@example.com', '2021-06-01 12:00:00' ), true ),
+	'pre-cutoff email match is case-insensitive'               => array( upl_comment( 44, ' Chris@Example.COM ', '2021-06-01 12:00:00' ), true ),
+	'pre-cutoff author with mismatched email is plain'         => array( upl_comment( 44, 'someone-else@example.com', '2021-06-01 12:00:00' ), false ),
+	'pre-cutoff author with empty email is plain'              => array( upl_comment( 44, '', '2021-06-01 12:00:00' ), false ),
+	'comment exactly at the cutoff needs an email match'       => array( upl_comment( 44, 'someone-else@example.com', '2024-02-09 00:00:00' ), false ),
+	'unparseable date needs an email match'                    => array( upl_comment( 44, 'someone-else@example.com', 'not-a-date' ), false ),
+	'guest author is plain'                                    => array( upl_comment( 0, 'chris@example.com', '2025-03-01 12:00:00' ), false ),
+	'post-cutoff comment from a deleted user is plain'         => array( upl_comment( 999, 'chris@example.com', '2025-03-01 12:00:00' ), false ),
+	'pre-cutoff comment from a deleted user is plain'          => array( upl_comment( 999, 'chris@example.com', '2021-06-01 12:00:00' ), false ),
+);
+
+foreach ( $comment_cases as $label => list( $comment, $should_link ) ) {
+	upl_assert_same( $should_link, extrachill_should_use_multisite_comment_links( $comment ), $label . ' (gate)' );
+	upl_assert_same( $should_link ? $profile_link : 'Chris Huber', extrachill_get_comment_author_link_multisite( $comment ), $label . ' (markup)' );
+}
 
 echo "User profile link tests passed.\n";

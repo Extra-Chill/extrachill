@@ -98,8 +98,8 @@ function extrachill_get_user_community_profile_edit_url( $user_id, $user_email =
 		}
 	}
 
-	if ( ! empty( $edit_url ) ) {
-		return (string) $edit_url;
+	if ( is_string( $edit_url ) && '' !== $edit_url ) {
+		return $edit_url;
 	}
 
 	return $fallback_url;
@@ -158,30 +158,56 @@ function extrachill_get_user_profile_url( $user_id, $user_email = '' ) {
 /**
  * Get comment author link HTML with multisite profile URL.
  *
+ * Only comments that pass extrachill_should_use_multisite_comment_links()
+ * get a profile link; everything else keeps WordPress's default author output.
+ *
  * @param WP_Comment $comment Comment object.
  * @return string Author link HTML.
  */
 function extrachill_get_comment_author_link_multisite( $comment ) {
-	$author_url = extrachill_get_user_profile_url( (int) $comment->user_id, $comment->comment_author_email );
-
-	if ( $comment->user_id > 0 ) {
-		return '<a href="' . esc_url( $author_url ) . '">' . get_comment_author( $comment ) . '</a>';
+	if ( ! extrachill_should_use_multisite_comment_links( $comment ) ) {
+		return (string) get_comment_author_link( $comment );
 	}
 
-	return get_comment_author_link( $comment );
+	$author_url = extrachill_get_user_profile_url( (int) $comment->user_id, $comment->comment_author_email );
+
+	return '<a href="' . esc_url( $author_url ) . '">' . get_comment_author( $comment ) . '</a>';
 }
 
 /**
- * Check if comment should use multisite linking.
+ * Check if a comment's author should link to their network profile.
+ *
+ * Comments from 2024-02-09 onward were written by accounts on the current
+ * network. Older comments come from the pre-multisite site, where a user_id
+ * might now belong to a different person. An older comment links only when
+ * its stored author email still matches the account's email
+ * (case-insensitive). Guests and deleted accounts never link.
  *
  * @param WP_Comment $comment Comment object.
- * @return bool True if comment after Feb 9, 2024.
+ * @return bool True when the author is a verified registered user.
  */
 function extrachill_should_use_multisite_comment_links( $comment ) {
-	$comment_date = strtotime( $comment->comment_date );
+	$user_id = (int) $comment->user_id;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	$user = get_userdata( $user_id );
+	if ( ! $user ) {
+		return false;
+	}
+
+	$comment_date = strtotime( (string) $comment->comment_date );
 	$cutoff_date  = strtotime( '2024-02-09 00:00:00' );
 
-	return $comment_date > $cutoff_date;
+	if ( false !== $comment_date && $comment_date > $cutoff_date ) {
+		return true;
+	}
+
+	$comment_email = strtolower( trim( (string) $comment->comment_author_email ) );
+	$user_email    = strtolower( trim( (string) $user->user_email ) );
+
+	return '' !== $comment_email && $comment_email === $user_email;
 }
 
 /**

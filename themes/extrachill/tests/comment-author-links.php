@@ -145,6 +145,22 @@ $guest_html = extrachill_comment_author_html( $guest );
 extrachill_test_check( 'guest author renders plain text', 'Guest Reader' === $guest_html );
 extrachill_test_check( 'guest author is never linked to a profile', ! str_contains( $guest_html, '/u/' ) );
 
+// Pre-2024 comments (before the 2024-02-09 cutoff) link only when the stored
+// email still matches the account's email.
+$zach_link = '<a href="https://community.extrachill.com/u/zachary-salas">Zachary Salas</a>';
+
+$old_matching = extrachill_test_comment( 510, 'Zachary Salas', 'Zach@Example.com', '2021-05-04 10:00:00' );
+extrachill_test_check( 'pre-cutoff registered author with matching email links to the community profile', $zach_link === extrachill_comment_author_html( $old_matching ) );
+
+$old_mismatch = extrachill_test_comment( 510, 'Zachary Salas', 'someone-else@example.com', '2021-05-04 10:00:00' );
+extrachill_test_check( 'pre-cutoff registered author with mismatched email renders plain text', 'Zachary Salas' === extrachill_comment_author_html( $old_mismatch ) );
+
+$missing_user = extrachill_test_comment( 9999, 'Gone User', 'gone@example.com' );
+extrachill_test_check( 'comment from a deleted user renders plain text', 'Gone User' === extrachill_comment_author_html( $missing_user ) );
+
+$old_missing_user = extrachill_test_comment( 9999, 'Gone User', 'gone@example.com', '2021-05-04 10:00:00' );
+extrachill_test_check( 'pre-cutoff comment from a deleted user renders plain text', 'Gone User' === extrachill_comment_author_html( $old_missing_user ) );
+
 if ( $failures > 0 ) {
 	exit( 1 );
 }
