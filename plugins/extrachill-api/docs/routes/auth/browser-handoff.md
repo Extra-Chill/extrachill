@@ -64,6 +64,13 @@ Requires authenticated user (WordPress login).
 }
 ```
 
+## Two-factor members
+
+The token records when the session that minted it last passed Two Factor. For a bearer session, that is only when the `two-factor` challenge policy verified it. When the handoff is consumed for a member who uses Two Factor:
+
+- **The minting session passed 2FA:** the cookie is set with the same 2FA time, and the member lands on `redirect_url`. Two Factor's own code screen is never shown.
+- **It did not:** no cookie is set. The member is redirected to `/login/?redirect_to=<redirect_url>` and enters their code there.
+
 ## Dependencies
 
 - extrachill-users plugin (provides `extrachill_users_create_browser_handoff_token()`)

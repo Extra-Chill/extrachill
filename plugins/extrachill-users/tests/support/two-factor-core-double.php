@@ -33,10 +33,14 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 		/** @var list<array{user_id:int, provider:string, args:array<string,mixed>}> */
 		public static $verify_calls = array();
 
+		/** @var int|false 2FA time of the current cookie session. */
+		public static $session_time = false;
+
 		public static function reset(): void {
 			self::$using         = false;
 			self::$verify_result = null;
 			self::$verify_calls  = array();
+			self::$session_time  = false;
 			self::$challenge     = self::default_challenge();
 		}
 
@@ -95,6 +99,10 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 			return '123456' === ( $args['code'] ?? '' )
 				? true
 				: new WP_Error( 'two_factor_invalid', 'Invalid code.', array( 'status' => 401 ) );
+		}
+
+		public static function is_current_user_session_two_factor() {
+			return self::$session_time;
 		}
 
 		public static function wp_login( $user_login, $user ) {
