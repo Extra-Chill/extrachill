@@ -40,6 +40,10 @@ Until you confirm, Settings shows **Email change pending** with the new address,
 
 Your new password must be at least 8 characters and cannot include a backslash. If you forgot your current password, sign out and use the password reset option on the sign-in page instead.
 
+## Two-step sign-in
+
+The **Two-step sign-in** section on the **Security** tab adds a code from an authenticator app or email on top of your password, and gives you backup codes in case you lose your phone. See [Two-step sign-in](https://docs.extrachill.com/accounts/two-step-sign-in).
+
 ## Connected apps and devices
 
 The **Connected Apps** list on the **Security** tab shows apps and devices that can use your account. Each one shows when it was created and last used.

@@ -100,6 +100,12 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 		public static function wp_login( $user_login, $user ) {
 			unset( $user_login, $user );
 		}
+
+		/** Present in WordPress/two-factor#935; routes are registered by the test that needs them. */
+		public static function register_rest_routes() {}
+
+		/** Present in WordPress/two-factor#1045. */
+		public static function register_login_rest_routes() {}
 	}
 	// phpcs:enable
 }

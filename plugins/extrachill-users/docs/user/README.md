@@ -16,5 +16,6 @@ One Extra Chill account works across every Extra Chill site. Use these guides to
 
 ## Account preferences
 
+- [Two-step sign-in](two-step-sign-in.md) — Protect your account with a code from an authenticator app or email.
 - [Notifications and email digests](notifications-and-digests.md) — Manage on-site notifications and email summaries.
 - [Frequently asked questions](faqs.md) — Find quick answers about accounts, sign-in, and settings.

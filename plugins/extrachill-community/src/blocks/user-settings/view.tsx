@@ -15,6 +15,7 @@ import { ComboboxControl } from '@wordpress/components';
  * External dependencies
  */
 import { executeAbility } from '../../abilities';
+import { TwoStepSignInSection } from './two-step-sign-in';
 import {
 	BlockShell,
 	BlockShellInner,
@@ -576,12 +577,16 @@ function ConnectedAppsSection() {
 	);
 }
 
-function SecurityTab( {
+export function SecurityTab( {
 	settings,
 	onSettingsChange,
+	userId = 0,
+	twoFactor = false,
 }: {
 	settings: UserSettings;
 	onSettingsChange: ( updated: UserSettings ) => void;
+	userId?: number;
+	twoFactor?: boolean;
 } ) {
 	const [ newEmail, setNewEmail ] = useState( '' );
 	const [ currentPassword, setCurrentPassword ] = useState( '' );
@@ -754,6 +759,20 @@ function SecurityTab( {
 					margin: `${ cssVar( spacing.spacingLg ) } 0`,
 				} }
 			/>
+			{ twoFactor && userId > 0 && (
+				<>
+					<TwoStepSignInSection userId={ userId } />
+					<hr
+						style={ {
+							border: 'none',
+							borderTop: `1px solid ${ cssVar(
+								colors.borderColor
+							) }`,
+							margin: `${ cssVar( spacing.spacingLg ) } 0`,
+						} }
+					/>
+				</>
+			) }
 			<ConnectedAppsSection />
 		</Panel>
 	);
@@ -1630,6 +1649,7 @@ export function UserSettingsApp( {
 	userId,
 	accountDeletion = 'unavailable',
 	homeUrl = '/',
+	twoFactor = false,
 }: {
 	artistSiteUrl: string;
 	hasArtists: boolean;
@@ -1637,6 +1657,7 @@ export function UserSettingsApp( {
 	userId: number;
 	accountDeletion?: AccountDeletionStatus;
 	homeUrl?: string;
+	twoFactor?: boolean;
 } ) {
 	const [ activeTab, setActiveTab ] = useState< TabId >( 'account-details' );
 	const [ settings, setSettings ] = useState< UserSettings | null >( null );
@@ -1722,6 +1743,8 @@ export function UserSettingsApp( {
 					<SecurityTab
 						settings={ settings }
 						onSettingsChange={ setSettings }
+						userId={ userId }
+						twoFactor={ twoFactor }
 					/>
 				);
 			case 'subscriptions':
@@ -1782,6 +1805,7 @@ function init(): void {
 					? deletionData
 					: 'unavailable';
 			const homeUrl = container.dataset.homeUrl || '/';
+			const twoFactor = container.dataset.twoFactor === '1';
 			const root = createRoot( container );
 			root.render(
 				<UserSettingsApp
@@ -1791,6 +1815,7 @@ function init(): void {
 					userId={ userId }
 					accountDeletion={ accountDeletion }
 					homeUrl={ homeUrl }
+					twoFactor={ twoFactor }
 				/>
 			);
 		} );
