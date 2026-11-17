@@ -38,15 +38,8 @@ endif;
 	while ( have_posts() ) :
 		the_post();
 
-		// Get user ID from URL parameter
-		$community_user_id = get_query_var('user_id', 0);
-
-		// Display comments for the user ID obtained from the URL
-		if ( $community_user_id ) {
-			echo function_exists('display_main_site_comments_for_user') ? wp_kses_post( display_main_site_comments_for_user($community_user_id) ) : '<div class="bbpress-comments-error">Multisite plugin not activated.</div>';
-		} else {
-			echo 'User ID not provided.';
-		}
+		// Explicit ?user_id= shows that user; otherwise the current user, or a login prompt.
+		echo wp_kses_post( extrachill_community_render_blog_comments_feed( get_query_var( 'user_id', 0 ), (string) get_permalink() ) );
 
 	endwhile; // End of the loop.
 

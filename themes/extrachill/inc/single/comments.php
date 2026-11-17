@@ -3,7 +3,8 @@
  * Comment System
  *
  * Technical Implementation:
- * - Multisite author links: Uses ec_should_use_multisite_comment_links() and ec_get_comment_author_link_multisite()
+ * - Multisite author links: extrachill_comment_author_html() (inc/core/templates/comment-author.php) links
+ *   registered commenters to their profile via the extrachill-network helpers when that plugin is active
  * - Native WordPress multisite authentication: Checks is_user_logged_in() for cross-site auth state
  * - Logged-out commenters: Shows a minimal "log in to comment" note. The login/register CTA block
  *   is rendered by the extrachill-blog plugin via the extrachill_before_comments_template action.
@@ -34,11 +35,8 @@ if ( ! function_exists( 'extrachill_comment' ) ) :
 						<?php
 						echo get_avatar( $comment, 74 );
 
-						if ( function_exists( 'ec_should_use_multisite_comment_links' ) && ec_should_use_multisite_comment_links( $comment ) ) {
-							$author_link = function_exists( 'ec_get_comment_author_link_multisite' ) ? ec_get_comment_author_link_multisite( $comment ) : get_comment_author_link();
-						} else {
-							$author_link = get_comment_author_link();
-						}
+						// Registered commenters link to their network profile; guests keep the default output.
+						$author_link = function_exists( 'extrachill_comment_author_html' ) ? extrachill_comment_author_html( $comment ) : get_comment_author_link( $comment );
 
 						printf( '<div class="comment-author-link">%s</div>', wp_kses_post( $author_link ) );
 
