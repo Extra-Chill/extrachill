@@ -270,6 +270,8 @@ class VenueCalendarFeedAbilities {
 
 	/** Register one operation with shared authorization and metadata. */
 	private function register_ability( string $name, string $label, string $description, array $properties, array $required, callable $execute, bool $is_readonly, bool $idempotent, bool $destructive ): void {
+		// abilities-docs: extrachill/get-venue-calendar-feed, extrachill/set-venue-calendar-feed, extrachill/sync-venue-calendar-feed.
+		// abilities-docs: extrachill/remove-venue-calendar-feed.
 		wp_register_ability(
 			$name,
 			array(

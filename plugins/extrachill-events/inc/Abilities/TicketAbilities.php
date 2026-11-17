@@ -424,6 +424,8 @@ class TicketAbilities {
 	 * @param bool   $is_public Whether anyone may execute it.
 	 */
 	private function register_ability( string $name, string $callback, array $input, array $required, array $output, bool $is_public ): void {
+		// abilities-docs: extrachill/get-event-ticket-offer, extrachill/issue-ticket-passes, extrachill/get-ticket-order-status.
+		// abilities-docs: extrachill/revoke-ticket-passes, extrachill/restore-ticket-passes, extrachill/notify-commerce-seller.
 		wp_register_ability(
 			'extrachill/' . $name,
 			array(

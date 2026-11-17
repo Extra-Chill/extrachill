@@ -33,6 +33,7 @@ function extrachill_users_register_entity_subscription_abilities(): void {
 			'entity-subscription-status' => 'Get Entity Subscription Status',
 		) as $name => $label
 	) {
+		// abilities-docs: extrachill/entity-subscribe, extrachill/entity-unsubscribe, extrachill/entity-subscription-status.
 		wp_register_ability(
 			'extrachill/' . $name,
 			array(

@@ -132,6 +132,10 @@ class TicketSettlementAbilities {
 	}
 
 	private function register_ability( string $name, string $label, array $input, array $output, string $execute, string $permission, bool $is_readonly, bool $idempotent ): void {
+		// abilities-docs: extrachill/record-checkout-ticket-sales, extrachill/register-booking-ticket-source, extrachill/list-booking-ticket-sources.
+		// abilities-docs: extrachill/record-booking-ticket-sales, extrachill/import-booking-ticket-sales-csv, extrachill/list-booking-ticket-sales.
+		// abilities-docs: extrachill/calculate-booking-settlement, extrachill/diagnose-booking-ticket-sales, extrachill/resolve-booking-ticket-sales.
+		// abilities-docs: extrachill/finalize-booking-settlement, extrachill/mark-booking-settlement-paid, extrachill/void-booking-settlement.
 		wp_register_ability(
 			$name,
 			array(

@@ -79,6 +79,9 @@ class BookingAttachmentAbilities {
 	 * @param array    $input        Input schema.
 	 */
 	private function register_ability( string $slug, bool $show_in_rest, bool $idempotent, callable $callback, array $input ): void {
+		// abilities-docs: extrachill/list-booking-attachments, extrachill/attach-booking-file, extrachill/replace-booking-attachment.
+		// abilities-docs: extrachill/delete-booking-attachment, extrachill/download-booking-attachment, extrachill/record-booking-attachment-delivery.
+		// abilities-docs: extrachill/inspect-booking-attachment-deliveries.
 		wp_register_ability(
 			'extrachill/' . $slug,
 			array(

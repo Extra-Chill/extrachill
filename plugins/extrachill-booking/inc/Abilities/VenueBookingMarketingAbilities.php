@@ -87,6 +87,7 @@ class VenueBookingMarketingAbilities {
 		);
 
 		foreach ( array( 'get', 'retry', 'cancel' ) as $verb ) {
+			// abilities-docs: extrachill/get-booking-marketing-operation, extrachill/retry-booking-marketing-operation, extrachill/cancel-booking-marketing-operation.
 			wp_register_ability(
 				'extrachill/' . $verb . '-booking-marketing-operation',
 				array(

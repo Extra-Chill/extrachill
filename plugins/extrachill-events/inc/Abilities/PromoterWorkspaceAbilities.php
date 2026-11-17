@@ -97,6 +97,7 @@ final class PromoterWorkspaceAbilities {
 	 * @param array    $output_schema Closed output schema.
 	 */
 	private function register_ability( string $name, string $label, array $properties, array $required, callable $execute, array $output_schema ): void {
+		// abilities-docs: extrachill/list-managed-workspace-identities, extrachill/resolve-managed-workspace-context.
 		wp_register_ability(
 			$name,
 			array(

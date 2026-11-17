@@ -105,6 +105,7 @@ class PriorityTermAbilities {
 			return current_user_can( 'manage_categories' );
 		};
 
+		// abilities-docs: extrachill/list-priority-venues, extrachill/list-priority-promoters.
 		wp_register_ability(
 			'extrachill/list-priority-' . $plural,
 			array(
@@ -196,6 +197,7 @@ class PriorityTermAbilities {
 			'description' => __( 'Human-readable result message.', 'extrachill-events' ),
 		);
 
+		// abilities-docs: extrachill/set-priority-venue, extrachill/set-priority-promoter.
 		wp_register_ability(
 			'extrachill/set-priority-' . $kind,
 			array(

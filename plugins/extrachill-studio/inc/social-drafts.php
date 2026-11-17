@@ -563,6 +563,7 @@ function register_social_publish_abilities(): void {
 			'extrachill/retry-social-publish'     => array( __( 'Retry Social Publish', 'extrachill-studio' ), __NAMESPACE__ . '\\execute_retry_social_publish' ),
 		) as $name => $definition
 	) {
+		// abilities-docs: extrachill/get-social-publish-state, extrachill/retry-social-publish.
 		wp_register_ability(
 			$name,
 			array(

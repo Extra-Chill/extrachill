@@ -111,6 +111,7 @@ class ManagedEventAbilities {
 			),
 		);
 
+		// abilities-docs: extrachill/list-managed-events.
 		wp_register_ability(
 			self::LIST_ABILITY,
 			array(
@@ -219,6 +220,7 @@ class ManagedEventAbilities {
 			)
 		);
 
+		// abilities-docs: extrachill/update-managed-event.
 		wp_register_ability(
 			self::UPDATE_ABILITY,
 			array(

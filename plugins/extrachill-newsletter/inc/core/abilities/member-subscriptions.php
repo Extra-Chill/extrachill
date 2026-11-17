@@ -13,6 +13,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_newsletter_register_member_abil
 function extrachill_newsletter_register_member_abilities(): void {
 	foreach ( array( 'get', 'set' ) as $operation ) {
 		$is_set = 'set' === $operation;
+		// abilities-docs: extrachill/newsletter-get-my-subscriptions, extrachill/newsletter-set-my-subscription.
 		wp_register_ability(
 			$is_set ? 'extrachill/newsletter-set-my-subscription' : 'extrachill/newsletter-get-my-subscriptions',
 			array(

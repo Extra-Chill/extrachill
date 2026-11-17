@@ -400,6 +400,10 @@ final class PromoterAuthorityAbilities {
 	 * @param array    $output_schema Strict output schema.
 	 */
 	private function register_ability( string $name, string $label, string $description, array $properties, array $required, callable $execute, callable $permission, bool $is_readonly, bool $idempotent, bool $destructive, array $output_schema ): void {
+		// abilities-docs: extrachill/verify-promoter-organization, extrachill/revoke-promoter-organization, extrachill/create-promoter-membership.
+		// abilities-docs: extrachill/update-promoter-membership, extrachill/revoke-promoter-membership, extrachill/list-promoter-memberships.
+		// abilities-docs: extrachill/invite-promoter-member, extrachill/resend-promoter-invitation, extrachill/cancel-promoter-invitation.
+		// abilities-docs: extrachill/list-promoter-invitations, extrachill/respond-promoter-invitation.
 		wp_register_ability(
 			$name,
 			array(

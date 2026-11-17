@@ -207,6 +207,8 @@ class VenueMembershipAbilities {
 
 	/** Register one operation with shared authorization and metadata. */
 	private function register_ability( string $name, string $label, string $description, array $properties, array $required, callable $execute, bool $is_readonly, bool $idempotent, bool $destructive, ?array $output_schema = null ): void {
+		// abilities-docs: extrachill/create-venue-membership, extrachill/update-venue-membership, extrachill/revoke-venue-membership.
+		// abilities-docs: extrachill/list-venue-memberships.
 		wp_register_ability(
 			$name,
 			array(
