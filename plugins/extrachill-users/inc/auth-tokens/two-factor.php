@@ -52,6 +52,40 @@ function extrachill_users_two_factor_policy_active(): bool {
 }
 
 /**
+ * Whether the user signs in with Two Factor.
+ *
+ * @param WP_User $user User to check.
+ */
+function extrachill_users_user_uses_two_factor( WP_User $user ): bool {
+	return class_exists( 'Two_Factor_Core' )
+		&& is_callable( array( 'Two_Factor_Core', 'is_user_using_two_factor' ) )
+		&& (bool) Two_Factor_Core::is_user_using_two_factor( (int) $user->ID );
+}
+
+/**
+ * Refuse a login that would skip a 2FA member's second factor.
+ *
+ * Without the `two-factor` policy, only the password login can hand a 2FA
+ * member to a code step (the validate_2fa fallback). Every other entry point
+ * that reaches the challenge loop (Google, Apple) would otherwise mint tokens
+ * or a cookie on the provider's word alone, so it fails closed instead.
+ *
+ * @param WP_User $user User whose primary credential was verified.
+ * @return WP_Error|null `two_factor_required` (403), or null when the login may proceed.
+ */
+function extrachill_users_two_factor_required_error( WP_User $user ): ?WP_Error {
+	if ( extrachill_users_two_factor_policy_active() || ! extrachill_users_user_uses_two_factor( $user ) ) {
+		return null;
+	}
+
+	return new WP_Error(
+		'two_factor_required',
+		__( 'This account uses two-step sign-in. Sign in with your email or username and password to enter your verification code.', 'extrachill-users' ),
+		array( 'status' => 403 )
+	);
+}
+
+/**
  * Register the `two-factor` challenge policy.
  */
 function extrachill_users_register_two_factor_policy(): void {
@@ -381,6 +415,9 @@ add_action( 'two_factor_user_revalidated', 'extrachill_users_two_factor_revalida
  * continued, so the continued response matches the entry point's own shape
  * and destination.
  *
+ * A 2FA member is refused with `two_factor_required` when the `two-factor`
+ * policy is not active, so no entry point can skip the second factor.
+ *
  * @param WP_User             $user          User whose primary credential was verified.
  * @param string              $device_id     Device UUID.
  * @param array<string,mixed> $login_options device_name, remember, set_cookie.
@@ -388,6 +425,11 @@ add_action( 'two_factor_user_revalidated', 'extrachill_users_two_factor_revalida
  * @return array<string,mixed>|WP_Error|null Challenge response, error, or null to complete the login now.
  */
 function extrachill_users_maybe_challenge_login( WP_User $user, string $device_id, array $login_options, array $flow ) {
+	$two_factor_required = extrachill_users_two_factor_required_error( $user );
+	if ( null !== $two_factor_required ) {
+		return $two_factor_required;
+	}
+
 	if ( ! function_exists( 'wp_native_auth_challenge_login' ) ) {
 		return null;
 	}

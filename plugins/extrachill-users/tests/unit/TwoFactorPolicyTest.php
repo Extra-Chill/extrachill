@@ -357,6 +357,8 @@ class Test_Two_Factor_Policy extends WP_UnitTestCase {
 			$this->markTestSkipped( 'wp-native-auth with the challenge loop is loaded.' );
 		}
 
+		Two_Factor_Core::$using = false;
+
 		$this->assertNull( extrachill_users_maybe_challenge_login( $this->user(), wp_generate_uuid4(), array(), array( 'flow' => 'oauth' ) ) );
 	}
 
