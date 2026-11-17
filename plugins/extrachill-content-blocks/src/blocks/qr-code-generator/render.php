@@ -51,11 +51,11 @@ if ( is_user_logged_in() && class_exists( \ExtraChill\Users\Teams\TeamMembership
 	}
 }
 $ec_qr_config = array(
-	'joinUrl'    => add_query_arg( 'redirect_to', $ec_qr_return, $ec_qr_join_url ),
-	'loginUrl'   => wp_login_url( $ec_qr_return ),
-	'profileUrl' => function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'artist' ) ) . 'join' : $ec_qr_join_url,
-	'loggedIn'   => is_user_logged_in(),
-	'teams'      => $ec_qr_teams,
+	'joinUrl'      => add_query_arg( 'redirect_to', $ec_qr_return, $ec_qr_join_url ),
+	'loginUrl'     => wp_login_url( $ec_qr_return ),
+	'profileUrl'   => function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'artist' ) ) . 'join' : $ec_qr_join_url,
+	'loggedIn'     => is_user_logged_in(),
+	'teams'        => $ec_qr_teams,
 	'supporterUrl' => (string) apply_filters(
 		'extrachill_supporter_url',
 		function_exists( 'ec_get_site_url' ) ? trailingslashit( (string) ec_get_site_url( 'shop' ) ) . 'product/lifetime-extra-chill-membership/' : ''
