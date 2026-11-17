@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.42.0] - 2026-11-17
+
+### Added
+- comments in activity feed and comment notifications
+
 ## [2.41.4] - 2026-11-17
 
 ### Fixed
