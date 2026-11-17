@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.35.0] - 2026-11-17
+
+### Added
+- manage two-step sign-in from Settings → Security
+- all activity consumers show forum, blog and event comments
+
 ## [1.34.1] - 2026-11-17
 
 ### Changed
