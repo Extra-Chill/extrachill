@@ -6,9 +6,24 @@
       "wp_codebox_prepare_steps": [
         {
           "command": "npm",
-          "args": ["run", "build"]
+          "args": [
+            "run",
+            "build"
+          ]
         }
-      ]
+      ],
+      "settings": {
+        "local_workspace_dependencies": [
+          {
+            "name": "@extrachill/tokens",
+            "path": "../../packages/tokens"
+          },
+          {
+            "name": "@extrachill/components",
+            "path": "../../packages/components"
+          }
+        ]
+      }
     }
   },
   "id": "extrachill-content-blocks",

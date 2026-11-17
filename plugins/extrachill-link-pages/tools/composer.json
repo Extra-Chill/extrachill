@@ -13,7 +13,7 @@
     "wp-coding-standards/wpcs": "^3.0"
   },
   "scripts": {
-    "test": "phpunit -c ../phpunit.xml.dist",
+    "test": ["php ../tests/managed-qr-codes-smoke.php", "phpunit -c ../phpunit.xml.dist"],
     "lint:php": "phpcs --standard=../phpcs.xml.dist ../inc/ ../templates/ ../extrachill-link-pages.php"
   },
   "config": {
