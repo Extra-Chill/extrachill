@@ -90,9 +90,15 @@ if ( ! function_exists( 'extrachill_map_community_activity_item' ) ) {
 	/**
 	 * Map one portable activity item onto the renderer's item shape.
 	 *
+	 * Comment items reuse the topic keys for the post they were left on.
+	 * `site_key` names the network site that hosts the item's link: community
+	 * for discussions and replies, events for event comments, main for article
+	 * comments, so consumers can bridge cross-site links.
+	 *
 	 * @param mixed $activity Item from `extrachill/community-recent-public-activity`.
 	 * @return array|null {type, username, user_profile_url, topic_title,
-	 *                    forum_title, date_time, forum_url, topic_url}, or null.
+	 *                    forum_title, date_time, forum_url, topic_url,
+	 *                    site_key}, or null.
 	 */
 	function extrachill_map_community_activity_item( $activity ) {
 		$types = array(
@@ -118,6 +124,7 @@ if ( ! function_exists( 'extrachill_map_community_activity_item' ) ) {
 			'date_time'        => (string) $activity['timestamp'],
 			'forum_url'        => (string) ( $forum['canonical_url'] ?? '' ),
 			'topic_url'        => (string) $activity['canonical_url'],
+			'site_key'         => 'comment' !== $activity['activity_type'] ? 'community' : ( 'event' === ( $post['kind'] ?? '' ) ? 'events' : 'main' ),
 		);
 	}
 }

@@ -9,12 +9,14 @@
  * in inc/content/recent-feed.php): it holds no query or merge logic of its
  * own, only the projection of feed items into the versioned item shape.
  * Discussions and replies come from the forum source; comments come from the
- * network comment source extrachill-users registers. `activity_types` narrows
- * the item types. `artist_slug` scopes to discussions tagged with that artist
- * (artist relationships only exist on discussions), which keeps the blog
- * artist page forum-only. This ability is also the cross-site door to the
- * feed: the network sidebar widget and the blog community card read it from
- * other sites, where the community plugin is not loaded.
+ * network comment source extrachill-users registers (article and event
+ * comments). Omitting `activity_types` returns every item type; the input
+ * only narrows. `artist_slug` scopes the feed to that artist: discussions
+ * tagged with the artist, and comments on articles and events tagged with
+ * the artist. Replies carry no artist relationship, so an artist-scoped
+ * read has none. This ability is also the cross-site door to the feed: the
+ * network sidebar widget, the blog homepage card, and the blog artist page
+ * read it from other sites, where the community plugin is not loaded.
  *
  * @package ExtraChillCommunity
  */
@@ -178,7 +180,7 @@ function extrachill_community_register_recent_public_activity_ability() {
 							'enum' => array_keys( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES ),
 						),
 						'uniqueItems' => true,
-						'description' => 'Item types to include. Default every type. artist_slug always narrows to discussions.',
+						'description' => 'Item types to include. Default every type. With artist_slug, replies are never returned (they carry no artist).',
 					),
 				),
 				'additionalProperties' => false,
@@ -227,7 +229,7 @@ function extrachill_community_ability_recent_public_activity( $input ) {
 	$artist_slug = isset( $input['artist_slug'] ) ? (string) $input['artist_slug'] : '';
 	$requested   = isset( $input['activity_types'] ) ? array_intersect_key( EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES, array_flip( array_map( 'strval', (array) $input['activity_types'] ) ) ) : EXTRACHILL_COMMUNITY_RECENT_ACTIVITY_TYPES;
 	if ( '' !== $artist_slug ) {
-		$requested = array_intersect_key( $requested, array( 'discussion' => true ) );
+		unset( $requested['reply'] );
 	}
 
 	$items = array();

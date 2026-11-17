@@ -27,8 +27,9 @@
  * `comments` source on the community activity feed (`ec_activity_feed_sources`,
  * owned by extrachill_build_activity_feed() in extrachill-community), which
  * merges it chronologically with forum topics and replies for /recent, the
- * network sidebar widget, and the `extrachill/community-recent-public-activity`
- * ability.
+ * network sidebar widget, the blog homepage card, the blog artist page, and
+ * the `extrachill/community-recent-public-activity` ability. Artist-scoped
+ * reads keep comments on posts and events tagged with that artist.
  *
  * @package ExtraChill\Users
  */
@@ -206,8 +207,8 @@ function ec_users_get_user_comment_activity_timestamps( $user_id ) {
  * The unscoped head of the list (up to EC_USERS_RECENT_COMMENT_ACTIVITY_MAX
  * items) is cached network-wide (global object-cache group) and busted
  * whenever a comment enters or leaves the approved state. Scoped reads (one
- * author, excluded authors) and deeper reads (pagination) query directly. It
- * never ranks: order is purely by comment date.
+ * author, excluded authors, one artist) and deeper reads (pagination) query
+ * directly. It never ranks: order is purely by comment date.
  *
  * Each item:
  *   - blog_id, comment_id, post_id (int)
@@ -219,15 +220,20 @@ function ec_users_get_user_comment_activity_timestamps( $user_id ) {
  * @param array $args {
  *     Optional. Scope.
  *
- *     @type int   $user_id          Only this member's comments. Default 0 (all).
- *     @type int[] $exclude_user_ids Drop these members' comments. Default none.
+ *     @type int    $user_id          Only this member's comments. Default 0 (all).
+ *     @type int[]  $exclude_user_ids Drop these members' comments. Default none.
+ *     @type string $artist           Artist term slug. Only comments on published
+ *                                    posts tagged with that artist on each
+ *                                    comment activity site (articles, events,
+ *                                    whatever carries the `artist` term there).
+ *                                    Default '' (all).
  * }
  * @return array<int, array<string, mixed>>
  */
 function ec_users_get_recent_comment_activity( $limit = 10, $args = array() ) {
 	$limit = max( 1, min( EC_USERS_COMMENT_ACTIVITY_QUERY_MAX, (int) $limit ) );
 
-	if ( ec_users_is_scoped_comment_activity_query( ec_users_recent_comment_activity_query_args( $args ) ) || $limit > EC_USERS_RECENT_COMMENT_ACTIVITY_MAX ) {
+	if ( ec_users_is_scoped_comment_activity_query( ec_users_recent_comment_activity_query_args( $args ), (array) $args ) || $limit > EC_USERS_RECENT_COMMENT_ACTIVITY_MAX ) {
 		return ec_users_query_recent_comment_activity( $limit, $args );
 	}
 
@@ -266,31 +272,92 @@ function ec_users_recent_comment_activity_query_args( $args ) {
 }
 
 /**
- * Whether recent comment activity query arguments carry an author scope.
+ * Normalize the artist scope of a recent comment activity read.
  *
- * Only unscoped reads share the network cache.
+ * @param array $args Scope, see ec_users_get_recent_comment_activity().
+ * @return string Artist term slug, or '' for no artist scope.
+ */
+function ec_users_comment_activity_artist_scope( $args ) {
+	return trim( (string) ( $args['artist'] ?? '' ) );
+}
+
+/**
+ * Whether a recent comment activity read carries a scope.
+ *
+ * An author, author exclusions, or an artist each scope the read. Only
+ * unscoped reads share the network cache.
  *
  * @param array $query Arguments from ec_users_recent_comment_activity_query_args().
+ * @param array $args  Optional. Scope, see ec_users_get_recent_comment_activity().
  * @return bool
  */
-function ec_users_is_scoped_comment_activity_query( array $query ) {
-	return isset( $query['user_id'] ) || isset( $query['author__not_in'] );
+function ec_users_is_scoped_comment_activity_query( array $query, array $args = array() ) {
+	return isset( $query['user_id'] ) || isset( $query['author__not_in'] ) || '' !== ec_users_comment_activity_artist_scope( $args );
+}
+
+/**
+ * Resolve the posts on the current site tagged with an artist.
+ *
+ * Must run in the comment activity site being read. The artist term is
+ * looked up by slug in that site's own tables, and its objects come from
+ * that site's term relationships, so every post type the `artist` taxonomy
+ * is attached to there (articles on the main site, `data_machine_events` on
+ * the events site) is covered without naming post types. Taxonomy
+ * registrations belong to the request's site, not the switched one, so the
+ * registered object types cannot be trusted here; the relationship table is
+ * the ground truth. Publication is enforced by the comment query itself
+ * (`post_status => publish`), so a site whose tagged posts are all
+ * unpublished contributes nothing.
+ *
+ * @param string $artist Artist term slug.
+ * @return int[] Post IDs carrying the artist, or none when the term is
+ *               missing on this site.
+ */
+function ec_users_comment_activity_artist_post_ids( $artist ) {
+	if ( '' === $artist || ! taxonomy_exists( 'artist' ) ) {
+		return array();
+	}
+
+	$term = get_term_by( 'slug', $artist, 'artist' );
+	if ( ! $term instanceof WP_Term ) {
+		return array();
+	}
+
+	$object_ids = get_objects_in_term( (int) $term->term_id, 'artist' );
+	if ( ! is_array( $object_ids ) ) {
+		return array();
+	}
+
+	return array_values( array_filter( array_unique( array_map( 'intval', $object_ids ) ) ) );
 }
 
 /**
  * Run get_comments() on one comment activity site.
  *
- * @param int   $blog_id Site to read.
- * @param array $query   get_comments() arguments.
+ * With an artist scope, the read is restricted to comments on that site's
+ * published posts tagged with the artist (`post__in`); a site where the
+ * artist has no published posts, or no term, contributes nothing.
+ *
+ * @param int    $blog_id Site to read.
+ * @param array  $query   get_comments() arguments.
+ * @param string $artist  Optional. Artist term slug. Default '' (no scope).
  * @return array|int Comments, or a count when `count` is set.
  */
-function ec_users_comment_activity_query_blog( $blog_id, array $query ) {
+function ec_users_comment_activity_query_blog( $blog_id, array $query, $artist = '' ) {
 	$switched = get_current_blog_id() !== $blog_id;
 	if ( $switched ) {
 		switch_to_blog( $blog_id );
 	}
 
 	try {
+		if ( '' !== $artist ) {
+			$post_ids = ec_users_comment_activity_artist_post_ids( $artist );
+			if ( empty( $post_ids ) ) {
+				return empty( $query['count'] ) ? array() : 0;
+			}
+			$query['post__in'] = $post_ids;
+		}
+
 		return get_comments( $query );
 	} finally {
 		if ( $switched ) {
@@ -310,16 +377,17 @@ function ec_users_comment_activity_query_blog( $blog_id, array $query ) {
  * @return array<int, array<string, mixed>>
  */
 function ec_users_query_recent_comment_activity( $limit = EC_USERS_RECENT_COMMENT_ACTIVITY_MAX, $args = array() ) {
-	$limit = max( 1, min( EC_USERS_COMMENT_ACTIVITY_QUERY_MAX, (int) $limit ) );
-	$query = ec_users_recent_comment_activity_query_args( $args );
-	$items = array();
+	$limit  = max( 1, min( EC_USERS_COMMENT_ACTIVITY_QUERY_MAX, (int) $limit ) );
+	$query  = ec_users_recent_comment_activity_query_args( $args );
+	$artist = ec_users_comment_activity_artist_scope( $args );
+	$items  = array();
 
 	$query['number']  = $limit;
 	$query['orderby'] = 'comment_date_gmt';
 	$query['order']   = 'DESC';
 
 	foreach ( ec_users_get_comment_activity_blog_ids() as $blog_id ) {
-		foreach ( (array) ec_users_comment_activity_query_blog( $blog_id, $query ) as $comment ) {
+		foreach ( (array) ec_users_comment_activity_query_blog( $blog_id, $query, $artist ) as $comment ) {
 			$item = ec_users_prepare_recent_comment_activity_item( $comment, $blog_id );
 			if ( null !== $item ) {
 				$items[] = $item;
@@ -344,14 +412,17 @@ function ec_users_query_recent_comment_activity( $limit = EC_USERS_RECENT_COMMEN
  * Counts approved discussion comments on published posts across the activity
  * sites. Password-protected posts are only filtered when items are shaped, so
  * the count can run slightly high on sites with protected posts; it sizes
- * pagination, nothing else. The unscoped count is cached alongside the list.
+ * pagination, nothing else. The unscoped count is cached alongside the list;
+ * scoped counts (author, exclusions, artist) query directly, with the same
+ * per-site artist restriction as the list.
  *
  * @param array $args Scope, see ec_users_get_recent_comment_activity().
  * @return int
  */
 function ec_users_count_recent_comment_activity( $args = array() ) {
 	$query    = ec_users_recent_comment_activity_query_args( $args );
-	$unscoped = ! ec_users_is_scoped_comment_activity_query( $query );
+	$artist   = ec_users_comment_activity_artist_scope( $args );
+	$unscoped = ! ec_users_is_scoped_comment_activity_query( $query, (array) $args );
 
 	if ( $unscoped ) {
 		$cached = wp_cache_get( EC_USERS_RECENT_COMMENT_ACTIVITY_COUNT_CACHE_KEY, EC_USERS_RECENT_COMMENT_ACTIVITY_CACHE_GROUP );
@@ -363,7 +434,7 @@ function ec_users_count_recent_comment_activity( $args = array() ) {
 	$query['count'] = true;
 	$total          = 0;
 	foreach ( ec_users_get_comment_activity_blog_ids() as $blog_id ) {
-		$total += (int) ec_users_comment_activity_query_blog( $blog_id, $query );
+		$total += (int) ec_users_comment_activity_query_blog( $blog_id, $query, $artist );
 	}
 
 	if ( $unscoped ) {
@@ -456,22 +527,18 @@ add_filter( 'ec_activity_feed_sources', 'ec_users_comment_activity_feed_source',
  *     @type int    $limit           Newest items wanted.
  *     @type int    $author          Only this member's comments (0 = all).
  *     @type int[]  $exclude_authors Members to drop (viewer blocks).
- *     @type string $artist          Artist scope. Comments carry no artist, so
- *                                   an artist-scoped query returns nothing.
+ *     @type string $artist          Artist term slug ('' = none). Keeps
+ *                                   comments on published posts tagged with
+ *                                   the artist on each comment activity site
+ *                                   (articles on main, events on events).
  * }
  * @return array{items:array[],total:int}
  */
 function ec_users_query_comment_activity_feed_source( array $query ) {
-	if ( '' !== (string) ( $query['artist'] ?? '' ) ) {
-		return array(
-			'items' => array(),
-			'total' => 0,
-		);
-	}
-
 	$scope = array(
 		'user_id'          => (int) ( $query['author'] ?? 0 ),
 		'exclude_user_ids' => (array) ( $query['exclude_authors'] ?? array() ),
+		'artist'           => (string) ( $query['artist'] ?? '' ),
 	);
 
 	$items = array();

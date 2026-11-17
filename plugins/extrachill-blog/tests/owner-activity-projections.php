@@ -80,20 +80,81 @@ $GLOBALS['projection_response'] = array(
 				'artists' => array(),
 			),
 		),
+		array(
+			'canonical_url' => 'https://events.extrachill.com/events/test-show/#comment-501',
+			'title'         => 'Comment on Test Show',
+			'timestamp'     => '2026-08-05T12:00:00+00:00',
+			'activity_type' => 'comment',
+			'actor'         => array(
+				'user_id'      => 9,
+				'display_name' => 'Commenter',
+				'profile_url'  => 'https://community.extrachill.com/u/commenter/',
+			),
+			'relationships' => array(
+				'post' => array(
+					'name'          => 'Test Show',
+					'kind'          => 'event',
+					'canonical_url' => 'https://events.extrachill.com/events/test-show/',
+				),
+			),
+		),
+		array(
+			'canonical_url' => 'https://extrachill.com/test-review/#comment-77',
+			'title'         => 'Comment on Test Review',
+			'timestamp'     => '2026-08-04T12:00:00+00:00',
+			'activity_type' => 'comment',
+			'actor'         => array(
+				'user_id'      => 0,
+				'display_name' => 'Guest',
+				'profile_url'  => null,
+			),
+			'relationships' => array(
+				'post' => array(
+					'name'          => 'Test Review',
+					'kind'          => 'article',
+					'canonical_url' => 'https://extrachill.com/test-review/',
+				),
+			),
+		),
 	),
 );
 $community = extrachill_blog_get_artist_community_activity( new WP_Term() );
-projection_assert( 1 === count( $community ), 'Community success should map one activity item.' );
+projection_assert( 3 === count( $community ), 'Community success should map the discussion and both comment items.' );
 projection_assert( 'Community discussion' === $community[0]['source'], 'Community mapping should preserve the Blog source label.' );
+projection_assert( 'Event comment' === $community[1]['source'] && 'Comment on Test Show' === $community[1]['title'], 'Event comments render with their own source label and owner title.' );
+projection_assert( 'https://events.extrachill.com/events/test-show/#comment-501' === $community[1]['url'], 'Event comments link to the comment anchor.' );
+projection_assert( 'Article comment' === $community[2]['source'] && 'https://extrachill.com/test-review/#comment-77' === $community[2]['url'], 'Article comments render with their own source label and link.' );
+projection_assert( array() === $community[1]['relationships'], 'Comment rows carry no Events taxonomy badges.' );
 projection_assert( 'community' === $GLOBALS['projection_request']['site_key'], 'Community requests must target the owner site.' );
 projection_assert(
 	array(
-		'artist_slug'    => 'test-artist',
-		'limit'          => 4,
-		'activity_types' => array( 'discussion', 'reply' ),
+		'artist_slug' => 'test-artist',
+		'limit'       => 4,
 	) === $GLOBALS['projection_request']['args']['query']['input'],
-	'Artist filtering and the forum-only item types must be delegated to the owner contract.'
+	'Artist filtering is delegated to the owner contract, with every item type.'
 );
+
+// The validator accepts exactly the comment shape the owner emits.
+$comment_item = $GLOBALS['projection_response']['items'][1];
+projection_assert( extrachill_blog_is_community_activity_item( $comment_item ), 'A well-formed comment item is valid.' );
+$bad_kind                                  = $comment_item;
+$bad_kind['relationships']['post']['kind'] = 'podcast';
+projection_assert( ! extrachill_blog_is_community_activity_item( $bad_kind ), 'Unknown comment post kinds are rejected.' );
+$extra_key                                   = $comment_item;
+$extra_key['relationships']['post']['extra'] = 'x';
+projection_assert( ! extrachill_blog_is_community_activity_item( $extra_key ), 'Comment post relationships must be exact.' );
+$forum_rel                  = $comment_item;
+$forum_rel['relationships'] = $GLOBALS['projection_response']['items'][0]['relationships'];
+projection_assert( ! extrachill_blog_is_community_activity_item( $forum_rel ), 'Comment items must not carry forum relationships.' );
+$post_on_forum                  = $GLOBALS['projection_response']['items'][0];
+$post_on_forum['relationships'] = $comment_item['relationships'];
+projection_assert( ! extrachill_blog_is_community_activity_item( $post_on_forum ), 'Forum items must not carry comment relationships.' );
+$bad_url = $comment_item;
+$bad_url['relationships']['post']['canonical_url'] = 'not a url';
+projection_assert( ! extrachill_blog_is_community_activity_item( $bad_url ), 'Comment post URLs must be valid.' );
+$bad_type                  = $comment_item;
+$bad_type['activity_type'] = 'mention';
+projection_assert( ! extrachill_blog_is_community_activity_item( $bad_type ), 'Unknown activity types are rejected.' );
 projection_assert( empty( $GLOBALS['projection_filters']['ec_cross_site_use_http_loopback'] ), 'Successful dispatch must remove its temporary filter.' );
 
 $GLOBALS['projection_response'] = array(

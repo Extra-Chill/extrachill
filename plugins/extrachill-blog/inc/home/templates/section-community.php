@@ -2,9 +2,10 @@
 /**
  * Homepage Community Card
  *
- * Shows recent forum activity from community.extrachill.com via the
- * extrachill-network community-activity adapter (a cached cross-site read of
- * the community activity feed), with CTAs below.
+ * Shows the latest items of the one community activity feed (forum topics
+ * and replies plus article and event comments) via the extrachill-network
+ * community-activity adapter (a cached cross-site read of the feed), with
+ * CTAs below.
  *
  * @package ExtraChillBlog
  * @since 0.1.0
@@ -20,10 +21,10 @@ if ( $is_logged_in && function_exists( 'extrachill_get_user_profile_url' ) ) {
 	}
 }
 
-// Forum items only: this card introduces the forums. It reads the one
-// community activity feed and narrows it by item type.
+// Every item type: forum topics and replies, article comments, and event
+// comments, in feed order.
 $community_activity = function_exists( 'extrachill_get_community_activity_items' )
-	? extrachill_get_community_activity_items( 3, array( 'activity_types' => array( 'discussion', 'reply' ) ) )
+	? extrachill_get_community_activity_items( 3 )
 	: array();
 ?>
 <div class="home-network-card" aria-labelledby="community-header">
@@ -33,13 +34,20 @@ $community_activity = function_exists( 'extrachill_get_community_activity_items'
 	</p>
 	<?php if ( ! empty( $community_activity ) ) : ?>
 		<div class="home-community-activity">
-			<?php foreach ( $community_activity as $activity ) : ?>
-				<a class="home-community-activity-item ec-cross-site-link" href="<?php echo esc_url( extrachill_blog_bridge_url( $activity['topic_url'], 'community' ) ); ?>">
+			<?php
+			foreach ( $community_activity as $activity ) :
+				// Article comments link within this site; everything else
+				// (forum items, event comments) is a bridged cross-site link.
+				$activity_site = isset( $activity['site_key'] ) ? (string) $activity['site_key'] : 'community';
+				$is_cross_site = 'main' !== $activity_site;
+				$activity_url  = $is_cross_site ? extrachill_blog_bridge_url( $activity['topic_url'], $activity_site ) : $activity['topic_url'];
+				?>
+				<a class="<?php echo esc_attr( $is_cross_site ? 'home-community-activity-item ec-cross-site-link' : 'home-community-activity-item' ); ?>" href="<?php echo esc_url( $activity_url ); ?>">
 					<span class="home-community-activity-title"><?php echo esc_html( $activity['topic_title'] ); ?></span>
 					<span class="home-community-activity-meta">
 						<?php
 						printf(
-							/* translators: 1: username, 2: activity type (Topic/Reply) */
+							/* translators: 1: username, 2: activity type (Topic/Reply/Comment) */
 							esc_html__( '%1$s · %2$s', 'extrachill-blog' ),
 							esc_html( $activity['username'] ),
 							esc_html( $activity['type'] )

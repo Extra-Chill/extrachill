@@ -167,6 +167,7 @@ foreach ( array( 5, 3, 1 ) as $hour ) {
 		'author_name' => 'Commenter',
 		'date_gmt'    => gmdate( 'Y-m-d H:i:s', $base + $hour * 3600 ),
 		'content'     => 'Nice one',
+		'artists'     => 5 === $hour ? array( 'band' ) : array(),
 	);
 }
 
@@ -182,7 +183,9 @@ add_filter(
 					array_filter(
 						$GLOBALS['feed_comments'],
 						static function ( $row ) use ( $query ) {
-							return ( 0 === $query['author'] || $query['author'] === $row['user_id'] ) && ! in_array( $row['user_id'], $query['exclude_authors'], true );
+							return ( 0 === $query['author'] || $query['author'] === $row['user_id'] )
+								&& ! in_array( $row['user_id'], $query['exclude_authors'], true )
+								&& ( '' === $query['artist'] || in_array( $query['artist'], $row['artists'], true ) );
 						}
 					)
 				);
@@ -250,7 +253,11 @@ $queries = count( $GLOBALS['feed_comment_queries'] );
 check( 'forum types return forum items only', array( 206, 204, 202 ) === $order( extrachill_build_activity_feed( 10, 1, 0, array( 'types' => array( 'topic', 'reply' ) ) ) ) );
 check( 'unrequested sources are not queried', count( $GLOBALS['feed_comment_queries'] ) === $queries );
 check( 'reply-only narrows the forum post types', array( 206, 202 ) === $order( extrachill_build_activity_feed( 10, 1, 0, array( 'types' => array( 'reply' ) ) ) ) && 'reply' === end( $GLOBALS['feed_wp_query_args'] )['post_type'] );
-check( 'artist scope keeps forum topics only', 'topic' === ( extrachill_build_activity_feed( 10, 1, 0, array( 'artist' => 'band' ) ) ? end( $GLOBALS['feed_wp_query_args'] )['post_type'] : '' ) && 'band' === end( $GLOBALS['feed_wp_query_args'] )['tax_query'][0]['terms'] );
+$artist_feed = extrachill_build_activity_feed( 10, 1, 0, array( 'artist' => 'band' ) );
+check( 'artist scope keeps forum topics, not replies', 'topic' === end( $GLOBALS['feed_wp_query_args'] )['post_type'] && 'band' === end( $GLOBALS['feed_wp_query_args'] )['tax_query'][0]['terms'] );
+check( 'artist scope reaches the comment source', 'band' === end( $GLOBALS['feed_comment_queries'] )['artist'] && array( 'comment' ) === end( $GLOBALS['feed_comment_queries'] )['types'] );
+check( 'artist scope merges tagged topics with comments on tagged posts', array( 505, 204 ) === $order( $artist_feed ) && 2 === $artist_feed['pagination']->found_posts );
+check( 'unscoped feeds pass an empty artist to every source', '' === $GLOBALS['feed_comment_queries'][0]['artist'] );
 check( 'viewer audience keeps the /recent statuses', in_array( 'private', $GLOBALS['feed_wp_query_args'][0]['post_status'], true ) );
 extrachill_build_activity_feed( 1, 1, 0, array( 'audience' => 'public' ) );
 check( 'public audience reads public statuses only', array( 'publish', 'closed' ) === end( $GLOBALS['feed_wp_query_args'] )['post_status'] );
