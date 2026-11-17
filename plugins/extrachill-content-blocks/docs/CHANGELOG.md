@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.1] - 2026-11-17
+
+### Fixed
+- rapper name generator no longer emits 'The The', double spaces, or undefined $secondWord
+
 ## [1.15.0] - 2026-11-17
 
 ### Added
