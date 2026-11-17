@@ -56,15 +56,44 @@ REST API endpoints for managing artist email subscribers.
 ```json
 {
   "subscribers": [
-    { "email": "fan@example.com", "subscribed_date": "2025-01-15" },
-    { "email": "another@example.com", "subscribed_date": "2025-01-14" }
+    {
+      "email": "fan@example.com",
+      "username": "",
+      "subscribed_at": "2025-01-15 10:00:00",
+      "exported": false,
+      "unsubscribe_url": "https://artist.extrachill.com/wp-json/extrachill/v1/artists/subscribers/unsubscribe?token=..."
+    }
   ]
 }
 ```
 
+`unsubscribe_url` is a signed, non-expiring personal link (`extrachill_sign()` purpose `artist.subscriber_unsubscribe`). It carries no email address. Artists put it in the emails they send so the subscriber can leave in one click.
+
 **Permission**: User must have permission to manage the artist
 
 **File**: `inc/routes/artists/subscribers.php`
+
+### Unsubscribe Link
+
+**Endpoint**: `GET|POST /wp-json/extrachill/v1/artists/subscribers/unsubscribe?token=...`
+
+**Ability**: `extrachill/artist-subscriber-unsubscribe`
+
+GET returns a confirmation page and never changes the list, so mail scanners that prefetch links are harmless. POST (the page's button) removes the subscriber and returns "You've unsubscribed from <artist>". Both return `text/html`. Invalid or tampered tokens return an "invalid link" page. Public: the signature is the authorization.
+
+**File**: `inc/routes/artists/subscriber-unsubscribe.php`
+
+### Member Artist Subscriptions
+
+**Endpoints**:
+- `GET /wp-json/extrachill/v1/artists/me/subscriptions` → `extrachill/list-my-artist-subscriptions`
+- `DELETE /wp-json/extrachill/v1/artists/me/subscriptions/{subscriber_id}` → `extrachill/remove-my-artist-subscription`
+
+Lists or removes the signed-in member's artist list rows, matched by user ID or account email. Removing a row the member does not own returns `artist_subscription_not_found` (HTTP 404). Used by **Settings → Subscriptions** on the community site; route affinity runs both on the artist site.
+
+**Permission**: Signed in.
+
+**File**: `inc/routes/artists/subscriber-unsubscribe.php`
 
 ## Error Responses
 

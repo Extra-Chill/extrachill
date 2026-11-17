@@ -347,6 +347,9 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 		'/extrachill/v1/local-scene-digest/unsubscribe|extrachill/unsubscribe-local-scene-digest' => array(
 			'ability_only' => array( 'confirm' => 'Derived from the HTTP method: POST confirms the unsubscribe, GET only renders the confirmation.' ),
 		),
+		'/extrachill/v1/artists/subscribers/unsubscribe|extrachill/artist-subscriber-unsubscribe' => array(
+			'ability_only' => array( 'confirm' => 'Derived from the HTTP method: POST confirms the unsubscribe, GET only renders the confirmation.' ),
+		),
 		'/extrachill/v1/network-media|extrachill/network-media-upload' => array(
 			'ability_only' => array(
 				'tmp_name' => 'Derived from the admitted multipart file payload.',

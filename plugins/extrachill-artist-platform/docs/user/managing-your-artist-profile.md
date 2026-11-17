@@ -27,4 +27,6 @@ Open **Subscribers** to see people who signed up directly through your artist pr
 
 Use **Prev** and **Next** to browse the list. Choose **Export CSV** to download new subscribers you have not exported before. The download is a spreadsheet you can use with your mailing service. The export button is unavailable when there are no subscribers to export.
 
+Each row in the export includes a personal unsubscribe link in the **unsubscribe_url** column. Put that link in every email you send to that person, for example as your mailing service's custom unsubscribe field. When they open it and confirm, they come off your list right away. Fans with an Extra Chill account can also leave your list from their account settings.
+
 Switching artists changes the details and subscriber list you are viewing. Check the selected artist before making changes or downloading a list.

@@ -1,6 +1,6 @@
 # Artist Preferences
 
-Want news straight from a band you love? Many artists on Extra Chill have a **Subscribe** form so you can join their email list. Extra Chill does not have a separate artist preferences page or artist notifications in your account settings.
+Want news straight from a band you love? Many artists on Extra Chill have a **Subscribe** form so you can join their email list. If you have an Extra Chill account, you can see and leave artist lists in your account settings.
 
 ## Subscribe to an artist
 
@@ -18,7 +18,12 @@ Your email goes to that artist's subscriber list, and the artist's team can see 
 
 ## Stop getting an artist's emails
 
-Extra Chill does not send these emails; the artist does. Use any unsubscribe link in the artist's emails, or ask the artist to remove you. If you need help, [contact Extra Chill](https://extrachill.com/contact-us).
+Extra Chill does not send these emails; the artist does. You can leave an artist's list in either of these ways:
+
+- **Use the unsubscribe link in the artist's email.** Artists get a personal unsubscribe link for each person on their list to put in their emails. Open the link and choose **Unsubscribe**. You see **You've unsubscribed from** and the artist's name when it works.
+- **Use your account settings.** If you have an Extra Chill account with the same email address, go to **Settings** > **Subscriptions**. Artist lists show as **Artist mailing list**. Choose **Unsubscribe** next to the artist.
+
+Leaving one artist's list does not remove you from other artists' lists or from the Extra Chill newsletter. If an artist emails you without an unsubscribe link, ask the artist to remove you or [contact Extra Chill](https://extrachill.com/contact-us).
 
 ## For artists
 

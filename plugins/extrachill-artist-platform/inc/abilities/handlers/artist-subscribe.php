@@ -65,10 +65,11 @@ function extrachill_artist_platform_ability_artist_subscribe( array $input ): ar
 			'artist_profile_id' => $artist_id,
 			'subscriber_email'  => $email,
 			'username'          => '',
+			'source'            => 'artist_subscribe_form',
 			'subscribed_at'     => current_time( 'mysql', 1 ),
 			'exported'          => 0,
 		),
-		array( '%d', '%s', '%s', '%s', '%d' )
+		array( '%d', '%s', '%s', '%s', '%s', '%d' )
 	);
 
 	if ( ! $inserted ) {

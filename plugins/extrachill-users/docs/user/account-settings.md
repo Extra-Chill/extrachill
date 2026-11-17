@@ -62,7 +62,7 @@ Choose **Save Preferences** after you make changes. Learn more in [Notifications
 
 ## Subscriptions
 
-The **Subscriptions** tab lists the updates you asked Extra Chill to send you, such as your weekly Local Scene digest. These are private. Choose **Unsubscribe** next to anything you no longer want. If you have none, the tab says so.
+The **Subscriptions** tab lists the updates you asked Extra Chill to send you, such as your weekly Local Scene digest. These are private. It also lists artist email lists you joined with your account email address, marked **Artist mailing list**. Choose **Unsubscribe** next to anything you no longer want. If you have none, the tab says so. See [Artist preferences](https://docs.extrachill.com/artist-platform/artist-preferences).
 
 ## Artist Platform
 

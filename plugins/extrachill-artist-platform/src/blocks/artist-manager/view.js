@@ -32,6 +32,7 @@ import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import LocalSupportTab from './components/LocalSupportTab';
 import ShowsTab from './components/ShowsTab';
 import ScenePicker from './components/ScenePicker';
+import { downloadSubscribersCsv } from './subscribers-csv';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -458,12 +459,18 @@ const SubscribersTab = ({ artistId }) => {
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [ artistId ]);
 
+	const [notice, setNotice] = useState('');
+
 	const exportCsv = async () => {
+		setNotice('');
 		try {
 			const data = await exportSubscribers(artistId, false);
-			if (data?.url) {
-				window.location.href = data.url;
+			if (!Array.isArray(data?.subscribers) || data.subscribers.length === 0) {
+				setNotice('No new subscribers to export since your last download.');
+				return;
 			}
+			downloadSubscribersCsv(data);
+			setError('');
 		} catch (err) {
 			setError('Export failed.');
 		}
@@ -474,6 +481,7 @@ const SubscribersTab = ({ artistId }) => {
 	return (
 		<Panel>
 			<PanelHeader
+				description="Export CSV downloads new subscribers, each with a personal unsubscribe link. Include that link in every email you send so fans can leave your list in one click."
 				actions={
 					<button type="button" className="button-2 button-medium" onClick={exportCsv} disabled={!subs.length}>
 						Export CSV
@@ -482,6 +490,7 @@ const SubscribersTab = ({ artistId }) => {
 			/>
 			{loading && <InlineStatus tone="info">Loading subscribers…</InlineStatus>}
 			{error && <InlineStatus tone="error">{error}</InlineStatus>}
+			{notice && <InlineStatus tone="info">{notice}</InlineStatus>}
 			<div className="ec-am__list">
 				{subs.map((sub) => (
 					<div key={sub.subscriber_id} className="ec-am__list-item">
