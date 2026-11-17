@@ -6,6 +6,7 @@
  */
 
 namespace {
+	global $errors_command_wp_bootstrapped, $errors_command_php, $errors_command_rest, $errors_command_http, $errors_command_formats;
 	$errors_command_wp_bootstrapped = function_exists( 'get_user_by' );
 
 	if ( ! $errors_command_wp_bootstrapped ) {

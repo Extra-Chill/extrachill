@@ -40,6 +40,11 @@ function extrachill_analytics_register_php_error_summary_ability() {
 						'description' => __( 'Number of days to look back. 0 for all available history.', 'extrachill-analytics' ),
 						'default'     => 7,
 					),
+					'seconds' => array(
+						'type'        => 'integer',
+						'minimum'     => 0,
+						'description' => __( 'Look-back seconds, overriding days. 0 for all history. Live entries use exact timestamps; daily persisted rows use last_seen and cannot be split.', 'extrachill-analytics' ),
+					),
 					'severity' => array(
 						'type'        => 'string',
 						'description' => __( 'Filter by severity.', 'extrachill-analytics' ),
@@ -130,7 +135,9 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		extrachill_analytics_snapshot_php_errors();
 	}
 
-	$since_ts  = $days > 0 ? strtotime( "-{$days} days", time() ) : null;
+	$now       = time();
+	$seconds   = isset( $input['seconds'] ) ? max( 0, (int) $input['seconds'] ) : $days * DAY_IN_SECONDS;
+	$since_ts  = $seconds > 0 ? $now - $seconds : null;
 	$since_day = null !== $since_ts ? gmdate( 'Y-m-d', $since_ts ) : null;
 
 	// Active-window threshold (computed early so both persisted and live sources
@@ -148,6 +155,12 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	if ( null !== $since_day ) {
 		$where[]  = 'snapshot_day >= %s';
 		$values[] = $since_day;
+	}
+	// Daily rows cannot be split at the cutoff. Exclude resolved rows using
+	// their latest occurrence, and disclose the remaining daily uncertainty.
+	if ( isset( $input['seconds'] ) && null !== $since_ts ) {
+		$where[]  = 'last_seen >= %s';
+		$values[] = gmdate( 'Y-m-d H:i:s', $since_ts );
 	}
 	if ( 'all' !== $severity ) {
 		$where[]  = 'severity = %s';
@@ -238,6 +251,10 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 	$live      = extrachill_analytics_parse_php_error_log( $log_path, $since_ts, 32 * MB_IN_BYTES, $watermark );
 
 	foreach ( $live['entries'] as $entry ) {
+		// An unparseable timestamp cannot establish membership in an exact window.
+		if ( isset( $input['seconds'] ) && null !== $since_ts && null === $entry['ts'] ) {
+			continue;
+		}
 		if ( 'all' !== $severity && $entry['severity'] !== $severity ) {
 			continue;
 		}
@@ -276,16 +293,10 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		}
 	}
 
-	// Determine the per-day denominator. Prefer the requested window; if the data
-	// only spans fewer days than requested, use the actual covered span so a short
-	// log does not understate the rate (the whole point of the issue).
+	// Normalize to the requested duration, including fractional days. With no
+	// bound, use the number of UTC days represented by the available data.
 	$days_covered = count( $covered_days );
-	if ( $days > 0 ) {
-		$denominator = $days;
-	} else {
-		$denominator = max( 1, $days_covered );
-	}
-	$denominator = max( 1, $denominator );
+	$denominator = $seconds > 0 ? $seconds / DAY_IN_SECONDS : max( 1, $days_covered );
 
 	// Build, sort, and compute per-day rates.
 	$rows = array_values( $agg );
@@ -336,8 +347,12 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
 		'distinct_signatures' => $distinct,
 		'window_days'         => $days,
 		'days_covered'        => $days_covered,
-		'period'              => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+		'window_seconds'      => $seconds,
+		'window_note'         => isset( $input['seconds'] ) && $seconds > 0
+			? 'Applied window: live entries filtered by exact timestamp; persisted daily counts included only when last_seen is in the window. Those counts may include earlier occurrences from the same UTC day; exact sub-day counts are unavailable after snapshot/rotation.'
+			: '',
+		'period'              => null !== $since_ts
+			? gmdate( 'Y-m-d H:i:s', $since_ts ) . ' to ' . gmdate( 'Y-m-d H:i:s', $now ) . ' UTC'
 			: 'all available history',
 		'source'              => $source,
 		'truncated'           => $truncated,
@@ -363,7 +378,7 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
  *                    optionally 'active_count' (active window, defaulted to 0).
  *                    Mutated in place: 'per_day', 'active_count', and 'active'
  *                    are stamped on each row.
- * @param int   $denominator Full-window per-day denominator (for per_day trend).
+ * @param float $denominator Full-window per-day denominator (for per_day trend).
  * @param int   $active_window_hours Active window length in hours.
  * @return array{
  *     rows: array<int, array>,
@@ -374,7 +389,7 @@ function extrachill_analytics_ability_get_php_error_summary( $input ) {
  * }
  */
 function extrachill_analytics_compute_php_error_active_totals( array $rows, $denominator, $active_window_hours ) {
-	$denominator        = max( 1, (int) $denominator );
+	$denominator        = max( 1 / DAY_IN_SECONDS, (float) $denominator );
 	$active_window_days = max( 1.0, (float) $active_window_hours / 24.0 );
 
 	$grand_total       = 0;

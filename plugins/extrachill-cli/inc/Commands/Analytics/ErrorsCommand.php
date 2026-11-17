@@ -35,7 +35,7 @@ class ErrorsCommand {
 	 * ## OPTIONS
 	 *
 	 * [--since=<window>]
-	 * : Look-back window. Accepts "7d", "24h", "30d", or a bare integer (days).
+	 * : Look-back window. Accepts "15m", "1h", "24h", "7d", or a bare integer (days).
 	 *   Use 0 or "all" for all available history.
 	 * ---
 	 * default: 7d
@@ -161,10 +161,10 @@ class ErrorsCommand {
 			return;
 		}
 		$format = $assoc_args['format'] ?? 'table';
-		$days   = $this->parse_window( $assoc_args['since'] ?? '7d' );
-		$hours  = min( 168, max( 1, 0 === $days ? 168 : $days * 24 ) );
-		if ( preg_match( '/^(\d+)\s*h$/i', trim( (string) ( $assoc_args['since'] ?? '' ) ), $m ) ) {
-			$hours = min( 168, max( 1, (int) $m[1] ) );
+		$seconds = $this->parse_window( $assoc_args['since'] ?? '7d' );
+		$hours   = min( 168, max( 1, 0 === $seconds ? 168 : (int) ceil( $seconds / 3600 ) ) );
+		if ( $seconds !== $hours * 3600 ) {
+			WP_CLI::warning( sprintf( '%s uses whole-hour buckets with 7-day retention; applied window: %d hours.', $label, $hours ) );
 		}
 		$result = $ability->execute(
 			array(
@@ -213,7 +213,9 @@ class ErrorsCommand {
 			WP_CLI::error( 'extrachill/get-php-error-summary ability not found. Is extrachill-analytics active and >= 0.8.0?' );
 		}
 
-		$days     = $this->parse_window( $assoc_args['since'] ?? '7d' );
+		$seconds  = $this->parse_window( $assoc_args['since'] ?? '7d' );
+		$days     = (int) ceil( $seconds / 86400 );
+		$period   = $this->window_label( $seconds );
 		$severity = $assoc_args['severity'] ?? 'all';
 		$limit    = (int) ( $assoc_args['limit'] ?? 25 );
 		$snapshot = isset( $assoc_args['snapshot'] );
@@ -222,6 +224,7 @@ class ErrorsCommand {
 		$result = $ability->execute(
 			array(
 				'days'     => $days,
+				'seconds'  => $seconds,
 				'severity' => $severity,
 				'limit'    => $limit,
 				'snapshot' => $snapshot,
@@ -232,8 +235,11 @@ class ErrorsCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
+		if ( ! empty( $result['window_note'] ) ) {
+			WP_CLI::warning( $result['window_note'] );
+		}
+
 		if ( empty( $result['rows'] ) ) {
-			$period = $days > 0 ? "the last {$days} days" : 'all available history';
 			WP_CLI::success( "No PHP errors found for {$period}." );
 			return;
 		}
@@ -251,7 +257,7 @@ class ErrorsCommand {
 		}
 
 		if ( 'table' === $format ) {
-			$period_label = $days > 0 ? "Last {$days} days" : 'All history';
+			$period_label = ucfirst( $period );
 			WP_CLI::log( sprintf(
 				'PHP Error Signatures — %s (%s) — source: %s',
 				$period_label,
@@ -267,25 +273,24 @@ class ErrorsCommand {
 		if ( 'table' === $format ) {
 			WP_CLI::log( '' );
 			WP_CLI::log( sprintf(
-				'Total: %s errors across %s distinct signature%s over %d day%s covered%s',
+				'Total: %s errors across %s distinct signature%s (%s; rates normalized per day)%s',
 				number_format( $result['total'] ),
 				number_format( $result['distinct_signatures'] ),
 				1 === $result['distinct_signatures'] ? '' : 's',
-				$result['days_covered'],
-				1 === $result['days_covered'] ? '' : 's',
+				$period,
 				$result['truncated'] ? sprintf( ' (showing top %d)', $limit ) : ''
 			) );
 		}
 	}
 
 	/**
-	 * Parse a --since window into a day count.
+	 * Parse a --since window into seconds.
 	 *
-	 * Accepts "7d", "24h", "30d", a bare integer (days), or "0"/"all" for
+	 * Accepts minutes, hours, days, a bare integer (days), or "0"/"all" for
 	 * all available history.
 	 *
 	 * @param string $window Window string.
-	 * @return int Number of days (0 = all history).
+	 * @return int Number of seconds (0 = all history).
 	 */
 	private function parse_window( $window ) {
 		$window = strtolower( trim( (string) $window ) );
@@ -294,19 +299,26 @@ class ErrorsCommand {
 			return 0;
 		}
 
-		if ( preg_match( '/^(\d+)\s*([dh]?)$/', $window, $m ) ) {
+		if ( preg_match( '/^(\d+)\s*([mhd]?)$/', $window, $m ) ) {
 			$value = (int) $m[1];
 			$unit  = $m[2];
 
-			if ( 'h' === $unit ) {
-				// Round hours up to whole days; minimum 1 day so the rate denominator is sane.
-				return max( 1, (int) ceil( $value / 24 ) );
-			}
-
-			return $value; // Days (or bare integer).
+			return $value * ( 'm' === $unit ? 60 : ( 'h' === $unit ? 3600 : 86400 ) );
 		}
 
 		WP_CLI::warning( sprintf( 'Could not parse --since="%s"; defaulting to 7 days.', $window ) );
-		return 7;
+		return 7 * 86400;
+	}
+
+	/** Describe the requested window without rounding sub-day durations. */
+	private function window_label( $seconds ) {
+		if ( 0 === $seconds ) {
+			return 'all available history';
+		}
+		foreach ( array( 86400 => 'days', 3600 => 'hours', 60 => 'minutes' ) as $unit => $label ) {
+			if ( 0 === $seconds % $unit ) {
+				return sprintf( 'the last %d %s', $seconds / $unit, $label );
+			}
+		}
 	}
 }
