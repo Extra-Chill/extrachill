@@ -57,10 +57,10 @@
           }
         ],
         "validation_dependencies": [
-          "../extrachill-events",
-          "../extrachill-network",
           "../extrachill-users",
-          "../extrachill-api"
+          "../extrachill-api",
+          "../extrachill-network",
+          "../extrachill-events"
         ],
         "local_workspace_dependencies": [
           {
