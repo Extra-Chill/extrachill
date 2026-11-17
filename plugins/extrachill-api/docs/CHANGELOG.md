@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.57.0] - 2026-11-17
+
+### Added
+- per-venue allowed weekdays for public inquiries
+
 ## [0.56.1] - 2026-11-17
 
 ### Fixed
