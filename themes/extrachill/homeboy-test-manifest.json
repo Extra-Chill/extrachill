@@ -15,6 +15,9 @@
     },
     "tests/comment-author-links.php": {
       "environment": "standalone-php"
+    },
+    "tests/single-post-styles.php": {
+      "environment": "standalone-php"
     }
   }
 }
