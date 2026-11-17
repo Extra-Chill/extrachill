@@ -2,6 +2,13 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.57.1] - 2026-11-17
+
+### Fixed
+- refresh never turns a session that skipped 2FA into a web session
+- hand 2FA members off without Two Factor's stock screen
+- stop Google/Apple and password reset from skipping 2FA
+
 ## [0.57.0] - 2026-11-17
 
 ### Added
