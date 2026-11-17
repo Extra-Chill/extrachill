@@ -40,6 +40,9 @@ class Test_Artist_Invitation_Registration extends WP_UnitTestCase {
 	}
 
 	public function test_old_invite_payload_is_silently_ignored(): void {
+		if ( ! function_exists( 'wp_native_auth_generate_access_token' ) ) {
+			$this->markTestSkipped( 'wp-native-auth is unavailable; registration cannot mint tokens.' );
+		}
 		$this->ensure_community_site();
 		// Both filters return the callable to run, not its result.
 		add_filter( 'extrachill_users_registration_turnstile_verifier', static fn() => '__return_true' );
