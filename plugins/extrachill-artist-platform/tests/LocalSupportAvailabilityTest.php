@@ -290,6 +290,26 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'austin', $override_scene );
 	}
 
+	public function test_opt_in_without_any_scene_points_to_the_info_tab_field(): void {
+		$artist_id = array_key_first( $this->profiles );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			delete_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META );
+		} finally {
+			restore_current_blog();
+		}
+		delete_user_meta( $this->manager_id, EXTRACHILL_USERS_LOCAL_SCENE_META_KEY );
+		delete_user_meta( $this->manager_id, EXTRACHILL_USERS_DEFAULT_EVENT_LOCATION_META_KEY );
+
+		$result = extrachill_artist_platform_update_local_support_availability( $artist_id, true, null, $this->manager_id );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'local_support_scene_required', $result->get_error_code() );
+		// Plain wording that names the Info tab's "Local Scene" field (#1573).
+		$this->assertSame( "Set your artist's Local Scene on the Info tab first.", $result->get_error_message() );
+		$this->assertStringNotContainsStringIgnoringCase( 'canonical', $result->get_error_message() );
+	}
+
 	public function test_opt_out_immediately_removes_artist_from_candidate_resolution(): void {
 		// Candidate resolution requires canonical artist term IDs, which serialize
 		// through the MySQL-only binding lock.

@@ -101,17 +101,17 @@ function extrachill_users_ability_event_locations( array $input ) {
 	$events_blog_id = (int) apply_filters( 'extrachill_users_events_blog_id', $events_blog_id );
 
 	if ( $events_blog_id <= 0 || ( is_multisite() && ! get_site( $events_blog_id ) ) ) {
-		return new WP_Error( 'events_site_unavailable', __( 'The canonical Events site is unavailable.', 'extrachill-users' ), array( 'status' => 500 ) );
+		return new WP_Error( 'events_site_unavailable', __( 'The Events site is unavailable right now. Please try again later.', 'extrachill-users' ), array( 'status' => 500 ) );
 	}
 
 	$switched = get_current_blog_id() !== $events_blog_id;
 	if ( $switched && ! switch_to_blog( $events_blog_id ) ) {
-		return new WP_Error( 'events_site_unavailable', __( 'The canonical Events site is unavailable.', 'extrachill-users' ), array( 'status' => 500 ) );
+		return new WP_Error( 'events_site_unavailable', __( 'The Events site is unavailable right now. Please try again later.', 'extrachill-users' ), array( 'status' => 500 ) );
 	}
 
 	try {
 		if ( ! taxonomy_exists( 'location' ) ) {
-			return new WP_Error( 'location_taxonomy_unavailable', __( 'The canonical location taxonomy is unavailable.', 'extrachill-users' ), array( 'status' => 500 ) );
+			return new WP_Error( 'location_taxonomy_unavailable', __( 'Event locations are unavailable right now. Please try again later.', 'extrachill-users' ), array( 'status' => 500 ) );
 		}
 
 		if ( 'search' === $mode ) {
@@ -166,7 +166,7 @@ function extrachill_users_ability_event_locations( array $input ) {
 		$term     = get_term_by( 'slug', $slug, 'location' );
 		$location = $term && ! is_wp_error( $term ) ? extrachill_users_prepare_event_location( $term ) : null;
 		if ( null === $location ) {
-			return new WP_Error( 'location_not_found', __( 'No selectable canonical event location matched that slug.', 'extrachill-users' ), array( 'status' => 404 ) );
+			return new WP_Error( 'location_not_found', __( 'No matching event location was found.', 'extrachill-users' ), array( 'status' => 404 ) );
 		}
 
 		return array(

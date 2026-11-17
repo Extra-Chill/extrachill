@@ -24,7 +24,7 @@ Tiers from lowest to highest with point requirements:
 | 2,652 - 3,977 | Freezer |
 | 3,978 - 5,967 | Ice Machine |
 | 5,968 - 8,951 | Walk-In Freezer |
-| 8,952 - 13,427 | Frozen Foods Isle |
+| 8,952 - 13,427 | Frozen Foods Aisle |
 | 13,428 - 20,142 | Ice Rink |
 | 20,143 - 30,213 | Flurry |
 | 30,214 - 45,321 | Snowstorm |

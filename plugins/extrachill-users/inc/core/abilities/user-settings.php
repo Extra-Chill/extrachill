@@ -368,7 +368,7 @@ function extrachill_users_resolve_local_scene( string $slug ) {
 	if ( ! is_array( $result ) || ! isset( $result['location'] ) || ! is_array( $result['location'] ) ) {
 		return new WP_Error(
 			'user_event_locations_invalid_response',
-			__( 'Canonical event locations returned an invalid response.', 'extrachill-users' ),
+			__( 'Event locations could not be loaded. Please try again.', 'extrachill-users' ),
 			array( 'status' => 502 )
 		);
 	}
