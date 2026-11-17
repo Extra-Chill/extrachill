@@ -119,6 +119,11 @@ function extrachill_api_booking_availability_validation_error() {
 	return new WP_Error( 'booking_availability_invalid_request', __( 'A valid booking interval is required.', 'extrachill-api' ), array( 'status' => 400 ) );
 }
 
+/** Return the public error for a requested date before venue-local today. */
+function extrachill_api_booking_availability_date_past_error() {
+	return new WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-api' ), array( 'status' => 400 ) );
+}
+
 /** Return the one retryable dependency/service response. */
 function extrachill_api_booking_availability_service_error() {
 	return new WP_Error(
@@ -139,6 +144,9 @@ function extrachill_api_booking_availability_public_error( WP_Error $error ) {
 	if ( 'booking_availability_interval_invalid' === $code || ( 'booking_availability_unavailable' === $code && 409 === $status ) ) {
 		return extrachill_api_booking_availability_validation_error();
 	}
+	if ( 'booking_availability_date_past' === $code ) {
+		return extrachill_api_booking_availability_date_past_error();
+	}
 	if ( 'public_read_rate_limited' === $code ) {
 		$data = (array) $error->get_error_data();
 		return new WP_Error(
@@ -158,6 +166,9 @@ function extrachill_api_booking_availability_public_error( WP_Error $error ) {
 function extrachill_api_booking_availability_affinity_response( $data, $status, $headers ) {
 	if ( 200 === $status && is_array( $data ) && is_bool( $data['available'] ?? null ) ) {
 		return new WP_REST_Response( array( 'available' => $data['available'] ), 200 );
+	}
+	if ( 400 === $status && is_array( $data ) && 'booking_availability_date_past' === ( $data['code'] ?? null ) ) {
+		return rest_convert_error_to_response( extrachill_api_booking_availability_date_past_error() );
 	}
 	if ( 400 === $status ) {
 		return rest_convert_error_to_response( extrachill_api_booking_availability_validation_error() );

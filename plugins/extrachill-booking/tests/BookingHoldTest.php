@@ -231,6 +231,40 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 18:00:00', '2030-08-01 21:00:00' ) );
 	}
 
+	/** Public availability and final admission reject dates before venue-local today. */
+	public function test_public_interval_rejects_dates_before_venue_local_today(): void {
+		$holds     = $this->holds();
+		$venue_now = new \DateTimeImmutable( 'now', new \DateTimeZone( 'America/New_York' ) );
+		$yesterday = $venue_now->modify( '-1 day' )->format( 'Y-m-d' );
+		$today     = $venue_now->format( 'Y-m-d' );
+		$tomorrow  = $venue_now->modify( '+1 day' )->format( 'Y-m-d' );
+
+		$past = $holds->public_interval_availability( 55, 'main-room', $yesterday . ' 00:00:00', $today . ' 00:00:00' );
+		$this->assertInstanceOf( \WP_Error::class, $past );
+		$this->assertSame( 'booking_availability_date_past', $past->get_error_code() );
+		$this->assertSame( 400, $past->get_error_data()['status'] );
+
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', $today . ' 00:00:00', $tomorrow . ' 00:00:00' ), 'Venue-local today remains requestable.' );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-01 00:00:00', '2030-08-02 00:00:00' ) );
+
+		$called   = 0;
+		$admitted = $holds->admit_public_interval(
+			array(
+				'venue_term_id'       => 55,
+				'requested_space_key' => 'main-room',
+				'requested_start_at'  => '2020-01-01 00:00:00',
+				'requested_end_at'    => '2020-01-02 00:00:00',
+				'intake'              => array( 'config_revision' => 1 ),
+			),
+			static function () use ( &$called ) {
+				++$called;
+				return 'should-not-run';
+			}
+		);
+		$this->assertSame( 'booking_availability_date_past', $admitted->get_error_code() );
+		$this->assertSame( 0, $called, 'Final admission must not run for a past date.' );
+	}
+
 	/** Final admission callback runs under the filled-state lock and loses a race clearly. */
 	public function test_public_interval_final_admission_revalidates_before_callback(): void {
 		$holds = $this->holds();

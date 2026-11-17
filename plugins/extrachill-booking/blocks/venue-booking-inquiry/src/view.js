@@ -488,6 +488,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 								<input
 									id={ `${ prefix }-date` }
 									type="date"
+									min={ config.minDate || undefined }
 									value={ values.requestedDate }
 									required
 									onChange={ ( event ) =>

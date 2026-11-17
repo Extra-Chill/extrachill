@@ -777,4 +777,29 @@ describe( 'artist booking inquiry follow-through UI', () => {
 		expect( container.querySelector( 'input[type="date"]' ) ).toBeNull();
 		await act( async () => root.unmount() );
 	} );
+
+	it( 'limits the requested date to the server-computed venue-local today', async () => {
+		const { container, root } = await render( ( wrapper ) => (
+			<BookingInquiry
+				config={ { ...config, minDate: '2026-11-16' } }
+				wrapper={ wrapper }
+			/>
+		) );
+		await openBookingForm( container );
+		expect(
+			container.querySelector( 'input[type="date"]' ).getAttribute( 'min' )
+		).toBe( '2026-11-16' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'omits the date minimum when the venue timezone is unavailable', async () => {
+		const { container, root } = await render( ( wrapper ) => (
+			<BookingInquiry config={ config } wrapper={ wrapper } />
+		) );
+		await openBookingForm( container );
+		expect(
+			container.querySelector( 'input[type="date"]' ).hasAttribute( 'min' )
+		).toBe( false );
+		await act( async () => root.unmount() );
+	} );
 } );

@@ -625,6 +625,8 @@ if ( ! function_exists( 'do_action' ) ) {
 
 /** Stateful wpdb fake that enforces the persistence contracts under test. */
 final class BookingWpdb {
+	public $base_prefix = 'wp_';
+
 	public $prefix                               = 'wp_7_';
 	public $terms                                = 'wp_7_terms';
 	public $posts                                = 'wp_7_posts';
