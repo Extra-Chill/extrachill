@@ -519,7 +519,7 @@ class VenueBookingConfig {
 			$normalized[ $weekday ] = $weekday;
 		}
 		sort( $normalized );
-		return array_values( $normalized );
+		return $normalized;
 	}
 
 	/**
