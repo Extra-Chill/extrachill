@@ -4,6 +4,7 @@
  * Internal dependencies
  */
 import {
+	allowedWeekdaysLabel,
 	availabilityErrorState,
 	bookingDateInterval,
 	buildAvailabilityPayload,
@@ -15,6 +16,7 @@ import {
 	DRAFT_VERSION,
 	draftStorageKey,
 	errorState,
+	isAllowedWeekday,
 	loadDraft,
 	saveDraft,
 } from './submission';
@@ -301,5 +303,30 @@ describe( 'booking inquiry transport helpers', () => {
 				{ message: 'That exact time is unavailable.' }
 			).message
 		).toBe( 'That exact time is unavailable.' );
+	} );
+} );
+
+describe( 'allowed booking weekdays', () => {
+	test( 'phrases any set of venue booking days', () => {
+		expect( allowedWeekdaysLabel( [] ) ).toBe( '' );
+		expect( allowedWeekdaysLabel( undefined ) ).toBe( '' );
+		expect( allowedWeekdaysLabel( [ 1, 2, 3, 4, 5, 6, 7 ] ) ).toBe( '' );
+		expect( allowedWeekdaysLabel( [ 3 ] ) ).toBe(
+			'Booking inquiries are for Wednesdays only.'
+		);
+		expect( allowedWeekdaysLabel( [ 4, 3 ] ) ).toBe(
+			'Booking inquiries are for Wednesdays and Thursdays only.'
+		);
+		expect( allowedWeekdaysLabel( [ 1, 3, 5 ] ) ).toBe(
+			'Booking inquiries are for Mondays, Wednesdays, and Fridays only.'
+		);
+	} );
+
+	test( 'checks a calendar date against the ISO weekday allow-list', () => {
+		expect( isAllowedWeekday( [ 3 ], '2030-08-07' ) ).toBe( true );
+		expect( isAllowedWeekday( [ 3 ], '2030-08-03' ) ).toBe( false );
+		expect( isAllowedWeekday( [ 7 ], '2030-08-04' ) ).toBe( true );
+		expect( isAllowedWeekday( [ 3 ], '' ) ).toBe( true );
+		expect( isAllowedWeekday( [], '2030-08-03' ) ).toBe( true );
 	} );
 } );

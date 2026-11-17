@@ -35,6 +35,7 @@ class VenueBookingConfig {
 	public const CONSENT_VERSION               = 1;
 	public const ATTACHMENT_POLICY_VERSION     = 1;
 	public const HOLD_TTL_MAX_MINUTES          = 20160;
+	public const WEEKDAYS                      = array( 1, 2, 3, 4, 5, 6, 7 );
 
 	/**
 	 * Answer shapes a venue may ask for beyond the built-in questions.
@@ -156,22 +157,24 @@ class VenueBookingConfig {
 		$fields      = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
 		$consent     = $this->normalize_consent( $stored['consent'] ?? null );
 		$spaces      = $this->normalize_spaces( $stored['spaces'] ?? null );
+		$weekdays    = self::normalize_allowed_weekdays( $stored['allowed_weekdays'] ?? array() );
 		$attachments = in_array( $stored['version'], array( self::RETIRED_PRESENTATION_VERSION, self::VERSION ), true )
 			? $this->normalize_attachment_policy( $stored['attachment_policy'] ?? null )
 			: $this->default_attachment_policy();
-		foreach ( array( $fields, $consent, $spaces, $attachments ) as $section ) {
+		foreach ( array( $fields, $consent, $spaces, $weekdays, $attachments ) as $section ) {
 			if ( is_wp_error( $section ) ) {
 				return $section;
 			}
 		}
 
 		return array(
-			'enabled'     => ! empty( $stored['enabled'] ),
-			'revision'    => $revision,
-			'fields'      => $fields,
-			'consent'     => $consent,
-			'spaces'      => $spaces,
-			'attachments' => $this->attachment_public_projection( $attachments, $revision, ! empty( $stored['enabled'] ) ),
+			'enabled'          => ! empty( $stored['enabled'] ),
+			'revision'         => $revision,
+			'fields'           => $fields,
+			'consent'          => $consent,
+			'spaces'           => $spaces,
+			'allowed_weekdays' => $weekdays,
+			'attachments'      => $this->attachment_public_projection( $attachments, $revision, ! empty( $stored['enabled'] ) ),
 		);
 	}
 
@@ -448,6 +451,10 @@ class VenueBookingConfig {
 		if ( $hold_ttl < 5 || $hold_ttl > self::HOLD_TTL_MAX_MINUTES ) {
 			return new \WP_Error( 'invalid_booking_hold_ttl', __( 'Hold TTL must be between 5 minutes and 14 days.', 'extrachill-events' ) );
 		}
+		$allowed_weekdays = self::normalize_allowed_weekdays( $config['allowed_weekdays'] ?? array() );
+		if ( is_wp_error( $allowed_weekdays ) ) {
+			return $allowed_weekdays;
+		}
 
 		$revision = $config['revision'] ?? 0;
 		if ( ! is_int( $revision ) || $revision < 0 ) {
@@ -488,8 +495,31 @@ class VenueBookingConfig {
 			'marketing_channels'        => $channels,
 			'marketing_triggers'        => $triggers,
 			'hold_ttl_minutes'          => $hold_ttl,
+			'allowed_weekdays'          => $allowed_weekdays,
 			'correspondence'            => $correspondence,
 		);
+	}
+
+	/**
+	 * Normalize the ISO-8601 weekdays (1 = Monday ... 7 = Sunday) a venue accepts
+	 * public inquiries for. An empty list means every day is allowed.
+	 *
+	 * @param mixed $weekdays Candidate weekday list.
+	 * @return int[]|\WP_Error
+	 */
+	public static function normalize_allowed_weekdays( $weekdays ) {
+		if ( ! is_array( $weekdays ) || count( $weekdays ) > 7 ) {
+			return new \WP_Error( 'invalid_booking_allowed_weekdays', __( 'Allowed booking days must be a list of weekdays.', 'extrachill-booking' ) );
+		}
+		$normalized = array();
+		foreach ( $weekdays as $weekday ) {
+			if ( ! is_int( $weekday ) || ! in_array( $weekday, self::WEEKDAYS, true ) ) {
+				return new \WP_Error( 'invalid_booking_allowed_weekdays', __( 'Allowed booking days must use weekday numbers from 1 (Monday) to 7 (Sunday).', 'extrachill-booking' ) );
+			}
+			$normalized[ $weekday ] = $weekday;
+		}
+		sort( $normalized );
+		return array_values( $normalized );
 	}
 
 	/**
@@ -563,6 +593,7 @@ class VenueBookingConfig {
 			'marketing_channels'        => array(),
 			'marketing_triggers'        => array(),
 			'hold_ttl_minutes'          => 1440,
+			'allowed_weekdays'          => array(),
 			'correspondence'            => array(
 				'version'           => self::CORRESPONDENCE_VERSION,
 				'booking_address'   => null,
@@ -1263,7 +1294,7 @@ class VenueBookingConfig {
 
 	/** Return top-level settings changed by the replacement document. */
 	private function changed_fields( array $current, array $next ): array {
-		$fields  = array( 'enabled', 'intake', 'consent', 'attachment_policy', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$fields  = array( 'enabled', 'intake', 'consent', 'attachment_policy', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'allowed_weekdays', 'correspondence' );
 		$changed = array();
 		foreach ( $fields as $field ) {
 			if ( $current[ $field ] !== $next[ $field ] ) {

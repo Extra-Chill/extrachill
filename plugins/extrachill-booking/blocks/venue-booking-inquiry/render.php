@@ -103,6 +103,7 @@ $public_config = array(
 	'restNonce'            => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
 	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
 	'minDate'              => $canonical['min_date'],
+	'allowedWeekdays'      => array_values( array_map( 'intval', (array) ( $booking_config['allowed_weekdays'] ?? array() ) ) ),
 	'revision'             => (int) $booking_config['revision'],
 	'venue'                => $canonical['venue'],
 	'spaces'               => array_values( $booking_config['spaces'] ),

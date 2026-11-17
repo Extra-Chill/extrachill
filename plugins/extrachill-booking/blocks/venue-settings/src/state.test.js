@@ -1,4 +1,4 @@
-import { validateConfig } from './booking-state';
+import { toggleAllowedWeekday, validateConfig } from './booking-state';
 /* global describe, expect, it */
 
 /**
@@ -129,5 +129,15 @@ describe( 'venue settings state', () => {
 		expect( validateConfig( config ) ).toContain(
 			'Disable all attachment purposes before turning files off.'
 		);
+	} );
+} );
+
+describe( 'booking days', () => {
+	it( 'toggles weekdays into a unique, sorted allow-list', () => {
+		expect( toggleAllowedWeekday( undefined, 3, true ) ).toEqual( [ 3 ] );
+		expect( toggleAllowedWeekday( [ 5 ], 3, true ) ).toEqual( [ 3, 5 ] );
+		expect( toggleAllowedWeekday( [ 3, 5 ], 3, true ) ).toEqual( [ 3, 5 ] );
+		expect( toggleAllowedWeekday( [ 3, 5 ], 3, false ) ).toEqual( [ 5 ] );
+		expect( toggleAllowedWeekday( [ 3 ], 3, false ) ).toEqual( [] );
 	} );
 } );

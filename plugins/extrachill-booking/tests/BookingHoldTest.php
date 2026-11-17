@@ -282,6 +282,64 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 0, $called, 'Final admission must not run for a past date.' );
 	}
 
+	/** The allowed-weekdays list normalizes to unique, sorted ISO weekdays and rejects anything else. */
+	public function test_allowed_weekdays_normalization(): void {
+		$this->assertSame( array(), VenueBookingConfig::normalize_allowed_weekdays( array() ) );
+		$this->assertSame( array( 3, 5 ), VenueBookingConfig::normalize_allowed_weekdays( array( 5, 3, 5 ) ) );
+		foreach ( array( array( 0 ), array( 8 ), array( '3' ), array( 3.0 ), 'wednesday', array( 1, 2, 3, 4, 5, 6, 7, 1 ) ) as $invalid ) {
+			$error = VenueBookingConfig::normalize_allowed_weekdays( $invalid );
+			$this->assertInstanceOf( \WP_Error::class, $error );
+			$this->assertSame( 'invalid_booking_allowed_weekdays', $error->get_error_code() );
+		}
+
+		$config = ( new VenueBookingConfig() )->get( 55 );
+		$this->assertSame( array(), $config['allowed_weekdays'], 'Stored configs without the field allow every day.' );
+		$this->assertSame( array(), ( new VenueBookingConfig() )->defaults()['allowed_weekdays'] );
+		$this->assertSame( array(), ( new VenueBookingConfig() )->get_public_projection( 55 )['allowed_weekdays'] ?? array() );
+	}
+
+	/** A Wednesday-only venue accepts Wednesdays and rejects other days on availability and admission. */
+	public function test_public_interval_enforces_allowed_weekdays(): void {
+		$holds = $this->holds();
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-03 00:00:00', '2030-08-04 00:00:00' ), 'An empty list allows any weekday.' );
+
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ]['allowed_weekdays'] = array( 3 );
+
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-07 00:00:00', '2030-08-08 00:00:00' ) );
+		$this->assertSame( array( 'available' => true ), $holds->public_interval_availability( 55, 'main-room', '2030-08-07 23:30:00', '2030-08-08 02:00:00' ), 'The weekday is read in venue-local time, not UTC.' );
+
+		$saturday = $holds->public_interval_availability( 55, 'main-room', '2030-08-03 00:00:00', '2030-08-04 00:00:00' );
+		$this->assertInstanceOf( \WP_Error::class, $saturday );
+		$this->assertSame( 'booking_availability_weekday_unavailable', $saturday->get_error_code() );
+		$this->assertSame( 400, $saturday->get_error_data()['status'] );
+		$this->assertSame( array( 3 ), $saturday->get_error_data()['allowed_weekdays'] );
+
+		$called   = 0;
+		$admitted = $holds->admit_public_interval(
+			array(
+				'venue_term_id'       => 55,
+				'requested_space_key' => 'main-room',
+				'requested_start_at'  => '2030-08-10 00:00:00',
+				'requested_end_at'    => '2030-08-11 00:00:00',
+				'intake'              => array( 'config_revision' => 1 ),
+			),
+			static function () use ( &$called ) {
+				++$called;
+				return 'should-not-run';
+			}
+		);
+		$this->assertSame( 'booking_availability_weekday_unavailable', $admitted->get_error_code() );
+		$this->assertSame( 0, $called, 'Final admission must not run for a disallowed weekday.' );
+	}
+
+	/** Venue operators can still hold any day by hand at a weekday-restricted venue. */
+	public function test_operator_holds_ignore_allowed_weekdays(): void {
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ]['allowed_weekdays'] = array( 3 );
+		$booking = $this->booking( '2030-08-04 00:00:00', '2030-08-04 03:00:00' );
+		$hold    = $this->holds()->create( $booking['id'], 1, 12 );
+		$this->assertIsArray( $hold, 'A Saturday-night operator hold must not be weekday-restricted.' );
+	}
+
 	/** An unbound published event still blocks the only space of a single-space venue. */
 	public function test_unbound_canonical_event_blocks_single_space_venue(): void {
 		$holds = $this->holds();

@@ -21,12 +21,14 @@ import {
  * Internal dependencies
  */
 import {
+	allowedWeekdaysLabel,
 	availabilityErrorState,
 	buildAvailabilityPayload,
 	buildPayload,
 	clearDraft,
 	DRAFT_SCOPE_SESSION,
 	errorState,
+	isAllowedWeekday,
 	loadDraft,
 	newIdempotencyKey,
 	saveDraft,
@@ -202,7 +204,18 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			wrapper.appendChild( source );
 		}
 	};
+	const weekdayLabel = allowedWeekdaysLabel( config.allowedWeekdays );
+	const weekdayStatus = () => ( {
+		tone: 'warning',
+		message: `${ weekdayLabel } Choose another date.`,
+	} );
 	const checkAvailability = async () => {
+		if (
+			! isAllowedWeekday( config.allowedWeekdays, values.requestedDate )
+		) {
+			setStatus( weekdayStatus() );
+			return;
+		}
 		setChecking( true );
 		setStatus( { tone: 'info', message: 'Checking that date...' } );
 		try {
@@ -483,6 +496,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 							<FieldGroup
 								label="Requested date"
 								htmlFor={ `${ prefix }-date` }
+								help={ weekdayLabel || undefined }
 								required
 							>
 								<input
@@ -491,15 +505,29 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 									min={ config.minDate || undefined }
 									value={ values.requestedDate }
 									required
-									onChange={ ( event ) =>
+									aria-invalid={
+										! isAllowedWeekday(
+											config.allowedWeekdays,
+											values.requestedDate
+										) || undefined
+									}
+									onChange={ ( event ) => {
 										update(
 											{
 												requestedDate:
 													event.target.value,
 											},
 											true
-										)
-									}
+										);
+										if (
+											! isAllowedWeekday(
+												config.allowedWeekdays,
+												event.target.value
+											)
+										) {
+											setStatus( weekdayStatus() );
+										}
+									} }
 								/>
 							</FieldGroup>
 						</Grid>

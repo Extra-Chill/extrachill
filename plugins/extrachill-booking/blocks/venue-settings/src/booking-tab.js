@@ -17,7 +17,9 @@ import { Status } from '../../../../extrachill-events/blocks/venue-settings/src/
 import { normalizeKey, sameDocument } from '../../../../extrachill-events/blocks/venue-settings/src/state';
 import {
 	BOOKING_ATTACHMENT_PURPOSES,
+	BOOKING_WEEKDAYS,
 	HOLD_TTL_MAX_MINUTES,
+	toggleAllowedWeekday,
 	validateConfig,
 } from './booking-state';
 
@@ -343,6 +345,39 @@ export function BookingTab( {
 						) ) }
 					</select>
 				</FieldGroup>
+				<fieldset className="ec-venue-settings__weekdays">
+					<legend>Booking days</legend>
+					<p className="ec-venue-settings__help">
+						Days artists can request on the public form. Leave all
+						unchecked to accept any day.
+					</p>
+					{ BOOKING_WEEKDAYS.map( ( [ weekday, label ] ) => (
+						<label
+							key={ weekday }
+							className="ec-venue-settings__toggle"
+							htmlFor={ `${ idPrefix }venue-weekday-${ weekday }` }
+						>
+							<input
+								id={ `${ idPrefix }venue-weekday-${ weekday }` }
+								type="checkbox"
+								checked={ (
+									config.allowed_weekdays || []
+								).includes( weekday ) }
+								onChange={ ( event ) =>
+									setConfig( {
+										...config,
+										allowed_weekdays: toggleAllowedWeekday(
+											config.allowed_weekdays,
+											weekday,
+											event.target.checked
+										),
+									} )
+								}
+							/>{ ' ' }
+							{ label }
+						</label>
+					) ) }
+				</fieldset>
 				<details className="ec-venue-settings__advanced">
 					<summary>Advanced integrations</summary>
 					<FieldGroup
