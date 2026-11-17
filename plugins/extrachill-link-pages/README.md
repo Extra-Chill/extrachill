@@ -2,6 +2,11 @@
 
 Owner-neutral Link Pages storage and operation runtime for the Extra Chill network.
 
+## Documentation
+
+- [Abilities](docs/abilities.md): editor-configuration and managed QR code abilities.
+- [Managed QR codes](docs/managed-qr-codes.md)
+
 ## Runtime contract
 
 The plugin loads its generic API synchronously from the exact plugin basename
