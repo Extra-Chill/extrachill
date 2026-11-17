@@ -16,9 +16,6 @@ import type {
   UpdateUserProfileRequest,
   UpdateUserLinksRequest,
   UpdateUserLinksResponse,
-  UserSubscriptions,
-  UpdateSubscriptionsRequest,
-  UpdateSubscriptionsResponse,
   RequestArtistAccessRequest,
   RequestArtistAccessResponse,
 } from '../types';
@@ -93,16 +90,6 @@ export class UsersResource extends BaseResource {
 
   updateLinks(data: UpdateUserLinksRequest): Promise<UpdateUserLinksResponse> {
     return this.post('extrachill/v1/users/me/links', data as unknown as Record<string, unknown>);
-  }
-
-  // ─── Subscriptions ───────────────────────────────────────────────────
-
-  getSubscriptions(): Promise<UserSubscriptions> {
-    return this.get('extrachill/v1/users/me/subscriptions');
-  }
-
-  updateSubscriptions(data: UpdateSubscriptionsRequest): Promise<UpdateSubscriptionsResponse> {
-    return this.post('extrachill/v1/users/me/subscriptions', data as unknown as Record<string, unknown>);
   }
 
   // ─── Artist Access Request ───────────────────────────────────────────

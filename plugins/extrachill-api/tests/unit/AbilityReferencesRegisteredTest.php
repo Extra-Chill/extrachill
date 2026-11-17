@@ -19,19 +19,6 @@ final class AbilityReferencesRegisteredTest extends TestCase {
 	 */
 	private const EXTERNAL_NAMESPACES = array( 'datamachine' );
 
-	/**
-	 * Known stale adapters, tracked separately. Each entry must still be
-	 * referenced and still be unregistered, so fixing one forces its removal
-	 * from this list.
-	 *
-	 * GET/POST /users/me/subscriptions wrap the retired email-sharing
-	 * abilities (see extrachill-api/docs/routes/users/account.md).
-	 */
-	private const KNOWN_STALE = array(
-		'extrachill/get-subscriptions',
-		'extrachill/update-subscriptions',
-	);
-
 	public function test_route_abilities_are_registered(): void {
 		$plugins_dir = dirname( __DIR__, 3 );
 		if ( ! is_dir( $plugins_dir . '/extrachill-community' ) || ! is_dir( $plugins_dir . '/extrachill-newsletter' ) ) {
@@ -48,17 +35,12 @@ final class AbilityReferencesRegisteredTest extends TestCase {
 
 		$missing = array();
 		foreach ( $refs as $name => $files ) {
-			if ( in_array( strtok( $name, '/' ), self::EXTERNAL_NAMESPACES, true ) || isset( $registered[ $name ] ) || in_array( $name, self::KNOWN_STALE, true ) ) {
+			if ( in_array( strtok( $name, '/' ), self::EXTERNAL_NAMESPACES, true ) || isset( $registered[ $name ] ) ) {
 				continue;
 			}
 			$missing[] = $name . ' (' . implode( ', ', array_unique( $files ) ) . ')';
 		}
 		$this->assertSame( array(), $missing, 'Routes reference abilities no monorepo plugin registers.' );
-
-		foreach ( self::KNOWN_STALE as $name ) {
-			$this->assertArrayHasKey( $name, $refs, $name . ' is no longer referenced; drop it from KNOWN_STALE.' );
-			$this->assertArrayNotHasKey( $name, $registered, $name . ' is registered again; drop it from KNOWN_STALE.' );
-		}
 	}
 
 	/**
