@@ -254,6 +254,46 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 		$this->assertCount( 1, ec_users_get_recent_comment_activity( 1 ) );
 	}
 
+	public function test_recent_comment_activity_shapes_items_in_their_own_site(): void {
+		ec_users_flush_recent_comment_activity_cache();
+
+		$titled = function ( int $blog_id, string $title, string $date_gmt ): array {
+			switch_to_blog( $blog_id );
+			try {
+				$post_id    = (int) self::factory()->post->create( array( 'post_title' => $title ) );
+				$comment_id = (int) self::factory()->comment->create(
+					array(
+						'comment_post_ID'  => $post_id,
+						'user_id'          => $this->user_id,
+						'comment_approved' => 1,
+						'comment_type'     => 'comment',
+						'comment_date'     => $date_gmt,
+						'comment_date_gmt' => $date_gmt,
+					)
+				);
+				return array( $comment_id, $post_id, (string) get_permalink( $post_id ) );
+			} finally {
+				restore_current_blog();
+			}
+		};
+
+		list( $article, $article_post, $article_url ) = $titled( $this->main_blog_id, 'Main Site Article', '2026-03-10 15:00:00' );
+		list( $event, $event_post, $event_url )       = $titled( $this->events_blog_id, 'Events Site Event', '2026-03-12 09:00:00' );
+
+		// Read from a site that hosts neither post, as /recent does on the community site.
+		switch_to_blog( $this->other_blog_id );
+		try {
+			$items = ec_users_get_recent_comment_activity( 20 );
+		} finally {
+			restore_current_blog();
+		}
+
+		$this->assertSame( array( $event, $article ), wp_list_pluck( $items, 'comment_id' ), 'Comments are shaped in their own site, whatever site reads them.' );
+		$this->assertSame( array( $event_post, $article_post ), wp_list_pluck( $items, 'post_id' ) );
+		$this->assertSame( array( 'Events Site Event', 'Main Site Article' ), wp_list_pluck( $items, 'post_title' ) );
+		$this->assertSame( array( $event_url, $article_url ), wp_list_pluck( $items, 'post_url' ) );
+	}
+
 	public function test_recent_comment_activity_cache_busts_on_approval(): void {
 		ec_users_flush_recent_comment_activity_cache();
 		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20 ) );
