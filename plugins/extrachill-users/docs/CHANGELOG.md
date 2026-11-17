@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.71.0] - 2026-11-17
+
+### Added
+- comments as network activity
+
 ## [0.70.5] - 2026-11-17
 
 ### Fixed
