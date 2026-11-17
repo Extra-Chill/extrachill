@@ -283,9 +283,12 @@ if ( ! function_exists( 'data_machine_events_query_venue_interval_overlaps' ) ) 
 					'end'      => DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $event['end_datetime'], $timezone )->format( DATE_RFC3339 ),
 					'status'   => 'publish',
 				);
-				break;
 			}
 		}
+		$page     = (int) ( $params['page'] ?? 1 );
+		$per_page = (int) ( $params['per_page'] ?? 1 );
+		$has_more = count( $events ) > $page * $per_page;
+		$events   = array_slice( $events, ( $page - 1 ) * $per_page, $per_page );
 		return array(
 			'venue_id' => $venue_id,
 			'timezone' => $timezone->getName(),
@@ -294,9 +297,9 @@ if ( ! function_exists( 'data_machine_events_query_venue_interval_overlaps' ) ) 
 				'end'   => ( new DateTimeImmutable( $params['end'] ) )->setTimezone( $timezone )->format( DATE_RFC3339 ),
 			),
 			'events'   => $events,
-			'page'     => 1,
-			'per_page' => 1,
-			'has_more' => false,
+			'page'     => $page,
+			'per_page' => $per_page,
+			'has_more' => $has_more,
 		);
 	}
 }
@@ -1117,6 +1120,18 @@ final class BookingWpdb {
 		if ( preg_match( "/SHOW TABLE STATUS WHERE Name = '([^']+)'/", $query, $match ) ) {
 			$table = stripslashes( $match[1] );
 			return isset( $this->engines[ $table ] ) ? array( 'Engine' => $this->engines[ $table ] ) : null;
+		}
+		if ( preg_match( '/SELECT space_key FROM (\S+) WHERE venue_term_id = (\d+) AND event_id = (\d+) LIMIT 1/', $query, $match ) ) {
+			if ( $this->fail_reads ) {
+				$this->last_error = 'simulated row read failure';
+				return null;
+			}
+			foreach ( $this->rows[ $match[1] ] ?? array() as $row ) {
+				if ( (int) $row['venue_term_id'] === (int) $match[2] && (int) ( $row['event_id'] ?? 0 ) === (int) $match[3] ) {
+					return array( 'space_key' => $row['space_key'] );
+				}
+			}
+			return null;
 		}
 		$is_activity    = false !== strpos( $query, 'ec_booking_activity' );
 		$is_attachment  = false !== strpos( $query, 'ec_booking_attachments' );
