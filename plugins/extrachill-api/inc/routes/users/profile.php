@@ -79,6 +79,7 @@ function extrachill_api_register_user_profile_routes() {
  * Permission check — must be logged in.
  */
 function extrachill_api_user_profile_permission( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',
@@ -93,6 +94,7 @@ function extrachill_api_user_profile_permission( WP_REST_Request $request ) {
  * GET /users/me/profile
  */
 function extrachill_api_user_profile_get( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/get-user-profile' );
 
 	if ( ! $ability ) {

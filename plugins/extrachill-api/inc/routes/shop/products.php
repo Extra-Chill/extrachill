@@ -323,4 +323,3 @@ function extrachill_api_shop_products_update_args() {
 		)
 	);
 }
-

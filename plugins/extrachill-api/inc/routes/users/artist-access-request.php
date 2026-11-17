@@ -40,6 +40,7 @@ function extrachill_api_register_user_artist_access_request_route() {
  * Permission check — must be logged in.
  */
 function extrachill_api_user_artist_access_permission( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',
