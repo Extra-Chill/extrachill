@@ -147,10 +147,8 @@ extrachill_test_check( 'guest author is never linked to a profile', ! str_contai
 
 // Pre-2024 comments (before the 2024-02-09 cutoff) link only when the stored
 // email still matches the account's email.
-$zach_link = '<a href="https://community.extrachill.com/u/zachary-salas">Zachary Salas</a>';
-
 $old_matching = extrachill_test_comment( 510, 'Zachary Salas', 'Zach@Example.com', '2021-05-04 10:00:00' );
-extrachill_test_check( 'pre-cutoff registered author with matching email links to the community profile', $zach_link === extrachill_comment_author_html( $old_matching ) );
+extrachill_test_check( 'pre-cutoff registered author with matching email links to the community profile', '<a href="https://community.extrachill.com/u/zachary-salas">Zachary Salas</a>' === extrachill_comment_author_html( $old_matching ) );
 
 $old_mismatch = extrachill_test_comment( 510, 'Zachary Salas', 'someone-else@example.com', '2021-05-04 10:00:00' );
 extrachill_test_check( 'pre-cutoff registered author with mismatched email renders plain text', 'Zachary Salas' === extrachill_comment_author_html( $old_mismatch ) );
