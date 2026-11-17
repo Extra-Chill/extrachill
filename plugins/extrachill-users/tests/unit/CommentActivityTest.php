@@ -401,31 +401,27 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 		register_taxonomy_for_object_type( 'artist', 'data_machine_events' );
 	}
 
-	public function test_artist_scope_keeps_comments_on_tagged_articles_and_events(): void {
+	public function test_artist_scope_keeps_comments_on_tagged_articles(): void {
 		ec_users_flush_recent_comment_activity_cache();
 		$this->ensure_artist_taxonomy();
 
 		$article = $this->comment_on_artist_post( $this->main_blog_id, 'post', array( 'the-band' ), '2026-03-10 15:00:00' );
-		$event   = $this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'the-band', 'support-act' ), '2026-03-12 09:00:00' );
 
 		// None of these match the-band.
 		$this->comment_on_artist_post( $this->main_blog_id, 'post', array( 'other-band' ), '2026-03-13 09:00:00' );
-		$this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'other-band' ), '2026-03-13 10:00:00' );
-		$this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'the-band' ), '2026-03-13 11:00:00', 'draft' );
+		$this->comment_on_artist_post( $this->main_blog_id, 'post', array( 'the-band' ), '2026-03-13 11:00:00', 'draft' );
 		$this->comment_on( $this->main_blog_id, array(), '2026-03-14 09:00:00' );
 		$this->comment_on_artist_post( $this->other_blog_id, 'post', array( 'the-band' ), '2026-03-14 10:00:00' );
 
 		$scoped = ec_users_get_recent_comment_activity( 20, array( 'artist' => 'the-band' ) );
-		$this->assertSame( array( $event, $article ), wp_list_pluck( $scoped, 'comment_id' ), 'Artist scope keeps comments on tagged articles and events only.' );
-		$this->assertSame( array( 'data_machine_events', 'post' ), wp_list_pluck( $scoped, 'post_type' ) );
-		$this->assertSame( 2, ec_users_count_recent_comment_activity( array( 'artist' => 'the-band' ) ), 'The count applies the same artist scope.' );
+		$this->assertSame( array( $article ), wp_list_pluck( $scoped, 'comment_id' ), 'Artist scope keeps comments on published, tagged articles on activity sites only.' );
+		$this->assertSame( 1, ec_users_count_recent_comment_activity( array( 'artist' => 'the-band' ) ), 'The count applies the same artist scope.' );
 
-		$this->assertSame( array( $event ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'artist' => 'support-act' ) ), 'comment_id' ), 'A term on one site only reads that site.' );
 		$this->assertSame( array(), ec_users_get_recent_comment_activity( 20, array( 'artist' => 'no-such-artist' ) ), 'A missing term skips every site.' );
 		$this->assertSame( 0, ec_users_count_recent_comment_activity( array( 'artist' => 'no-such-artist' ) ) );
 
-		$this->assertCount( 5, ec_users_get_recent_comment_activity( 20 ), 'Artist-scoped reads do not poison the shared unscoped cache.' );
-		$this->assertSame( array( $event, $article ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'artist' => 'the-band' ) ), 'comment_id' ), 'Artist-scoped reads bypass the shared cache.' );
+		$this->assertCount( 3, ec_users_get_recent_comment_activity( 20 ), 'Artist-scoped reads do not poison the shared unscoped cache.' );
+		$this->assertSame( array( $article ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'artist' => 'the-band' ) ), 'comment_id' ), 'Artist-scoped reads bypass the shared cache.' );
 
 		$sources = apply_filters( 'ec_activity_feed_sources', array() );
 		$result  = call_user_func(
@@ -437,8 +433,26 @@ class Test_Comment_Activity extends WP_UnitTestCase {
 				'artist'          => 'the-band',
 			)
 		);
-		$this->assertSame( 2, $result['total'] );
-		$this->assertSame( array( $event, $article ), array_map( static fn( $item ) => $item['comment']['comment_id'], $result['items'] ), 'The feed source passes the artist scope through.' );
+		$this->assertSame( 1, $result['total'] );
+		$this->assertSame( array( $article ), array_map( static fn( $item ) => $item['comment']['comment_id'], $result['items'] ), 'The feed source passes the artist scope through.' );
+	}
+
+	public function test_artist_scope_keeps_comments_on_tagged_events(): void {
+		ec_users_flush_recent_comment_activity_cache();
+		$this->ensure_artist_taxonomy();
+
+		$article = $this->comment_on_artist_post( $this->main_blog_id, 'post', array( 'the-band' ), '2026-03-10 15:00:00' );
+		$event   = $this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'the-band', 'support-act' ), '2026-03-12 09:00:00' );
+
+		// None of these match the-band.
+		$this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'other-band' ), '2026-03-13 10:00:00' );
+		$this->comment_on_artist_post( $this->events_blog_id, 'data_machine_events', array( 'the-band' ), '2026-03-13 11:00:00', 'draft' );
+
+		$scoped = ec_users_get_recent_comment_activity( 20, array( 'artist' => 'the-band' ) );
+		$this->assertSame( array( $event, $article ), wp_list_pluck( $scoped, 'comment_id' ), 'Artist scope keeps comments on tagged events and articles, newest first.' );
+		$this->assertSame( array( 'data_machine_events', 'post' ), wp_list_pluck( $scoped, 'post_type' ) );
+		$this->assertSame( 2, ec_users_count_recent_comment_activity( array( 'artist' => 'the-band' ) ), 'The count applies the same artist scope.' );
+		$this->assertSame( array( $event ), wp_list_pluck( ec_users_get_recent_comment_activity( 20, array( 'artist' => 'support-act' ) ), 'comment_id' ), 'A term on one site only reads that site.' );
 	}
 
 	public function test_artist_scope_is_a_scoped_query(): void {
