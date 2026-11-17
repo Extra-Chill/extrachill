@@ -61,6 +61,7 @@ $config = array(
 	'selectedId'    => (int) $selected_artist_id,
 	'artistSiteUrl' => home_url(),
 	'eventsSubmitUrl' => ec_artist_shows_submit_url(),
+	'qrCodesUrl'      => function_exists( 'extrachill_artist_platform_managed_qr_url' ) ? extrachill_artist_platform_managed_qr_url() : '',
 	'assets'        => array(
 		'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
 		'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
