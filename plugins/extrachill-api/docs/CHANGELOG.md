@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.55.3] - 2026-11-17
+
+### Fixed
+- reject past dates in public availability and inquiry admission
+
 ## [0.55.2] - 2026-11-17
 
 ### Fixed
