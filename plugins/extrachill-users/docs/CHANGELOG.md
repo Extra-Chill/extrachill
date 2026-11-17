@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.70.5] - 2026-11-17
+
+### Fixed
+- plain Local Scene wording for artists and Frozen Foods Aisle rank label
+
 ## [0.70.4] - 2026-11-17
 
 ### Fixed
