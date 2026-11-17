@@ -1183,7 +1183,7 @@ class BookingHoldRepository {
 		}
 		return new \WP_Error(
 			'booking_canonical_overlap_contract_invalid',
-			__( 'Canonical event conflict checking returned too many overlapping events to evaluate safely.', 'extrachill-events' ),
+			__( 'Canonical event conflict checking returned too many overlapping events to evaluate safely.', 'extrachill-booking' ),
 			array(
 				'status'    => 502,
 				'retryable' => true,
@@ -1282,7 +1282,7 @@ class BookingHoldRepository {
 		$bookings = BookingSchema::bookings_table();
 		$row      = $wpdb->get_row( $wpdb->prepare( "SELECT space_key FROM {$bookings} WHERE venue_term_id = %d AND event_id = %d LIMIT 1", $venue_id, $event_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized canonical event space binding read.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_conflict_check_failed', __( 'Booking conflicts could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_conflict_check_failed', __( 'Booking conflicts could not be checked.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) && is_string( $row['space_key'] ?? null ) && '' !== $row['space_key'] ? $row['space_key'] : null;
 	}
