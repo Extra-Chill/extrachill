@@ -140,6 +140,11 @@
             "runtime": "host"
           },
           {
+            "name": "event-comments-unit",
+            "config": "phpunit-event-comments-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "event-digest-offer-unit",
             "config": "phpunit-event-digest-offer-unit.xml.dist",
             "runtime": "host"

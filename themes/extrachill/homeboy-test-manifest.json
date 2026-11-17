@@ -15,6 +15,12 @@
     },
     "tests/comment-author-links.php": {
       "environment": "standalone-php"
+    },
+    "tests/blocks-everywhere-comments.php": {
+      "environment": "standalone-php"
+    },
+    "tests/comments-template-classes.php": {
+      "environment": "standalone-php"
     }
   }
 }

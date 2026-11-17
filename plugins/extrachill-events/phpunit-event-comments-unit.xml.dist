@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			event-comments-unit: pure-PHP tests for single-event WordPress
+			comments (#1632). File-level WP doubles, host runtime.
+		-->
+		<testsuite name="event-comments-unit">
+			<file>tests/Unit/SingleEvent/EventCommentsTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>
