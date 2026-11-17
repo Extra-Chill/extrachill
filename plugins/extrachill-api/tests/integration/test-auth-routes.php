@@ -291,7 +291,14 @@ class Test_Auth_Routes extends WP_UnitTestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( $rechallenge, $response->get_data() );
 
-		$GLOBALS['login_continue_service_result'] = new WP_Error( 'two_factor_too_fast', 'Slow down.', array( 'status' => 429, 'retry_after' => 30 ) );
+		$GLOBALS['login_continue_service_result'] = new WP_Error(
+			'two_factor_too_fast',
+			'Slow down.',
+			array(
+				'status'      => 429,
+				'retry_after' => 30,
+			)
+		);
 
 		$response = rest_get_server()->dispatch( $request );
 		$this->assertSame( 429, $response->get_status() );

@@ -24,14 +24,8 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 		/** @var bool Whether every user uses 2FA. */
 		public static $using = false;
 
-		/** @var array{provider:string, providers:list<array{key:string,label:string}>} */
-		public static $challenge = array(
-			'provider'  => 'Two_Factor_Totp',
-			'providers' => array(
-				array( 'key' => 'Two_Factor_Totp', 'label' => 'Authenticator app' ),
-				array( 'key' => 'Two_Factor_Email', 'label' => 'Email' ),
-			),
-		);
+		/** @var array{provider:string, providers:list<array{key:string,label:string}>} Set by reset(). */
+		public static $challenge = array();
 
 		/** @var true|WP_Error|array<string,string>|null Next verify result; null derives one from the code. */
 		public static $verify_result = null;
@@ -43,11 +37,21 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 			self::$using         = false;
 			self::$verify_result = null;
 			self::$verify_calls  = array();
-			self::$challenge     = array(
+			self::$challenge     = self::default_challenge();
+		}
+
+		private static function default_challenge(): array {
+			return array(
 				'provider'  => 'Two_Factor_Totp',
 				'providers' => array(
-					array( 'key' => 'Two_Factor_Totp', 'label' => 'Authenticator app' ),
-					array( 'key' => 'Two_Factor_Email', 'label' => 'Email' ),
+					array(
+						'key'   => 'Two_Factor_Totp',
+						'label' => 'Authenticator app',
+					),
+					array(
+						'key'   => 'Two_Factor_Email',
+						'label' => 'Email',
+					),
 				),
 			);
 		}
@@ -67,6 +71,9 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 
 		public static function get_login_challenge( $user ) {
 			unset( $user );
+			if ( array() === self::$challenge ) {
+				self::$challenge = self::default_challenge();
+			}
 			return self::$challenge;
 		}
 

@@ -120,7 +120,15 @@ class Test_Two_Factor_Policy extends WP_UnitTestCase {
 
 	public function test_a_rate_limited_send_still_prompts_for_the_code(): void {
 		Two_Factor_Core::$challenge['provider'] = 'Two_Factor_Email';
-		Two_Factor_Core::$verify_result         = new WP_Error( 'two_factor_too_fast', 'Slow down.', array( 'status' => 429, 'retry_after' => 30 ) );
+
+		Two_Factor_Core::$verify_result = new WP_Error(
+			'two_factor_too_fast',
+			'Slow down.',
+			array(
+				'status'      => 429,
+				'retry_after' => 30,
+			)
+		);
 
 		$challenge = extrachill_users_two_factor_challenge( $this->user(), array() );
 
@@ -186,7 +194,14 @@ class Test_Two_Factor_Policy extends WP_UnitTestCase {
 	}
 
 	public function test_rate_limiting_keeps_retry_after(): void {
-		Two_Factor_Core::$verify_result = new WP_Error( 'two_factor_too_fast', 'Slow down.', array( 'status' => 429, 'retry_after' => 42 ) );
+		Two_Factor_Core::$verify_result = new WP_Error(
+			'two_factor_too_fast',
+			'Slow down.',
+			array(
+				'status'      => 429,
+				'retry_after' => 42,
+			)
+		);
 
 		$result = extrachill_users_two_factor_verify( $this->user(), array( 'code' => '123456' ), array() );
 
