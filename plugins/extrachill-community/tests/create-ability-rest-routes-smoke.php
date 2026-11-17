@@ -1,99 +1,63 @@
 <?php
-/** Actual core REST route coverage for Community create abilities. */
+/**
+ * Actual core REST route coverage for Community create abilities.
+ *
+ * Requires a fully booted WordPress: it runs through the host-smoke backend
+ * (declared in homeboy.json `wordpress_test_paths`). Users, forums, topics, and
+ * post meta are real rows in the sandbox database and every request goes
+ * through core's Abilities REST run route. This plugin, bbPress, Agents API,
+ * and the network plugins are mounted but not activated there, so the test
+ * stubs only the functions and classes those inactive plugins would provide.
+ */
 
 namespace AgentsAPI\AI {
-	class WP_Agent_Execution_Principal {
-		public $acting_user_id;
-		public $effective_agent_id;
-		public $capability_ceiling;
+	if ( ! class_exists( WP_Agent_Execution_Principal::class ) ) {
+		class WP_Agent_Execution_Principal {
+			public $acting_user_id;
+			public $effective_agent_id;
+			public $capability_ceiling;
 
-		public function __construct( $acting_user_id, $effective_agent_id = '__wordpress_user__', $capability_ceiling = null ) {
-			$this->acting_user_id     = $acting_user_id;
-			$this->effective_agent_id = $effective_agent_id;
-			$this->capability_ceiling = $capability_ceiling;
+			public function __construct( $acting_user_id, $effective_agent_id = '__wordpress_user__', $capability_ceiling = null ) {
+				$this->acting_user_id     = $acting_user_id;
+				$this->effective_agent_id = $effective_agent_id;
+				$this->capability_ceiling = $capability_ceiling;
+			}
 		}
 	}
 }
 
 namespace {
-	// Runs in two contexts: standalone with an explicit WordPress root, and
-	// under the host-smoke backend, which requires this file with WordPress
-	// already loaded. Only bootstrap WordPress when it is not present yet.
-	if ( ! defined( 'ABSPATH' ) ) {
-		$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
-		if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
-			fwrite( STDERR, "Usage: php tests/create-ability-rest-routes-smoke.php /path/to/wordpress\n" );
-			exit( 1 );
-		}
-
-		define( 'SHORTINIT', true );
-		require $wordpress_root . '/wp-load.php';
+	if ( ! defined( 'ABSPATH' ) || ! function_exists( 'did_action' ) || ! did_action( 'init' ) ) {
+		fwrite( STDERR, "create-ability-rest-routes-smoke.php requires a booted WordPress; run it through the host-smoke backend.\n" );
+		exit( 1 );
 	}
 
-	if ( ! function_exists( '__' ) ) {
-		function __( $text ) { return $text; }
+	if ( ! defined( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META' ) ) {
+		define( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META', '_extrachill_public_voice' );
 	}
-	if ( ! function_exists( 'is_user_logged_in' ) ) {
-		function is_user_logged_in() { return get_current_user_id() > 0; }
-	}
-	if ( ! function_exists( 'filter_block_content' ) ) {
-		function filter_block_content( $text ) { return $text; }
+	if ( ! defined( 'EXTRACHILL_COMMUNITY_AUTOMATED_META' ) ) {
+		define( 'EXTRACHILL_COMMUNITY_AUTOMATED_META', '_extrachill_automated_agent' );
 	}
 
-	require_once ABSPATH . WPINC . '/rest-api.php';
-	require_once ABSPATH . WPINC . '/kses.php';
-	require_once ABSPATH . WPINC . '/class-wp-http-response.php';
-	require_once ABSPATH . WPINC . '/rest-api/class-wp-rest-request.php';
-	require_once ABSPATH . WPINC . '/rest-api/class-wp-rest-response.php';
-	require_once ABSPATH . WPINC . '/rest-api/class-wp-rest-server.php';
-	require_once ABSPATH . WPINC . '/rest-api/endpoints/class-wp-rest-controller.php';
-	require_once ABSPATH . WPINC . '/rest-api/endpoints/class-wp-rest-abilities-v1-run-controller.php';
-	require_once ABSPATH . WPINC . '/abilities-api/class-wp-ability.php';
+	$GLOBALS['_rest_voice_inserted']  = array();
+	$GLOBALS['_rest_voice_principal'] = null;
 
-	define( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META', '_extrachill_public_voice' );
-	define( 'EXTRACHILL_COMMUNITY_AUTOMATED_META', '_extrachill_automated_agent' );
-
-	class WP_Agent_Access {
-		public static function get_current_principal() {
-			return $GLOBALS['_rest_voice_principal'];
-		}
-	}
-	if ( ! class_exists( 'WP_Post' ) ) {
-		class WP_Post {
-			public function __construct( array $data ) {
-				foreach ( $data as $key => $value ) {
-					$this->$key = $value;
-				}
+	// Agents API: the host resolves the trusted execution principal.
+	if ( ! class_exists( 'WP_Agent_Access' ) ) {
+		class WP_Agent_Access {
+			public static function get_current_principal() {
+				return $GLOBALS['_rest_voice_principal'];
 			}
 		}
 	}
 
-	$GLOBALS['_rest_voice_abilities']    = array();
-	$GLOBALS['_rest_voice_actions']      = array();
-	$GLOBALS['_rest_voice_caps']         = array();
-	$GLOBALS['_rest_voice_current_user'] = 0;
-	$GLOBALS['_rest_voice_inserted']     = array();
-	$GLOBALS['_rest_voice_meta']         = array();
-	$GLOBALS['_rest_voice_posts']        = array();
-	$GLOBALS['_rest_voice_principal']    = null;
-
-	function wp_register_ability( $name, $args ) {
-		if ( in_array( $name, array( 'extrachill/community-create-topic', 'extrachill/community-create-reply', 'extrachill/community-update-topic', 'extrachill/community-update-reply' ), true ) ) {
-			$GLOBALS['_rest_voice_abilities'][ $name ] = new WP_Ability( $name, $args );
-		}
+	// Network and users plugins: user 7 manages artist 101.
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		function ec_get_blog_id() { return get_current_blog_id(); }
 	}
-
-	function wp_get_ability( $name ) {
-		return $GLOBALS['_rest_voice_abilities'][ $name ] ?? null;
-	}
-
-	function get_current_user_id() { return $GLOBALS['_rest_voice_current_user']; }
-	function user_can( $user_id, $capability ) { return ! empty( $GLOBALS['_rest_voice_caps'][ $user_id ][ $capability ] ); }
-	function get_userdata( $user_id ) { return in_array( (int) $user_id, array( 7, 8 ), true ) ? (object) array( 'ID' => (int) $user_id, 'display_name' => 'User ' . (int) $user_id ) : false; }
-	function ec_get_blog_id() { return 1; }
 	if ( ! function_exists( 'ec_with_blog' ) ) {
 		function ec_with_blog( $blog_id, $callback ) {
-			if ( ! function_exists( 'switch_to_blog' ) || (int) get_current_blog_id() === (int) $blog_id ) {
+			if ( ! is_multisite() || (int) get_current_blog_id() === (int) $blog_id ) {
 				return $callback();
 			}
 			switch_to_blog( $blog_id );
@@ -104,51 +68,116 @@ namespace {
 			}
 		}
 	}
-	function ec_get_artists_for_user( $user_id ) { return 7 === (int) $user_id ? array( 101 ) : array(); }
-	function ec_user_can( $capability, $context = array() ) { return 'manage_artist' === $capability && 7 === (int) ( $context['user_id'] ?? 0 ) && 101 === (int) ( $context['artist_id'] ?? 0 ); }
-
-	function get_post( $post_id ) { return isset( $GLOBALS['_rest_voice_posts'][ $post_id ] ) ? clone $GLOBALS['_rest_voice_posts'][ $post_id ] : null; }
-	function get_post_field( $field, $post_id ) { return $GLOBALS['_rest_voice_posts'][ $post_id ]->$field ?? ''; }
-	function get_post_meta( $post_id, $key ) { return $GLOBALS['_rest_voice_meta'][ $post_id ][ $key ] ?? ''; }
-	function update_post_meta( $post_id, $key, $value ) { $GLOBALS['_rest_voice_meta'][ $post_id ][ $key ] = $value; return true; }
-	function delete_post_meta( $post_id, $key ) { unset( $GLOBALS['_rest_voice_meta'][ $post_id ][ $key ] ); return true; }
-	function get_permalink( $post ) { $id = is_object( $post ) ? $post->ID : $post; return 101 === (int) $id ? 'https://artist.example/artist/101' : 'https://community.example/post/' . (int) $id; }
-	function get_the_post_thumbnail_url() { return 'https://artist.example/artist/101.jpg'; }
-	function get_author_posts_url( $user_id ) { return 'https://community.example/author/' . (int) $user_id; }
-
-	function bbp_get_forum_post_type() { return 'forum'; }
-	function bbp_get_topic_post_type() { return 'topic'; }
-	function bbp_get_reply_post_type() { return 'reply'; }
-	function bbp_get_public_status_id() { return 'publish'; }
-	function bbp_get_topic_forum_id() { return 10; }
-	function bbp_get_reply_to() { return 0; }
-	function bbp_get_topic_permalink( $topic_id ) { return 'https://community.example/topic/' . (int) $topic_id; }
-	function bbp_get_reply_url( $reply_id ) { return 'https://community.example/reply/' . (int) $reply_id; }
-	function bbp_insert_topic( $data ) {
-		$GLOBALS['_rest_voice_inserted'][] = array( 'type' => 'topic', 'data' => $data );
-		$GLOBALS['_rest_voice_posts'][30] = new WP_Post( array_merge( array( 'ID' => 30, 'post_status' => 'publish' ), $data ) );
-		return 30;
+	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
+		function ec_get_artists_for_user( $user_id ) { return 7 === (int) $user_id ? array( 101 ) : array(); }
 	}
-	function bbp_insert_reply( $data ) {
-		$GLOBALS['_rest_voice_inserted'][] = array( 'type' => 'reply', 'data' => $data );
-		$GLOBALS['_rest_voice_posts'][40] = new WP_Post( array_merge( array( 'ID' => 40, 'post_status' => 'publish' ), $data ) );
-		return 40;
+	if ( ! function_exists( 'ec_user_can' ) ) {
+		function ec_user_can( $capability, $context = array() ) { return 'manage_artist' === $capability && 7 === (int) ( $context['user_id'] ?? 0 ) && 101 === (int) ( $context['artist_id'] ?? 0 ); }
 	}
-	function wp_update_post() { return new WP_Error( 'not_used' ); }
-	function bbp_past_edit_lock() { return false; }
-	function extrachill_community_maybe_convert_markdown( $content ) { return $content; }
+
+	if ( ! function_exists( 'ec_get_artist_identity' ) ) {
+		function ec_get_artist_identity( array $by ) {
+			$artist = get_post( (int) ( $by['profile_id'] ?? 0 ) );
+			if ( ! $artist || 'artist_profile' !== $artist->post_type ) {
+				return null;
+			}
+			// Same record shape as the network plugin's identity read.
+			return array(
+				'profile_id'    => (int) $artist->ID,
+				'term_id'       => 0,
+				'slug'          => $artist->post_name,
+				'name'          => $artist->post_title,
+				'status'        => $artist->post_status,
+				'permalink'     => 'https://artist.example/artist/' . (int) $artist->ID,
+				'thumbnail_id'  => 0,
+				'thumbnail_url' => 'https://artist.example/artist/' . (int) $artist->ID . '.jpg',
+				'term_slug'     => '',
+				'term_name'     => '',
+				'binding_valid' => false,
+			);
+		}
+	}
+
+	// bbPress: insertion records the call and writes a real post.
+	if ( ! function_exists( 'bbp_get_forum_post_type' ) ) {
+		function bbp_get_forum_post_type() { return 'forum'; }
+		function bbp_get_topic_post_type() { return 'topic'; }
+		function bbp_get_reply_post_type() { return 'reply'; }
+		function bbp_get_public_status_id() { return 'publish'; }
+		function bbp_get_topic_forum_id() { return 10; }
+		function bbp_get_reply_to() { return 0; }
+		function bbp_get_topic_permalink( $topic_id ) { return 'https://community.example/topic/' . (int) $topic_id; }
+		function bbp_get_reply_url( $reply_id ) { return 'https://community.example/reply/' . (int) $reply_id; }
+		function bbp_insert_topic( $data ) {
+			$GLOBALS['_rest_voice_inserted'][] = array( 'type' => 'topic', 'data' => $data );
+			return wp_insert_post( array_merge( $data, array( 'import_id' => 30 ) ) );
+		}
+		function bbp_insert_reply( $data ) {
+			$GLOBALS['_rest_voice_inserted'][] = array( 'type' => 'reply', 'data' => $data );
+			return wp_insert_post( array_merge( $data, array( 'import_id' => 40 ) ) );
+		}
+		function bbp_past_edit_lock() { return false; }
+	}
+	if ( ! function_exists( 'extrachill_community_maybe_convert_markdown' ) ) {
+		function extrachill_community_maybe_convert_markdown( $content ) { return $content; }
+	}
+
+	register_post_type( 'forum', array( 'public' => true, 'hierarchical' => true ) );
+	register_post_type( 'topic', array( 'public' => true ) );
+	register_post_type( 'reply', array( 'public' => true ) );
+	register_post_type( 'artist_profile', array( 'public' => true ) );
+
+	// Only user 7 may publish topics and replies.
+	add_filter(
+		'user_has_cap',
+		static function ( $allcaps, $caps, $args, $user ) {
+			return 7 === (int) $user->ID ? array( 'publish_topics' => true, 'publish_replies' => true ) : array();
+		},
+		PHP_INT_MAX,
+		4
+	);
+
+	function rest_voice_assert( $condition, $message ) {
+		if ( ! $condition ) {
+			fwrite( STDERR, "FAIL: {$message}\n" );
+			exit( 1 );
+		}
+	}
+
+	function rest_voice_user( $id ) {
+		global $wpdb;
+		if ( ! get_userdata( $id ) ) {
+			$wpdb->insert(
+				$wpdb->users,
+				array(
+					'ID'              => $id,
+					'user_login'      => 'rest-voice-' . $id,
+					'user_pass'       => wp_hash_password( wp_generate_password() ),
+					'user_nicename'   => 'rest-voice-' . $id,
+					'user_email'      => 'rest-voice-' . $id . '@example.com',
+					'user_registered' => '2024-01-01 00:00:00',
+					'display_name'    => 'User ' . $id,
+				)
+			);
+			wp_cache_delete( $id, 'users' );
+		}
+		rest_voice_assert( get_userdata( $id ) instanceof WP_User, "Fixture user {$id} must exist." );
+	}
+
+	function rest_voice_post( $id, array $data ) {
+		$inserted = wp_insert_post( array_merge( array( 'import_id' => $id, 'post_status' => 'publish', 'post_author' => 7 ), $data ), true );
+		rest_voice_assert( $id === $inserted, "Fixture post {$id} must be created with its requested ID: " . wp_json_encode( $inserted ) );
+	}
 
 	function rest_voice_reset( $user_id = 0, $principal = null ) {
-		$GLOBALS['_rest_voice_current_user'] = $user_id;
-		$GLOBALS['_rest_voice_principal']    = $principal;
-		$GLOBALS['_rest_voice_caps']         = array( 7 => array( 'publish_topics' => true, 'publish_replies' => true ) );
-		$GLOBALS['_rest_voice_inserted']     = array();
-		$GLOBALS['_rest_voice_meta']         = array();
-		$GLOBALS['_rest_voice_posts']        = array(
-			10  => new WP_Post( array( 'ID' => 10, 'post_type' => 'forum', 'post_status' => 'publish', 'post_author' => 7, 'post_title' => 'Forum' ) ),
-			20  => new WP_Post( array( 'ID' => 20, 'post_type' => 'topic', 'post_status' => 'publish', 'post_author' => 7, 'post_parent' => 10, 'post_title' => 'Topic' ) ),
-			101 => new WP_Post( array( 'ID' => 101, 'post_type' => 'artist_profile', 'post_status' => 'publish', 'post_author' => 7, 'post_title' => 'Human Resources' ) ),
-		);
+		wp_set_current_user( $user_id );
+		$GLOBALS['_rest_voice_principal'] = $principal;
+		$GLOBALS['_rest_voice_inserted']  = array();
+		foreach ( array( 30, 40 ) as $created_id ) {
+			if ( get_post( $created_id ) ) {
+				wp_delete_post( $created_id, true );
+			}
+		}
 	}
 
 	function rest_voice_request( $ability_name, array $input ) {
@@ -158,12 +187,11 @@ namespace {
 		return rest_do_request( $request );
 	}
 
-	function rest_voice_assert( $condition, $message ) {
-		if ( ! $condition ) {
-			fwrite( STDERR, "FAIL: {$message}\n" );
-			exit( 1 );
-		}
-	}
+	rest_voice_user( 7 );
+	rest_voice_user( 8 );
+	rest_voice_post( 10, array( 'post_type' => 'forum', 'post_title' => 'Forum' ) );
+	rest_voice_post( 20, array( 'post_type' => 'topic', 'post_parent' => 10, 'post_title' => 'Topic' ) );
+	rest_voice_post( 101, array( 'post_type' => 'artist_profile', 'post_title' => 'Human Resources' ) );
 
 	require dirname( __DIR__ ) . '/inc/content/public-voice-contract.php';
 	require dirname( __DIR__ ) . '/inc/content/public-voices.php';
@@ -171,12 +199,8 @@ namespace {
 	require dirname( __DIR__ ) . '/inc/content/topic-reply-write.php';
 	require dirname( __DIR__ ) . '/inc/content/topic-reply-editor-permissions.php';
 	require dirname( __DIR__ ) . '/inc/content/topic-reply-abilities.php';
-	extrachill_community_register_topic_reply_abilities();
-
-	$GLOBALS['wp_rest_server'] = new WP_REST_Server();
-	$controller                = new WP_REST_Abilities_V1_Run_Controller();
-	$GLOBALS['wp_actions']['rest_api_init'] = 1;
-	$controller->register_routes();
+	require_once __DIR__ . '/support/booted-ability-registry.php';
+	extrachill_community_test_register_abilities( 'extrachill_community_register_topic_reply_abilities' );
 
 	rest_voice_assert( true === wp_get_ability( 'extrachill/community-create-topic' )->get_meta_item( 'show_in_rest' ), 'Create topic must be exposed through the standard runner.' );
 	rest_voice_assert( true === wp_get_ability( 'extrachill/community-create-reply' )->get_meta_item( 'show_in_rest' ), 'Create reply must be exposed through the standard runner.' );
@@ -201,7 +225,7 @@ namespace {
 
 	rest_voice_reset( 7 );
 	$response = rest_voice_request( 'extrachill/community-create-topic', array( 'forum_id' => 10, 'title' => 'Voice', 'content' => 'Body', 'public_voice' => 'artist:101' ) );
-	rest_voice_assert( 200 === $response->get_status() && 'artist:101' === get_post_meta( 30, EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META ), 'Managed voice must be reauthorized and persisted through the route: ' . wp_json_encode( array( $response->get_status(), $response->get_data(), $GLOBALS['_rest_voice_meta'] ) ) );
+	rest_voice_assert( 200 === $response->get_status() && 'artist:101' === get_post_meta( 30, EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META, true ), 'Managed voice must be reauthorized and persisted through the route: ' . wp_json_encode( array( $response->get_status(), $response->get_data(), get_post_meta( 30 ) ) ) );
 
 	rest_voice_reset( 7 );
 	$response = rest_voice_request( 'extrachill/community-create-topic', array( 'forum_id' => 10, 'title' => 'Denied voice', 'content' => 'Body', 'public_voice' => 'artist:999' ) );

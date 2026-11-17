@@ -49,7 +49,12 @@ if ( ! function_exists( 'wp_get_ability' ) ) {
 }
 
 require dirname( __DIR__ ) . '/inc/core/subscription-inventory.php';
-extrachill_community_register_subscription_inventory_ability();
+require_once __DIR__ . '/support/booted-ability-registry.php';
+if ( extrachill_community_test_has_booted_ability_registry() ) {
+	extrachill_community_test_register_abilities( 'extrachill_community_register_subscription_inventory_ability' );
+} else {
+	extrachill_community_register_subscription_inventory_ability();
+}
 
 $ability = wp_get_ability( 'extrachill/community-resolve-subscription-entities' );
 
