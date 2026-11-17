@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Generate rapper name based on user input and preferences
  */
 function extrachill_content_blocks_generate_rapper_name( $input, $style = '', $gender = '', $numberOfWords = 2 ) {
-	$firstWordsMale = array( 'MC', 'Lil', 'King', 'Sir', 'Big', 'Duke', 'Roc', 'Gangsta', 'Teflon', 'Doc', 'Rap', 'Hakim', 'Trigga', 'G', 'Scar', 'Monsta', 'Beast', 'Thug', 'Gangster', 'Killer', 'Havoc', 'Rogue', 'Jae', 'Young', 'Bruza', 'El', 'Los', 'General', 'Fast', 'Grand', 'Mr.', 'Loco', 'Ice', 'Bold', 'Cool', 'Raw', 'The', 'Rebel', 'Mischievous', 'Mister', 'Mista', 'Tiny', 'Samurai', 'Señor', 'Gold', 'Mac', 'Wiz', 'Da', 'Prince', 'Dr.', 'Doctor', 'Jah', 'Quick', 'Tough', 'Sensei', 'De La', 'Homie', 'Lyrical', 'Viceroy', 'Czar', 'Earl', 'Supreme', 'Pharoah', 'Sultan', 'Kaiser', 'Shah', 'Count', 'Heavy', 'Action', 'LL', 'Kid', 'Long', 'Short', 'Wide', 'Skinny', 'Boogie', 'Swift', 'Don', 'Biz', 'Kool', 'Schoolboy', 'Boss', 'Captain', 'Comrade' );
+	$firstWordsMale = array( 'MC', 'Lil', 'King', 'Sir', 'Big', 'Duke', 'Roc', 'Gangsta', 'Teflon', 'Doc', 'Rap', 'Hakim', 'Trigga', 'G', 'Scar', 'Monsta', 'Beast', 'Thug', 'Gangster', 'Killer', 'Havoc', 'Rogue', 'Jae', 'Young', 'Bruza', 'El', 'Los', 'General', 'Fast', 'Grand', 'Mr.', 'Loco', 'Ice', 'Bold', 'Cool', 'Raw', 'Rebel', 'Mischievous', 'Mister', 'Mista', 'Tiny', 'Samurai', 'Señor', 'Gold', 'Mac', 'Wiz', 'Da', 'Prince', 'Dr.', 'Doctor', 'Jah', 'Quick', 'Tough', 'Sensei', 'De La', 'Homie', 'Lyrical', 'Viceroy', 'Czar', 'Earl', 'Supreme', 'Pharoah', 'Sultan', 'Kaiser', 'Shah', 'Count', 'Heavy', 'Action', 'LL', 'Kid', 'Long', 'Short', 'Wide', 'Skinny', 'Boogie', 'Swift', 'Don', 'Biz', 'Kool', 'Schoolboy', 'Boss', 'Captain', 'Comrade' );
 
 	$firstWordsFemale = array( 'Queen', 'Diva', 'Angel', 'MC', 'Lil', 'Lady', 'Bad', 'Boss', 'Baddie', 'Diamond', 'Empress', 'Goddess', 'Majesty', 'Star', 'Phoenix', 'Mystic', 'Radiant', 'Glitter', 'Glam', 'Sparkle', 'Miss', 'Empyrean', 'Ms.', 'Starry', 'Baby', 'Divine', 'Radiant', 'Fab', 'Shimmer', 'Gorgeous', 'Glimmer', 'Radiant', 'Vibrant', 'Fierce', 'Lush', 'Pearl', 'Candy', 'Pretty', 'Cardi', 'Hot', 'Haze', 'Rose', 'Las', 'Feminine', 'Witch', 'Pink', 'Lavender', 'Sassy', 'Juuls', 'Honey', 'Coco', 'Chica', 'Luxe', 'Flygirl', 'Missy', 'Homegirl', 'Daisy', 'Violet', 'Spicy', 'Mama', 'Angel' );
 
@@ -34,70 +34,74 @@ function extrachill_content_blocks_generate_rapper_name( $input, $style = '', $g
 	$grimeStreetName     = $grimeStreetNames[ array_rand( $grimeStreetNames ) ];
 	$consciousStreetName = $consciousStreetNames[ array_rand( $consciousStreetNames ) ];
 
-	$firstWords         = array_merge( $firstWordsMale, $firstWordsFemale );
-	$firstWordNonBinary = $firstWords[ array_rand( $firstWords ) ];
-	$otherFirstWord     = $firstWords[ array_rand( $firstWords ) ];
-	$firstWord          = '';
+	$firstWords = array_merge( $firstWordsMale, $firstWordsFemale );
 
 	switch ( $gender ) {
 		case 'male':
-			$firstWord  = $firstWordsMale[ array_rand( $firstWordsMale ) ];
-			$secondWord = $firstWordsMale[ array_rand( $firstWordsMale ) ];
+			$prefixPool = $firstWordsMale;
 			break;
 		case 'female':
-			$firstWord  = $firstWordsFemale[ array_rand( $firstWordsFemale ) ];
-			$secondWord = $firstWordsFemale[ array_rand( $firstWordsFemale ) ];
-			break;
-		case 'non-binary':
-			$firstWord  = $firstWordNonBinary;
-			$secondWord = $otherFirstWord;
+			$prefixPool = $firstWordsFemale;
 			break;
 		default:
-			$firstWord = $firstWordNonBinary;
+			// Non-binary and unspecified gender draw from the combined list.
+			$prefixPool = $firstWords;
 			break;
 	}
 
+	$prefixPool = array_values( array_unique( $prefixPool ) );
+	$firstWord  = $prefixPool[ array_rand( $prefixPool ) ];
+
+	// Pick a distinct second prefix so 3-word names never repeat a word.
+	$secondPool = array_values( array_diff( $prefixPool, array( $firstWord ) ) );
+	$secondWord = $secondPool ? $secondPool[ array_rand( $secondPool ) ] : $firstWord;
+
+	$input         = trim( (string) preg_replace( '/\s+/u', ' ', (string) $input ) );
+	$numberOfWords = (int) $numberOfWords >= 3 ? 3 : 2;
+
+	// Skip the joining "the" when the user's input already ends with it.
+	$the = preg_match( '/(^|\s)the$/i', $input ) ? '' : 'the';
+
 	switch ( $style ) {
 		case 'old school':
-			if ( $numberOfWords == 2 ) {
-				return $firstWord . ' ' . $oldSchoolStreetName . ' ' . $input;
-			} elseif ( $numberOfWords == 3 ) {
-				return $firstWord . ' ' . $oldSchoolStreetName . ' ' . $secondWord . ' ' . $input;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $firstWord, $oldSchoolStreetName, $input )
+				: array( $firstWord, $oldSchoolStreetName, $secondWord, $input );
 			break;
 		case 'trap':
-			if ( $numberOfWords == 2 ) {
-				return $firstWord . ' ' . $input . ' ' . $trapStreetName;
-			} elseif ( $numberOfWords == 3 ) {
-				return $firstWord . ' ' . $input . ' the ' . $trapStreetName;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $firstWord, $input, $trapStreetName )
+				: array( $firstWord, $input, $the, $trapStreetName );
 			break;
 		case 'grime':
-			if ( $numberOfWords == 2 ) {
-				return $input . ' ' . $firstWord . ' ' . $grimeStreetName;
-			} elseif ( $numberOfWords == 3 ) {
-				return $secondWord . ' ' . $input . ' ' . ' the ' . ' ' . $firstWord . ' ' . $grimeStreetName;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $input, $firstWord, $grimeStreetName )
+				: array( $secondWord, $input, $the, $firstWord, $grimeStreetName );
 			break;
 		case 'conscious':
-			if ( $numberOfWords == 2 ) {
-				return $input . ' ' . $firstWord . ' ' . $consciousStreetName;
-			} elseif ( $numberOfWords == 3 ) {
-				return $firstWord . ' ' . $secondWord . ' ' . $input . ' the ' . $consciousStreetName;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $input, $firstWord, $consciousStreetName )
+				: array( $firstWord, $secondWord, $input, $the, $consciousStreetName );
 			break;
 		case 'random':
-			if ( $numberOfWords == 2 ) {
-				return $firstWord . ' ' . $input . ' ' . $streetName;
-			} elseif ( $numberOfWords == 3 ) {
-				return $firstWord . ' ' . $secondWord . ' ' . $input . ' the ' . $streetName;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $firstWord, $input, $streetName )
+				: array( $firstWord, $secondWord, $input, $the, $streetName );
 			break;
 		default:
-			if ( $numberOfWords == 2 ) {
-				return $firstWord . ' ' . $input . ' ' . $streetName;
-			} elseif ( $numberOfWords == 3 ) {
-				return $firstWord . ' ' . $input . ' ' . $secondWord . ' ' . $streetName;
-			}
+			$parts = 2 === $numberOfWords
+				? array( $firstWord, $input, $streetName )
+				: array( $firstWord, $input, $secondWord, $streetName );
+			break;
 	}
+
+	return implode(
+		' ',
+		array_filter(
+			$parts,
+			static function ( string $part ): bool {
+				return '' !== $part;
+			}
+		)
+	);
 }
