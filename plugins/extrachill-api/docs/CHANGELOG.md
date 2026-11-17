@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.56.0] - 2026-11-17
+
+### Added
+- complete two-factor sign-in in the app and login block
+
+### Fixed
+- repoint adapters at current community, newsletter and shop abilities
+
 ## [0.55.3] - 2026-11-17
 
 ### Fixed
