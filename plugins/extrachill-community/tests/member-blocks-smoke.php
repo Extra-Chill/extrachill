@@ -127,6 +127,14 @@ mb_assert( array( 2, 3 ) === extrachill_community_get_member_blocked_ids( 1 ), '
 // Central read filter.
 $args = extrachill_community_exclude_member_blocked_authors( array( 'post_type' => 'topic', 'author__not_in' => array( 9 ) ) );
 mb_assert( array( 9, 2, 3 ) === $args['author__not_in'], 'Blocked authors merge into author__not_in.' );
+// WP_Query ignores author/author__in once author__not_in is set, so
+// author-filtered reads must narrow their own author list instead.
+$args = extrachill_community_exclude_member_blocked_authors( array( 'post_type' => 'topic', 'author' => 7 ) );
+mb_assert( 7 === $args['author'] && ! isset( $args['author__not_in'] ) && ! isset( $args['post__in'] ), 'An unblocked author filter is kept without an exclusion that would override it.' );
+$args = extrachill_community_exclude_member_blocked_authors( array( 'post_type' => 'topic', 'author' => 2 ) );
+mb_assert( array( 0 ) === $args['post__in'] && ! isset( $args['author__not_in'] ), 'A blocked author filter matches nothing.' );
+$args = extrachill_community_exclude_member_blocked_authors( array( 'post_type' => 'topic', 'author' => '2,7' ) );
+mb_assert( ! isset( $args['author'] ) && array( 7 ) === $args['author__in'] && ! isset( $args['author__not_in'] ), 'Multi-author filters drop only blocked authors.' );
 $GLOBALS['_mb_user'] = 0;
 mb_assert( ! isset( extrachill_community_exclude_member_blocked_authors( array() )['author__not_in'] ), 'Anonymous viewers are unfiltered.' );
 $GLOBALS['_mb_user'] = 3;
