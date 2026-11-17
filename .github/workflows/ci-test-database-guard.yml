@@ -1,0 +1,35 @@
+name: CI test database guard
+
+# Keeps every component's PHPUnit suite runnable in monorepo CI. A component
+# that declares an external WP Codebox MySQL service with secret_env never runs
+# PHPUnit here: homeboy-action's reusable ci.yml does not map WP_CODEBOX_DB_*
+# into the job, `review test` exits before PHPUnit, and the differential gate
+# downgrades that to a green "inconclusive" (#454, #473).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/homeboy.json'
+      - 'tools/check-ci-test-database.mjs'
+      - '.github/workflows/ci-test-database-guard.yml'
+  push:
+    branches: [main]
+    paths:
+      - '**/homeboy.json'
+      - 'tools/check-ci-test-database.mjs'
+      - '.github/workflows/ci-test-database-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: CI test database guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node tools/check-ci-test-database.mjs
