@@ -6,6 +6,7 @@
  */
 
 namespace {
+	global $errors_command_wp_bootstrapped, $errors_command_php, $errors_command_rest, $errors_command_http, $errors_command_formats;
 	$errors_command_wp_bootstrapped = function_exists( 'get_user_by' );
 
 	if ( ! $errors_command_wp_bootstrapped ) {
@@ -178,6 +179,41 @@ namespace {
 			$refused = 0 === strpos( $e->getMessage(), 'wp-cli-error:' );
 		}
 		errors_command_assert_same( true, $refused, '--source=all must be table-only.' );
+
+		// #1655: minute/hour/day windows parse to seconds instead of defaulting to 7 days.
+		$parse = new \ReflectionMethod( $command, 'parse_window' );
+		$parse->setAccessible( true );
+		foreach ( array( '15m' => 900, '1h' => 3600, '24h' => 86400, '7d' => 604800, '3' => 259200, 'all' => 0, '0' => 0, ' 15 M ' => 900 ) as $window => $seconds ) {
+			errors_command_assert_same( $seconds, $parse->invoke( $command, $window ), "--since={$window} parses to {$seconds}s." );
+		}
+
+		// Sub-hour counter windows round up to one whole hour and say so.
+		\WP_CLI::$messages = array();
+		$command( array(), array(
+			'source' => 'rest',
+			'since'  => '15m',
+		) );
+		$input = end( $errors_command_rest->inputs );
+		errors_command_assert_same( 1, $input['hours'], '--since=15m reads the 1h counter bucket.' );
+		errors_command_assert_same( true, false !== strpos( implode( "\n", \WP_CLI::$messages ), 'applied window: 1 hours' ), 'Rounded counter windows are disclosed.' );
+
+		// PHP errors receive the exact window in seconds and label it honestly.
+		$errors_command_php->result = array(
+			'rows'        => array(),
+			'window_note' => 'Daily counts cannot be split.',
+		);
+		\WP_CLI::$messages          = array();
+		$command( array(), array(
+			'source'   => 'php',
+			'since'    => '15m',
+			'severity' => 'fatal',
+		) );
+		$input    = end( $errors_command_php->inputs );
+		$messages = implode( "\n", \WP_CLI::$messages );
+		errors_command_assert_same( 900, $input['seconds'], '--since=15m passes 900 seconds to the ability.' );
+		errors_command_assert_same( 'fatal', $input['severity'], 'Severity is forwarded.' );
+		errors_command_assert_same( true, false !== strpos( $messages, 'the last 15 minutes' ), 'Empty results name the minute window.' );
+		errors_command_assert_same( true, false !== strpos( $messages, 'Daily counts cannot be split.' ), 'The ability window note is surfaced.' );
 
 		echo "ErrorsCommandTest passed\n";
 	}
