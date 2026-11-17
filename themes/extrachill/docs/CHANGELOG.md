@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.20.3] - 2026-11-17
+
+### Fixed
+- link pre-2024 comment authors whose account email matches
+
 ## [2.20.2] - 2026-11-17
 
 ### Fixed
