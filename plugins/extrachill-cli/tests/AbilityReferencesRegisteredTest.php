@@ -13,7 +13,7 @@
 $plugins_dir = dirname( __DIR__, 2 );
 if ( ! is_dir( $plugins_dir . '/extrachill-community' ) || ! is_dir( $plugins_dir . '/extrachill-newsletter' ) ) {
 	fwrite( STDOUT, "Ability reference guard skipped: sibling monorepo plugins are not available.\n" );
-	exit( 0 );
+	return;
 }
 
 /**
