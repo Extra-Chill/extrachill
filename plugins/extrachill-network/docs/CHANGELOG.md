@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.43.0] - 2026-11-17
+
+### Added
+- all activity consumers show forum, blog and event comments
+
 ## [2.42.1] - 2026-11-17
 
 ### Changed
