@@ -52,17 +52,6 @@ function extrachill_users_two_factor_policy_active(): bool {
 }
 
 /**
- * Whether the user signs in with Two Factor.
- *
- * @param WP_User $user User to check.
- */
-function extrachill_users_user_uses_two_factor( WP_User $user ): bool {
-	return class_exists( 'Two_Factor_Core' )
-		&& is_callable( array( 'Two_Factor_Core', 'is_user_using_two_factor' ) )
-		&& (bool) Two_Factor_Core::is_user_using_two_factor( (int) $user->ID );
-}
-
-/**
  * Refuse a login that would skip a 2FA member's second factor.
  *
  * Without the `two-factor` policy, only the password login can hand a 2FA
@@ -423,13 +412,15 @@ add_filter( 'two_factor_current_session_two_factor_time', 'extrachill_users_two_
  * non-rendering login API), so it gates paths that must fail closed even
  * while the `two-factor` policy is inactive.
  *
- * @param int $user_id User ID.
+ * @param WP_User|int $user User or user ID.
  */
-function extrachill_users_user_uses_two_factor( int $user_id ): bool {
+function extrachill_users_user_uses_two_factor( $user ): bool {
+	$user_id = $user instanceof WP_User ? (int) $user->ID : (int) $user;
+
 	return $user_id > 0
 		&& class_exists( 'Two_Factor_Core' )
 		&& is_callable( array( 'Two_Factor_Core', 'is_user_using_two_factor' ) )
-		&& Two_Factor_Core::is_user_using_two_factor( $user_id );
+		&& (bool) Two_Factor_Core::is_user_using_two_factor( $user_id );
 }
 
 /**
