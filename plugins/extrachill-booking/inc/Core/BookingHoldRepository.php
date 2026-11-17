@@ -1057,7 +1057,7 @@ class BookingHoldRepository {
 			return new \WP_Error( 'booking_availability_interval_invalid', __( 'Choose a valid space, start time, and end time.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		if ( $local_start->format( 'Y-m-d' ) < ( new \DateTimeImmutable( 'now', $timezone ) )->format( 'Y-m-d' ) ) {
-			return new \WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_availability_date_past', __( 'That date has already passed. Choose today or a later date.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$utc     = new \DateTimeZone( 'UTC' );
 		$booking = array(
