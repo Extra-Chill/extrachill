@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.32.5] - 2026-11-17
+
+### Fixed
+- link registered comment authors to community profiles
+
 ## [1.32.4] - 2026-11-17
 
 ### Fixed
