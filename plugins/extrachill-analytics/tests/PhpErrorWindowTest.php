@@ -5,7 +5,8 @@ use PHPUnit\Framework\TestCase;
 final class PhpErrorWindowTest extends TestCase {
 	public function test_live_window_filters_old_entries_and_normalizes_fractional_days(): void {
 		global $wpdb;
-		$wpdb = new class {
+		$original_wpdb = $wpdb;
+		$wpdb          = new class {
 			public $queries = array();
 			public function prepare( $sql, $values ) {
 				foreach ( $values as $value ) {
@@ -40,6 +41,7 @@ final class PhpErrorWindowTest extends TestCase {
 			$this->assertStringNotContainsString( 'last_seen >=', $wpdb->queries[0] );
 			$this->assertSame( '', $legacy['window_note'] );
 		} finally {
+			$wpdb = $original_wpdb;
 			ini_set( 'error_log', $previous );
 			unlink( $path );
 		}
