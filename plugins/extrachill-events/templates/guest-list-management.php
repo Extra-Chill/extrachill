@@ -64,7 +64,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</fieldset>
 		<?php
 		$ticket_settings = \ExtraChillEvents\Abilities\TicketAbilities::settings( $event_id );
-		$seller_resolver = new \ExtraChillEvents\Abilities\CommerceSellerAbilities( null, null, false );
+		$seller_resolver = new \ExtraChillEvents\Abilities\CommerceSellerAbilities( null, false );
 		?>
 		<fieldset>
 			<legend><?php esc_html_e( 'Paid tickets (tax included; seller responsible for tax)', 'extrachill-events' ); ?></legend>
