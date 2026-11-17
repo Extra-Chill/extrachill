@@ -22,7 +22,7 @@ When your payment goes through, you come back to the event page and see "Your ti
 
 Show the pass on your phone at the door. Staff scan it to check you in. Each pass works once.
 
-Ticket purchases don't show up under **My account** on the shop. Keep your pass emails.
+If you were logged in when you bought, your ticket orders also show under **Tickets** in [My account](https://shop.extrachill.com/my-account/) on the shop. Either way, keep your pass emails. They're what gets you in.
 
 ## If a Show Sells Out While You Pay
 

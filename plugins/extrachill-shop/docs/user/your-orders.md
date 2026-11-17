@@ -20,7 +20,7 @@ If you checked out without an account, keep these emails. They're your order rec
 2. Open [My account](https://shop.extrachill.com/my-account/) on the shop.
 3. Select **Orders** to see each order, what's in it, and where it stands.
 
-Orders placed while you were logged out don't show up here. Ticket purchases don't either. Your pass emails are your record for those.
+Orders placed while you were logged out don't show up here. Ticket orders you placed while logged in are under the **Tickets** tab in My account. Your pass emails are your record for the rest.
 
 ## Order Status
 
