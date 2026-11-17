@@ -210,8 +210,11 @@ function extrachill_get_activity_feed_sources() {
  *     Optional. Feed scope.
  *
  *     @type string[] $types    Item types to include. Default every registered type.
- *     @type string   $artist   Artist slug scope, honoured by sources that know
- *                              artists (forum topics). Default ''.
+ *     @type string   $artist   Artist slug scope, honoured by every source that
+ *                              knows artists: forum topics tagged with the
+ *                              artist, and comments on articles and events
+ *                              tagged with the artist. Replies carry no
+ *                              artist and drop out. Default ''.
  *     @type string   $audience 'viewer' (default, the current viewer's view) or
  *                              'public' (strictly public items for portable
  *                              projections).

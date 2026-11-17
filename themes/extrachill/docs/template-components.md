@@ -404,6 +404,7 @@ Network-wide adapter onto the one community activity feed (`extrachill_build_act
 - `date_time` - ISO 8601 datetime
 - `forum_url` - Forum permalink ('' for comments)
 - `topic_url` - Item permalink (topic, reply, or comment anchor)
+- `site_key` - Network site hosting `topic_url`: `community` (topics, replies), `events` (event comments), or `main` (article comments)
 
 ### Render Function
 

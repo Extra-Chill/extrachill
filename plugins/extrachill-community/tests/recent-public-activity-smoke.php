@@ -275,6 +275,7 @@ if ( $standalone ) {
 			'user_id'     => 9,
 			'author_name' => 'User 9',
 			'date_gmt'    => '2026-08-02 12:00:00',
+			'artists'     => array( 'test-artist' ),
 		),
 		array(
 			'blog_id'     => 1,
@@ -287,6 +288,7 @@ if ( $standalone ) {
 			'user_id'     => 8,
 			'author_name' => 'User 8',
 			'date_gmt'    => '2026-07-30 12:00:00',
+			'artists'     => array( 'test-artist' ),
 		),
 		array(
 			'blog_id'     => 1,
@@ -299,6 +301,7 @@ if ( $standalone ) {
 			'user_id'     => 0,
 			'author_name' => 'Guest',
 			'date_gmt'    => '2026-07-29 12:00:00',
+			'artists'     => array(),
 		),
 	);
 	$GLOBALS['_recent_activity_comment_queries'] = array();
@@ -314,7 +317,8 @@ if ( $standalone ) {
 						array_filter(
 							$GLOBALS['_recent_activity_comments'],
 							static function ( $row ) use ( $query ) {
-								return ! in_array( $row['user_id'], $query['exclude_authors'], true );
+								return ! in_array( $row['user_id'], $query['exclude_authors'], true )
+									&& ( '' === $query['artist'] || in_array( $query['artist'], $row['artists'], true ) );
 							}
 						)
 					);
@@ -346,6 +350,7 @@ if ( $standalone ) {
 	recent_activity_assert( $sorted === $times, 'Feed items are chronological, newest first.' );
 	recent_activity_assert( 'comment' === $with['items'][0]['activity_type'], 'The newest comment leads the feed.' );
 	recent_activity_assert( array( 'publish', 'closed' ) === $GLOBALS['_recent_activity_query_args']['post_status'], 'The ability reads the feed with the public audience.' );
+	recent_activity_assert( array( 'topic', 'reply' ) === $GLOBALS['_recent_activity_query_args']['post_type'] && array( 'comment' ) === end( $GLOBALS['_recent_activity_comment_queries'] )['types'], 'Omitting activity_types reads every item type.' );
 
 	$comment_item = $with['items'][0];
 	recent_activity_assert( array( 'canonical_url', 'title', 'timestamp', 'activity_type', 'actor', 'relationships' ) === array_keys( $comment_item ), 'Comment items expose the portable item keys.' );
@@ -394,19 +399,36 @@ if ( $standalone ) {
 	recent_activity_assert( array( 'comment' ) === array_values( array_unique( array_column( $only['items'], 'activity_type' ) ) ), 'The comment type returns comments only.' );
 	recent_activity_assert( array() === extrachill_community_ability_recent_public_activity( array( 'activity_types' => array( 'bogus' ) ) )['items'], 'Unknown types match nothing.' );
 
-	// The blog artist page: artist scope is forum-only.
-	$scoped = extrachill_community_ability_recent_public_activity(
+	// The blog artist page: artist scope reads tagged discussions and comments
+	// on tagged articles and events, with no activity_types narrowing.
+	$GLOBALS['_recent_activity_query_posts'] = array( $public );
+	$scoped                                  = extrachill_community_ability_recent_public_activity(
 		array(
-			'artist_slug'    => 'test-artist',
-			'activity_types' => array( 'discussion', 'reply', 'comment' ),
+			'artist_slug' => 'test-artist',
+			'limit'       => 4,
 		)
 	);
-	recent_activity_assert( ! in_array( 'comment', array_column( $scoped['items'], 'activity_type' ), true ), 'Artist scoping never returns comments.' );
-	recent_activity_assert( count( $GLOBALS['_recent_activity_comment_queries'] ) === $queries + 1, 'Artist scoping does not query the comment source.' );
-	recent_activity_assert( 'topic' === $GLOBALS['_recent_activity_query_args']['post_type'] && 'test-artist' === $GLOBALS['_recent_activity_query_args']['tax_query'][0]['terms'], 'Artist scoping queries tagged discussions only.' );
+	recent_activity_assert( array( 'comment', 'discussion', 'comment' ) === array_column( $scoped['items'], 'activity_type' ), 'Artist scoping merges tagged discussions with comments on tagged posts and events.' );
+	recent_activity_assert( 'test-artist' === end( $GLOBALS['_recent_activity_comment_queries'] )['artist'], 'Artist scoping reaches the comment source.' );
+	recent_activity_assert( 'topic' === $GLOBALS['_recent_activity_query_args']['post_type'] && 'test-artist' === $GLOBALS['_recent_activity_query_args']['tax_query'][0]['terms'], 'Artist scoping queries tagged discussions, never replies.' );
+	recent_activity_assert( ! in_array( 'reply', array_column( $scoped['items'], 'activity_type' ), true ), 'Artist scoping never returns replies.' );
+	recent_activity_assert( ! in_array( 'https://example.test/a-review/#comment-76', array_column( $scoped['items'], 'canonical_url' ), true ), 'Comments on untagged posts are excluded from artist scope.' );
 	foreach ( $scoped['items'] as $item ) {
-		recent_activity_assert( array( 'forum', 'artists' ) === array_keys( $item['relationships'] ), 'Artist items keep the relationships the artist page validates.' );
+		$keys = array_keys( $item['relationships'] );
+		recent_activity_assert( ( 'comment' === $item['activity_type'] ? array( 'post' ) : array( 'forum', 'artists' ) ) === $keys, 'Artist items keep the relationships the artist page validates.' );
 	}
+	$queries = count( $GLOBALS['_recent_activity_comment_queries'] );
+	recent_activity_assert(
+		array() === extrachill_community_ability_recent_public_activity(
+			array(
+				'artist_slug'    => 'test-artist',
+				'activity_types' => array( 'reply' ),
+			)
+		)['items'],
+		'Artist-scoped replies match nothing.'
+	);
+	recent_activity_assert( count( $GLOBALS['_recent_activity_comment_queries'] ) === $queries, 'An artist-scoped reply read queries no comment source.' );
+	$GLOBALS['_recent_activity_query_posts'] = array( $public, $closed, $reply );
 
 	$GLOBALS['_recent_activity_viewer'] = 5; // Blocks members 7 and 8.
 	$blocked                            = extrachill_community_ability_recent_public_activity( array( 'limit' => 20 ) );

@@ -211,8 +211,9 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 /**
  * Gather Community-owned recent artist activity.
  *
- * Reads the community activity feed narrowed to forum item types; comments
- * carry no artist relationships, so the artist page stays forum-only.
+ * Reads the one community activity feed scoped to the artist, every item
+ * type: discussions tagged with the artist, and comments on articles and
+ * events tagged with the artist.
  *
  * @param WP_Term $term Artist term.
  * @return array[] Activity items.
@@ -222,9 +223,8 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 		'community',
 		'extrachill/community-recent-public-activity',
 		array(
-			'artist_slug'    => (string) $term->slug,
-			'limit'          => 4,
-			'activity_types' => array( 'discussion', 'reply' ),
+			'artist_slug' => (string) $term->slug,
+			'limit'       => 4,
 		)
 	);
 
@@ -242,7 +242,7 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 			$activity['title'],
 			$activity['canonical_url'],
 			$activity['timestamp'],
-			__( 'Community discussion', 'extrachill-blog' )
+			extrachill_blog_get_community_activity_source_label( $activity )
 		);
 	}
 
@@ -250,7 +250,27 @@ function extrachill_blog_get_artist_community_activity( $term ) {
 }
 
 /**
+ * Label a validated Community activity item for the artist timeline.
+ *
+ * @param array $activity Validated owner-projected item.
+ * @return string Source label.
+ */
+function extrachill_blog_get_community_activity_source_label( $activity ) {
+	if ( 'comment' !== $activity['activity_type'] ) {
+		return __( 'Community discussion', 'extrachill-blog' );
+	}
+
+	return 'event' === $activity['relationships']['post']['kind']
+		? __( 'Event comment', 'extrachill-blog' )
+		: __( 'Article comment', 'extrachill-blog' );
+}
+
+/**
  * Validate one version-one Community activity item.
+ *
+ * Accepts exactly the two item shapes the owner ability emits: forum items
+ * (discussion or reply, with forum and artist relationships) and comment
+ * items (comment, with the article or event it was left on).
  *
  * @param mixed $item Owner-projected item.
  * @return bool
@@ -260,19 +280,29 @@ function extrachill_blog_is_community_activity_item( $item ) {
 		return false;
 	}
 
-	return is_string( $item['canonical_url'] )
+	$common = is_string( $item['canonical_url'] )
 		&& false !== filter_var( $item['canonical_url'], FILTER_VALIDATE_URL )
 		&& is_string( $item['title'] )
 		&& '' !== $item['title']
 		&& is_string( $item['timestamp'] )
 		&& false !== strtotime( $item['timestamp'] )
-		&& in_array( $item['activity_type'], array( 'discussion', 'reply' ), true )
 		&& is_array( $item['actor'] )
 		&& array( 'user_id', 'display_name', 'profile_url' ) === array_keys( $item['actor'] )
 		&& is_int( $item['actor']['user_id'] )
 		&& is_string( $item['actor']['display_name'] )
 		&& ( null === $item['actor']['profile_url'] || ( is_string( $item['actor']['profile_url'] ) && false !== filter_var( $item['actor']['profile_url'], FILTER_VALIDATE_URL ) ) )
-		&& is_array( $item['relationships'] )
+		&& is_array( $item['relationships'] );
+
+	if ( ! $common ) {
+		return false;
+	}
+
+	if ( 'comment' === $item['activity_type'] ) {
+		return array( 'post' ) === array_keys( $item['relationships'] )
+			&& extrachill_blog_is_community_comment_post_projection( $item['relationships']['post'] );
+	}
+
+	return in_array( $item['activity_type'], array( 'discussion', 'reply' ), true )
 		&& array( 'forum', 'artists' ) === array_keys( $item['relationships'] )
 		&& extrachill_blog_is_community_term_projection( $item['relationships']['forum'] )
 		&& is_array( $item['relationships']['artists'] )
@@ -283,6 +313,21 @@ function extrachill_blog_is_community_activity_item( $item ) {
 				return ! extrachill_blog_is_community_term_projection( $artist );
 			}
 		);
+}
+
+/**
+ * Validate the article or event a Community comment item was left on.
+ *
+ * @param mixed $post Owner-projected post relationship.
+ * @return bool
+ */
+function extrachill_blog_is_community_comment_post_projection( $post ) {
+	return is_array( $post )
+		&& array( 'name', 'kind', 'canonical_url' ) === array_keys( $post )
+		&& is_string( $post['name'] )
+		&& in_array( $post['kind'], array( 'article', 'event' ), true )
+		&& is_string( $post['canonical_url'] )
+		&& false !== filter_var( $post['canonical_url'], FILTER_VALIDATE_URL );
 }
 
 /**
