@@ -6,7 +6,7 @@ If you already track concerts on setlist.fm or phish.net, My Shows can bring tha
 
 - Sign in to the Extra Chill account that should own the history.
 - Make sure the username you enter belongs to the source account you want to import.
-- Open the **Import** tab in [My Shows](https://events.extrachill.com/my-shows/?tab=import).
+- Open the **Import** tab in [My Shows](https://events.extrachill.com/my-shows?tab=import).
 
 Only import sources currently available to your account appear in the tab.
 

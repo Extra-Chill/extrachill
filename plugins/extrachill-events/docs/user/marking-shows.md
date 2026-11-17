@@ -36,4 +36,4 @@ Select the marked attendance button again to remove the show. Removing an upcomi
 
 ## If You Cannot Find a Past Show
 
-Try a shorter artist or venue search. If you already track your history elsewhere, [import your concert history](https://docs.extrachill.com/events-calendar/importing-concert-history/). For other cases, see [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows/).
+Try a shorter artist or venue search. If you already track your history elsewhere, [import your concert history](https://docs.extrachill.com/events-calendar/importing-concert-history). For other cases, see [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows).

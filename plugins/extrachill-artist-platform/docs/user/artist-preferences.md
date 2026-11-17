@@ -23,7 +23,7 @@ Extra Chill does not send these emails; the artist does. You can leave an artist
 - **Use the unsubscribe link in the artist's email.** Artists get a personal unsubscribe link for each person on their list to put in their emails. Open the link and choose **Unsubscribe**. You see **You've unsubscribed from** and the artist's name when it works.
 - **Use your account settings.** If you have an Extra Chill account with the same email address, go to **Settings** > **Subscriptions**. Artist lists show as **Artist mailing list**. Choose **Unsubscribe** next to the artist.
 
-Leaving one artist's list does not remove you from other artists' lists or from the Extra Chill newsletter. If an artist emails you without an unsubscribe link, ask the artist to remove you or [contact Extra Chill](https://extrachill.com/contact-us).
+Leaving one artist's list does not remove you from other artists' lists or from the Extra Chill newsletter. If an artist emails you without an unsubscribe link, ask the artist to remove you or [contact Extra Chill](https://extrachill.com/contact-us/).
 
 ## For artists
 

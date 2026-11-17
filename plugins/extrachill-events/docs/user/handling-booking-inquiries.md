@@ -12,7 +12,7 @@ Everyone on your venue's team can read and answer inquiries, hold dates, and con
 
 ## Open Your Bookings
 
-1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings/).
+1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings).
 2. Pick your venue.
 3. Open the **Bookings** tab.
 

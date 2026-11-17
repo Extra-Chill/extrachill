@@ -4,7 +4,7 @@ Extra Chill Events helps you move from a broad question like “what is happenin
 
 ## Start Near You
 
-Open [Live Music Near Me](https://events.extrachill.com/near-me/) and allow location access when prompted. Extra Chill uses your location to find relevant event markets without changing your saved profile location.
+Open [Live Music Near Me](https://events.extrachill.com/near-me) and allow location access when prompted. Extra Chill uses your location to find relevant event markets without changing your saved profile location.
 
 ## Browse a City
 

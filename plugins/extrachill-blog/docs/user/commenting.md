@@ -21,4 +21,4 @@ If an article says **Comments are closed.**, you can still read the comments alr
 
 - If you do not see a comment form, make sure you are signed in, then return to the article.
 - Check whether the article says **Comments are closed.**
-- If something still looks wrong, [contact Extra Chill](https://extrachill.com/contact-us).
+- If something still looks wrong, [contact Extra Chill](https://extrachill.com/contact-us/).

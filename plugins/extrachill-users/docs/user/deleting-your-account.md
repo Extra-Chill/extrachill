@@ -9,7 +9,7 @@ You can permanently delete your account yourself at any time. One account works 
 3. Read what will be deleted, then type **DELETE** in the box. The **Delete my account** button only turns on once you have typed it exactly.
 4. Select **Delete my account**. You are signed out and taken back to the home page.
 
-If you run an artist profile, a venue, or a shop, sort that out before you delete. [Contact the Extra Chill team](https://extrachill.com/contact-us) and they can help you hand it over to someone else first, so your band or venue doesn't lose its page.
+If you run an artist profile, a venue, or a shop, sort that out before you delete. [Contact the Extra Chill team](https://extrachill.com/contact-us/) and they can help you hand it over to someone else first, so your band or venue doesn't lose its page.
 
 Extra Chill team accounts can't be deleted this way. If you work with the team, ask the Extra Chill team to close your account for you.
 

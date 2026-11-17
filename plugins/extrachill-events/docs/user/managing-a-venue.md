@@ -2,7 +2,7 @@
 
 Run a room? Manage your venue on Extra Chill and keep your page, your calendar, and your team in one place.
 
-Everything starts on the [Venue settings](https://events.extrachill.com/venue-settings/) page. You need to be logged in to use it.
+Everything starts on the [Venue settings](https://events.extrachill.com/venue-settings) page. You need to be logged in to use it.
 
 Venue tools are open to a small number of venues right now. To get your venue started, [contact Extra Chill](https://extrachill.com/contact-us/).
 
@@ -14,7 +14,7 @@ There are two ways in.
 
 If your venue is already listed on the [Events Calendar](https://events.extrachill.com/), you can claim it.
 
-1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings/).
+1. Log in and open [Venue settings](https://events.extrachill.com/venue-settings).
 2. Under **Claim your venue**, choose your venue from the list.
 3. Select **Submit claim**.
 

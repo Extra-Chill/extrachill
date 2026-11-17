@@ -37,7 +37,7 @@ Copy it exactly. It is the only thing your client needs. The sign-in steps happe
 3. Choose Create, name it Extra Chill, and paste your connection address.
 4. Leave sign-in set to the option that opens a sign-in page, save it, and finish signing in.
 
-**Other AI apps, including ones that run in a terminal:** look for an option to add a custom connector or tool server, and give it your connection address. Step-by-step setup for those clients is at [extrachill.com/mcp](https://extrachill.com/mcp).
+**Other AI apps, including ones that run in a terminal:** look for an option to add a custom connector or tool server, and give it your connection address. Step-by-step setup for those clients is at [extrachill.com/mcp](https://extrachill.com/mcp/).
 
 Menu names change from time to time, and some apps only offer custom connectors on certain plans. If you cannot find these options, check your AI app's own help pages for adding a custom connector.
 

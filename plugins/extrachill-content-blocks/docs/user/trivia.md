@@ -1,6 +1,6 @@
 # Play Music Trivia
 
-Think you know your favorite band inside and out? Some Extra Chill articles include interactive music trivia, like [Grateful Dead trivia for true Deadheads](https://extrachill.com/grateful-dead-trivia). Answer each question right on the page and see your score add up as you go.
+Think you know your favorite band inside and out? Some Extra Chill articles include interactive music trivia, like [Grateful Dead trivia for true Deadheads](https://extrachill.com/grateful-dead-trivia/). Answer each question right on the page and see your score add up as you go.
 
 You don't need an account or an email address to play.
 

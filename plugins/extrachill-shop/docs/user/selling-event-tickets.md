@@ -31,7 +31,7 @@ Once tickets are on, the show's page has a **Buy tickets** button in place of an
 
 ## What Buyers Get
 
-Buyers choose up to 10 tickets, enter a name and email, and pay on a secure payment page. Each ticket arrives by email as its own pass. Ticket buyers count toward your guest list spots, and they show up on your door list. Scan their passes at the door like any guest list pass. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door/).
+Buyers choose up to 10 tickets, enter a name and email, and pay on a secure payment page. Each ticket arrives by email as its own pass. Ticket buyers count toward your guest list spots, and they show up on your door list. Scan their passes at the door like any guest list pass. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door).
 
 When tickets run out, the page shows **Sold out**. If the last tickets sell while someone is paying, that buyer is refunded automatically.
 

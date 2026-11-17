@@ -19,7 +19,7 @@ Open your profile and choose **Edit Profile** to add a picture, a custom title, 
 
 The notification bell and **Notifications** page show activity that involves you, including replies to conversations you are subscribed to and mentions. Open the page to see recent items and manage what you have read.
 
-Keep posts respectful and on topic. Share only pictures and music you have permission to share, and do not post private information. For community help, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us).
+Keep posts respectful and on topic. Share only pictures and music you have permission to share, and do not post private information. For community help, visit [The Lab](https://community.extrachill.com/r/the-lab), or [contact Extra Chill](https://extrachill.com/contact-us/).
 
 ## Explore more
 
