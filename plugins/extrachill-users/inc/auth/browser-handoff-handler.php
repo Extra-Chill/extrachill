@@ -79,10 +79,6 @@ function extrachill_users_handle_browser_handoff() {
 		exit;
 	}
 
-	wp_set_current_user( $user_id, $user->user_login );
-	wp_set_auth_cookie( $user_id, false );
-	do_action( 'wp_login', $user->user_login, $user );
-
 	add_filter(
 		'allowed_redirect_hosts',
 		function ( array $hosts ) use ( $redirect_host ): array {
@@ -93,6 +89,32 @@ function extrachill_users_handle_browser_handoff() {
 		}
 	);
 
+	$verified_at = isset( $payload['two_factor_verified_at'] ) ? (int) $payload['two_factor_verified_at'] : 0;
+	if ( ! extrachill_users_two_factor_prepare_browser_handoff( $user, $verified_at ) ) {
+		// A Two Factor member whose app session never passed 2FA signs in on
+		// our login page, which asks for the code, then lands on the page.
+		wp_safe_redirect( extrachill_users_browser_handoff_login_url( $redirect_url ) );
+		exit;
+	}
+
+	wp_set_current_user( $user_id, $user->user_login );
+	wp_set_auth_cookie( $user_id, false );
+	do_action( 'wp_login', $user->user_login, $user );
+
 	wp_safe_redirect( $redirect_url );
 	exit;
+}
+
+/**
+ * Login page that resumes a handoff the member must finish by signing in.
+ *
+ * @param string $redirect_url Validated handoff destination.
+ * @return string
+ */
+function extrachill_users_browser_handoff_login_url( string $redirect_url ): string {
+	$login_url = home_url( user_trailingslashit( '/login' ) );
+
+	return function_exists( 'ec_users_login_url_with_redirect' )
+		? ec_users_login_url_with_redirect( $login_url, $redirect_url )
+		: $login_url;
 }

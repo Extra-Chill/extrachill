@@ -473,3 +473,82 @@ function extrachill_users_two_factor_native_pre_login( $blocked ) {
 	return $blocked;
 }
 add_filter( 'wp_native_auth_pre_login', 'extrachill_users_two_factor_native_pre_login', 1 );
+
+/**
+ * When the current request's session last passed Two Factor.
+ *
+ * A bearer request answers from its wp-native-auth device session, and only
+ * when the `two-factor` policy verified it. A cookie request answers from Two
+ * Factor's own session stamp.
+ *
+ * @param int $user_id User the session must belong to.
+ * @return int Unix time of the last 2FA verification, or 0 when none.
+ */
+function extrachill_users_current_session_two_factor_time( int $user_id ): int {
+	if ( $user_id <= 0 || get_current_user_id() !== $user_id ) {
+		return 0;
+	}
+
+	if ( function_exists( 'wp_native_auth_get_current_session' ) ) {
+		$session = wp_native_auth_get_current_session();
+		if ( null !== $session ) {
+			if ( (int) $session['user_id'] !== $user_id
+				|| EXTRACHILL_USERS_TWO_FACTOR_POLICY !== $session['challenge_policy']
+				|| null === $session['challenge_verified_at'] ) {
+				return 0;
+			}
+
+			return (int) $session['challenge_verified_at'];
+		}
+	}
+
+	if ( class_exists( 'Two_Factor_Core' ) && is_callable( array( 'Two_Factor_Core', 'is_current_user_session_two_factor' ) ) ) {
+		return (int) Two_Factor_Core::is_current_user_session_two_factor();
+	}
+
+	return 0;
+}
+
+/**
+ * Decide whether a browser handoff may sign a user in, and prepare it.
+ *
+ * A browser handoff turns an app (or browser) session into a cookie session.
+ * For a Two Factor member that is only safe when the session the handoff was
+ * minted from had passed 2FA. In that case the new cookie session carries the
+ * same 2FA time, and Two Factor's wp_login handler is detached for the rest of
+ * the request so it does not destroy the session and render its own form.
+ * Otherwise the handoff must not sign the member in at all.
+ *
+ * @param WP_User $user        User the handoff is for.
+ * @param int     $verified_at When the minting session last passed 2FA (0 for never).
+ * @return bool True when the handoff may set the auth cookie.
+ */
+function extrachill_users_two_factor_prepare_browser_handoff( WP_User $user, int $verified_at ): bool {
+	if ( ! class_exists( 'Two_Factor_Core' )
+		|| ! is_callable( array( 'Two_Factor_Core', 'is_user_using_two_factor' ) )
+		|| ! Two_Factor_Core::is_user_using_two_factor( (int) $user->ID ) ) {
+		return true;
+	}
+
+	if ( $verified_at <= 0 ) {
+		return false;
+	}
+
+	remove_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ), PHP_INT_MAX );
+
+	$user_id = (int) $user->ID;
+	add_filter(
+		'attach_session_information',
+		static function ( $session, $session_user_id ) use ( $user_id, $verified_at ) {
+			if ( (int) $session_user_id === $user_id && is_array( $session ) ) {
+				$session['two-factor-login'] = $verified_at;
+			}
+
+			return $session;
+		},
+		10,
+		2
+	);
+
+	return true;
+}

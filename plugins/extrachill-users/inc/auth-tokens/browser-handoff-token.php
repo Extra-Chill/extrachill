@@ -28,6 +28,9 @@ add_action(
 /**
  * Create a single-use browser handoff token.
  *
+ * Call from the request whose session is being handed off: the payload
+ * records when that session last passed Two Factor.
+ *
  * @param int    $user_id      User ID.
  * @param string $redirect_url Destination URL after cookies are set.
  * @return string Token.
@@ -39,9 +42,13 @@ function extrachill_users_create_browser_handoff_token( int $user_id, string $re
 	set_site_transient(
 		$key,
 		array(
-			'user_id'       => $user_id,
-			'redirect_url'  => $redirect_url,
-			'created_at_ts' => time(),
+			'user_id'                => $user_id,
+			'redirect_url'           => $redirect_url,
+			'created_at_ts'          => time(),
+			// Lets a Two Factor member's handoff keep the minting session's 2FA.
+			'two_factor_verified_at' => function_exists( 'extrachill_users_current_session_two_factor_time' )
+				? extrachill_users_current_session_two_factor_time( $user_id )
+				: 0,
 		),
 		EXTRACHILL_USERS_BROWSER_HANDOFF_TTL
 	);
