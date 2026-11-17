@@ -148,6 +148,7 @@ require_once EXTRACHILL_INCLUDES_DIR . '/footer/back-to-home-link.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/editor/bandcamp-embeds.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/editor/instagram-embeds.php';
 require_once EXTRACHILL_INCLUDES_DIR . '/core/editor/block-patterns.php';
+require_once EXTRACHILL_INCLUDES_DIR . '/core/editor/blocks-everywhere-comments.php';
 
 require_once EXTRACHILL_INCLUDES_DIR . '/archives/archive-custom-sorting.php';
 
