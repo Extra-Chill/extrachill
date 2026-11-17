@@ -300,7 +300,7 @@ namespace {
 		shop_assert( array( array( 'extrachill/shop-get-order', array( 'id' => 55 ) ) ) === $GLOBALS['shop_test_calls'], 'order show passes the id' );
 		shop_expect_error( fn() => ( new OrderCommand() )->show( array( '5x' ), array() ), 'Order ID', 'non-numeric id errors' );
 
-		// order refund: confirmation, seller from the order, --yes, --amount guard.
+		// order refund: confirmation, seller from the order, --yes, --amount.
 		shop_reset();
 		$GLOBALS['shop_test_responses']['extrachill/shop-refund-order'] = array(
 			'success'       => true,
@@ -347,19 +347,11 @@ namespace {
 		) === $GLOBALS['shop_test_calls'][1][1]['seller'], '--seller overrides the order seller' );
 
 		shop_reset();
-		shop_expect_error( fn() => ( new OrderCommand() )->refund( array( '55' ), array(
-			'amount' => '5',
-			'yes'    => true,
-		) ), 'only issues full refunds', '--amount is refused while the ability is full-refund only' );
-		shop_assert( array() === $GLOBALS['shop_test_calls'], 'refused --amount executes nothing' );
-
-		shop_reset();
-		wp_get_ability( 'extrachill/shop-refund-order' )->schema['properties']['amount'] = array( 'type' => 'number' );
 		( new OrderCommand() )->refund( array( '55' ), array(
 			'amount' => '5.50',
 			'yes'    => true,
 		) );
-		shop_assert( 5.5 === $GLOBALS['shop_test_calls'][1][1]['amount'], '--amount passes through once the ability declares it' );
+		shop_assert( 5.5 === $GLOBALS['shop_test_calls'][1][1]['amount'], '--amount passes through to the refund ability' );
 		shop_expect_error( fn() => ( new OrderCommand() )->refund( array( '55' ), array(
 			'amount' => '-1',
 			'yes'    => true,

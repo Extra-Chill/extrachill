@@ -234,4 +234,4 @@ REST routes in `extrachill-api` are documented in [subscription](../../extrachil
 
 ## Notes
 
-- `extrachill/subscriber-status` was removed from this plugin, and `tests/sendy-campaign-consumer-smoke.php` asserts it is no longer registered. `extrachill-api` `GET /newsletter/subscriber-status` and `wp extrachill newsletter subscriber-status` still refer to it (and to `extrachill_newsletter_ability_subscriber_status()`), so both paths are stale and fail at runtime.
+- `extrachill/subscriber-status` was removed from this plugin, and `tests/sendy-campaign-consumer-smoke.php` asserts it is no longer registered. The `extrachill-api` `GET /newsletter/subscriber-status` route and the `wp extrachill newsletter subscriber-status` command that wrapped it were deleted too. `extrachill/newsletter-get-my-subscriptions` is not a replacement: it only reports the current account's own aggregate newsletter state and accepts no email or list ID.

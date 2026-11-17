@@ -23,10 +23,17 @@ function extrachill_api_register_community_forums_routes() {
 			'callback'            => 'extrachill_api_community_forums_list_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
+				'archive_only'  => array(
+					'required'    => false,
+					'type'        => 'boolean',
+					'default'     => false,
+					'description' => 'Only return forums listed in the forum archive (/forums/).',
+				),
 				'homepage_only' => array(
-					'required' => false,
-					'type'     => 'boolean',
-					'default'  => false,
+					'required'    => false,
+					'type'        => 'boolean',
+					'default'     => false,
+					'description' => 'Deprecated alias for archive_only.',
 				),
 			),
 		)
@@ -40,8 +47,8 @@ function extrachill_api_community_forums_list_handler( WP_REST_Request $request 
 	}
 
 	$input = array();
-	if ( $request->get_param( 'homepage_only' ) ) {
-		$input['homepage_only'] = true;
+	if ( $request->get_param( 'archive_only' ) || $request->get_param( 'homepage_only' ) ) {
+		$input['archive_only'] = true;
 	}
 
 	$result = $ability->execute( $input );

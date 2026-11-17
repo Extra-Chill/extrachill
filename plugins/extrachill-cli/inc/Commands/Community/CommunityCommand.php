@@ -593,8 +593,11 @@ class CommunityCommand {
 	 *
 	 * ## OPTIONS
 	 *
+	 * [--archive]
+	 * : Only show forums listed in the forum archive (/forums/).
+	 *
 	 * [--homepage]
-	 * : Only show forums visible on the homepage.
+	 * : Deprecated alias for --archive.
 	 *
 	 * [--format=<format>]
 	 * : Output format.
@@ -609,7 +612,7 @@ class CommunityCommand {
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill community forums --url=community.extrachill.com
-	 *     wp extrachill community forums --homepage --url=community.extrachill.com
+	 *     wp extrachill community forums --archive --url=community.extrachill.com
 	 *
 	 * @when after_wp_load
 	 */
@@ -619,10 +622,11 @@ class CommunityCommand {
 			WP_CLI::error( 'extrachill/community-list-forums ability not available.' );
 		}
 
-		$homepage_only = Utils\get_flag_value( $assoc_args, 'homepage', false );
-		$format        = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+		$archive_only = (bool) Utils\get_flag_value( $assoc_args, 'archive', false )
+			|| (bool) Utils\get_flag_value( $assoc_args, 'homepage', false );
+		$format       = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
 
-		$result = $ability->execute( array( 'homepage_only' => $homepage_only ) );
+		$result = $ability->execute( array( 'archive_only' => $archive_only ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -636,17 +640,19 @@ class CommunityCommand {
 		// Convert boolean to string for table display.
 		$forums = array_map(
 			function ( $f ) {
-				$f['show_on_homepage'] = $f['show_on_homepage'] ? 'yes' : 'no';
+				$f['show_in_archive'] = ! empty( $f['show_in_archive'] ) ? 'yes' : 'no';
 				return $f;
 			},
 			$result['forums']
 		);
 
-		Utils\format_items( $format, $forums, array( 'forum_id', 'title', 'parent_id', 'topic_count', 'reply_count', 'show_on_homepage' ) );
+		Utils\format_items( $format, $forums, array( 'forum_id', 'title', 'parent_id', 'topic_count', 'reply_count', 'show_in_archive' ) );
 	}
 
 	/**
-	 * Toggle a forum's homepage visibility.
+	 * Toggle whether a forum is listed in the forum archive (/forums/).
+	 *
+	 * `toggle-homepage` is kept as an alias for the old command name.
 	 *
 	 * ## OPTIONS
 	 *
@@ -655,20 +661,21 @@ class CommunityCommand {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extrachill community toggle-homepage 123 --url=community.extrachill.com
+	 *     wp extrachill community toggle-archive 123 --url=community.extrachill.com
 	 *
-	 * @subcommand toggle-homepage
+	 * @subcommand toggle-archive
+	 * @alias toggle-homepage
 	 * @when after_wp_load
 	 */
-	public function toggle_homepage( $args ) {
+	public function toggle_archive( $args ) {
 		$forum_id = isset( $args[0] ) ? (int) $args[0] : 0;
 		if ( ! $forum_id ) {
 			WP_CLI::error( 'A forum_id is required.' );
 		}
 
-		$ability = wp_get_ability( 'extrachill/community-toggle-forum-homepage' );
+		$ability = wp_get_ability( 'extrachill/community-toggle-forum-archive' );
 		if ( ! $ability ) {
-			WP_CLI::error( 'extrachill/community-toggle-forum-homepage ability not available.' );
+			WP_CLI::error( 'extrachill/community-toggle-forum-archive ability not available.' );
 		}
 
 		$result = $ability->execute( array( 'forum_id' => $forum_id ) );
@@ -677,12 +684,16 @@ class CommunityCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		$state = $result['show_on_homepage'] ? 'shown on' : 'hidden from';
-		WP_CLI::success( sprintf( 'Forum "%s" (%d) is now %s the homepage.', $result['title'], $result['forum_id'], $state ) );
+		$state = ! empty( $result['show_in_archive'] ) ? 'listed in' : 'hidden from';
+		WP_CLI::success( sprintf( 'Forum "%s" (%d) is now %s the forum archive.', $result['title'], $result['forum_id'], $state ) );
 	}
 
 	/**
 	 * Toggle an upvote on a topic or reply.
+	 *
+	 * The vote is recorded for the current user. The ability has no
+	 * privileged path to vote on someone else's behalf, so pick the voter
+	 * with the global --user flag.
 	 *
 	 * ## OPTIONS
 	 *
@@ -692,16 +703,13 @@ class CommunityCommand {
 	 * <type>
 	 * : Post type: topic or reply.
 	 *
-	 * [--user=<user>]
-	 * : User ID, login, or email (defaults to current user).
-	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill community upvote 456 topic --user=chubes --url=community.extrachill.com
 	 *
 	 * @when after_wp_load
 	 */
-	public function upvote( $args, $assoc_args ) {
+	public function upvote( $args ) {
 		$post_id = isset( $args[0] ) ? (int) $args[0] : 0;
 		$type    = isset( $args[1] ) ? (string) $args[1] : '';
 
@@ -716,15 +724,6 @@ class CommunityCommand {
 			'post_id' => $post_id,
 			'type'    => $type,
 		);
-
-		if ( isset( $assoc_args['user'] ) ) {
-			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user instanceof \WP_User ) {
-				WP_CLI::error( 'User not found.' );
-				return;
-			}
-			$input['user_id'] = (int) $user->ID;
-		}
 
 		$ability = wp_get_ability( 'extrachill/community-upvote' );
 		if ( ! $ability ) {

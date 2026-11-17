@@ -32,12 +32,6 @@ Paths are relative to `/wp-json/extrachill/v1`. Source: `inc/routes/newsletter/m
 
 **Ability:** `extrachill/update-newsletter-settings`. **Response:** settings update result from the owner.
 
-## GET /newsletter/subscriber-status
-
-**Parameters:** required `email` string (`sanitize_email`) and `list_id` string (text-sanitized).
-
-**Ability:** `extrachill/subscriber-status`. **Response:** subscriber-status result from the owner. This endpoint requires administrative permission even though its name sounds like a public lookup.
-
 ## POST /newsletter/sync
 
 **Parameters:** required `integration` sanitized string; optional `emails` array, `since` sanitized string, `dry_run` boolean (false).

@@ -93,9 +93,9 @@ wp --url=https://shop.extrachill.com --user=1 extrachill shop webhook replay evt
 wp --url=https://shop.extrachill.com --user=1 extrachill shop boost retry 1234
 ```
 
-`order refund` asks for confirmation (`--yes` skips it) and issues a full
-refund. `--amount` is refused until `extrachill/shop-refund-order` accepts an
-amount. `webhook replay` reads the event from the Stripe API and routes it
+`order refund` asks for confirmation (`--yes` skips it) and refunds everything
+still refundable. Pass `--amount=<n>` for a partial refund; the ability rejects
+amounts above what is left. `webhook replay` reads the event from the Stripe API and routes it
 through the Shop webhook router again. Pass `--account` for Connect events.
 
 ### Platform Experiments

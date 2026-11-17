@@ -52,7 +52,6 @@ foreach ( array(
 	'NewsletterCommand.php::push_campaign' => 'push-campaign',
 	'NewsletterCommand.php::send_campaign' => 'send-campaign',
 	'NewsletterCommand.php::delete_campaign' => 'delete-campaign',
-	'NewsletterCommand.php::subscriber_status' => 'subscriber-status',
 ) as $method => $expected ) {
 	if ( ( $checked[ $method ] ?? null ) !== $expected ) {
 		throw new RuntimeException( 'Missing command coverage: ' . $method );
@@ -63,10 +62,9 @@ foreach ( array(
 foreach ( array(
 	'Network/MigratePostCommand.php'    => array( 'migrate-post' => 'migrate_post' ),
 	'Newsletter/NewsletterCommand.php' => array(
-		'push-campaign'     => 'push_campaign',
-		'send-campaign'     => 'send_campaign',
-		'delete-campaign'   => 'delete_campaign',
-		'subscriber-status' => 'subscriber_status',
+		'push-campaign'   => 'push_campaign',
+		'send-campaign'   => 'send_campaign',
+		'delete-campaign' => 'delete_campaign',
 	),
 ) as $path => $pairs ) {
 	$source = file_get_contents( dirname( __DIR__ ) . '/inc/Commands/' . $path );
