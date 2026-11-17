@@ -1006,7 +1006,10 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		if ( 0 === $result['events_found'] ) {
+		// An already-covered source (e.g. Ticketmaster) may be short-circuited
+		// before scraping; return the coverage result instead of steering the
+		// submitter to the manual form for a duplicate.
+		if ( 0 === $result['events_found'] && empty( $result['existing_coverage']['covered'] ) ) {
 			return new \WP_Error(
 				'no_events_found',
 				__( "We couldn't extract events from that page. Try the manual form below.", 'extrachill-events' ),

@@ -447,6 +447,26 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		);
 	}
 
+	public function test_preview_returns_covered_source_with_zero_events(): void {
+		$intake                        = new TestableEventSourceIntake();
+		$covered                       = $this->qualification( 'venue', false, 'https://www.ticketmaster.com/venue/1' );
+		$covered['events_found']       = 0;
+		$covered['existing_coverage']  = array( 'covered' => true, 'type' => 'ticketmaster' );
+		$intake->qualifications        = array( $covered );
+		$result                        = $intake->executePreview( array( 'url' => 'https://www.ticketmaster.com/venue/1' ) );
+
+		$this->assertIsArray( $result );
+		$this->assertTrue( $result['existing_coverage']['covered'] );
+
+		$uncovered                    = $this->qualification( 'venue', false, 'https://venue.test/empty' );
+		$uncovered['events_found']     = 0;
+		$intake->qualifications        = array( $uncovered );
+		$error                         = $intake->executePreview( array( 'url' => 'https://venue.test/empty' ) );
+
+		$this->assertInstanceOf( WP_Error::class, $error );
+		$this->assertSame( 'no_events_found', $error->get_error_code() );
+	}
+
 	public function test_venue_requires_official_host_ownership(): void {
 		$events = array(
 			array( 'venue' => 'The Room', 'performer' => 'Artist A' ),
