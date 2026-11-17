@@ -33,8 +33,8 @@ class BookingReportingAbilities {
 
 	/** Register operational and finance projections. */
 	public function register(): void {
-		$this->register_ability( 'extrachill/get-venue-booking-performance-report', __( 'Get Venue Booking Performance Report', 'extrachill-events' ), 'operations', 'can_read_operations', $this->operations_schema() );
-		$this->register_ability( 'extrachill/get-venue-booking-revenue-report', __( 'Get Venue Booking Revenue Report', 'extrachill-events' ), 'finance', 'can_read_finance', $this->finance_schema() );
+		$this->register_ability( 'extrachill/get-venue-booking-performance-report', __( 'Get Venue Booking Performance Report', 'extrachill-booking' ), 'operations', 'can_read_operations', $this->operations_schema() );
+		$this->register_ability( 'extrachill/get-venue-booking-revenue-report', __( 'Get Venue Booking Revenue Report', 'extrachill-booking' ), 'finance', 'can_read_finance', $this->finance_schema() );
 	}
 
 	private function register_ability( string $name, string $label, string $execute, string $permission, array $output ): void {

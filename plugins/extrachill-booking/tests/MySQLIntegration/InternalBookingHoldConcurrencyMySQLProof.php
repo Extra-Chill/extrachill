@@ -1,6 +1,8 @@
 <?php
 /** Native two-process hold contention proof for the internal calendar alpha. */
 
+// phpcs:disable WordPress.DB.RestrictedFunctions,WordPress.WP.AlternativeFunctions.file_system_operations_mkdir,WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents,WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents,WordPress.WP.AlternativeFunctions.unlink_unlink,WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Native two-process MySQL proof: a raw mysqli session holds the venue lock independently of $wpdb, and forked contenders coordinate readiness/results via disposable process-local marker files (never user input), matching BookingAdmissionConcurrencyMySQLProof.
+
 require_once __DIR__ . '/BookingMySQLIntegrationTestCase.php';
 
 use ExtraChillEvents\Core\BookingHoldRepository;
@@ -40,7 +42,7 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingMySQLIntegra
 				file_put_contents( $directory . '/ready-' . $index, '1', LOCK_EX );
 				$result = wp_get_ability( 'extrachill/create-booking-hold' )->execute(
 					array(
-						'booking_id'              => $booking['id'],
+						'booking_id'               => $booking['id'],
 						'expected_booking_version' => $booking['version'],
 					)
 				);
@@ -48,7 +50,10 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingMySQLIntegra
 					$directory . '/result-' . $index,
 					wp_json_encode(
 						is_wp_error( $result )
-							? array( 'error' => $result->get_error_code(), 'data' => $result->get_error_data() )
+							? array(
+								'error' => $result->get_error_code(),
+								'data'  => $result->get_error_data(),
+							)
 							: array( 'hold' => $result )
 					),
 					LOCK_EX
@@ -131,7 +136,7 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingMySQLIntegra
 
 		$result = wp_get_ability( 'extrachill/create-booking-hold' )->execute(
 			array(
-				'booking_id'              => $booking['id'],
+				'booking_id'               => $booking['id'],
 				'expected_booking_version' => $booking['version'],
 			)
 		);
@@ -154,21 +159,21 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingMySQLIntegra
 		foreach ( array( 'under_review', 'negotiating' ) as $status ) {
 			$booking = wp_get_ability( 'extrachill/transition-venue-booking' )->execute(
 				array(
-					'booking_id'      => $booking['id'],
-					'to_status'       => $status,
+					'booking_id'       => $booking['id'],
+					'to_status'        => $status,
 					'expected_version' => $booking['version'],
-					'note'            => 'Native alpha race setup.',
+					'note'             => 'Native alpha race setup.',
 				)
 			);
 			$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : 'Lifecycle transition failed.' );
 		}
 		$booking = wp_get_ability( 'extrachill/select-venue-booking-performance' )->execute(
 			array(
-				'booking_id'      => $booking['id'],
+				'booking_id'       => $booking['id'],
 				'expected_version' => $booking['version'],
-				'space_key'       => 'main-room',
-				'start_at'        => '2031-07-01 00:00:00',
-				'end_at'          => '2031-07-01 03:00:00',
+				'space_key'        => 'main-room',
+				'start_at'         => '2031-07-01 00:00:00',
+				'end_at'           => '2031-07-01 03:00:00',
 			)
 		);
 		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : 'Performance selection failed.' );
@@ -189,9 +194,9 @@ final class InternalBookingHoldConcurrencyMySQLProof extends BookingMySQLIntegra
 				'is_default' => true,
 			),
 		);
-		$config = wp_get_ability( 'extrachill/update-venue-booking-config' )->execute(
+		$config            = wp_get_ability( 'extrachill/update-venue-booking-config' )->execute(
 			array(
-				'venue_term_id'    => $this->venue_id,
+				'venue_term_id'     => $this->venue_id,
 				'expected_revision' => $revision,
 				'config'            => $config,
 			)

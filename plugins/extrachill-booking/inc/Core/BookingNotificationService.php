@@ -221,7 +221,7 @@ class BookingNotificationService {
 		$request = $this->activity->get( $request_activity_id );
 		$data    = is_array( $request ) ? ( $request['payload']['data'] ?? array() ) : array();
 		if ( ! is_array( $request ) || 'notification_requested' !== $request['kind'] || empty( $data['notification_type'] ) || empty( $data['source_activity_id'] ) ) {
-			return new \WP_Error( 'booking_notification_request_invalid', __( 'The booking notification request is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_notification_request_invalid', __( 'The booking notification request is invalid.', 'extrachill-booking' ) );
 		}
 		$terminal = $this->activity->notification_terminal( $request_activity_id );
 		if ( is_wp_error( $terminal ) || is_array( $terminal ) ) {
@@ -229,7 +229,7 @@ class BookingNotificationService {
 		}
 		$due = $this->activity->notification_retry_is_due( $request_activity_id );
 		if ( is_wp_error( $due ) || ! $due ) {
-			return is_wp_error( $due ) ? $due : new \WP_Error( 'booking_notification_retry_not_due', __( 'The booking notification retry is not due yet.', 'extrachill-events' ), array( 'status' => 425 ) );
+			return is_wp_error( $due ) ? $due : new \WP_Error( 'booking_notification_retry_not_due', __( 'The booking notification retry is not due yet.', 'extrachill-booking' ), array( 'status' => 425 ) );
 		}
 		if ( 'booking_assignment_changed' === (string) $data['notification_type'] ) {
 			$started = $this->begin();
@@ -241,11 +241,11 @@ class BookingNotificationService {
 		}
 		$source = $this->validated_source( (string) $data['notification_type'], (int) $data['source_activity_id'] );
 		if ( is_wp_error( $source ) || (int) $source['booking_id'] !== (int) $request['booking_id'] ) {
-			return is_wp_error( $source ) ? $source : new \WP_Error( 'booking_notification_source_invalid', __( 'The booking notification source activity is invalid.', 'extrachill-events' ) );
+			return is_wp_error( $source ) ? $source : new \WP_Error( 'booking_notification_source_invalid', __( 'The booking notification source activity is invalid.', 'extrachill-booking' ) );
 		}
 		$booking = $this->bookings->get( $request['booking_id'] );
 		if ( ! is_array( $booking ) ) {
-			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		$started = $this->begin();
 		if ( is_wp_error( $started ) ) {
@@ -253,11 +253,11 @@ class BookingNotificationService {
 		}
 		$members = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
 		if ( is_wp_error( $members ) ) {
-			return $this->rollback( new \WP_Error( 'booking_notification_membership_read_failed', __( 'Venue notification recipients could not be locked.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_membership_read_failed', __( 'Venue notification recipients could not be locked.', 'extrachill-booking' ) ) );
 		}
 		$locked = $this->bookings->get_for_update( $booking['id'] );
 		if ( ! is_array( $locked ) || (int) $locked['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
-			return $this->rollback( new \WP_Error( 'booking_notification_booking_changed', __( 'The booking notification target changed.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_booking_changed', __( 'The booking notification target changed.', 'extrachill-booking' ) ) );
 		}
 		$definition    = $this->definition( (string) $data['notification_type'] );
 		$recipient_ids = $this->recipient_ids( (array) $members, $locked );
@@ -269,17 +269,17 @@ class BookingNotificationService {
 			$destination = $this->resolve_destination( $locked, $recipient_ids, (array) $members );
 		} catch ( \Throwable $throwable ) {
 			$this->schedule_reconciliation();
-			return $this->rollback( new \WP_Error( 'booking_notification_destination_uncertain', __( 'The booking management destination could not be resolved.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_destination_uncertain', __( 'The booking management destination could not be resolved.', 'extrachill-booking' ) ) );
 		}
 		if ( is_wp_error( $destination ) ) {
 			return $this->rollback( $destination );
 		}
 		if ( ! is_string( $destination ) || ! preg_match( '#^https?://#i', $destination ) ) {
-			return $this->rollback( new \WP_Error( 'booking_notification_destination_invalid', __( 'The booking management destination is invalid.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_destination_invalid', __( 'The booking management destination is invalid.', 'extrachill-booking' ) ) );
 		}
 		$actor_id = $this->actor_id( $source );
 		if ( $actor_id < 1 ) {
-			return $this->rollback( new \WP_Error( 'booking_notification_actor_unavailable', __( 'A bounded notification actor is unavailable.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_actor_unavailable', __( 'A bounded notification actor is unavailable.', 'extrachill-booking' ) ) );
 		}
 		$attempt_count = $this->activity->notification_attempt_count( $request_activity_id );
 		if ( is_wp_error( $attempt_count ) ) {
@@ -300,7 +300,7 @@ class BookingNotificationService {
 			);
 		} catch ( \Throwable $throwable ) {
 			$this->schedule_reconciliation();
-			return $this->rollback( new \WP_Error( 'booking_notification_delivery_uncertain', __( 'The idempotent notification delivery outcome is uncertain.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_notification_delivery_uncertain', __( 'The idempotent notification delivery outcome is uncertain.', 'extrachill-booking' ) ) );
 		}
 		if ( is_wp_error( $receipt ) ) {
 			return $this->rollback( $receipt );
@@ -335,7 +335,8 @@ class BookingNotificationService {
 		}
 		$finished = $this->finish( $record );
 		if ( ! $summary['complete'] && ! $poisoned ) {
-			$this->schedule_reconciliation( strtotime( $due_at . ' UTC' ) );
+			$due_timestamp = strtotime( $due_at . ' UTC' );
+			$this->schedule_reconciliation( false === $due_timestamp ? null : $due_timestamp );
 		}
 		return $finished;
 	}
@@ -370,7 +371,7 @@ class BookingNotificationService {
 		$source     = $source_activity_id > 0 ? $this->activity->get( $source_activity_id ) : null;
 		return null !== $definition && is_array( $source ) && $this->source_matches( $definition, $source )
 			? $source
-			: new \WP_Error( 'booking_notification_source_invalid', __( 'The booking notification source activity is invalid.', 'extrachill-events' ) );
+			: new \WP_Error( 'booking_notification_source_invalid', __( 'The booking notification source activity is invalid.', 'extrachill-booking' ) );
 	}
 
 	/** Return one notification definition. */
@@ -384,13 +385,13 @@ class BookingNotificationService {
 		return array(
 			self::TYPE_INQUIRY_SUBMITTED             => array(
 				'kind'       => 'inquiry_submitted',
-				'title'      => __( 'New booking inquiry', 'extrachill-events' ),
+				'title'      => __( 'New booking inquiry', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_INFORMATION_RECEIVED          => array(
 				'kind'       => 'status_changed',
-				'title'      => __( 'Booking information received', 'extrachill-events' ),
+				'title'      => __( 'Booking information received', 'extrachill-booking' ),
 				'from'       => 'needs_info',
 				'to'         => 'submitted',
 				'recipients' => 'owners',
@@ -398,53 +399,53 @@ class BookingNotificationService {
 			),
 			self::TYPE_HOLD_EXPIRED                  => array(
 				'kind'       => 'hold_expired',
-				'title'      => __( 'Booking hold expired', 'extrachill-events' ),
+				'title'      => __( 'Booking hold expired', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_EVENT_HANDOFF_FAILED          => array(
 				'kind'       => 'event_conversion_failed',
-				'title'      => __( 'Booking event handoff failed', 'extrachill-events' ),
+				'title'      => __( 'Booking event handoff failed', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_ARTIST_CORRECTION_REQUESTED   => array(
 				'kind'       => 'artist_correction_requested',
-				'title'      => __( 'Artist requested a booking correction', 'extrachill-events' ),
+				'title'      => __( 'Artist requested a booking correction', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_ARTIST_CANCELLATION_REQUESTED => array(
 				'kind'       => 'artist_cancellation_requested',
-				'title'      => __( 'Artist requested booking cancellation', 'extrachill-events' ),
+				'title'      => __( 'Artist requested booking cancellation', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_ARTIST_WITHDREW               => array(
 				'kind'       => 'artist_withdrawn',
-				'title'      => __( 'Artist withdrew a booking inquiry', 'extrachill-events' ),
+				'title'      => __( 'Artist withdrew a booking inquiry', 'extrachill-booking' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
 			self::TYPE_ARTIST_REPLIED                => array(
 				'kind'  => 'artist_replied',
-				'title' => __( 'Artist replied about a booking', 'extrachill-events' ),
+				'title' => __( 'Artist replied about a booking', 'extrachill-booking' ),
 			),
 			self::TYPE_HOLD_EXPIRING                 => array(
 				'kind'  => 'hold_expiring',
-				'title' => __( 'Booking hold expiring', 'extrachill-events' ),
+				'title' => __( 'Booking hold expiring', 'extrachill-booking' ),
 			),
 			self::TYPE_MARKETING_FAILED              => array(
 				'kind'  => 'marketing_action_failed',
-				'title' => __( 'Booking marketing action failed', 'extrachill-events' ),
+				'title' => __( 'Booking marketing action failed', 'extrachill-booking' ),
 			),
 			self::TYPE_SETTLEMENT_READY              => array(
 				'kind'  => 'settlement_ready',
-				'title' => __( 'Booking settlement ready', 'extrachill-events' ),
+				'title' => __( 'Booking settlement ready', 'extrachill-booking' ),
 			),
 			self::TYPE_OPERATOR_ACTION_OVERDUE       => array(
 				'kind'  => 'operator_action_overdue',
-				'title' => __( 'Booking action overdue', 'extrachill-events' ),
+				'title' => __( 'Booking action overdue', 'extrachill-booking' ),
 			),
 		);
 	}
@@ -481,7 +482,7 @@ class BookingNotificationService {
 		}
 		return function_exists( 'ec_events_resolve_booking_console_destination' )
 			? ec_events_resolve_booking_console_destination( $booking, $recipient_ids, $locked_members )
-			: new \WP_Error( 'booking_notification_destination_unavailable', __( 'The booking management destination is unavailable.', 'extrachill-events' ) );
+			: new \WP_Error( 'booking_notification_destination_unavailable', __( 'The booking management destination is unavailable.', 'extrachill-booking' ) );
 	}
 
 	/** Delegate to the landed Users receipt primitive with its exact payload contract. */
@@ -498,7 +499,7 @@ class BookingNotificationService {
 		}
 		return function_exists( 'ec_users_notify_with_receipts' )
 			? ec_users_notify_with_receipts( $recipient_ids, $payload )
-			: new \WP_Error( 'booking_notification_receipts_unavailable', __( 'Idempotent notification receipts are unavailable.', 'extrachill-events' ) );
+			: new \WP_Error( 'booking_notification_receipts_unavailable', __( 'Idempotent notification receipts are unavailable.', 'extrachill-booking' ) );
 	}
 
 	/** Persist dependency failures and poison a request after a bounded attempt count. */
@@ -519,8 +520,9 @@ class BookingNotificationService {
 				)
 			);
 		}
-		$due_at = $this->retry_due_at( $attempt );
-		$this->schedule_reconciliation( strtotime( $due_at . ' UTC' ) );
+		$due_at        = $this->retry_due_at( $attempt );
+		$due_timestamp = strtotime( $due_at . ' UTC' );
+		$this->schedule_reconciliation( false === $due_timestamp ? null : $due_timestamp );
 		return $this->activity->append(
 			array(
 				'booking_id'      => $request['booking_id'],
@@ -623,21 +625,21 @@ class BookingNotificationService {
 		global $wpdb;
 		$name     = 'ec_booking_notice_' . substr( hash( 'sha256', get_current_blog_id() . "\0" . $request_activity_id ), 0, 40 );
 		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 0 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes one outbox request attempt.
-		return 1 === (int) $acquired ? $name : new \WP_Error( 'booking_notification_request_busy', __( 'The booking notification request is already being reconciled.', 'extrachill-events' ) );
+		return 1 === (int) $acquired ? $name : new \WP_Error( 'booking_notification_request_busy', __( 'The booking notification request is already being reconciled.', 'extrachill-booking' ) );
 	}
 
 	/** Release one notification request lock without hiding uncertainty. */
 	private function release_request_lock( string $name ) {
 		global $wpdb;
 		$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases one outbox request attempt.
-		return 1 === (int) $released ? true : new \WP_Error( 'booking_notification_request_unlock_uncertain', __( 'The booking notification request lock release is uncertain.', 'extrachill-events' ) );
+		return 1 === (int) $released ? true : new \WP_Error( 'booking_notification_request_unlock_uncertain', __( 'The booking notification request lock release is uncertain.', 'extrachill-booking' ) );
 	}
 
 	/** Start a recipient authorization transaction. */
 	private function begin() {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reconciliation transaction.
-			return new \WP_Error( 'booking_notification_transaction_failed', __( 'The booking notification transaction could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_notification_transaction_failed', __( 'The booking notification transaction could not start.', 'extrachill-booking' ) );
 		}
 		$this->transaction_active = true;
 		return true;
@@ -648,7 +650,7 @@ class BookingNotificationService {
 		global $wpdb;
 		$result                   = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reconciliation transaction.
 		$this->transaction_active = false;
-		return false === $result ? new \WP_Error( 'booking_notification_commit_uncertain', __( 'The booking notification outcome could not be confirmed.', 'extrachill-events' ) ) : $record;
+		return false === $result ? new \WP_Error( 'booking_notification_commit_uncertain', __( 'The booking notification outcome could not be confirmed.', 'extrachill-booking' ) ) : $record;
 	}
 
 	/** Roll back while preserving the cause. */

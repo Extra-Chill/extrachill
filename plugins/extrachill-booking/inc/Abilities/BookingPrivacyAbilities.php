@@ -35,8 +35,8 @@ class BookingPrivacyAbilities {
 		wp_register_ability(
 			'extrachill/operate-venue-booking-privacy',
 			array(
-				'label'               => __( 'Operate Venue Booking Privacy', 'extrachill-events' ),
-				'description'         => __( 'Diagnose booking operations or dry-run/apply a bounded venue retention batch.', 'extrachill-events' ),
+				'label'               => __( 'Operate Venue Booking Privacy', 'extrachill-booking' ),
+				'description'         => __( 'Diagnose booking operations or dry-run/apply a bounded venue retention batch.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->input_schema(),
 				'output_schema'       => array(

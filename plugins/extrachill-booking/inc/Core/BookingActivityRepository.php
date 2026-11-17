@@ -29,15 +29,15 @@ class BookingActivityRepository {
 		}
 		$booking = ( new BookingRepository() )->get( $booking_id );
 		if ( is_wp_error( $booking ) ) {
-			return new \WP_Error( 'booking_activity_booking_read_failed', __( 'The activity booking could not be verified.', 'extrachill-events' ), $booking->get_error_data() );
+			return new \WP_Error( 'booking_activity_booking_read_failed', __( 'The activity booking could not be verified.', 'extrachill-booking' ), $booking->get_error_data() );
 		}
 		if ( null === $booking ) {
-			return new \WP_Error( 'booking_activity_orphan', __( 'Activity cannot be appended to a missing booking.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_activity_orphan', __( 'Activity cannot be appended to a missing booking.', 'extrachill-booking' ) );
 		}
 
 		$kind = mb_substr( sanitize_key( (string) ( $data['kind'] ?? '' ) ), 0, 64 );
 		if ( '' === $kind ) {
-			return new \WP_Error( 'invalid_booking_activity_kind', __( 'Booking activity requires a kind.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_activity_kind', __( 'Booking activity requires a kind.', 'extrachill-booking' ) );
 		}
 		$idempotency_key = $this->nullable_text( $data['idempotency_key'] ?? null, 191 );
 		if ( null !== $idempotency_key ) {
@@ -54,7 +54,7 @@ class BookingActivityRepository {
 			)
 		);
 		if ( false === $payload ) {
-			return new \WP_Error( 'booking_activity_payload_encode_failed', __( 'Activity payload JSON encoding failed.', 'extrachill-events' ), array( 'json_error' => json_last_error_msg() ) );
+			return new \WP_Error( 'booking_activity_payload_encode_failed', __( 'Activity payload JSON encoding failed.', 'extrachill-booking' ), array( 'json_error' => json_last_error_msg() ) );
 		}
 		$occurred_at = $this->datetime( $data['occurred_at'] ?? gmdate( 'Y-m-d H:i:s' ) );
 		if ( is_wp_error( $occurred_at ) ) {
@@ -89,7 +89,7 @@ class BookingActivityRepository {
 					return $existing;
 				}
 			}
-			return new \WP_Error( 'booking_activity_write_failed', __( 'The booking activity could not be recorded.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_write_failed', __( 'The booking activity could not be recorded.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return $this->get( (int) $wpdb->insert_id );
 	}
@@ -104,7 +104,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_activity_read_failed', __( 'The booking activity could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_read_failed', __( 'The booking activity could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -121,7 +121,7 @@ class BookingActivityRepository {
 		$offset = max( 0, $offset );
 		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY occurred_at DESC, id DESC LIMIT %d OFFSET %d", $booking_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_activity_list_failed', __( 'Booking activity could not be listed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_list_failed', __( 'Booking activity could not be listed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$hydrated = array();
 		foreach ( (array) $rows as $row ) {
@@ -150,11 +150,11 @@ class BookingActivityRepository {
 		}
 		$kinds = array_values( array_unique( $kinds ) );
 		if ( empty( $kinds ) || count( $kinds ) > 100 ) {
-			return new \WP_Error( 'invalid_booking_activity_kinds', __( 'At least one valid activity kind is required.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_activity_kinds', __( 'At least one valid activity kind is required.', 'extrachill-booking' ) );
 		}
 		foreach ( $kinds as $kind ) {
 			if ( ! is_string( $kind ) || '' === $kind || sanitize_key( $kind ) !== $kind || strlen( $kind ) > 64 ) {
-				return new \WP_Error( 'invalid_booking_activity_kinds', __( 'Activity kinds must be canonical keys.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_activity_kinds', __( 'Activity kinds must be canonical keys.', 'extrachill-booking' ) );
 			}
 		}
 
@@ -165,7 +165,7 @@ class BookingActivityRepository {
 		$values       = array_merge( array( $booking_id ), $kinds, array( $limit, $offset ) );
 		$rows         = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind IN ({$placeholders}) ORDER BY occurred_at DESC, id DESC LIMIT %d OFFSET %d", $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Table and placeholder count are internal; every value is prepared.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_activity_list_failed', __( 'Booking activity could not be listed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_list_failed', __( 'Booking activity could not be listed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$hydrated = array();
 		foreach ( (array) $rows as $row ) {
@@ -189,7 +189,7 @@ class BookingActivityRepository {
 		$limit = max( 1, min( 200, $limit ) );
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND is_communication = 1 ORDER BY occurred_at DESC, id DESC LIMIT %d", $booking_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed, booking-scoped correspondence page.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$hydrated = array();
 		foreach ( (array) $rows as $row ) {
@@ -218,7 +218,7 @@ class BookingActivityRepository {
 		);
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transactional private read-model write.
 		if ( false === $wpdb->insert( BookingSchema::communication_state_table(), $row ) ) {
-			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be initialized.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be initialized.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return $row;
 	}
@@ -229,7 +229,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::communication_state_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE intent_id = %d LIMIT 1", $intent_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed state read.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		if ( ! is_array( $row ) ) {
 			return null;
@@ -250,7 +250,7 @@ class BookingActivityRepository {
 		$limit           = max( 1, min( 100, $limit ) );
 		$rows            = $wpdb->get_results( $wpdb->prepare( "SELECT a.*, s.status AS communication_status, s.claim_stage AS communication_claim_stage, s.action_id AS communication_action_id, s.updated_activity_id AS communication_updated_activity_id FROM {$state_table} s INNER JOIN {$activity_table} a ON a.id = s.intent_id WHERE s.booking_id = %d AND s.status = 'scheduled' AND s.intent_id > %d ORDER BY s.intent_id ASC LIMIT %d", $booking_id, $after_intent_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Indexed pending-reminder keyset page joined to exact intents.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Pending booking reminders could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Pending booking reminders could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$pending = array();
 		foreach ( (array) $rows as $row ) {
@@ -281,7 +281,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE communication_intent_id = %d AND kind = %s", $intent_id, $kind ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed attempt count.
 		if ( '' !== (string) $wpdb->last_error || ! is_numeric( $count ) ) {
-			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication attempts could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication attempts could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return (int) $count;
 	}
@@ -292,7 +292,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE communication_intent_id = %d ORDER BY id DESC LIMIT 1", $intent_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact indexed projection-consistency check.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be verified.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_read_failed', __( 'Booking communication state could not be verified.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -317,7 +317,7 @@ class BookingActivityRepository {
 			)
 		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Optimistic transactional projection update.
 		if ( 1 !== $updated ) {
-			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be advanced.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_communication_state_write_failed', __( 'Booking communication state could not be advanced.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return true;
 	}
@@ -328,7 +328,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND (kind IN ('event_conversion_started', 'event_conversion_failed', 'event_converted') OR idempotency_key LIKE %s) ORDER BY id ASC", $booking_id, 'event-conversion:' . $public_id . ':%' ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete narrow conversion history plus colliding keys, never a bounded recent list.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_event_conversion_state_read_failed', __( 'Booking event conversion state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_event_conversion_state_read_failed', __( 'Booking event conversion state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$source   = 'extrachill-events-booking';
 		$identity = hash( 'sha256', $source . "\0" . $public_id );
@@ -406,13 +406,25 @@ class BookingActivityRepository {
 		);
 	}
 
+	/**
+	 * Read the current database error after the latest query.
+	 *
+	 * Reading through a call keeps each check bound to the query that just ran.
+	 *
+	 * @phpstan-impure
+	 */
+	private function last_database_error(): string {
+		global $wpdb;
+		return (string) $wpdb->last_error;
+	}
+
 	/** Return the latest durable booking/event synchronization attempt. */
 	public function event_sync_state( int $booking_id ) {
 		global $wpdb;
 		$table = BookingSchema::activity_table();
 		$start = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind = 'event_sync_started' ORDER BY id DESC LIMIT 1", $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact bounded synchronization state read.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		if ( ! is_array( $start ) ) {
 			return array(
@@ -426,13 +438,13 @@ class BookingActivityRepository {
 			return $start;
 		}
 		$terminal = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND external_id = %s AND kind IN ('event_sync_succeeded', 'event_sync_noop', 'event_sync_conflict', 'event_sync_failed') ORDER BY id DESC LIMIT 1", $booking_id, (string) $start['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact attempt terminal lookup.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		if ( '' !== $this->last_database_error() ) {
+			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$terminal = is_array( $terminal ) ? $this->hydrate( $terminal ) : null;
 		$retry    = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND external_id = %s AND kind = 'event_sync_retryable' ORDER BY id DESC LIMIT 1", $booking_id, (string) $start['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Latest exact-attempt retry state.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization retry state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		if ( '' !== $this->last_database_error() ) {
+			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization retry state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$retry = is_array( $retry ) ? $this->hydrate( $retry ) : null;
 		if ( is_wp_error( $terminal ) || is_wp_error( $retry ) ) {
@@ -458,7 +470,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind IN ('event_sync_succeeded', 'event_sync_noop', 'event_converted') ORDER BY id DESC LIMIT 1", $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded latest authority snapshot read.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_event_sync_state_read_failed', __( 'Booking event synchronization state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		if ( ! is_array( $row ) ) {
 			return null;
@@ -477,7 +489,7 @@ class BookingActivityRepository {
 			)
 			: new \WP_Error(
 				'booking_event_sync_snapshot_invalid',
-				__( 'The booking event synchronization snapshot is incomplete.', 'extrachill-events' ),
+				__( 'The booking event synchronization snapshot is incomplete.', 'extrachill-booking' ),
 				array(
 					'status'     => 409,
 					'repairable' => true,
@@ -488,7 +500,7 @@ class BookingActivityRepository {
 	private function conversion_state_error( string $detail, int $activity_id ): \WP_Error {
 		return new \WP_Error(
 			'booking_event_conversion_state_invalid',
-			__( 'Booking event conversion activity is malformed or inconsistent.', 'extrachill-events' ),
+			__( 'Booking event conversion activity is malformed or inconsistent.', 'extrachill-booking' ),
 			array(
 				'status'      => 409,
 				'repairable'  => true,
@@ -504,7 +516,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND idempotency_key = %s LIMIT 1", $booking_id, $key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_activity_read_failed', __( 'Booking activity idempotency could not be checked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_read_failed', __( 'Booking activity idempotency could not be checked.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -515,7 +527,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND kind = %s AND external_id = %s ORDER BY id DESC LIMIT 1", $booking_id, sanitize_key( $kind ), $external_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact bounded operation receipt lookup.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_activity_read_failed', __( 'Booking activity could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_activity_read_failed', __( 'Booking activity could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -553,7 +565,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE external_id = %s AND kind IN ('notification_delivered', 'notification_suppressed') ORDER BY id DESC LIMIT 1", (string) $request_activity_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact request terminal lookup.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_notification_terminal_read_failed', __( 'Booking notification terminal state could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_notification_terminal_read_failed', __( 'Booking notification terminal state could not be read.', 'extrachill-booking' ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -564,7 +576,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE external_id = %s AND kind = 'notification_delivery_attempted'", (string) $request_activity_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact request attempt count.
 		return '' !== (string) $wpdb->last_error || ! is_numeric( $count )
-			? new \WP_Error( 'booking_notification_attempt_read_failed', __( 'Booking notification attempts could not be read.', 'extrachill-events' ) )
+			? new \WP_Error( 'booking_notification_attempt_read_failed', __( 'Booking notification attempts could not be read.', 'extrachill-booking' ) )
 			: (int) $count;
 	}
 
@@ -574,7 +586,7 @@ class BookingActivityRepository {
 		$table = BookingSchema::activity_table();
 		$due   = $wpdb->get_var( $wpdb->prepare( "SELECT MAX(occurred_at) FROM {$table} WHERE external_id = %s AND kind = 'notification_delivery_attempted'", (string) $request_activity_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact persisted retry schedule.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_notification_retry_schedule_read_failed', __( 'The notification retry schedule could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_notification_retry_schedule_read_failed', __( 'The notification retry schedule could not be read.', 'extrachill-booking' ) );
 		}
 		return null === $due || '' === $due || (string) $due <= gmdate( 'Y-m-d H:i:s' );
 	}
@@ -583,14 +595,14 @@ class BookingActivityRepository {
 	public function discard_for_booking( int $booking_id ) {
 		global $wpdb;
 		$deleted = $wpdb->delete( BookingSchema::activity_table(), array( 'booking_id' => $booking_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed inquiry compensation only.
-		return false === $deleted ? new \WP_Error( 'booking_inquiry_activity_compensation_failed', __( 'Failed inquiry activity could not be removed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : true;
+		return false === $deleted ? new \WP_Error( 'booking_inquiry_activity_compensation_failed', __( 'Failed inquiry activity could not be removed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) : true;
 	}
 
 	/** Hydrate a query result set or return its database failure. */
 	private function hydrate_rows( $rows, string $error_code ) {
 		global $wpdb;
 		if ( '' !== (string) $wpdb->last_error || ! is_array( $rows ) ) {
-			return new \WP_Error( $error_code, __( 'Booking notification activity could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( $error_code, __( 'Booking notification activity could not be read.', 'extrachill-booking' ) );
 		}
 		$output = array();
 		foreach ( $rows as $row ) {
@@ -607,10 +619,10 @@ class BookingActivityRepository {
 	public function hydrate( array $row ) {
 		$decoded = json_decode( (string) ( $row['payload'] ?? '' ), true );
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) || ! array_key_exists( 'version', $decoded ) || ! array_key_exists( 'data', $decoded ) ) {
-			return new \WP_Error( 'booking_activity_payload_invalid_json', __( 'Stored activity payload JSON is malformed.', 'extrachill-events' ), array( 'json_error' => json_last_error_msg() ) );
+			return new \WP_Error( 'booking_activity_payload_invalid_json', __( 'Stored activity payload JSON is malformed.', 'extrachill-booking' ), array( 'json_error' => json_last_error_msg() ) );
 		}
 		if ( ! is_int( $decoded['version'] ) || self::PAYLOAD_VERSION !== $decoded['version'] ) {
-			return new \WP_Error( 'booking_activity_payload_version_unsupported', __( 'Stored activity payload version is unsupported.', 'extrachill-events' ), array( 'version' => $decoded['version'] ) );
+			return new \WP_Error( 'booking_activity_payload_version_unsupported', __( 'Stored activity payload version is unsupported.', 'extrachill-booking' ), array( 'version' => $decoded['version'] ) );
 		}
 		$row['id']         = (int) $row['id'];
 		$row['booking_id'] = (int) $row['booking_id'];
@@ -634,10 +646,10 @@ class BookingActivityRepository {
 
 	private function positive_id( $value, string $field, bool $nullable ) {
 		if ( null === $value || '' === $value || 0 === $value || '0' === $value ) {
-			return $nullable ? null : new \WP_Error( 'invalid_booking_activity_id', __( 'A positive identifier is required.', 'extrachill-events' ), array( 'field' => $field ) );
+			return $nullable ? null : new \WP_Error( 'invalid_booking_activity_id', __( 'A positive identifier is required.', 'extrachill-booking' ), array( 'field' => $field ) );
 		}
 		if ( ( ! is_int( $value ) && ! ( is_string( $value ) && ctype_digit( $value ) ) ) || (int) $value < 1 ) {
-			return new \WP_Error( 'invalid_booking_activity_id', __( 'Identifiers must be positive integers.', 'extrachill-events' ), array( 'field' => $field ) );
+			return new \WP_Error( 'invalid_booking_activity_id', __( 'Identifiers must be positive integers.', 'extrachill-booking' ), array( 'field' => $field ) );
 		}
 		return (int) $value;
 	}
@@ -656,6 +668,6 @@ class BookingActivityRepository {
 		$date = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', (string) $value, new \DateTimeZone( 'UTC' ) );
 		return $date && $date->format( 'Y-m-d H:i:s' ) === $value
 			? $date->format( 'Y-m-d H:i:s' )
-			: new \WP_Error( 'invalid_booking_activity_datetime', __( 'Activity timestamps must use UTC Y-m-d H:i:s format.', 'extrachill-events' ) );
+			: new \WP_Error( 'invalid_booking_activity_datetime', __( 'Activity timestamps must use UTC Y-m-d H:i:s format.', 'extrachill-booking' ) );
 	}
 }

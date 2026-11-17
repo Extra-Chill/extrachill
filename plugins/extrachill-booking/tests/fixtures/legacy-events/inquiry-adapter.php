@@ -30,7 +30,7 @@ require_once __DIR__ . '/inc/Core/VenueBookingConfig.php';
  */
 function extrachill_events_network_blocks_activation_error( bool $network_wide ) {
 	if ( ! is_multisite() || ! $network_wide ) {
-		return new WP_Error( 'network_activation_required', __( 'The legacy inquiry adapter must be activated for the entire multisite network.', 'extrachill-events' ) );
+		return new WP_Error( 'network_activation_required', __( 'The legacy inquiry adapter must be activated for the entire multisite network.', 'extrachill-booking' ) );
 	}
 
 	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
@@ -50,7 +50,7 @@ function extrachill_events_network_blocks_activation_error( bool $network_wide )
 
 	if ( $missing ) {
 		/* translators: %s: Comma-separated plugin names. */
-		return new WP_Error( 'network_dependency_required', sprintf( __( 'Network-activate these required plugins first: %s.', 'extrachill-events' ), implode( ', ', $missing ) ) );
+		return new WP_Error( 'network_dependency_required', sprintf( __( 'Network-activate these required plugins first: %s.', 'extrachill-booking' ), implode( ', ', $missing ) ) );
 	}
 
 	return null;
@@ -64,7 +64,7 @@ function extrachill_events_network_blocks_activation_error( bool $network_wide )
 function extrachill_events_activate_network_blocks( bool $network_wide ): void {
 	$error = extrachill_events_network_blocks_activation_error( $network_wide );
 	if ( is_wp_error( $error ) ) {
-		wp_die( esc_html( $error->get_error_message() ), esc_html__( 'Network activation required', 'extrachill-events' ), array( 'response' => 500 ) );
+		wp_die( esc_html( $error->get_error_message() ), esc_html__( 'Network activation required', 'extrachill-booking' ), array( 'response' => 500 ) );
 	}
 }
 register_activation_hook( __FILE__, 'extrachill_events_activate_network_blocks' );

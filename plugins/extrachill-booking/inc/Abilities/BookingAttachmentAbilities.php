@@ -86,7 +86,7 @@ class BookingAttachmentAbilities {
 			'extrachill/' . $slug,
 			array(
 				'label'               => ucwords( str_replace( '-', ' ', $slug ) ),
-				'description'         => __( 'Manage one private booking attachment within an authorized venue scope.', 'extrachill-events' ),
+				'description'         => __( 'Manage one private booking attachment within an authorized venue scope.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $input,
 				'output_schema'       => in_array( $slug, array( 'list-booking-attachments', 'inspect-booking-attachment-deliveries' ), true )
@@ -206,7 +206,7 @@ class BookingAttachmentAbilities {
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		if ( ! is_array( $booking ) ) {
-			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		return ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() );
 	}

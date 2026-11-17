@@ -40,14 +40,14 @@ class VenueBookingConfigAbilities {
 		$venue_property = array(
 			'type'        => 'integer',
 			'minimum'     => 1,
-			'description' => __( 'Events-site venue term ID.', 'extrachill-events' ),
+			'description' => __( 'Events-site venue term ID.', 'extrachill-booking' ),
 		);
 
 		wp_register_ability(
 			'extrachill/get-venue-booking-config',
 			array(
-				'label'               => __( 'Get Venue Booking Configuration', 'extrachill-events' ),
-				'description'         => __( 'Read the complete booking configuration for an authorized venue.', 'extrachill-events' ),
+				'label'               => __( 'Get Venue Booking Configuration', 'extrachill-booking' ),
+				'description'         => __( 'Read the complete booking configuration for an authorized venue.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -72,8 +72,8 @@ class VenueBookingConfigAbilities {
 		wp_register_ability(
 			'extrachill/update-venue-booking-config',
 			array(
-				'label'               => __( 'Update Venue Booking Configuration', 'extrachill-events' ),
-				'description'         => __( 'Atomically replace the complete booking configuration at an expected revision.', 'extrachill-events' ),
+				'label'               => __( 'Update Venue Booking Configuration', 'extrachill-booking' ),
+				'description'         => __( 'Atomically replace the complete booking configuration at an expected revision.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -105,8 +105,8 @@ class VenueBookingConfigAbilities {
 		wp_register_ability(
 			'extrachill/preview-booking-correspondence-template',
 			array(
-				'label'               => __( 'Preview Booking Correspondence Template', 'extrachill-events' ),
-				'description'         => __( 'Render one authorized venue template with allowlisted plain-text variables.', 'extrachill-events' ),
+				'label'               => __( 'Preview Booking Correspondence Template', 'extrachill-booking' ),
+				'description'         => __( 'Render one authorized venue template with allowlisted plain-text variables.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',

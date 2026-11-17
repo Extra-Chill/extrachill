@@ -118,7 +118,7 @@ class BookingReportingService {
 	private function normalize_request( array $input ) {
 		$venues = array_values( array_unique( array_map( 'absint', is_array( $input['venue_term_ids'] ?? null ) ? $input['venue_term_ids'] : array() ) ) );
 		if ( empty( $venues ) || count( $venues ) > self::MAX_VENUES || in_array( 0, $venues, true ) ) {
-			return new \WP_Error( 'invalid_booking_report_venues', __( 'One to twenty unique venue identifiers are required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_report_venues', __( 'One to twenty unique venue identifiers are required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$from = $this->datetime( $input['from'] ?? null );
 		$to   = $this->datetime( $input['to'] ?? null );
@@ -127,7 +127,7 @@ class BookingReportingService {
 		}
 		$seconds = $to->getTimestamp() - $from->getTimestamp();
 		if ( $seconds <= 0 || $seconds > self::MAX_RANGE_DAYS * DAY_IN_SECONDS ) {
-			return new \WP_Error( 'invalid_booking_report_range', __( 'The report period must be positive and no longer than 366 days.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_report_range', __( 'The report period must be positive and no longer than 366 days.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return array(
 			'venue_term_ids' => $venues,
@@ -141,7 +141,7 @@ class BookingReportingService {
 		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', (string) $value, new \DateTimeZone( 'UTC' ) );
 		return $date && $date->format( 'Y-m-d H:i:s' ) === $value
 			? $date
-			: new \WP_Error( 'invalid_booking_report_datetime', __( 'Report timestamps must use UTC Y-m-d H:i:s format.', 'extrachill-events' ), array( 'status' => 400 ) );
+			: new \WP_Error( 'invalid_booking_report_datetime', __( 'Report timestamps must use UTC Y-m-d H:i:s format.', 'extrachill-booking' ), array( 'status' => 400 ) );
 	}
 
 	private function snapshot( string $kind, array $request, int $actor_id ) {
@@ -160,7 +160,7 @@ class BookingReportingService {
 		$date_column  = $finance ? 'performance_start_at' : 'created_at';
 		$booking_rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, public_id, venue_term_id, status, event_id, created_at, updated_at FROM {$bookings} WHERE venue_term_id IN ({$venues}) AND status <> 'admission_pending' AND {$date_column} >= %s AND {$date_column} < %s ORDER BY {$date_column} ASC, id ASC LIMIT %d", $request['from'], $request['to'], $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal fixed date column, table name, and integer venue list; bounded report snapshot.
 		if ( ! empty( $wpdb->last_error ) || ! is_array( $booking_rows ) ) {
-			return new \WP_Error( 'booking_report_read_failed', __( 'The booking report could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_report_read_failed', __( 'The booking report could not be read.', 'extrachill-booking' ) );
 		}
 		$truncated    = count( $booking_rows ) > $request['limit'];
 		$booking_rows = array_slice( $booking_rows, 0, $request['limit'] );
@@ -192,7 +192,7 @@ class BookingReportingService {
 		$activity_query    = $wpdb->prepare( "SELECT id, booking_id, kind, channel, external_id, payload, occurred_at FROM {$activity} WHERE booking_id IN ({$id_placeholders}) AND kind IN ({$kind_placeholders}) ORDER BY occurred_at ASC, id ASC LIMIT %d", array_merge( $ids, self::REPORTING_KINDS, array( self::MAX_ACTIVITIES + 1 ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Internal table and bounded placeholder counts; all values prepared.
 		$activity_rows     = $wpdb->get_results( $activity_query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
 		if ( ! empty( $wpdb->last_error ) || ! is_array( $activity_rows ) ) {
-			return new \WP_Error( 'booking_report_activity_read_failed', __( 'Booking report activity could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_report_activity_read_failed', __( 'Booking report activity could not be read.', 'extrachill-booking' ) );
 		}
 		$snapshot['activities_truncated'] = count( $activity_rows ) > self::MAX_ACTIVITIES;
 		$activity_rows                    = array_slice( $activity_rows, 0, self::MAX_ACTIVITIES );
@@ -209,21 +209,21 @@ class BookingReportingService {
 		$holds_query = $wpdb->prepare( "SELECT booking_id, status, expires_at FROM {$holds_table} WHERE booking_id IN ({$id_placeholders}) ORDER BY id ASC LIMIT 1001", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Internal table and bounded placeholder count; all IDs prepared.
 		$hold_rows   = $wpdb->get_results( $holds_query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
 		if ( ! empty( $wpdb->last_error ) || ! is_array( $hold_rows ) ) {
-			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking hold evidence could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking hold evidence could not be read.', 'extrachill-booking' ) );
 		}
 		$snapshot['holds'] = $hold_rows;
 		$reports_table     = BookingSchema::sales_reports_table();
 		$reports_query     = $wpdb->prepare( "SELECT id, booking_id, corrects_report_id FROM {$reports_table} WHERE booking_id IN ({$id_placeholders}) ORDER BY id ASC LIMIT 1001", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Internal table and bounded placeholder count; all IDs prepared.
 		$report_rows       = $wpdb->get_results( $reports_query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
 		if ( ! empty( $wpdb->last_error ) || ! is_array( $report_rows ) ) {
-			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking ticket evidence could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking ticket evidence could not be read.', 'extrachill-booking' ) );
 		}
 		$snapshot['sales_reports'] = $report_rows;
 		$resolutions_table         = BookingSchema::sales_resolutions_table();
 		$resolutions_query         = $wpdb->prepare( "SELECT report_id, decision, version FROM {$resolutions_table} WHERE booking_id IN ({$id_placeholders}) ORDER BY report_id ASC, version ASC LIMIT 1001", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Internal table and bounded placeholder count; all IDs prepared.
 		$resolution_rows           = $wpdb->get_results( $resolutions_query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
 		if ( ! empty( $wpdb->last_error ) || ! is_array( $resolution_rows ) ) {
-			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking ticket evidence could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_report_evidence_read_failed', __( 'Booking ticket evidence could not be read.', 'extrachill-booking' ) );
 		}
 		$snapshot['sales_resolutions'] = $resolution_rows;
 		foreach ( array( 'holds', 'sales_reports', 'sales_resolutions' ) as $key ) {
@@ -548,6 +548,6 @@ class BookingReportingService {
 	}
 
 	private function denied(): \WP_Error {
-		return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 }

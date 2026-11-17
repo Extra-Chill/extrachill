@@ -80,18 +80,18 @@ class VenueBookingConfig {
 	 */
 	public static function normalize_embed_origin( $origin ) {
 		if ( ! is_string( $origin ) || trim( $origin ) !== $origin || '' === $origin || false !== strpos( $origin, '*' ) ) {
-			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Enter exact HTTPS origins without wildcards.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Enter exact HTTPS origins without wildcards.', 'extrachill-booking' ) );
 		}
 		$parts = wp_parse_url( $origin );
 		if ( ! is_array( $parts ) || 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) ) || empty( $parts['host'] ) ) {
-			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use HTTPS.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use HTTPS.', 'extrachill-booking' ) );
 		}
 		if ( isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['port'] ) || isset( $parts['query'] ) || isset( $parts['fragment'] ) || ( isset( $parts['path'] ) && '' !== $parts['path'] ) ) {
-			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins cannot contain credentials, ports, paths, queries, or fragments.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins cannot contain credentials, ports, paths, queries, or fragments.', 'extrachill-booking' ) );
 		}
 		$host = strtolower( rtrim( (string) $parts['host'], '.' ) );
 		if ( 'localhost' === $host || filter_var( $host, FILTER_VALIDATE_IP ) || ! preg_match( '/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/', $host ) ) {
-			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use a public DNS hostname.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_origin', __( 'Booking embed origins must use a public DNS hostname.', 'extrachill-booking' ) );
 		}
 		return 'https://' . $host;
 	}
@@ -107,7 +107,7 @@ class VenueBookingConfig {
 			return $this->defaults();
 		}
 		if ( ! is_array( $stored ) ) {
-			return new \WP_Error( 'invalid_booking_config_document', __( 'Stored venue booking configuration is malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_document', __( 'Stored venue booking configuration is malformed.', 'extrachill-booking' ) );
 		}
 		$normalized = $this->normalize( $stored );
 		if ( ! is_wp_error( $normalized ) && ( array_key_exists( 'cc_address', (array) ( $stored['correspondence'] ?? array() ) ) || array_key_exists( 'booking_guide', $stored ) || self::VERSION !== ( $stored['version'] ?? null ) ) ) {
@@ -143,15 +143,15 @@ class VenueBookingConfig {
 			self::VERSION,
 		);
 		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, $public_versions, true ) ) {
-			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-booking' ) );
 		}
 
 		$revision = $stored['revision'] ?? null;
 		if ( ! is_array( $stored['intake'] ?? null ) || 1 !== ( $stored['intake']['version'] ?? null ) ) {
-			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-booking' ) );
 		}
 		if ( ! is_int( $revision ) || $revision < 0 ) {
-			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-booking' ) );
 		}
 
 		$fields      = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
@@ -187,7 +187,7 @@ class VenueBookingConfig {
 			return $venue;
 		}
 		if ( $expected_revision < 0 ) {
-			return new \WP_Error( 'invalid_booking_config_revision', __( 'The expected configuration revision must be zero or greater.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_revision', __( 'The expected configuration revision must be zero or greater.', 'extrachill-booking' ) );
 		}
 		$normalized = $this->normalize( $config );
 		if ( is_wp_error( $normalized ) ) {
@@ -195,12 +195,12 @@ class VenueBookingConfig {
 		}
 
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes authorization, revision, config, and audit writes.
-			return new \WP_Error( 'booking_config_transaction_failed', __( 'The venue booking configuration transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_config_transaction_failed', __( 'The venue booking configuration transaction could not start.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 
 		$locked = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_member( $venue_term_id, $actor_user_id );
 		if ( is_wp_error( $locked ) ) {
-			return $this->rollback_error( 'booking_config_authorization_lock_failed', __( 'Venue configuration authority could not be locked.', 'extrachill-events' ) );
+			return $this->rollback_error( 'booking_config_authorization_lock_failed', __( 'Venue configuration authority could not be locked.', 'extrachill-booking' ) );
 		}
 		$authorization = $this->authorization ? $this->authorization : array( TeamCapabilities::class, 'authorize' );
 		$allowed       = $authorization( 'ec_access_venue', $venue_term_id, $actor_user_id );
@@ -211,15 +211,15 @@ class VenueBookingConfig {
 
 		$locked_term = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->terms} WHERE term_id = %d FOR UPDATE", $venue_term_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes config revisions before term-meta writes.
 		if ( $this->has_database_error() || $venue_term_id !== (int) $locked_term ) {
-			return $this->rollback_error( 'booking_config_lock_failed', __( 'The venue booking configuration could not be locked.', 'extrachill-events' ) );
+			return $this->rollback_error( 'booking_config_lock_failed', __( 'The venue booking configuration could not be locked.', 'extrachill-booking' ) );
 		}
 
 		$config_meta = $wpdb->get_row( $wpdb->prepare( "SELECT meta_id, meta_value FROM {$wpdb->termmeta} WHERE term_id = %d AND meta_key = %s ORDER BY meta_id ASC LIMIT 1 FOR UPDATE", $venue_term_id, self::META_KEY ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the committed config directly while holding the venue lock, bypassing shared metadata cache.
 		if ( $this->has_database_error() ) {
-			return $this->rollback_error( 'booking_config_read_failed', __( 'The venue booking configuration could not be read.', 'extrachill-events' ) );
+			return $this->rollback_error( 'booking_config_read_failed', __( 'The venue booking configuration could not be read.', 'extrachill-booking' ) );
 		}
 		$stored  = is_array( $config_meta ) ? maybe_unserialize( $config_meta['meta_value'] ) : '';
-		$current = '' === $stored || null === $stored ? $this->defaults() : ( is_array( $stored ) ? $this->normalize( $stored ) : new \WP_Error( 'invalid_booking_config_document', __( 'Stored venue booking configuration is malformed.', 'extrachill-events' ) ) );
+		$current = '' === $stored || null === $stored ? $this->defaults() : ( is_array( $stored ) ? $this->normalize( $stored ) : new \WP_Error( 'invalid_booking_config_document', __( 'Stored venue booking configuration is malformed.', 'extrachill-booking' ) ) );
 		if ( is_wp_error( $current ) ) {
 			$this->rollback();
 			return $current;
@@ -228,7 +228,7 @@ class VenueBookingConfig {
 			$this->rollback();
 			return new \WP_Error(
 				'booking_config_revision_conflict',
-				__( 'The venue booking configuration changed since it was read.', 'extrachill-events' ),
+				__( 'The venue booking configuration changed since it was read.', 'extrachill-booking' ),
 				array(
 					'status'           => 409,
 					'current_revision' => $current['revision'],
@@ -245,7 +245,7 @@ class VenueBookingConfig {
 		if ( empty( $changed_fields ) ) {
 			if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases locks after a validated no-op replacement.
 				wp_cache_delete( $venue_term_id, 'term_meta' );
-				return new \WP_Error( 'booking_config_commit_uncertain', __( 'The venue booking configuration transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+				return new \WP_Error( 'booking_config_commit_uncertain', __( 'The venue booking configuration transaction outcome could not be confirmed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 			}
 			wp_cache_delete( $venue_term_id, 'term_meta' );
 			return $current;
@@ -277,11 +277,11 @@ class VenueBookingConfig {
 			);
 		}
 		if ( false === $result || $result < 1 || $config_meta_id < 1 ) {
-			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be saved.', 'extrachill-events' ), $venue_term_id );
+			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be saved.', 'extrachill-booking' ), $venue_term_id );
 		}
 		$verified_config = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_id = %d FOR UPDATE", $config_meta_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies the uncommitted row directly without publishing it through cache.
 		if ( $this->has_database_error() || $serialized_config !== $verified_config ) {
-			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be verified.', 'extrachill-events' ), $venue_term_id );
+			return $this->rollback_error( 'booking_config_save_failed', __( 'The venue booking configuration could not be verified.', 'extrachill-booking' ), $venue_term_id );
 		}
 
 		$audit            = array(
@@ -304,15 +304,15 @@ class VenueBookingConfig {
 		);
 		$audit_meta_id    = (int) $wpdb->insert_id;
 		if ( false === $audit_result || $audit_result < 1 || $audit_meta_id < 1 ) {
-			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be saved.', 'extrachill-events' ), $venue_term_id );
+			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be saved.', 'extrachill-booking' ), $venue_term_id );
 		}
 		$verified_audit = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_id = %d FOR UPDATE", $audit_meta_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Verifies durable audit persistence before commit.
 		if ( $this->has_database_error() || $serialized_audit !== $verified_audit ) {
-			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be verified.', 'extrachill-events' ), $venue_term_id );
+			return $this->rollback_error( 'booking_config_audit_failed', __( 'The venue booking configuration audit record could not be verified.', 'extrachill-booking' ), $venue_term_id );
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Commits config and audit as one unit.
 			wp_cache_delete( $venue_term_id, 'term_meta' );
-			return new \WP_Error( 'booking_config_commit_uncertain', __( 'The venue booking configuration transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_config_commit_uncertain', __( 'The venue booking configuration transaction outcome could not be confirmed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		wp_cache_delete( $venue_term_id, 'term_meta' );
 
@@ -339,38 +339,38 @@ class VenueBookingConfig {
 			self::VERSION,
 		);
 		if ( ! is_int( $version ) || ! in_array( $version, $supported_versions, true ) ) {
-			return new \WP_Error( 'booking_config_version_unsupported', __( 'The venue booking configuration version is unsupported.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_unsupported', __( 'The venue booking configuration version is unsupported.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		$version_three_fields = array( 'public_requirements', 'consent', 'marketing_triggers' );
 		if ( $version < self::PUBLIC_INTAKE_VERSION && array_intersect( $version_three_fields, array_keys( $config ) ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Public intake and marketing settings require venue booking configuration version 3.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Public intake and marketing settings require venue booking configuration version 3.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( $version >= self::PUBLIC_INTAKE_VERSION && ! array_key_exists( 'marketing_triggers', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 3 requires marketing triggers.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 3 requires marketing triggers.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( self::VERSION === $version && array_key_exists( 'public_requirements', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired public requirements.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired public requirements.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::RETIRED_GUIDE_CONFIG_VERSION && array_key_exists( 'booking_guide', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Booking guide settings require venue booking configuration version 4.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Booking guide settings require venue booking configuration version 4.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( self::VERSION === $version && array_key_exists( 'booking_guide', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired booking guide settings.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired booking guide settings.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( self::VERSION === $version && array_key_exists( 'appearance', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired appearance settings.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired appearance settings.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::RETIRED_PRESENTATION_VERSION && array_key_exists( 'attachment_policy', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Attachment policy settings require venue booking configuration version 10.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Attachment policy settings require venue booking configuration version 10.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( $version >= self::RETIRED_PRESENTATION_VERSION && ! array_key_exists( 'attachment_policy', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 10 requires an attachment policy.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 10 requires an attachment policy.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( self::VERSION === $version && array_key_exists( 'presentation', (array) ( $config['intake'] ?? array() ) ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired intake presentation labels.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired intake presentation labels.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::EMBED_CONFIG_VERSION && array_key_exists( 'embed', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-booking' ), array( 'version' => $version ) );
 		}
 		$intake_version         = $config['intake']['version'] ?? 1;
 		$deal_version           = $config['default_deal']['version'] ?? 1;
@@ -378,7 +378,7 @@ class VenueBookingConfig {
 		if ( ! is_int( $intake_version ) || ! is_int( $deal_version ) || ! is_int( $correspondence_version ) || 1 !== $intake_version || 1 !== $deal_version || self::CORRESPONDENCE_VERSION !== $correspondence_version ) {
 			return new \WP_Error(
 				'booking_config_section_version_unsupported',
-				__( 'A venue booking configuration section version is unsupported.', 'extrachill-events' ),
+				__( 'A venue booking configuration section version is unsupported.', 'extrachill-booking' ),
 				array(
 					'intake_version'         => $intake_version,
 					'deal_version'           => $deal_version,
@@ -389,16 +389,16 @@ class VenueBookingConfig {
 
 		$basis_points = isset( $config['default_deal']['revenue_share_basis_points'] ) ? (int) $config['default_deal']['revenue_share_basis_points'] : 0;
 		if ( $basis_points < 0 || $basis_points > 10000 ) {
-			return new \WP_Error( 'invalid_booking_revenue_share', __( 'Revenue share basis points must be between 0 and 10000.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_revenue_share', __( 'Revenue share basis points must be between 0 and 10000.', 'extrachill-booking' ) );
 		}
 		$basis         = sanitize_key( (string) ( $config['default_deal']['revenue_share_basis'] ?? 'gross_ticket_sales' ) );
 		$allowed_basis = array( 'gross_ticket_sales', 'net_ticket_sales', 'door_receipts' );
 		if ( ! in_array( $basis, $allowed_basis, true ) ) {
-			return new \WP_Error( 'invalid_booking_revenue_basis', __( 'The revenue share basis is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_revenue_basis', __( 'The revenue share basis is invalid.', 'extrachill-booking' ) );
 		}
 		$currency = strtoupper( sanitize_text_field( (string) ( $config['default_deal']['currency'] ?? 'USD' ) ) );
 		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
-			return new \WP_Error( 'invalid_booking_currency', __( 'Deal currency must be a three-letter uppercase code.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_currency', __( 'Deal currency must be a three-letter uppercase code.', 'extrachill-booking' ) );
 		}
 
 		$spaces = $this->normalize_spaces( $config['spaces'] ?? array() );
@@ -449,7 +449,7 @@ class VenueBookingConfig {
 		}
 		$hold_ttl = isset( $config['hold_ttl_minutes'] ) ? (int) $config['hold_ttl_minutes'] : 1440;
 		if ( $hold_ttl < 5 || $hold_ttl > self::HOLD_TTL_MAX_MINUTES ) {
-			return new \WP_Error( 'invalid_booking_hold_ttl', __( 'Hold TTL must be between 5 minutes and 14 days.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_hold_ttl', __( 'Hold TTL must be between 5 minutes and 14 days.', 'extrachill-booking' ) );
 		}
 		$allowed_weekdays = self::normalize_allowed_weekdays( $config['allowed_weekdays'] ?? array() );
 		if ( is_wp_error( $allowed_weekdays ) ) {
@@ -458,15 +458,15 @@ class VenueBookingConfig {
 
 		$revision = $config['revision'] ?? 0;
 		if ( ! is_int( $revision ) || $revision < 0 ) {
-			return new \WP_Error( 'invalid_booking_config_revision', __( 'The venue booking configuration revision is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_revision', __( 'The venue booking configuration revision is invalid.', 'extrachill-booking' ) );
 		}
 		$updated_by_user_id = $config['updated_by_user_id'] ?? null;
 		if ( null !== $updated_by_user_id && ( ! is_int( $updated_by_user_id ) || $updated_by_user_id < 1 ) ) {
-			return new \WP_Error( 'invalid_booking_config_actor', __( 'The venue booking configuration actor is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_actor', __( 'The venue booking configuration actor is invalid.', 'extrachill-booking' ) );
 		}
 		$updated_at = $config['updated_at'] ?? null;
 		if ( null !== $updated_at && ( ! is_string( $updated_at ) || ! $this->valid_datetime( $updated_at ) ) ) {
-			return new \WP_Error( 'invalid_booking_config_updated_at', __( 'The venue booking configuration timestamp is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_updated_at', __( 'The venue booking configuration timestamp is invalid.', 'extrachill-booking' ) );
 		}
 
 		return array(
@@ -532,18 +532,18 @@ class VenueBookingConfig {
 		return array(
 			array(
 				'key'          => 'played_area_before',
-				'label'        => __( 'Have you played in the area before?', 'extrachill-events' ),
+				'label'        => __( 'Have you played in the area before?', 'extrachill-booking' ),
 				'type'         => 'select',
 				'required'     => true,
 				'options'      => array(
-					__( 'Yes', 'extrachill-events' ),
-					__( 'No', 'extrachill-events' ),
+					__( 'Yes', 'extrachill-booking' ),
+					__( 'No', 'extrachill-booking' ),
 				),
 				'visible_when' => null,
 			),
 			array(
 				'key'          => 'listen_link',
-				'label'        => __( 'Link to listen', 'extrachill-events' ),
+				'label'        => __( 'Link to listen', 'extrachill-booking' ),
 				'type'         => 'url',
 				'required'     => true,
 				'options'      => array(),
@@ -551,7 +551,7 @@ class VenueBookingConfig {
 			),
 			array(
 				'key'          => 'socials_link',
-				'label'        => __( 'Link to socials', 'extrachill-events' ),
+				'label'        => __( 'Link to socials', 'extrachill-booking' ),
 				'type'         => 'url',
 				'required'     => false,
 				'options'      => array(),
@@ -575,7 +575,7 @@ class VenueBookingConfig {
 			'consent'                   => array(
 				'id'       => 'booking-privacy',
 				'version'  => self::CONSENT_VERSION,
-				'label'    => __( 'I agree that this venue may use these details to review and respond to my booking inquiry.', 'extrachill-events' ),
+				'label'    => __( 'I agree that this venue may use these details to review and respond to my booking inquiry.', 'extrachill-booking' ),
 				'required' => true,
 			),
 			'attachment_policy'         => $this->default_attachment_policy(),
@@ -665,12 +665,12 @@ class VenueBookingConfig {
 		$template_key = sanitize_key( $template_key );
 		$template     = $config['correspondence']['templates'][ $template_key ] ?? null;
 		if ( ! is_array( $template ) ) {
-			return new \WP_Error( 'booking_correspondence_template_invalid', __( 'The correspondence template is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_correspondence_template_invalid', __( 'The correspondence template is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( null !== $expected_template_version && $expected_template_version !== $template['version'] ) {
 			return new \WP_Error(
 				'booking_correspondence_template_version_conflict',
-				__( 'The correspondence template changed since it was read.', 'extrachill-events' ),
+				__( 'The correspondence template changed since it was read.', 'extrachill-booking' ),
 				array(
 					'status'          => 409,
 					'current_version' => $template['version'],
@@ -717,12 +717,12 @@ class VenueBookingConfig {
 		$venue = $venue_term_id > 0 ? get_term( $venue_term_id, 'venue' ) : null;
 		return $venue && ! is_wp_error( $venue ) && 'venue' === $venue->taxonomy
 			? $venue
-			: new \WP_Error( 'invalid_booking_config_venue', __( 'A valid Events venue term is required.', 'extrachill-events' ) );
+			: new \WP_Error( 'invalid_booking_config_venue', __( 'A valid Events venue term is required.', 'extrachill-booking' ) );
 	}
 
 	private function normalize_spaces( $spaces ) {
 		if ( ! is_array( $spaces ) || count( $spaces ) > 50 ) {
-			return new \WP_Error( 'invalid_booking_spaces', __( 'Venue spaces must be an array of at most 50 items.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_spaces', __( 'Venue spaces must be an array of at most 50 items.', 'extrachill-booking' ) );
 		}
 		$normalized = array();
 		$seen       = array();
@@ -731,11 +731,11 @@ class VenueBookingConfig {
 			$key  = mb_substr( sanitize_key( (string) ( $space['key'] ?? '' ) ), 0, 64 );
 			$name = mb_substr( sanitize_text_field( (string) ( $space['name'] ?? '' ) ), 0, 191 );
 			if ( '' === $key || '' === $name || isset( $seen[ $key ] ) ) {
-				return new \WP_Error( 'invalid_booking_space', __( 'Each venue space needs a unique normalized key and name.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_space', __( 'Each venue space needs a unique normalized key and name.', 'extrachill-booking' ) );
 			}
 			$is_default = ! empty( $space['is_default'] );
 			if ( $is_default && $default ) {
-				return new \WP_Error( 'multiple_default_booking_spaces', __( 'Only one venue space may be the default.', 'extrachill-events' ) );
+				return new \WP_Error( 'multiple_default_booking_spaces', __( 'Only one venue space may be the default.', 'extrachill-booking' ) );
 			}
 			$default      = $default || $is_default;
 			$seen[ $key ] = true;
@@ -753,7 +753,7 @@ class VenueBookingConfig {
 
 	private function normalize_intake_fields( $fields ) {
 		if ( ! is_array( $fields ) || count( $fields ) > 50 ) {
-			return new \WP_Error( 'invalid_booking_intake', __( 'Intake fields must be an array of at most 50 items.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_intake', __( 'Intake fields must be an array of at most 50 items.', 'extrachill-booking' ) );
 		}
 		$normalized = array();
 		$seen       = array();
@@ -763,7 +763,7 @@ class VenueBookingConfig {
 			$type  = sanitize_key( (string) ( $field['type'] ?? 'text' ) );
 			$label = mb_substr( sanitize_text_field( (string) ( $field['label'] ?? $key ) ), 0, 191 );
 			if ( '' === $key || '' === $label || isset( $seen[ $key ] ) || ! in_array( $type, $types, true ) ) {
-				return new \WP_Error( 'invalid_booking_intake_field', __( 'Each intake field needs a unique normalized key and supported type.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_intake_field', __( 'Each intake field needs a unique normalized key and supported type.', 'extrachill-booking' ) );
 			}
 			$seen[ $key ] = true;
 			$visible_when = null;
@@ -772,7 +772,7 @@ class VenueBookingConfig {
 				$condition_field = mb_substr( sanitize_key( (string) ( $condition['field'] ?? '' ) ), 0, 64 );
 				$condition_value = mb_substr( sanitize_text_field( (string) ( $condition['value'] ?? '' ) ), 0, 191 );
 				if ( '' === $condition_field || '' === $condition_value || ! isset( $seen[ $condition_field ] ) || $condition_field === $key ) {
-					return new \WP_Error( 'invalid_booking_intake_condition', __( 'Conditional intake fields must depend on an earlier configured field and value.', 'extrachill-events' ) );
+					return new \WP_Error( 'invalid_booking_intake_condition', __( 'Conditional intake fields must depend on an earlier configured field and value.', 'extrachill-booking' ) );
 				}
 				$visible_when = array(
 					'field' => $condition_field,
@@ -817,7 +817,7 @@ class VenueBookingConfig {
 		$appearance = is_array( $appearance ) ? $appearance : array();
 		$mode       = sanitize_key( (string) ( $appearance['mode'] ?? 'default' ) );
 		if ( ! in_array( $mode, array( 'default', 'custom' ), true ) ) {
-			return new \WP_Error( 'invalid_booking_appearance_mode', __( 'Booking appearance mode must be default or custom.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_appearance_mode', __( 'Booking appearance mode must be default or custom.', 'extrachill-booking' ) );
 		}
 		if ( 'default' === $mode ) {
 			$defaults['show_logo'] = ! array_key_exists( 'show_logo', $appearance ) || ! empty( $appearance['show_logo'] );
@@ -828,13 +828,13 @@ class VenueBookingConfig {
 		foreach ( array( 'background_color', 'surface_color', 'text_color', 'accent_color', 'button_text_color', 'border_color' ) as $field ) {
 			$value = strtolower( (string) ( $appearance[ $field ] ?? $defaults[ $field ] ) );
 			if ( ! preg_match( '/^#[0-9a-f]{6}$/', $value ) ) {
-				return new \WP_Error( 'invalid_booking_appearance_color', __( 'Booking appearance colors must use six-digit hex values.', 'extrachill-events' ), array( 'field' => $field ) );
+				return new \WP_Error( 'invalid_booking_appearance_color', __( 'Booking appearance colors must use six-digit hex values.', 'extrachill-booking' ), array( 'field' => $field ) );
 			}
 			$normalized[ $field ] = $value;
 		}
 		$radius = $appearance['button_radius'] ?? $defaults['button_radius'];
 		if ( ! is_int( $radius ) || $radius < 0 || $radius > 32 ) {
-			return new \WP_Error( 'invalid_booking_appearance_radius', __( 'Booking button radius must be between 0 and 32 pixels.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_appearance_radius', __( 'Booking button radius must be between 0 and 32 pixels.', 'extrachill-booking' ) );
 		}
 		$normalized['button_radius'] = $radius;
 		$normalized['show_logo']     = ! array_key_exists( 'show_logo', $appearance ) || ! empty( $appearance['show_logo'] );
@@ -844,13 +844,13 @@ class VenueBookingConfig {
 	/** Normalize public, non-operational requirements shown before inquiry intake. */
 	private function normalize_public_requirements( $requirements ) {
 		if ( ! is_array( $requirements ) || count( $requirements ) > 20 ) {
-			return new \WP_Error( 'invalid_booking_public_requirements', __( 'Public booking requirements must contain at most 20 items.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_public_requirements', __( 'Public booking requirements must contain at most 20 items.', 'extrachill-booking' ) );
 		}
 		$normalized = array();
 		foreach ( $requirements as $requirement ) {
 			$value = mb_substr( sanitize_text_field( (string) $requirement ), 0, 500 );
 			if ( '' === $value ) {
-				return new \WP_Error( 'invalid_booking_public_requirement', __( 'Public booking requirements must be plain text.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_public_requirement', __( 'Public booking requirements must be plain text.', 'extrachill-booking' ) );
 			}
 			$normalized[] = $value;
 		}
@@ -865,7 +865,7 @@ class VenueBookingConfig {
 		$version  = $consent['version'] ?? null;
 		$label    = mb_substr( sanitize_text_field( (string) ( $consent['label'] ?? '' ) ), 0, 500 );
 		if ( '' === $id || ! is_int( $version ) || $version < 1 || '' === $label ) {
-			return new \WP_Error( 'invalid_booking_consent', __( 'Booking consent requires a stable identifier, version, and public label.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_consent', __( 'Booking consent requires a stable identifier, version, and public label.', 'extrachill-booking' ) );
 		}
 		return array(
 			'id'       => $id,
@@ -891,7 +891,7 @@ class VenueBookingConfig {
 	 */
 	private function normalize_attachment_policy( $policy ) {
 		if ( ! is_array( $policy ) || self::ATTACHMENT_POLICY_VERSION !== ( $policy['version'] ?? null ) || ! is_bool( $policy['enabled'] ?? null ) || ! is_array( $policy['purposes'] ?? null ) || count( $policy['purposes'] ) > count( BookingAttachmentPolicy::PURPOSES ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_policy', __( 'The venue attachment policy is malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_policy', __( 'The venue attachment policy is malformed.', 'extrachill-booking' ) );
 		}
 
 		$purposes       = array();
@@ -899,12 +899,12 @@ class VenueBookingConfig {
 		$required_count = 0;
 		foreach ( $policy['purposes'] as $purpose ) {
 			if ( ! is_array( $purpose ) || array_diff( array_keys( $purpose ), array( 'key', 'requirement' ) ) ) {
-				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Each venue attachment purpose needs one unambiguous requirement.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Each venue attachment purpose needs one unambiguous requirement.', 'extrachill-booking' ) );
 			}
 			$key         = sanitize_key( (string) ( $purpose['key'] ?? '' ) );
 			$requirement = sanitize_key( (string) ( $purpose['requirement'] ?? '' ) );
 			if ( ! in_array( $key, BookingAttachmentPolicy::PURPOSES, true ) || isset( $seen[ $key ] ) || ! in_array( $requirement, array( 'invited', 'required' ), true ) ) {
-				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Venue attachment purposes must be unique canonical purposes marked invited or required.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Venue attachment purposes must be unique canonical purposes marked invited or required.', 'extrachill-booking' ) );
 			}
 			$required_count += 'required' === $requirement ? 1 : 0;
 			$seen[ $key ]    = true;
@@ -916,7 +916,7 @@ class VenueBookingConfig {
 
 		$enabled = $policy['enabled'];
 		if ( ( $enabled && empty( $purposes ) ) || ( ! $enabled && ! empty( $purposes ) ) || $required_count > BookingAttachmentPolicy::MAX_FILES ) {
-			return new \WP_Error( 'inconsistent_booking_attachment_policy', __( 'Enabled attachment policies need purposes, disabled policies cannot invite files, and required purposes cannot exceed the upload count.', 'extrachill-events' ) );
+			return new \WP_Error( 'inconsistent_booking_attachment_policy', __( 'Enabled attachment policies need purposes, disabled policies cannot invite files, and required purposes cannot exceed the upload count.', 'extrachill-booking' ) );
 		}
 
 		return array(
@@ -957,20 +957,20 @@ class VenueBookingConfig {
 			'max_files'           => BookingAttachmentPolicy::MAX_FILES,
 			'max_file_bytes'      => BookingAttachmentPolicy::max_bytes(),
 			'max_aggregate_bytes' => BookingAttachmentPolicy::MAX_AGGREGATE_BYTES,
-			'privacy_notice'      => __( 'Files are private and available only to authorized venue booking operators.', 'extrachill-events' ),
-			'retention_notice'    => __( 'Files may be retained for booking, legal, or audit obligations under the venue privacy policy.', 'extrachill-events' ),
+			'privacy_notice'      => __( 'Files are private and available only to authorized venue booking operators.', 'extrachill-booking' ),
+			'retention_notice'    => __( 'Files may be retained for booking, legal, or audit obligations under the venue privacy policy.', 'extrachill-booking' ),
 		);
 	}
 
 	private function normalize_channels( $channels ) {
 		if ( ! is_array( $channels ) || count( $channels ) > 20 ) {
-			return new \WP_Error( 'invalid_booking_marketing_channels', __( 'Marketing channels must be an array of at most 20 keys.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_marketing_channels', __( 'Marketing channels must be an array of at most 20 keys.', 'extrachill-booking' ) );
 		}
 		$normalized = array();
 		foreach ( $channels as $channel ) {
 			$key = mb_substr( sanitize_key( (string) $channel ), 0, 32 );
 			if ( '' === $key || in_array( $key, $normalized, true ) ) {
-				return new \WP_Error( 'invalid_booking_marketing_channel', __( 'Marketing channel keys must be unique after normalization.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_marketing_channel', __( 'Marketing channel keys must be unique after normalization.', 'extrachill-booking' ) );
 			}
 			$normalized[] = $key;
 		}
@@ -986,7 +986,7 @@ class VenueBookingConfig {
 	 */
 	private function normalize_marketing_triggers( $triggers, array $enabled_channels ) {
 		if ( ! is_array( $triggers ) || count( $triggers ) > 20 ) {
-			return new \WP_Error( 'invalid_booking_marketing_triggers', __( 'Marketing triggers must be an array of at most 20 items.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_marketing_triggers', __( 'Marketing triggers must be an array of at most 20 items.', 'extrachill-booking' ) );
 		}
 		$normalized    = array();
 		$seen          = array();
@@ -994,30 +994,30 @@ class VenueBookingConfig {
 		foreach ( $triggers as $trigger ) {
 			$key = mb_substr( sanitize_key( (string) ( $trigger['key'] ?? '' ) ), 0, 32 );
 			if ( '' === $key || isset( $seen[ $key ] ) || 'event_converted' !== ( $trigger['event'] ?? '' ) || ! is_array( $trigger['channels'] ?? null ) || count( $trigger['channels'] ) > 20 ) {
-				return new \WP_Error( 'invalid_booking_marketing_trigger', __( 'Each marketing trigger needs a unique key, a supported event, and bounded channels.', 'extrachill-events' ) );
+				return new \WP_Error( 'invalid_booking_marketing_trigger', __( 'Each marketing trigger needs a unique key, a supported event, and bounded channels.', 'extrachill-booking' ) );
 			}
 			$trigger_channels = array();
 			$channel_seen     = array();
 			foreach ( $trigger['channels'] as $channel ) {
 				if ( ! is_array( $channel ) || array_diff( array_keys( $channel ), array( 'key', 'action', 'approval', 'delay_seconds', 'social', 'newsletter' ) ) ) {
-					return new \WP_Error( 'invalid_booking_marketing_trigger_channel', __( 'Marketing trigger channels contain unsupported fields.', 'extrachill-events' ) );
+					return new \WP_Error( 'invalid_booking_marketing_trigger_channel', __( 'Marketing trigger channels contain unsupported fields.', 'extrachill-booking' ) );
 				}
 				$channel_key = mb_substr( sanitize_key( (string) ( $channel['key'] ?? '' ) ), 0, 32 );
 				$action      = is_string( $channel['action'] ?? null ) ? $channel['action'] : '';
 				$approval    = sanitize_key( (string) ( $channel['approval'] ?? 'required' ) );
 				$delay       = $channel['delay_seconds'] ?? 0;
 				if ( '' === $channel_key || isset( $channel_seen[ $channel_key ] ) || isset( $used_channels[ $channel_key ] ) || ! in_array( $channel_key, $enabled_channels, true ) || ! in_array( $action, array( self::SOCIAL_MARKETING_ACTION, self::NEWSLETTER_MARKETING_ACTION ), true ) || ! in_array( $approval, array( 'direct', 'required' ), true ) || ! is_int( $delay ) || $delay < 0 || $delay > 31536000 ) {
-					return new \WP_Error( 'invalid_booking_marketing_trigger_channel', __( 'Marketing trigger channels must use an enabled channel, supported owner action, approval policy, and valid delay.', 'extrachill-events' ) );
+					return new \WP_Error( 'invalid_booking_marketing_trigger_channel', __( 'Marketing trigger channels must use an enabled channel, supported owner action, approval policy, and valid delay.', 'extrachill-booking' ) );
 				}
 				$social     = null;
 				$newsletter = null;
 				if ( self::SOCIAL_MARKETING_ACTION === $action ) {
 					if ( null !== ( $channel['newsletter'] ?? null ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_social', __( 'Social marketing cannot include newsletter policy.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_social', __( 'Social marketing cannot include newsletter policy.', 'extrachill-booking' ) );
 					}
 					$raw = is_array( $channel['social'] ?? null ) ? $channel['social'] : array();
 					if ( array_diff( array_keys( $raw ), array( 'channels', 'caption', 'media_kind', 'asset_refs' ) ) || ! is_array( $raw['channels'] ?? null ) || ! array_is_list( $raw['channels'] ) || ! is_array( $raw['asset_refs'] ?? null ) || ! array_is_list( $raw['asset_refs'] ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The delegated social policy is invalid.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The delegated social policy is invalid.', 'extrachill-booking' ) );
 					}
 					$platforms  = array_values( array_unique( $raw['channels'] ) );
 					$allowed    = array( 'bluesky', 'facebook', 'instagram', 'pinterest', 'threads', 'twitter' );
@@ -1025,21 +1025,21 @@ class VenueBookingConfig {
 					$caption    = is_string( $raw['caption'] ?? null ) ? $raw['caption'] : '';
 					$assets     = $raw['asset_refs'];
 					if ( empty( $platforms ) || count( $platforms ) > 6 || array_diff( $platforms, $allowed ) || ! in_array( $media_kind, array( 'image', 'carousel', 'reel', 'story' ), true ) || sanitize_textarea_field( $caption ) !== $caption || mb_strlen( $caption ) > 2200 || count( $assets ) > 11 || count( $assets ) !== count( array_unique( $assets ) ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The delegated social policy is invalid.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The delegated social policy is invalid.', 'extrachill-booking' ) );
 					}
 					$asset_count = count( $assets );
 					if ( ( 'image' === $media_kind && 1 !== $asset_count ) || ( 'carousel' === $media_kind && ( $asset_count < 2 || $asset_count > 10 ) ) || ( 'reel' === $media_kind && ( $asset_count < 1 || $asset_count > 2 ) ) || ( 'story' === $media_kind && 1 !== $asset_count ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_assets', __( 'Marketing assets do not match the selected media kind.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_assets', __( 'Marketing assets do not match the selected media kind.', 'extrachill-booking' ) );
 					}
 					if ( in_array( $media_kind, array( 'reel', 'story' ), true ) && array_diff( $platforms, array( 'instagram' ) ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The selected channels do not support this media kind.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The selected channels do not support this media kind.', 'extrachill-booking' ) );
 					}
 					if ( 'carousel' === $media_kind && ( array_diff( $platforms, array( 'instagram', 'twitter' ) ) || ( in_array( 'twitter', $platforms, true ) && $asset_count > 4 ) ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The selected channels do not support this carousel.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_social', __( 'The selected channels do not support this carousel.', 'extrachill-booking' ) );
 					}
 					foreach ( $assets as $asset_ref ) {
 						if ( ! is_int( $asset_ref ) || $asset_ref < 1 ) {
-							return new \WP_Error( 'invalid_booking_marketing_assets', __( 'Marketing assets must be positive attachment references.', 'extrachill-events' ) );
+							return new \WP_Error( 'invalid_booking_marketing_assets', __( 'Marketing assets must be positive attachment references.', 'extrachill-booking' ) );
 						}
 					}
 					sort( $platforms );
@@ -1051,11 +1051,11 @@ class VenueBookingConfig {
 					);
 				} else {
 					if ( null !== ( $channel['social'] ?? null ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_newsletter', __( 'Newsletter marketing cannot include social policy.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_newsletter', __( 'Newsletter marketing cannot include social policy.', 'extrachill-booking' ) );
 					}
 					$raw = is_array( $channel['newsletter'] ?? null ) ? $channel['newsletter'] : array();
 					if ( array( 'policy' ) !== array_keys( $raw ) || 'canonical-post-draft' !== ( $raw['policy'] ?? null ) ) {
-						return new \WP_Error( 'invalid_booking_marketing_newsletter', __( 'The delegated newsletter policy is invalid.', 'extrachill-events' ) );
+						return new \WP_Error( 'invalid_booking_marketing_newsletter', __( 'The delegated newsletter policy is invalid.', 'extrachill-booking' ) );
 					}
 					$newsletter = array( 'policy' => 'canonical-post-draft' );
 				}
@@ -1083,17 +1083,17 @@ class VenueBookingConfig {
 	/** Normalize the complete correspondence configuration section. */
 	private function normalize_correspondence( $correspondence ) {
 		if ( ! is_array( $correspondence ) ) {
-			return new \WP_Error( 'invalid_booking_correspondence', __( 'Booking correspondence configuration must be an object.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_correspondence', __( 'Booking correspondence configuration must be an object.', 'extrachill-booking' ) );
 		}
 		$defaults = $this->defaults()['correspondence'];
 		$address  = sanitize_email( (string) ( $correspondence['booking_address'] ?? '' ) );
 		if ( '' !== (string) ( $correspondence['booking_address'] ?? '' ) && '' === $address ) {
-			return new \WP_Error( 'invalid_booking_correspondence_address', __( 'The booking correspondence address is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_correspondence_address', __( 'The booking correspondence address is invalid.', 'extrachill-booking' ) );
 		}
 		$from_name = sanitize_text_field( (string) ( $correspondence['from_name'] ?? $defaults['from_name'] ) );
 		$footer    = sanitize_textarea_field( (string) ( $correspondence['footer'] ?? $defaults['footer'] ) );
 		if ( '' === $from_name || mb_strlen( $from_name ) > 100 || preg_match( '/[\r\n]/', $from_name ) || '' === $footer || mb_strlen( $footer ) > 500 ) {
-			return new \WP_Error( 'invalid_booking_correspondence_identity', __( 'The booking correspondence sender or footer is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_correspondence_identity', __( 'The booking correspondence sender or footer is invalid.', 'extrachill-booking' ) );
 		}
 		$templates       = array();
 		$provided        = is_array( $correspondence['templates'] ?? null ) ? $correspondence['templates'] : array();
@@ -1111,12 +1111,12 @@ class VenueBookingConfig {
 				$subject = $defaults['templates'][ $key ]['subject'];
 			}
 			if ( ! is_int( $version ) || $version < 1 || $version > 1000000 || '' === $subject || mb_strlen( $subject ) > 200 || preg_match( '/[\r\n]/', $subject ) || '' === $body || mb_strlen( $body ) > 10000 ) {
-				return new \WP_Error( 'invalid_booking_correspondence_template', __( 'A booking correspondence template is invalid.', 'extrachill-events' ), array( 'template' => $key ) );
+				return new \WP_Error( 'invalid_booking_correspondence_template', __( 'A booking correspondence template is invalid.', 'extrachill-booking' ), array( 'template' => $key ) );
 			}
 			$placeholders         = $this->template_placeholders( $subject . "\n" . $body );
 			$without_placeholders = preg_replace( '/\{\{[a-z_]+\}\}/', '', $subject . "\n" . $body );
 			if ( array_diff( $placeholders, array_merge( self::CORRESPONDENCE_VARIABLES, array( 'message' ) ) ) || false !== strpos( (string) $without_placeholders, '{{' ) || false !== strpos( (string) $without_placeholders, '}}' ) ) {
-				return new \WP_Error( 'invalid_booking_correspondence_variable', __( 'A template uses an unsupported correspondence variable.', 'extrachill-events' ), array( 'template' => $key ) );
+				return new \WP_Error( 'invalid_booking_correspondence_variable', __( 'A template uses an unsupported correspondence variable.', 'extrachill-booking' ), array( 'template' => $key ) );
 			}
 			$templates[ $key ] = array(
 				'version' => $version,
@@ -1125,7 +1125,7 @@ class VenueBookingConfig {
 			);
 		}
 		if ( array_diff( array_keys( $provided ), self::CORRESPONDENCE_TEMPLATES ) ) {
-			return new \WP_Error( 'invalid_booking_correspondence_template', __( 'The booking correspondence template key is unsupported.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_correspondence_template', __( 'The booking correspondence template key is unsupported.', 'extrachill-booking' ) );
 		}
 
 		$policies          = array();
@@ -1136,7 +1136,7 @@ class VenueBookingConfig {
 			$delay    = (int) ( $policy['delay_minutes'] ?? 0 );
 			$statuses = array_values( array_unique( array_map( 'sanitize_key', (array) ( $policy['expected_statuses'] ?? array() ) ) ) );
 			if ( ! is_int( $version ) || $version < 1 || $version > 1000000 || $delay < 5 || $delay > 10080 || empty( $statuses ) || array_diff( $statuses, BookingRepository::STATUSES ) ) {
-				return new \WP_Error( 'invalid_booking_reminder_policy', __( 'A booking reminder policy is invalid.', 'extrachill-events' ), array( 'policy' => $key ) );
+				return new \WP_Error( 'invalid_booking_reminder_policy', __( 'A booking reminder policy is invalid.', 'extrachill-booking' ), array( 'policy' => $key ) );
 			}
 			$policies[ $key ] = array(
 				'version'           => $version,
@@ -1146,7 +1146,7 @@ class VenueBookingConfig {
 			);
 		}
 		if ( array_diff( array_keys( $provided_policies ), array( 'follow_up', 'hold_expiring' ) ) ) {
-			return new \WP_Error( 'invalid_booking_reminder_policy', __( 'The booking reminder policy key is unsupported.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_reminder_policy', __( 'The booking reminder policy key is unsupported.', 'extrachill-booking' ) );
 		}
 		return array(
 			'version'           => self::CORRESPONDENCE_VERSION,
@@ -1201,7 +1201,7 @@ class VenueBookingConfig {
 		$schema  = array_column( $this->variable_schema(), null, 'key' );
 		$unknown = array_diff( array_keys( $variables ), array_keys( $schema ) );
 		if ( $unknown ) {
-			return new \WP_Error( 'invalid_booking_correspondence_variable', __( 'The preview contains an unsupported correspondence variable.', 'extrachill-events' ), array( 'variables' => array_values( $unknown ) ) );
+			return new \WP_Error( 'invalid_booking_correspondence_variable', __( 'The preview contains an unsupported correspondence variable.', 'extrachill-booking' ), array( 'variables' => array_values( $unknown ) ) );
 		}
 		$normalized = array();
 		foreach ( $schema as $key => $definition ) {
@@ -1246,7 +1246,7 @@ class VenueBookingConfig {
 				if ( $item['version'] !== $expected ) {
 					return new \WP_Error(
 						'booking_correspondence_item_version_conflict',
-						__( 'A correspondence template or reminder policy has a stale version.', 'extrachill-events' ),
+						__( 'A correspondence template or reminder policy has a stale version.', 'extrachill-booking' ),
 						array(
 							'status'           => 409,
 							'section'          => $section,
@@ -1274,10 +1274,10 @@ class VenueBookingConfig {
 	private function normalize_embed( $embed ) {
 		$allowed_parent_origins = is_array( $embed ) ? ( $embed['allowed_parent_origins'] ?? array() ) : null;
 		if ( ! is_array( $allowed_parent_origins ) ) {
-			return new \WP_Error( 'invalid_booking_embed_config', __( 'Booking embed settings are malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_config', __( 'Booking embed settings are malformed.', 'extrachill-booking' ) );
 		}
 		if ( count( $allowed_parent_origins ) > 20 ) {
-			return new \WP_Error( 'invalid_booking_embed_config', __( 'Configure no more than 20 booking embed origins.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_embed_config', __( 'Configure no more than 20 booking embed origins.', 'extrachill-booking' ) );
 		}
 
 		$origins = array();

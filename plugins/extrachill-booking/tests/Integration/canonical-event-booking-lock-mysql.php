@@ -11,6 +11,8 @@
  * @package ExtraChillEvents\Tests\Integration
  */
 
+// phpcs:disable WordPress.WP.AlternativeFunctions.file_system_operations_fwrite,WordPress.WP.GlobalVariablesOverride.Prohibited,WordPress.DB.RestrictedFunctions,WordPress.Security.EscapeOutput.ExceptionNotEscaped,WordPress.Security.EscapeOutput.OutputNotEscaped -- Standalone CLI proof without WordPress loaded: it opens two raw mysqli sessions, stubs the $wpdb prefix for BookingSchema, reports to STDOUT/STDERR, and exits with a process status code; nothing is rendered as HTML.
+
 $dsn = trim( (string) getenv( 'EC_EVENTS_MYSQL_TEST_DSN' ) );
 if ( '' === $dsn ) {
 	fwrite( STDOUT, "SKIP: EC_EVENTS_MYSQL_TEST_DSN is unavailable; no MySQL test endpoint was contacted.\n" );
@@ -26,7 +28,7 @@ foreach ( explode( ';', preg_replace( '/^mysql:/i', '', $dsn ) ) as $part ) {
 	if ( false === strpos( $part, '=' ) ) {
 		continue;
 	}
-	list( $key, $value ) = explode( '=', $part, 2 );
+	list( $key, $value )                    = explode( '=', $part, 2 );
 	$settings[ strtolower( trim( $key ) ) ] = trim( $value );
 }
 $database = $settings['dbname'] ?? '';
@@ -35,13 +37,13 @@ if ( '' === $database || false === strpos( strtolower( $database ), 'test' ) ) {
 	exit( 1 );
 }
 
-$user       = (string) getenv( 'EC_EVENTS_MYSQL_TEST_USER' );
-$password   = (string) getenv( 'EC_EVENTS_MYSQL_TEST_PASSWORD' );
-$host       = $settings['host'] ?? '127.0.0.1';
-$port       = (int) ( $settings['port'] ?? 3306 );
-$socket     = $settings['unix_socket'] ?? null;
-$suffix     = bin2hex( random_bytes( 6 ) );
-$wpdb       = (object) array( 'prefix' => 'ec_events_lock_' . $suffix . '_' );
+$user     = (string) getenv( 'EC_EVENTS_MYSQL_TEST_USER' );
+$password = (string) getenv( 'EC_EVENTS_MYSQL_TEST_PASSWORD' );
+$host     = $settings['host'] ?? '127.0.0.1';
+$port     = (int) ( $settings['port'] ?? 3306 );
+$socket   = $settings['unix_socket'] ?? null;
+$suffix   = bin2hex( random_bytes( 6 ) );
+$wpdb     = (object) array( 'prefix' => 'ec_events_lock_' . $suffix . '_' );
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
@@ -58,48 +60,48 @@ $event      = null;
 $booking    = null;
 $exit_code  = 0;
 
-$connect = static function () use ( $host, $user, $password, $database, $port, $socket ): mysqli {
+$connect     = static function () use ( $host, $user, $password, $database, $port, $socket ): mysqli {
 	$connection = mysqli_init();
 	$connection->real_connect( $host, $user, $password, $database, $port, $socket );
 	$connection->set_charset( 'utf8mb4' );
 	return $connection;
 };
-$assert = static function ( bool $condition, string $message ): void {
+$assert      = static function ( bool $condition, string $message ): void {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
 	}
 };
-$lock = static function ( mysqli $connection, string $name, int $timeout ): int {
+$lock        = static function ( mysqli $connection, string $name, int $timeout ): int {
 	$statement = $connection->prepare( 'SELECT GET_LOCK(?, ?)' );
 	$statement->bind_param( 'si', $name, $timeout );
 	$statement->execute();
 	return (int) $statement->get_result()->fetch_row()[0];
 };
-$lock_async = static function ( mysqli $connection, string $name, int $timeout ): void {
+$lock_async  = static function ( mysqli $connection, string $name, int $timeout ): void {
 	$name = $connection->real_escape_string( $name );
 	$connection->query( "SELECT GET_LOCK('{$name}', {$timeout})", MYSQLI_ASYNC );
 };
-$reap_lock = static function ( mysqli $connection ): int {
+$reap_lock   = static function ( mysqli $connection ): int {
 	$result = $connection->reap_async_query();
 	if ( ! $result instanceof mysqli_result ) {
 		throw new RuntimeException( 'Asynchronous GET_LOCK query failed: ' . $connection->error );
 	}
 	return (int) $result->fetch_row()[0];
 };
-$release = static function ( mysqli $connection, string $name ): int {
+$release     = static function ( mysqli $connection, string $name ): int {
 	$statement = $connection->prepare( 'SELECT RELEASE_LOCK(?)' );
 	$statement->bind_param( 's', $name );
 	$statement->execute();
 	return (int) $statement->get_result()->fetch_row()[0];
 };
-$venue_lock = \ExtraChillEvents\Core\BookingHoldRepository::venue_lock_name( $venue_id );
+$venue_lock  = \ExtraChillEvents\Core\BookingHoldRepository::venue_lock_name( $venue_id );
 $space_locks = array_map(
 	static function ( string $space_key ) use ( $venue_id ): string {
 		return \ExtraChillEvents\Core\BookingHoldRepository::venue_space_lock_name( $venue_id, $space_key );
 	},
 	$space_keys
 );
-$all_locks = array_merge( array( $venue_lock ), $space_locks );
+$all_locks   = array_merge( array( $venue_lock ), $space_locks );
 
 try {
 	$event   = $connect();

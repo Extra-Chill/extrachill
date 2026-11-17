@@ -45,7 +45,7 @@ class TicketSettlementService {
 	/** Record one immutable observation, returning an exact idempotent retry. */
 	public function record_sales( array $input, int $actor_id ) {
 		if ( 'csv_certified' === ( $input['source_type'] ?? null ) ) {
-			return new \WP_Error( 'sales_csv_import_required', __( 'Certified CSV observations must be created by the authenticated CSV importer.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'sales_csv_import_required', __( 'Certified CSV observations must be created by the authenticated CSV importer.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( 'extrachill_checkout' === ( $input['source_type'] ?? null ) ) {
 			return new \WP_Error( 'ticket_service_required', 'Checkout evidence requires ticket service authority.', array( 'status' => 403 ) );
@@ -103,7 +103,7 @@ class TicketSettlementService {
 		if ( ! empty( $failures ) ) {
 			return new \WP_Error(
 				'sales_csv_import_partial',
-				__( 'Some ticket-sales rows could not be imported.', 'extrachill-events' ),
+				__( 'Some ticket-sales rows could not be imported.', 'extrachill-booking' ),
 				array(
 					'status'              => 409,
 					'imported_report_ids' => array_column( $reports, 'id' ),
@@ -163,7 +163,7 @@ class TicketSettlementService {
 				$committed = $this->commit();
 				return is_wp_error( $committed ) ? $committed : $this->present_report( $existing );
 			}
-			return $this->rollback( new \WP_Error( 'sales_report_idempotency_conflict', __( 'This provider report ID is already bound to different evidence.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'sales_report_idempotency_conflict', __( 'This provider report ID is already bound to different evidence.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		if ( is_array( $settlement ) ) {
 			return $this->rollback( $this->settlement_frozen_error( $settlement ) );
@@ -171,7 +171,7 @@ class TicketSettlementService {
 		if ( null !== $normalized['corrects_report_id'] ) {
 			$corrected = $this->get_report( $normalized['corrects_report_id'], true );
 			if ( ! is_array( $corrected ) || $corrected['booking_id'] !== $booking['id'] || $corrected['currency'] !== $normalized['currency'] || $corrected['provider'] !== $normalized['provider'] || $corrected['ticket_source_id'] !== $normalized['ticket_source_id'] ) {
-				return $this->rollback( new \WP_Error( 'invalid_sales_report_correction', __( 'A correction must identify evidence from the same booking, currency, provider, and ticket source.', 'extrachill-events' ), array( 'status' => 400 ) ) );
+				return $this->rollback( new \WP_Error( 'invalid_sales_report_correction', __( 'A correction must identify evidence from the same booking, currency, provider, and ticket source.', 'extrachill-booking' ), array( 'status' => 400 ) ) );
 			}
 		}
 
@@ -185,11 +185,11 @@ class TicketSettlementService {
 				$committed = $this->commit();
 				return is_wp_error( $committed ) ? $committed : $this->present_report( $existing );
 			}
-			return $this->rollback( new \WP_Error( 'sales_report_write_failed', __( 'The ticket-sales evidence could not be recorded.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'sales_report_write_failed', __( 'The ticket-sales evidence could not be recorded.', 'extrachill-booking' ) ) );
 		}
 		$report = $this->get_report( (int) $wpdb->insert_id, true );
 		if ( ! is_array( $report ) ) {
-			return $this->rollback( is_wp_error( $report ) ? $report : new \WP_Error( 'sales_report_write_failed', __( 'The recorded ticket-sales evidence could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $report ) ? $report : new \WP_Error( 'sales_report_write_failed', __( 'The recorded ticket-sales evidence could not be verified.', 'extrachill-booking' ) ) );
 		}
 		$audit = $this->activity->append(
 			array(
@@ -231,7 +231,7 @@ class TicketSettlementService {
 		$offset = max( 0, $offset );
 		$rows   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY id ASC LIMIT %d OFFSET %d", $booking['id'], $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable booking evidence page.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be listed.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be listed.', 'extrachill-booking' ) );
 		}
 		$reports = $this->hydrate_reports( (array) $rows );
 		if ( is_wp_error( $reports ) ) {
@@ -283,7 +283,7 @@ class TicketSettlementService {
 		if ( ! in_array( $formula_version, array( 1, 2, self::FORMULA_VERSION ), true ) || ( 2 <= $formula_version && ! preg_match( '/^[a-f0-9]{64}$/', $expected_hash ) ) ) {
 			return new \WP_Error(
 				'settlement_formula_version_conflict',
-				__( 'The calculated settlement formula version or evidence hash is invalid.', 'extrachill-events' ),
+				__( 'The calculated settlement formula version or evidence hash is invalid.', 'extrachill-booking' ),
 				array(
 					'status'                  => 409,
 					'current_formula_version' => self::FORMULA_VERSION,
@@ -325,7 +325,7 @@ class TicketSettlementService {
 				return $this->rollback(
 					new \WP_Error(
 						'settlement_already_finalized',
-						__( 'This booking already has a different frozen settlement.', 'extrachill-events' ),
+						__( 'This booking already has a different frozen settlement.', 'extrachill-booking' ),
 						array(
 							'status'        => 409,
 							'settlement_id' => $existing['id'],
@@ -344,7 +344,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_formula_version_conflict',
-					__( 'The calculated settlement formula version is no longer current.', 'extrachill-events' ),
+					__( 'The calculated settlement formula version is no longer current.', 'extrachill-booking' ),
 					array(
 						'status'                  => 409,
 						'current_formula_version' => self::FORMULA_VERSION,
@@ -356,7 +356,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_booking_version_conflict',
-					__( 'The booking changed since settlement calculation.', 'extrachill-events' ),
+					__( 'The booking changed since settlement calculation.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $booking['version'],
@@ -372,7 +372,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_evidence_conflict',
-					__( 'Ticket-sales evidence changed since settlement calculation.', 'extrachill-events' ),
+					__( 'Ticket-sales evidence changed since settlement calculation.', 'extrachill-booking' ),
 					array(
 						'status'             => 409,
 						'current_report_ids' => $calculation['included_report_ids'],
@@ -412,11 +412,11 @@ class TicketSettlementService {
 		$row['integrity_hash'] = $this->settlement_integrity_hash( $row );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One frozen private settlement per booking.
 		if ( false === $wpdb->insert( BookingSchema::settlements_table(), $row ) ) {
-			return $this->rollback( new \WP_Error( 'settlement_finalize_failed', __( 'The booking settlement could not be finalized.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'settlement_finalize_failed', __( 'The booking settlement could not be finalized.', 'extrachill-booking' ) ) );
 		}
 		$settlement = $this->get_settlement( $booking['id'], true );
 		if ( ! is_array( $settlement ) ) {
-			return $this->rollback( is_wp_error( $settlement ) ? $settlement : new \WP_Error( 'settlement_finalize_failed', __( 'The finalized booking settlement could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $settlement ) ? $settlement : new \WP_Error( 'settlement_finalize_failed', __( 'The finalized booking settlement could not be verified.', 'extrachill-booking' ) ) );
 		}
 		$audit = $this->append_settlement_audit( $booking['id'], 'booking_settlement_finalized', $actor_id, $settlement );
 		if ( is_wp_error( $audit ) ) {
@@ -465,7 +465,7 @@ class TicketSettlementService {
 		foreach ( $settlement['included_report_ids'] ?? array() as $report_id ) {
 			$report = $this->get_report( (int) $report_id, true );
 			if ( ! is_array( $report ) || $report['booking_id'] !== $settlement['booking_id'] || $report['currency'] !== $settlement['currency'] ) {
-				return is_wp_error( $report ) ? $report : new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement evidence is missing or mismatched.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return is_wp_error( $report ) ? $report : new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement evidence is missing or mismatched.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$reports[] = $report;
 		}
@@ -480,7 +480,7 @@ class TicketSettlementService {
 			$out_of_range = $amount_minor > $limit || $amount_minor < -$limit;
 		}
 		if ( $out_of_range ) {
-			return new \WP_Error( 'settlement_amount_out_of_range', __( 'The settlement amount exceeds the supported integer range.', 'extrachill-events' ) );
+			return new \WP_Error( 'settlement_amount_out_of_range', __( 'The settlement amount exceeds the supported integer range.', 'extrachill-booking' ) );
 		}
 		$product = $amount_minor * $basis_points;
 		$rounded = intdiv( abs( $product ) + 5000, 10000 );
@@ -526,7 +526,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_booking_version_conflict',
-					__( 'The booking changed since the settlement decision was made.', 'extrachill-events' ),
+					__( 'The booking changed since the settlement decision was made.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $booking['version'],
@@ -538,7 +538,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_payment_booking_status_conflict',
-					__( 'A booking must be completed before its settlement can be marked paid.', 'extrachill-events' ),
+					__( 'A booking must be completed before its settlement can be marked paid.', 'extrachill-booking' ),
 					array(
 						'status'         => 409,
 						'booking_status' => $booking['status'],
@@ -548,13 +548,13 @@ class TicketSettlementService {
 		}
 		$settlement = $this->get_settlement( $booking['id'], true );
 		if ( ! is_array( $settlement ) ) {
-			return $this->rollback( is_wp_error( $settlement ) ? $settlement : new \WP_Error( 'settlement_not_found', __( 'The booking settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+			return $this->rollback( is_wp_error( $settlement ) ? $settlement : new \WP_Error( 'settlement_not_found', __( 'The booking settlement was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 		}
 		if ( $settlement['version'] !== $expected_settlement ) {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_version_conflict',
-					__( 'The booking settlement changed since it was read.', 'extrachill-events' ),
+					__( 'The booking settlement changed since it was read.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $settlement['version'],
@@ -566,7 +566,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_status_conflict',
-					__( 'Only a finalized settlement may be paid or voided.', 'extrachill-events' ),
+					__( 'Only a finalized settlement may be paid or voided.', 'extrachill-booking' ),
 					array(
 						'status'         => 409,
 						'current_status' => $settlement['status'],
@@ -608,7 +608,7 @@ class TicketSettlementService {
 			return $this->rollback(
 				new \WP_Error(
 					'settlement_version_conflict',
-					__( 'The booking settlement changed before the audit transition was saved.', 'extrachill-events' ),
+					__( 'The booking settlement changed before the audit transition was saved.', 'extrachill-booking' ),
 					array(
 						'status' => 409,
 					)
@@ -618,7 +618,7 @@ class TicketSettlementService {
 		$settlement = $this->get_settlement( $booking['id'], true );
 		$audit      = is_array( $settlement ) ? $this->append_settlement_audit( $booking['id'], 'paid' === $status ? 'booking_settlement_paid' : 'booking_settlement_voided', $actor_id, $settlement ) : $settlement;
 		if ( is_wp_error( $audit ) || ! is_array( $settlement ) ) {
-			return $this->rollback( is_wp_error( $audit ) ? $audit : new \WP_Error( 'settlement_read_failed', __( 'The transitioned settlement could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $audit ) ? $audit : new \WP_Error( 'settlement_read_failed', __( 'The transitioned settlement could not be verified.', 'extrachill-booking' ) ) );
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $settlement;
@@ -634,7 +634,7 @@ class TicketSettlementService {
 		$sql  = $wpdb->prepare( $query, $booking['id'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Internal lock suffix and trusted current-prefix table.
 		$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete immutable evidence snapshot.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be read for settlement.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be read for settlement.', 'extrachill-booking' ) );
 		}
 		if ( $lock ) {
 			$this->after_evidence_locked( $booking );
@@ -644,7 +644,7 @@ class TicketSettlementService {
 			return $reports;
 		}
 		if ( empty( $reports ) ) {
-			return new \WP_Error( 'settlement_evidence_required', __( 'At least one ticket-sales report is required for settlement.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'settlement_evidence_required', __( 'At least one ticket-sales report is required for settlement.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$reports = $this->reconciliation->admitted_reports( $booking, $reports );
 		if ( is_wp_error( $reports ) ) {
@@ -659,7 +659,7 @@ class TicketSettlementService {
 			)
 		);
 		if ( empty( $reports ) ) {
-			return new \WP_Error( 'settlement_evidence_required', __( 'At least one reconciled ticket-sales report is required for settlement.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'settlement_evidence_required', __( 'At least one reconciled ticket-sales report is required for settlement.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$field               = 'gross_ticket_sales' === $terms['basis'] ? 'gross_minor' : 'net_minor';
 		$basis_amount        = 0;
@@ -668,7 +668,7 @@ class TicketSettlementService {
 		$provenance_evidence = array();
 		foreach ( $reports as $report ) {
 			if ( ( $report[ $field ] > 0 && $basis_amount > PHP_INT_MAX - $report[ $field ] ) || ( $report[ $field ] < 0 && $basis_amount < PHP_INT_MIN - $report[ $field ] ) ) {
-				return new \WP_Error( 'settlement_amount_out_of_range', __( 'The settlement evidence exceeds the supported integer range.', 'extrachill-events' ) );
+				return new \WP_Error( 'settlement_amount_out_of_range', __( 'The settlement evidence exceeds the supported integer range.', 'extrachill-booking' ) );
 			}
 			$basis_amount += $report[ $field ];
 			$ids[]         = $report['id'];
@@ -681,7 +681,7 @@ class TicketSettlementService {
 				return $provenance;
 			}
 			if ( null !== $authenticated_provenance && ( ! isset( $authenticated_provenance[ $report['id'] ] ) || $authenticated_provenance[ $report['id'] ] !== $provenance ) ) {
-				return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Settlement private-byte evidence changed after authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Settlement private-byte evidence changed after authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$provenance_evidence[ $report['id'] ] = $provenance;
 			$evidence[]                           = array(
@@ -696,7 +696,7 @@ class TicketSettlementService {
 			return $share;
 		}
 		if ( ( $terms['adjustment_minor'] > 0 && $share > PHP_INT_MAX - $terms['adjustment_minor'] ) || ( $terms['adjustment_minor'] < 0 && $share < PHP_INT_MIN - $terms['adjustment_minor'] ) ) {
-			return new \WP_Error( 'settlement_amount_out_of_range', __( 'The adjusted settlement exceeds the supported integer range.', 'extrachill-events' ) );
+			return new \WP_Error( 'settlement_amount_out_of_range', __( 'The adjusted settlement exceeds the supported integer range.', 'extrachill-booking' ) );
 		}
 		$result = array(
 			'booking_id'          => $booking['id'],
@@ -734,19 +734,19 @@ class TicketSettlementService {
 		$currency     = strtoupper( sanitize_text_field( (string) ( $input['currency'] ?? $document['currency'] ?? '' ) ) );
 		$adjustment   = $input['adjustment_minor'] ?? 0;
 		if ( $require_explicit && ( ! array_key_exists( 'basis', $input ) || ! array_key_exists( 'basis_points', $input ) || ! array_key_exists( 'currency', $input ) || ! array_key_exists( 'adjustment_minor', $input ) ) ) {
-			return new \WP_Error( 'settlement_terms_required', __( 'Finalization requires the exact calculated settlement terms.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'settlement_terms_required', __( 'Finalization requires the exact calculated settlement terms.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ! in_array( $basis, self::BASES, true ) ) {
-			return new \WP_Error( 'invalid_settlement_basis', __( 'The settlement basis is not supported by ticket-sales evidence.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_settlement_basis', __( 'The settlement basis is not supported by ticket-sales evidence.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ! is_int( $basis_points ) || $basis_points < 0 || $basis_points > 10000 ) {
-			return new \WP_Error( 'invalid_settlement_basis_points', __( 'Settlement basis points must be an integer between 0 and 10000.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_settlement_basis_points', __( 'Settlement basis points must be an integer between 0 and 10000.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
-			return new \WP_Error( 'invalid_settlement_currency', __( 'Settlement currency must be a three-letter uppercase code.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_settlement_currency', __( 'Settlement currency must be a three-letter uppercase code.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ! is_int( $adjustment ) ) {
-			return new \WP_Error( 'invalid_settlement_adjustment', __( 'Settlement adjustment must use integer minor units.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_settlement_adjustment', __( 'Settlement adjustment must use integer minor units.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return array(
 			'basis'            => $basis,
@@ -758,7 +758,7 @@ class TicketSettlementService {
 
 	private function normalize_report( array $input, array $booking, int $actor_id, bool $csv_certified ) {
 		if ( null === $booking['event_id'] ) {
-			return new \WP_Error( 'sales_report_event_required', __( 'Ticket-sales evidence requires a booking linked to an event.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'sales_report_event_required', __( 'Ticket-sales evidence requires a booking linked to an event.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$provider         = mb_substr( sanitize_key( (string) ( $input['provider'] ?? '' ) ), 0, 64 );
 		$external         = self::opaque_identifier( $input['external_report_id'] ?? null, 'external_report_id' );
@@ -784,14 +784,14 @@ class TicketSettlementService {
 			}
 		}
 		if ( '' === $provider || ! in_array( $source, self::SOURCE_TYPES, true ) || ( 'csv_certified' === $source ) !== $csv_certified || ( 'manual' === $source && null !== $attachment_id ) || ! preg_match( '/^[A-Z]{3}$/', $currency ) || $end < $start ) {
-			return new \WP_Error( 'invalid_sales_report_identity', __( 'Ticket-sales report identity, source, period, or currency is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_sales_report_identity', __( 'Ticket-sales report identity, source, period, or currency is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$integers = array();
 		foreach ( array( 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor' ) as $field ) {
 			if ( ! array_key_exists( $field, $input ) || ! is_int( $input[ $field ] ) ) {
 				return new \WP_Error(
 					'invalid_sales_report_amount',
-					__( 'Ticket counts and money must use signed integers.', 'extrachill-events' ),
+					__( 'Ticket counts and money must use signed integers.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field,
@@ -801,7 +801,7 @@ class TicketSettlementService {
 			$integers[ $field ] = $input[ $field ];
 		}
 		if ( ! array_key_exists( 'source', $input ) || ! is_array( $input['source'] ) || empty( $input['source'] ) ) {
-			return new \WP_Error( 'invalid_sales_report_source', __( 'Ticket-sales evidence requires a structured source payload.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_sales_report_source', __( 'Ticket-sales evidence requires a structured source payload.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$source_payload = wp_json_encode(
 			array(
@@ -810,10 +810,10 @@ class TicketSettlementService {
 			)
 		);
 		if ( false === $source_payload ) {
-			return new \WP_Error( 'sales_report_source_encode_failed', __( 'Ticket-sales source evidence could not be encoded.', 'extrachill-events' ), array( 'json_error' => json_last_error_msg() ) );
+			return new \WP_Error( 'sales_report_source_encode_failed', __( 'Ticket-sales source evidence could not be encoded.', 'extrachill-booking' ), array( 'json_error' => json_last_error_msg() ) );
 		}
 		if ( 8192 < strlen( $source_payload ) ) {
-			return new \WP_Error( 'sales_report_source_too_large', __( 'Ticket-sales source evidence exceeds the bounded provenance limit.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'sales_report_source_too_large', __( 'Ticket-sales source evidence exceeds the bounded provenance limit.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$row           = array_merge(
 			array(
@@ -843,13 +843,13 @@ class TicketSettlementService {
 	private function validate_report_identity( array $report, array $booking ) {
 		return $report['booking_id'] === $booking['id'] && $report['event_id'] === $booking['event_id'] && $report['venue_term_id'] === $booking['venue_term_id']
 			? true
-			: new \WP_Error( 'sales_report_booking_changed', __( 'The booking identity changed before evidence was recorded.', 'extrachill-events' ), array( 'status' => 409 ) );
+			: new \WP_Error( 'sales_report_booking_changed', __( 'The booking identity changed before evidence was recorded.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function settlement_frozen_error( array $settlement ): \WP_Error {
 		return new \WP_Error(
 			'sales_report_settlement_frozen',
-			__( 'Ticket-sales evidence cannot change after settlement is finalized.', 'extrachill-events' ),
+			__( 'Ticket-sales evidence cannot change after settlement is finalized.', 'extrachill-booking' ),
 			array(
 				'status'        => 409,
 				'settlement_id' => $settlement['id'],
@@ -860,7 +860,7 @@ class TicketSettlementService {
 	private function begin_authorized( array $booking, int $actor_id, string $action, bool $checkout = false ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial aggregate boundary.
-			return new \WP_Error( 'settlement_transaction_start_failed', __( 'The ticket settlement transaction could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'settlement_transaction_start_failed', __( 'The ticket settlement transaction could not start.', 'extrachill-booking' ) );
 		}
 		$this->transaction_active = true;
 		if ( $checkout ) {
@@ -868,7 +868,7 @@ class TicketSettlementService {
 		}
 		$members = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
 		if ( is_wp_error( $members ) ) {
-			return $this->rollback( new \WP_Error( 'settlement_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'settlement_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-booking' ) ) );
 		}
 		$allowed = ( $this->authorization )( $action, $booking['venue_term_id'], $actor_id, (array) $members );
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
@@ -876,7 +876,7 @@ class TicketSettlementService {
 
 	private function locked_booking( int $booking_id ) {
 		$booking = $this->bookings->get_for_update( $booking_id );
-		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 	}
 
 	private function booking( $booking_id ) {
@@ -885,7 +885,7 @@ class TicketSettlementService {
 			return $id;
 		}
 		$booking = $this->bookings->get( $id );
-		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 	}
 
 	private function find_report_by_external( int $booking_id, string $provider, string $external_id, bool $lock = false ) {
@@ -897,7 +897,7 @@ class TicketSettlementService {
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, hash( 'sha256', $external_id ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Booking-scoped immutable evidence lookup with internal lock suffix.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-booking' ) );
 		}
 		return is_array( $row ) ? $this->hydrate_report( $row ) : null;
 	}
@@ -911,7 +911,7 @@ class TicketSettlementService {
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( $query, $report_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact evidence read with internal lock suffix.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-booking' ) );
 		}
 		return is_array( $row ) ? $this->hydrate_report( $row ) : null;
 	}
@@ -925,7 +925,7 @@ class TicketSettlementService {
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( $query, $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One settlement per booking with internal lock suffix.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'settlement_read_failed', __( 'The booking settlement could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'settlement_read_failed', __( 'The booking settlement could not be read.', 'extrachill-booking' ) );
 		}
 		return is_array( $row ) ? $this->hydrate_settlement( $row ) : null;
 	}
@@ -945,7 +945,7 @@ class TicketSettlementService {
 	private function hydrate_report( array $row ) {
 		$source = json_decode( (string) ( $row['source_payload'] ?? '' ), true );
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $source ) || 1 !== ( $source['version'] ?? null ) || ! array_key_exists( 'data', $source ) ) {
-			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-booking' ) );
 		}
 		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'created_by_user_id', 'provenance_version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
@@ -961,7 +961,7 @@ class TicketSettlementService {
 		if ( ! preg_match( '/^[a-f0-9]{64}$/', $identity_hash ) || ! hash_equals( $identity_hash, hash( 'sha256', $row['external_report_id'] ) ) || ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, self::report_request_hash( $row ) ) ) {
 			return new \WP_Error(
 				'sales_report_integrity_failed',
-				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-events' ),
+				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-booking' ),
 				array(
 					'status'    => 409,
 					'report_id' => $row['id'],
@@ -982,7 +982,7 @@ class TicketSettlementService {
 	private function hydrate_settlement( array $row ) {
 		$ids = json_decode( (string) ( $row['included_report_ids'] ?? '' ), true );
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $ids ) || array_values( array_filter( $ids, 'is_int' ) ) !== $ids ) {
-			return new \WP_Error( 'settlement_evidence_invalid', __( 'Stored settlement evidence is malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'settlement_evidence_invalid', __( 'Stored settlement evidence is malformed.', 'extrachill-booking' ) );
 		}
 		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'version', 'booking_version', 'basis_points', 'formula_version', 'basis_amount_minor', 'adjustment_minor', 'amount_due_minor', 'finalized_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
@@ -995,7 +995,7 @@ class TicketSettlementService {
 		if ( ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, $this->settlement_integrity_hash( $row ) ) ) {
 			return new \WP_Error(
 				'settlement_integrity_failed',
-				__( 'Stored settlement terms failed their immutable financial snapshot check.', 'extrachill-events' ),
+				__( 'Stored settlement terms failed their immutable financial snapshot check.', 'extrachill-booking' ),
 				array(
 					'status'        => 409,
 					'settlement_id' => $row['id'],
@@ -1039,7 +1039,7 @@ class TicketSettlementService {
 		if ( 3 <= $settlement['formula_version'] ) {
 			$booking = $this->bookings->get( $settlement['booking_id'] );
 			if ( ! is_array( $booking ) ) {
-				return new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement booking evidence is missing.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'settlement_evidence_integrity_failed', __( 'Frozen settlement booking evidence is missing.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 		}
 		foreach ( $settlement['included_report_ids'] as $report_id ) {
@@ -1050,7 +1050,7 @@ class TicketSettlementService {
 			if ( ! is_array( $report ) || $report['booking_id'] !== $settlement['booking_id'] || $report['currency'] !== $settlement['currency'] ) {
 				return new \WP_Error(
 					'settlement_evidence_integrity_failed',
-					__( 'Frozen settlement evidence is missing or belongs to a different booking or currency.', 'extrachill-events' ),
+					__( 'Frozen settlement evidence is missing or belongs to a different booking or currency.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'report_id' => $report_id,
@@ -1074,7 +1074,7 @@ class TicketSettlementService {
 					return $provenance;
 				}
 				if ( ! $authenticate_bytes && ( null === $authenticated_provenance || ! isset( $authenticated_provenance[ $report['id'] ] ) || $authenticated_provenance[ $report['id'] ] !== $provenance ) ) {
-					return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Frozen private-byte evidence changed after authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+					return new \WP_Error( 'settlement_csv_evidence_changed', __( 'Frozen private-byte evidence changed after authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 				}
 				$item['provenance']                   = $provenance;
 				$provenance_evidence[ $report['id'] ] = $provenance;
@@ -1085,7 +1085,7 @@ class TicketSettlementService {
 			? $provenance_evidence
 			: new \WP_Error(
 				'settlement_evidence_integrity_failed',
-				__( 'Frozen settlement evidence no longer matches its canonical content hash.', 'extrachill-events' ),
+				__( 'Frozen settlement evidence no longer matches its canonical content hash.', 'extrachill-booking' ),
 				array(
 					'status'        => 409,
 					'settlement_id' => $settlement['id'],
@@ -1094,7 +1094,7 @@ class TicketSettlementService {
 	}
 
 	private function evidence_hash( array $evidence ): string {
-		return hash( 'sha256', wp_json_encode( self::canonicalize( $evidence ) ) );
+		return hash( 'sha256', (string) wp_json_encode( self::canonicalize( $evidence ) ) );
 	}
 
 	private function settlement_integrity_hash( array $settlement ): string {
@@ -1117,7 +1117,7 @@ class TicketSettlementService {
 			'adjustment_minor'    => (int) ( $settlement['adjustment_minor'] ?? 0 ),
 			'amount_due_minor'    => (int) ( $settlement['amount_due_minor'] ?? 0 ),
 		);
-		return hash( 'sha256', wp_json_encode( self::canonicalize( $payload ) ) );
+		return hash( 'sha256', (string) wp_json_encode( self::canonicalize( $payload ) ) );
 	}
 
 	/** Return the canonical immutable report hash shared with diagnostics. */
@@ -1134,7 +1134,7 @@ class TicketSettlementService {
 			$hashable[ $field ] = $report[ $field ] ?? null;
 		}
 		$hashable['source'] = $report['source'] ?? null;
-		return hash( 'sha256', wp_json_encode( self::canonicalize( $hashable ) ) );
+		return hash( 'sha256', (string) wp_json_encode( self::canonicalize( $hashable ) ) );
 	}
 
 	/** Return only server-owned provenance fields after integrity verification. */
@@ -1173,13 +1173,13 @@ class TicketSettlementService {
 
 	private function report_ids( $ids ) {
 		if ( ! is_array( $ids ) || empty( $ids ) || count( $ids ) > 10000 ) {
-			return new \WP_Error( 'invalid_settlement_report_ids', __( 'Settlement evidence IDs must be a non-empty bounded array.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_settlement_report_ids', __( 'Settlement evidence IDs must be a non-empty bounded array.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$normalized = array();
 		foreach ( $ids as $id ) {
 			$id = $this->positive_integer( $id, 'expected_report_ids' );
 			if ( is_wp_error( $id ) || in_array( $id, $normalized, true ) ) {
-				return is_wp_error( $id ) ? $id : new \WP_Error( 'invalid_settlement_report_ids', __( 'Settlement evidence IDs must be unique.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return is_wp_error( $id ) ? $id : new \WP_Error( 'invalid_settlement_report_ids', __( 'Settlement evidence IDs must be unique.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$normalized[] = $id;
 		}
@@ -1190,7 +1190,7 @@ class TicketSettlementService {
 	private function positive_integer( $value, string $field ) {
 		return is_int( $value ) && $value > 0 ? $value : new \WP_Error(
 			'invalid_settlement_integer',
-			__( 'A positive integer is required.', 'extrachill-events' ),
+			__( 'A positive integer is required.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -1202,7 +1202,7 @@ class TicketSettlementService {
 		$value = mb_substr( sanitize_text_field( (string) $value ), 0, $length );
 		return '' !== $value ? $value : new \WP_Error(
 			'missing_settlement_field',
-			__( 'A required settlement field is missing.', 'extrachill-events' ),
+			__( 'A required settlement field is missing.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -1215,7 +1215,7 @@ class TicketSettlementService {
 		if ( ! is_string( $value ) || '' === $value || ! mb_check_encoding( $value, 'UTF-8' ) || 191 < mb_strlen( $value, 'UTF-8' ) || 764 < strlen( $value ) || preg_match( '/[\x00-\x1F\x7F]|\p{C}/u', $value ) ) {
 			return new \WP_Error(
 				'invalid_opaque_identifier',
-				__( 'The provider identifier contains unsupported bytes or exceeds the bounded identity policy.', 'extrachill-events' ),
+				__( 'The provider identifier contains unsupported bytes or exceeds the bounded identity policy.', 'extrachill-booking' ),
 				array(
 					'status' => 400,
 					'field'  => $field,
@@ -1229,7 +1229,7 @@ class TicketSettlementService {
 		if ( ! is_string( $value ) ) {
 			return new \WP_Error(
 				'invalid_sales_report_datetime',
-				__( 'Sales report datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-events' ),
+				__( 'Sales report datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-booking' ),
 				array(
 					'status' => 400,
 					'field'  => $field,
@@ -1239,7 +1239,7 @@ class TicketSettlementService {
 		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
 		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value ? $value : new \WP_Error(
 			'invalid_sales_report_datetime',
-			__( 'Sales report datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-events' ),
+			__( 'Sales report datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -1261,14 +1261,14 @@ class TicketSettlementService {
 	}
 
 	private function denied( $result ): \WP_Error {
-		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function commit() {
 		global $wpdb;
 		$result                   = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial aggregate boundary.
 		$this->transaction_active = false;
-		return false === $result ? new \WP_Error( 'settlement_commit_uncertain', __( 'The ticket settlement transaction outcome could not be confirmed.', 'extrachill-events' ) ) : true;
+		return false === $result ? new \WP_Error( 'settlement_commit_uncertain', __( 'The ticket settlement transaction outcome could not be confirmed.', 'extrachill-booking' ) ) : true;
 	}
 
 	private function rollback( \WP_Error $error ) {

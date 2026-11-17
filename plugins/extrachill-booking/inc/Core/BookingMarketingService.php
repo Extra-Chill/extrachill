@@ -150,7 +150,7 @@ class BookingMarketingService {
 				'payload'         => array(
 					'operation_id' => $operation['operation_id'],
 					'action'       => $operation['action'],
-					'error_code'   => sanitize_key( $result->get_error_code() ),
+					'error_code'   => sanitize_key( (string) $result->get_error_code() ),
 				),
 			)
 		);
@@ -160,15 +160,15 @@ class BookingMarketingService {
 	/** Reconcile, retry, or cancel one previously submitted bounded operation. */
 	public function manage( string $verb, int $booking_id, string $operation_ref, int $actor_id ) {
 		if ( ! in_array( $verb, array( 'get', 'retry', 'cancel' ), true ) || ! preg_match( '/^dop_[a-f0-9]{64}$/', $operation_ref ) ) {
-			return new \WP_Error( 'booking_marketing_operation_invalid', __( 'The marketing operation reference is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_marketing_operation_invalid', __( 'The marketing operation reference is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$booking = $this->bookings->get( $booking_id );
 		if ( ! is_array( $booking ) ) {
-			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
-			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		if ( 'retry' === $verb ) {
 			$context = $this->context( $booking_id, $actor_id );
@@ -178,7 +178,7 @@ class BookingMarketingService {
 		}
 		$receipt = $this->activity->find_by_external_id( $booking_id, 'marketing_operation_submitted', $operation_ref );
 		if ( ! is_array( $receipt ) ) {
-			return is_wp_error( $receipt ) ? $receipt : new \WP_Error( 'booking_marketing_operation_not_found', __( 'The marketing operation was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return is_wp_error( $receipt ) ? $receipt : new \WP_Error( 'booking_marketing_operation_not_found', __( 'The marketing operation was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		$action = (string) ( $receipt['payload']['data']['action'] ?? '' );
 		$result = $this->execute_ability(
@@ -200,7 +200,7 @@ class BookingMarketingService {
 		if ( is_array( $existing ) ) {
 			$prior = (string) ( $existing['payload']['data']['binding_hash'] ?? '' );
 			if ( ! hash_equals( $prior, $operation['binding_hash'] ) ) {
-				return new \WP_Error( 'booking_marketing_operation_conflict', __( 'This marketing operation was already approved with different content or policy.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_marketing_operation_conflict', __( 'This marketing operation was already approved with different content or policy.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 		}
 		$failed = $this->activity->find_by_idempotency( $context['booking']['id'], $operation['operation_id'] . ':approval-failed' );
@@ -210,7 +210,7 @@ class BookingMarketingService {
 		if ( is_array( $failed ) ) {
 			return new \WP_Error(
 				sanitize_key( (string) ( $failed['payload']['data']['error_code'] ?? 'booking_marketing_approval_failed' ) ),
-				__( 'The approved marketing operation failed permanently.', 'extrachill-events' ),
+				__( 'The approved marketing operation failed permanently.', 'extrachill-booking' ),
 				array(
 					'status'    => 409,
 					'retryable' => false,
@@ -221,7 +221,7 @@ class BookingMarketingService {
 		if ( ! is_object( $store ) || ! is_callable( array( $store, 'get' ) ) || ! is_callable( array( $store, 'store' ) ) || ! class_exists( '\AgentsAPI\AI\Approvals\WP_Agent_Pending_Action' ) ) {
 			return new \WP_Error(
 				'booking_marketing_approval_unavailable',
-				__( 'The approval substrate is unavailable.', 'extrachill-events' ),
+				__( 'The approval substrate is unavailable.', 'extrachill-booking' ),
 				array(
 					'status'    => 503,
 					'retryable' => true,
@@ -235,7 +235,7 @@ class BookingMarketingService {
 			$stored_kind  = is_callable( array( $stored, 'get_kind' ) ) ? $stored->get_kind() : '';
 			$stored_id    = is_callable( array( $stored, 'get_action_id' ) ) ? $stored->get_action_id() : '';
 			if ( self::PENDING_KIND !== $stored_kind || $action_id !== $stored_id || ! is_array( $stored_input ) || ( $stored_input['binding_hash'] ?? '' ) !== $operation['binding_hash'] || (int) ( $stored_input['booking_id'] ?? 0 ) !== (int) $context['booking']['id'] || ( $stored_input['trigger_key'] ?? '' ) !== $operation['trigger_key'] || ( $stored_input['channel_key'] ?? '' ) !== $operation['channel_key'] ) {
-				return new \WP_Error( 'booking_marketing_approval_conflict', __( 'The stored marketing approval does not match the frozen operation.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_marketing_approval_conflict', __( 'The stored marketing approval does not match the frozen operation.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 		}
 		if ( ! is_object( $stored ) ) {
@@ -276,7 +276,7 @@ class BookingMarketingService {
 				unset( $exception );
 				return new \WP_Error(
 					'booking_marketing_approval_stage_failed',
-					__( 'Marketing approval could not be staged.', 'extrachill-events' ),
+					__( 'Marketing approval could not be staged.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -286,7 +286,7 @@ class BookingMarketingService {
 			if ( ! $store->store( $pending_action ) ) {
 				return new \WP_Error(
 					'booking_marketing_approval_stage_failed',
-					__( 'Marketing approval could not be staged.', 'extrachill-events' ),
+					__( 'Marketing approval could not be staged.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -299,7 +299,7 @@ class BookingMarketingService {
 		if ( is_wp_error( $activity ) ) {
 			return $activity;
 		}
-		$status = is_callable( array( $stored, 'get_status' ) ) ? (string) $stored->get_status() : 'pending';
+		$status = is_object( $stored ) && method_exists( $stored, 'get_status' ) ? (string) $stored->get_status() : 'pending';
 		if ( 'accepted' === $status ) {
 			return $this->submit( $context, $operation, $actor_id, $action_id );
 		}
@@ -318,7 +318,7 @@ class BookingMarketingService {
 		}
 		$prior = (string) ( $frozen['payload']['data']['binding_hash'] ?? '' );
 		if ( ! hash_equals( $prior, $operation['binding_hash'] ) ) {
-			return new \WP_Error( 'booking_marketing_operation_conflict', __( 'This marketing operation is frozen with different content or policy.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_marketing_operation_conflict', __( 'This marketing operation is frozen with different content or policy.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$result = $this->execute_ability(
 			'datamachine/submit-delegated-operation',
@@ -375,7 +375,7 @@ class BookingMarketingService {
 			);
 			return new \WP_Error(
 				$code,
-				__( 'The delegated marketing operation failed.', 'extrachill-events' ),
+				__( 'The delegated marketing operation failed.', 'extrachill-booking' ),
 				array(
 					'status'    => 409,
 					'retryable' => ! empty( $result['retryable'] ),
@@ -408,7 +408,7 @@ class BookingMarketingService {
 		if ( is_wp_error( $receipt ) ) {
 			return new \WP_Error(
 				'booking_marketing_receipt_persist_failed',
-				__( 'The delegated marketing receipt could not be persisted.', 'extrachill-events' ),
+				__( 'The delegated marketing receipt could not be persisted.', 'extrachill-booking' ),
 				array(
 					'status'    => 503,
 					'retryable' => true,
@@ -430,7 +430,7 @@ class BookingMarketingService {
 		$event   = $context['event'];
 		$url     = get_permalink( $event->ID );
 		if ( ! is_string( $url ) || '' === $url ) {
-			return new \WP_Error( 'booking_marketing_event_unavailable', __( 'The canonical event URL is unavailable.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_marketing_event_unavailable', __( 'The canonical event URL is unavailable.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( self::SOCIAL_ACTION === $channel['action'] ) {
 			$caption    = '' !== $channel['social']['caption'] ? $channel['social']['caption'] : $event->post_title;
@@ -456,7 +456,7 @@ class BookingMarketingService {
 				'policy' => $channel['newsletter']['policy'],
 			);
 		} else {
-			return new \WP_Error( 'booking_marketing_action_invalid', __( 'The marketing action is unsupported.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_marketing_action_invalid', __( 'The marketing action is unsupported.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$operation_id = 'booking-marketing:' . hash( 'sha256', $booking['public_id'] . "\0" . $booking['event_id'] . "\0" . $trigger['key'] . "\0" . $channel['key'] );
 		$policy_hash  = $this->hash_value(
@@ -623,7 +623,7 @@ class BookingMarketingService {
 			if ( is_wp_error( $authorization ) ) {
 				return new \WP_Error(
 					'booking_marketing_authorization_persist_failed',
-					__( 'The delegated marketing authorization could not be persisted.', 'extrachill-events' ),
+					__( 'The delegated marketing authorization could not be persisted.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -650,16 +650,16 @@ class BookingMarketingService {
 	private function context( int $booking_id, int $actor_id ) {
 		$booking = $this->bookings->get( $booking_id );
 		if ( ! is_array( $booking ) ) {
-			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
-			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		$event = null === $booking['event_id'] ? null : get_post( $booking['event_id'] );
 		$type  = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
-		if ( 'confirmed' !== $booking['status'] || ! $event || ( $event->post_type ?? null ) !== $type || 'publish' !== ( $event->post_status ?? null ) ) {
-			return new \WP_Error( 'booking_marketing_event_unavailable', __( 'Marketing requires a confirmed booking linked to a published canonical event.', 'extrachill-events' ), array( 'status' => 409 ) );
+		if ( 'confirmed' !== $booking['status'] || ! $event || $event->post_type !== $type || 'publish' !== $event->post_status ) {
+			return new \WP_Error( 'booking_marketing_event_unavailable', __( 'Marketing requires a confirmed booking linked to a published canonical event.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$config = $this->config->get( $booking['venue_term_id'] );
 		return is_wp_error( $config ) ? $config : array(
@@ -684,12 +684,12 @@ class BookingMarketingService {
 				}
 			}
 		}
-		return new \WP_Error( 'booking_marketing_channel_unavailable', __( 'The configured marketing channel is no longer available.', 'extrachill-events' ), array( 'status' => 409 ) );
+		return new \WP_Error( 'booking_marketing_channel_unavailable', __( 'The configured marketing channel is no longer available.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function execute_ability( string $name, array $input ) {
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
-		if ( ! is_object( $ability ) || ! is_callable( array( $ability, 'execute' ) ) ) {
+		if ( ! is_object( $ability ) ) {
 			return array(
 				'success'    => false,
 				'error_code' => 'booking_marketing_operation_unavailable',
@@ -823,15 +823,15 @@ class BookingMarketingService {
 			$mime       = function_exists( 'get_post_mime_type' ) ? get_post_mime_type( $asset_ref ) : false;
 			$file       = function_exists( 'get_attached_file' ) ? get_attached_file( $asset_ref, true ) : false;
 			$file_hash  = is_string( $file ) && is_readable( $file ) ? hash_file( 'sha256', $file ) : false;
-			if ( ! $attachment || 'attachment' !== ( $attachment->post_type ?? '' ) || ! is_string( $url ) || '' === $url || ! is_string( $mime ) || '' === $mime || ! is_string( $file_hash ) ) {
-				return new \WP_Error( 'booking_marketing_asset_invalid', __( 'A marketing attachment is unavailable or invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+			if ( ! $attachment || 'attachment' !== $attachment->post_type || ! is_string( $url ) || '' === $url || ! is_string( $mime ) || '' === $mime || ! is_string( $file_hash ) ) {
+				return new \WP_Error( 'booking_marketing_asset_invalid', __( 'A marketing attachment is unavailable or invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$identities[] = array(
 				'id'           => (int) $asset_ref,
 				'url_hash'     => hash( 'sha256', $url ),
 				'file_hash'    => $file_hash,
 				'mime'         => $mime,
-				'modified_gmt' => (string) ( $attachment->post_modified_gmt ?? '' ),
+				'modified_gmt' => $attachment->post_modified_gmt,
 			);
 		}
 		return $identities;
@@ -850,7 +850,7 @@ class BookingMarketingService {
 				$role = 'image';
 			}
 			if ( ! is_string( $mime ) || ( 'video' === $role && ! str_starts_with( $mime, 'video/' ) ) || ( 'video' !== $role && ! str_starts_with( $mime, 'image/' ) ) ) {
-				return new \WP_Error( 'booking_marketing_asset_kind_invalid', __( 'A marketing attachment does not match its deterministic Socials role.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_marketing_asset_kind_invalid', __( 'A marketing attachment does not match its deterministic Socials role.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$refs[] = array(
 				'attachment_id' => (int) $attachment_id,
@@ -873,7 +873,7 @@ class BookingMarketingService {
 				'payload'         => array(
 					'trigger'    => $trigger,
 					'channel'    => $channel,
-					'error_code' => sanitize_key( $error->get_error_code() ),
+					'error_code' => sanitize_key( (string) $error->get_error_code() ),
 				),
 			)
 		);
@@ -902,16 +902,20 @@ class BookingMarketingService {
 	}
 
 	private function stale_error(): \WP_Error {
-		return new \WP_Error( 'booking_marketing_binding_stale', __( 'The booking, event, content, assets, or marketing policy changed after approval.', 'extrachill-events' ), array( 'status' => 409 ) );
+		return new \WP_Error( 'booking_marketing_binding_stale', __( 'The booking, event, content, assets, or marketing policy changed after approval.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	/** Record rejected approvals without storing their free-form reason. */
 	public static function on_pending_action_resolved( $action, $decision, string $resolver ): void {
 		unset( $resolver );
-		if ( ! is_object( $action ) || ! is_callable( array( $action, 'get_kind' ) ) || self::PENDING_KIND !== $action->get_kind() || ! is_object( $decision ) || ! is_callable( array( $decision, 'is_rejected' ) ) || ! $decision->is_rejected() ) {
+		if ( ! is_object( $action ) || ! method_exists( $action, 'get_kind' ) || self::PENDING_KIND !== $action->get_kind() || ! is_object( $decision ) || ! method_exists( $decision, 'is_rejected' ) || ! $decision->is_rejected() ) {
 			return;
 		}
-		$input = $action->get_apply_input();
+		if ( ! method_exists( $action, 'get_apply_input' ) || ! method_exists( $action, 'get_action_id' ) ) {
+			return;
+		}
+		$input       = $action->get_apply_input();
+		$approval_id = (string) $action->get_action_id();
 		if ( ! is_array( $input ) ) {
 			return;
 		}
@@ -922,9 +926,9 @@ class BookingMarketingService {
 				'actor_type'      => 'user',
 				'actor_id'        => get_current_user_id(),
 				'channel'         => sanitize_key( (string) ( $input['channel_key'] ?? '' ) ),
-				'external_id'     => $action->get_action_id(),
-				'idempotency_key' => 'marketing-denied:' . hash( 'sha256', $action->get_action_id() ),
-				'payload'         => array( 'approval_id' => $action->get_action_id() ),
+				'external_id'     => $approval_id,
+				'idempotency_key' => 'marketing-denied:' . hash( 'sha256', $approval_id ),
+				'payload'         => array( 'approval_id' => $approval_id ),
 			)
 		);
 	}

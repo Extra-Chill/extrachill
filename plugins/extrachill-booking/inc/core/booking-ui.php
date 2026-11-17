@@ -71,9 +71,9 @@ function extrachill_events_render_venue_archive_booking_action( $term ) {
 		return;
 	}
 	?>
-	<p class="venue-booking-cta"><a class="button-1 button-medium" href="<?php echo esc_url( $booking_url ); ?>"><?php esc_html_e( 'Submit a booking inquiry', 'extrachill-events' ); ?></a>
+	<p class="venue-booking-cta"><a class="button-1 button-medium" href="<?php echo esc_url( $booking_url ); ?>"><?php esc_html_e( 'Submit a booking inquiry', 'extrachill-booking' ); ?></a>
 	<?php if ( function_exists( 'extrachill_events_docs_url' ) ) : ?>
-		<a href="<?php echo esc_url( extrachill_events_docs_url( 'venue-booking-inquiries' ) ); ?>"><?php esc_html_e( 'How booking inquiries work', 'extrachill-events' ); ?></a>
+		<a href="<?php echo esc_url( extrachill_events_docs_url( 'venue-booking-inquiries' ) ); ?>"><?php esc_html_e( 'How booking inquiries work', 'extrachill-booking' ); ?></a>
 	<?php endif; ?>
 	</p>
 	<?php

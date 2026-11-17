@@ -101,14 +101,14 @@ class BookingCorrespondenceAutomationService {
 	/** Reconcile one exact lifecycle source. */
 	public function reconcile_source( int $source_activity_id ) {
 		$source = $this->activity->get( $source_activity_id );
-		return is_array( $source ) ? $this->process_source( $source ) : new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
+		return is_array( $source ) ? $this->process_source( $source ) : new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-booking' ) );
 	}
 
 	/** Queue one artist-authorized access recovery through the existing outbox. */
 	public function resend_receipt( int $source_activity_id, string $recovery_key ) {
 		$source = $this->activity->get( $source_activity_id );
 		if ( ! is_array( $source ) || 'inquiry_submitted' !== $source['kind'] ) {
-			return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-booking' ) );
 		}
 		return $this->process_receipt( $source, $recovery_key );
 	}
@@ -124,17 +124,17 @@ class BookingCorrespondenceAutomationService {
 		if ( 'deal_confirmed' === $source['kind'] ) {
 			return $this->process_competitors( $source );
 		}
-		return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
+		return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-booking' ) );
 	}
 
 	private function process_receipt( array $source, ?string $recovery_key = null ) {
 		$booking = $this->bookings->get( (int) $source['booking_id'] );
 		if ( ! is_array( $booking ) ) {
-			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_correspondence_booking_missing', __( 'The booking correspondence record is unavailable.', 'extrachill-events' ) );
+			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_correspondence_booking_missing', __( 'The booking correspondence record is unavailable.', 'extrachill-booking' ) );
 		}
 		$venue = get_term( (int) $booking['venue_term_id'], 'venue' );
 		if ( ! $venue || is_wp_error( $venue ) ) {
-			return new \WP_Error( 'booking_correspondence_venue_unavailable', __( 'The booking venue could not be resolved for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_venue_unavailable', __( 'The booking venue could not be resolved for correspondence.', 'extrachill-booking' ) );
 		}
 		$interval = $this->requested_interval( $booking );
 		if ( is_wp_error( $interval ) ) {
@@ -186,7 +186,7 @@ class BookingCorrespondenceAutomationService {
 	 */
 	private function venue_inquiry_message( array $booking, string $venue_name, array $interval ) {
 		if ( ! function_exists( 'ec_events_get_booking_console_url' ) ) {
-			return new \WP_Error( 'booking_correspondence_console_destination_unavailable', __( 'The booking console destination is unavailable for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_console_destination_unavailable', __( 'The booking console destination is unavailable for correspondence.', 'extrachill-booking' ) );
 		}
 		$console = ec_events_get_booking_console_url( (int) $booking['venue_term_id'], (int) $booking['id'] );
 		$message = $this->artist_message( $booking );
@@ -198,7 +198,7 @@ class BookingCorrespondenceAutomationService {
 			$interval['display'],
 			$this->space_name( $booking, true ),
 			$booking['public_id'],
-			'' === $message ? __( 'No message was provided.', 'extrachill-events' ) : $message,
+			'' === $message ? __( 'No message was provided.', 'extrachill-booking' ) : $message,
 			$console
 		);
 	}
@@ -289,7 +289,7 @@ class BookingCorrespondenceAutomationService {
 		$confirmed_start = $this->utc_datetime( (string) $confirmed['performance_start_at'] );
 		$confirmed_end   = $this->utc_datetime( (string) $confirmed['performance_end_at'] );
 		if ( ! $confirmed_start || ! $confirmed_end || $confirmed_end <= $confirmed_start ) {
-			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-booking' ) );
 		}
 		return $requested['start']->getTimestamp() < $confirmed_end->getTimestamp() && $requested['end']->getTimestamp() > $confirmed_start->getTimestamp();
 	}
@@ -303,12 +303,12 @@ class BookingCorrespondenceAutomationService {
 		$start_candidates = $this->local_datetime_candidates( (string) ( $booking['requested_start_at'] ?? '' ), $timezone );
 		$end_candidates   = $this->local_datetime_candidates( (string) ( $booking['requested_end_at'] ?? '' ), $timezone );
 		if ( is_wp_error( $start_candidates ) || is_wp_error( $end_candidates ) || 1 !== count( $start_candidates ) || 1 !== count( $end_candidates ) ) {
-			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid or ambiguous for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid or ambiguous for correspondence.', 'extrachill-booking' ) );
 		}
 		$start = $start_candidates[0];
 		$end   = $end_candidates[0];
 		if ( $end <= $start ) {
-			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-booking' ) );
 		}
 		$display  = $start->format( 'l, F j, Y, g:i A' ) . ' to ';
 		$display .= $start->format( 'Y-m-d' ) === $end->format( 'Y-m-d' ) ? $end->format( 'g:i A T' ) : $end->format( 'l, F j, Y, g:i A T' );
@@ -325,7 +325,7 @@ class BookingCorrespondenceAutomationService {
 			return $timezone;
 		}
 		if ( ! $start || ! $end || $end <= $start ) {
-			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The confirmed booking interval is invalid for correspondence.', 'extrachill-booking' ) );
 		}
 		return array(
 			'start_at' => $start->setTimezone( $timezone )->format( 'Y-m-d H:i:s' ),
@@ -338,12 +338,12 @@ class BookingCorrespondenceAutomationService {
 		$venue_data = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
 		$name       = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
 		if ( '' === $name || ! in_array( $name, timezone_identifiers_list(), true ) ) {
-			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-booking' ) );
 		}
 		try {
 			return new \DateTimeZone( $name );
 		} catch ( \Throwable $exception ) {
-			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone is unavailable for correspondence.', 'extrachill-booking' ) );
 		}
 	}
 
@@ -351,11 +351,12 @@ class BookingCorrespondenceAutomationService {
 	private function local_datetime_candidates( string $value, \DateTimeZone $timezone ) {
 		$wall = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $value, new \DateTimeZone( 'UTC' ) );
 		if ( false === $wall || $wall->format( 'Y-m-d H:i:s' ) !== $value ) {
-			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_interval_invalid', __( 'The requested venue-local interval is invalid for correspondence.', 'extrachill-booking' ) );
 		}
+		/** @var array|false $transitions PHP documents false on failure. */
 		$transitions = $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS );
 		if ( ! is_array( $transitions ) ) {
-			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone cannot be checked safely for correspondence.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_correspondence_timezone_invalid', __( 'The venue timezone cannot be checked safely for correspondence.', 'extrachill-booking' ) );
 		}
 		$candidates = array();
 		foreach ( array_unique( array_column( $transitions, 'offset' ) ) as $offset ) {
@@ -394,7 +395,7 @@ class BookingCorrespondenceAutomationService {
 
 	private function venue_name( array $booking ): string {
 		$venue = get_term( (int) $booking['venue_term_id'], 'venue' );
-		return $venue && ! is_wp_error( $venue ) ? (string) $venue->name : __( 'the venue', 'extrachill-events' );
+		return $venue && ! is_wp_error( $venue ) ? (string) $venue->name : __( 'the venue', 'extrachill-booking' );
 	}
 
 	private function space_name( array $booking, bool $requested ): string {
@@ -407,7 +408,7 @@ class BookingCorrespondenceAutomationService {
 				}
 			}
 		}
-		return '' !== $key ? $key : __( 'Not specified', 'extrachill-events' );
+		return '' !== $key ? $key : __( 'Not specified', 'extrachill-booking' );
 	}
 
 	private function schedule_reconciliation(): void {

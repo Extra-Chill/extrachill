@@ -50,8 +50,8 @@ class VenueBookingEventAbilities {
 		wp_register_ability(
 			'extrachill/convert-booking-to-event',
 			array(
-				'label'               => __( 'Convert Booking to Event', 'extrachill-events' ),
-				'description'         => __( 'Idempotently converts a confirmed venue booking into its canonical event.', 'extrachill-events' ),
+				'label'               => __( 'Convert Booking to Event', 'extrachill-booking' ),
+				'description'         => __( 'Idempotently converts a confirmed venue booking into its canonical event.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->input_schema(),
 				'output_schema'       => $this->output_schema(),
@@ -70,8 +70,8 @@ class VenueBookingEventAbilities {
 		wp_register_ability(
 			'extrachill/reconcile-booking-event',
 			array(
-				'label'               => __( 'Reconcile Booking Event', 'extrachill-events' ),
-				'description'         => __( 'Applies approved booking-authoritative corrections and idempotently reconciles the linked canonical event.', 'extrachill-events' ),
+				'label'               => __( 'Reconcile Booking Event', 'extrachill-booking' ),
+				'description'         => __( 'Applies approved booking-authoritative corrections and idempotently reconciles the linked canonical event.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->sync_input_schema(),
 				'output_schema'       => $this->sync_output_schema(),
@@ -182,7 +182,7 @@ class VenueBookingEventAbilities {
 	/** Missing records deliberately use the same denial as inaccessible records. */
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function input_schema(): array {

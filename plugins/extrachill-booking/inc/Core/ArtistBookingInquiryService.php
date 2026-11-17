@@ -72,7 +72,7 @@ final class ArtistBookingInquiryService {
 	public function request_correction( string $public_id, int $venue_term_id, string $capability, int $current_user_id, int $expected_version, string $idempotency_key, string $correction ) {
 		$correction = mb_substr( sanitize_textarea_field( $correction ), 0, 2000 );
 		if ( '' === $correction ) {
-			return new \WP_Error( 'booking_artist_correction_invalid', __( 'Describe the correction you need the venue to review.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_artist_correction_invalid', __( 'Describe the correction you need the venue to review.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return $this->record_request( $public_id, $venue_term_id, $capability, $current_user_id, $expected_version, $idempotency_key, 'artist_correction_requested', BookingNotificationService::TYPE_ARTIST_CORRECTION_REQUESTED, array( 'correction' => $correction ) );
 	}
@@ -217,7 +217,7 @@ final class ArtistBookingInquiryService {
 		}
 		$source = $this->activity->find_by_idempotency( (int) $booking['id'], 'inquiry:' . (string) $booking['inquiry_idempotency_key'] );
 		if ( ! is_array( $source ) || 'inquiry_submitted' !== $source['kind'] ) {
-			return new \WP_Error( 'booking_receipt_recovery_unavailable', __( 'The inquiry receipt source is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return new \WP_Error( 'booking_receipt_recovery_unavailable', __( 'The inquiry receipt source is unavailable.', 'extrachill-booking' ), array( 'status' => 503 ) );
 		}
 		$identity = hash_hmac( 'sha256', $key, wp_salt( 'auth' ) );
 		$queued   = $this->correspondence->resend_receipt( (int) $source['id'], 'artist-recovery:' . $identity );
@@ -289,7 +289,7 @@ final class ArtistBookingInquiryService {
 		}
 		$stored_hash = (string) ( $event['payload']['data']['operation_hash'] ?? '' );
 		if ( 64 !== strlen( $stored_hash ) || ! hash_equals( $stored_hash, $hash ) ) {
-			return $this->rollback( new \WP_Error( 'booking_artist_idempotency_conflict', __( 'The idempotency key was already used for different details.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'booking_artist_idempotency_conflict', __( 'The idempotency key was already used for different details.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$request = $this->notifications->request( $notification_type, (int) $event['id'] );
 		if ( is_wp_error( $request ) ) {
@@ -330,7 +330,7 @@ final class ArtistBookingInquiryService {
 		$stored = (string) ( $existing['payload']['data']['operation_hash'] ?? '' );
 		return 64 === strlen( $stored ) && hash_equals( $stored, $hash ) && is_array( $existing['payload']['data']['result'] ?? null )
 			? $existing['payload']['data']['result']
-			: new \WP_Error( 'booking_artist_idempotency_conflict', __( 'The idempotency key was already used for different details.', 'extrachill-events' ), array( 'status' => 409 ) );
+			: new \WP_Error( 'booking_artist_idempotency_conflict', __( 'The idempotency key was already used for different details.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function authorized_booking( string $public_id, int $venue_term_id, string $capability, int $current_user_id ) {
@@ -363,7 +363,7 @@ final class ArtistBookingInquiryService {
 		return array(
 			'public_id'          => $booking['public_id'],
 			'venue_term_id'      => (int) $booking['venue_term_id'],
-			'venue'              => array( 'name' => $venue && ! is_wp_error( $venue ) ? (string) $venue->name : __( 'Venue', 'extrachill-events' ) ),
+			'venue'              => array( 'name' => $venue && ! is_wp_error( $venue ) ? (string) $venue->name : __( 'Venue', 'extrachill-booking' ) ),
 			'submitted_at'       => $booking['created_at'],
 			'updated_at'         => $booking['updated_at'],
 			'status'             => $booking['status'],
@@ -380,7 +380,7 @@ final class ArtistBookingInquiryService {
 
 	private function requested_space( array $booking ): array {
 		$key    = (string) ( $booking['requested_space_key'] ?? '' );
-		$label  = '' !== $key ? $key : __( 'Not specified', 'extrachill-events' );
+		$label  = '' !== $key ? $key : __( 'Not specified', 'extrachill-booking' );
 		$config = $this->config->get( (int) $booking['venue_term_id'] );
 		if ( is_array( $config ) ) {
 			foreach ( (array) ( $config['spaces'] ?? array() ) as $space ) {
@@ -414,14 +414,14 @@ final class ArtistBookingInquiryService {
 		$table  = BookingSchema::bookings_table();
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, version = version + 1, updated_at = %s WHERE id = %d AND version = %d", $status, $now, $booking['id'], $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Artist transition is enclosed by the aggregate transaction.
-		return 1 === $result ? true : ( false === $result ? new \WP_Error( 'booking_update_failed', __( 'The booking could not be updated.', 'extrachill-events' ) ) : $this->version_error( $booking ) );
+		return 1 === $result ? true : ( false === $result ? new \WP_Error( 'booking_update_failed', __( 'The booking could not be updated.', 'extrachill-booking' ) ) : $this->version_error( $booking ) );
 	}
 
 	private function idempotency_key( string $key ) {
 		$trimmed = trim( $key );
 		return $trimmed === $key && '' !== $key && strlen( $key ) <= 120 && sanitize_text_field( $key ) === $key
 			? $key
-			: new \WP_Error( 'booking_artist_idempotency_key_invalid', __( 'A bounded plain-text idempotency key is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			: new \WP_Error( 'booking_artist_idempotency_key_invalid', __( 'A bounded plain-text idempotency key is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 	}
 
 	private function activity_key( string $kind, string $key ): string {
@@ -430,17 +430,17 @@ final class ArtistBookingInquiryService {
 
 	private function operation_hash( string $kind, int $expected_version, array $details ): string {
 		ksort( $details, SORT_STRING );
-		return hash_hmac( 'sha256', wp_json_encode( compact( 'kind', 'expected_version', 'details' ) ), wp_salt( 'auth' ) );
+		return hash_hmac( 'sha256', (string) wp_json_encode( compact( 'kind', 'expected_version', 'details' ) ), wp_salt( 'auth' ) );
 	}
 
 	private function begin() {
 		global $wpdb;
-		return false === $wpdb->query( 'START TRANSACTION' ) ? new \WP_Error( 'booking_transaction_start_failed', __( 'The booking transaction could not be started.', 'extrachill-events' ) ) : true; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
+		return false === $wpdb->query( 'START TRANSACTION' ) ? new \WP_Error( 'booking_transaction_start_failed', __( 'The booking transaction could not be started.', 'extrachill-booking' ) ) : true; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
 	}
 
 	private function commit() {
 		global $wpdb;
-		return false === $wpdb->query( 'COMMIT' ) ? new \WP_Error( 'booking_transaction_commit_uncertain', __( 'The booking transaction outcome could not be confirmed.', 'extrachill-events' ) ) : true; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
+		return false === $wpdb->query( 'COMMIT' ) ? new \WP_Error( 'booking_transaction_commit_uncertain', __( 'The booking transaction outcome could not be confirmed.', 'extrachill-booking' ) ) : true; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
 	}
 
 	private function rollback( \WP_Error $error ): \WP_Error {
@@ -450,21 +450,21 @@ final class ArtistBookingInquiryService {
 	}
 
 	private function forbidden(): \WP_Error {
-		return new \WP_Error( 'booking_inquiry_forbidden', __( 'This booking inquiry is unavailable.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'booking_inquiry_forbidden', __( 'This booking inquiry is unavailable.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function recovery_forbidden(): \WP_Error {
-		return new \WP_Error( 'booking_receipt_recovery_forbidden', __( 'The booking inquiry receipt cannot be recovered with those details.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'booking_receipt_recovery_forbidden', __( 'The booking inquiry receipt cannot be recovered with those details.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function terminal_error(): \WP_Error {
-		return new \WP_Error( 'booking_inquiry_terminal', __( 'This booking inquiry no longer accepts artist changes.', 'extrachill-events' ), array( 'status' => 409 ) );
+		return new \WP_Error( 'booking_inquiry_terminal', __( 'This booking inquiry no longer accepts artist changes.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function version_error( array $booking ): \WP_Error {
 		return new \WP_Error(
 			'booking_version_conflict',
-			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ),
 			array(
 				'status'          => 409,
 				'current_version' => (int) $booking['version'],

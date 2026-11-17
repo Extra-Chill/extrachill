@@ -37,7 +37,7 @@ class BookingMutationService {
 		$allowed_fields = array( 'contact_name', 'contact_email', 'contact_phone', 'requested_space_key', 'requested_start_at', 'requested_end_at', 'intake' );
 		$changes        = array_intersect_key( $changes, array_flip( $allowed_fields ) );
 		if ( empty( $changes ) ) {
-			return new \WP_Error( 'booking_intake_correction_required', __( 'At least one intake correction is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_intake_correction_required', __( 'At least one intake correction is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$normalized = array();
 		foreach ( $changes as $field => $value ) {
@@ -47,7 +47,7 @@ class BookingMutationService {
 				} else {
 					$value = sanitize_email( (string) $value );
 					if ( '' === $value ) {
-						return new \WP_Error( 'invalid_booking_contact_email', __( 'The contact email is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+						return new \WP_Error( 'invalid_booking_contact_email', __( 'The contact email is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 					}
 					$value = mb_substr( $value, 0, 255 );
 				}
@@ -64,7 +64,7 @@ class BookingMutationService {
 				}
 			} elseif ( 'intake' === $field ) {
 				if ( ! is_array( $value ) ) {
-					return new \WP_Error( 'invalid_booking_intake', __( 'Intake must be an object.', 'extrachill-events' ), array( 'status' => 400 ) );
+					return new \WP_Error( 'invalid_booking_intake', __( 'Intake must be an object.', 'extrachill-booking' ), array( 'status' => 400 ) );
 				}
 				$value = $this->encode( $value, 'intake' );
 				if ( is_wp_error( $value ) ) {
@@ -85,7 +85,7 @@ class BookingMutationService {
 				$start = $next['requested_start_at'];
 				$end   = $next['requested_end_at'];
 				if ( null !== $start && null !== $end && $end <= $start ) {
-					return new \WP_Error( 'invalid_booking_date_range', __( 'The requested end must be later than the requested start.', 'extrachill-events' ), array( 'status' => 400 ) );
+					return new \WP_Error( 'invalid_booking_date_range', __( 'The requested end must be later than the requested start.', 'extrachill-booking' ), array( 'status' => 400 ) );
 				}
 				return array( 'changed_fields' => array_keys( $changes ) );
 			}
@@ -113,7 +113,7 @@ class BookingMutationService {
 	public static function normalize_production_document( array $document ) {
 		$fields = array( 'version', 'support_requirements', 'support_offers', 'production_notes' );
 		if ( array_diff( $fields, array_keys( $document ) ) || array_diff( array_keys( $document ), $fields ) || 1 !== $document['version'] ) {
-			return new \WP_Error( 'invalid_booking_production', __( 'The production document is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_production', __( 'The production document is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$output = array( 'version' => 1 );
 		foreach ( array( 'support_requirements', 'support_offers' ) as $field ) {
@@ -121,7 +121,7 @@ class BookingMutationService {
 			if ( ! is_array( $items ) || count( $items ) > 50 ) {
 				return new \WP_Error(
 					'invalid_booking_production',
-					__( 'Production support lists must contain at most 50 items.', 'extrachill-events' ),
+					__( 'Production support lists must contain at most 50 items.', 'extrachill-booking' ),
 					array(
 						'field'  => $field,
 						'status' => 400,
@@ -133,7 +133,7 @@ class BookingMutationService {
 				if ( ! is_string( $item ) ) {
 					return new \WP_Error(
 						'invalid_booking_production',
-						__( 'Production support items must be strings.', 'extrachill-events' ),
+						__( 'Production support items must be strings.', 'extrachill-booking' ),
 						array(
 							'field'  => $field,
 							'status' => 400,
@@ -144,7 +144,7 @@ class BookingMutationService {
 				if ( '' === $item ) {
 					return new \WP_Error(
 						'invalid_booking_production',
-						__( 'Production support items cannot be empty.', 'extrachill-events' ),
+						__( 'Production support items cannot be empty.', 'extrachill-booking' ),
 						array(
 							'field'  => $field,
 							'status' => 400,
@@ -156,7 +156,7 @@ class BookingMutationService {
 		}
 		$notes = $document['production_notes'] ?? null;
 		if ( null !== $notes && ! is_string( $notes ) ) {
-			return new \WP_Error( 'invalid_booking_production', __( 'Production notes must be a string or null.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_production', __( 'Production notes must be a string or null.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$notes                      = null === $notes ? null : mb_substr( sanitize_textarea_field( $notes ), 0, 10000 );
 		$output['production_notes'] = '' === $notes ? null : $notes;
@@ -167,22 +167,22 @@ class BookingMutationService {
 	public static function normalize_deal_document( array $document ) {
 		$fields = array( 'version', 'type', 'guarantee_cents', 'revenue_share_basis_points', 'revenue_share_basis', 'currency', 'capacity', 'advance_ticket_price_cents', 'door_ticket_price_cents', 'ticket_fee_cents', 'tickets_on_sale_at', 'ticket_url', 'additional_terms' );
 		if ( array_diff( $fields, array_keys( $document ) ) || array_diff( array_keys( $document ), $fields ) || 1 !== $document['version'] ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 deal document is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 deal document is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ! is_string( $document['type'] ) || ! is_string( $document['revenue_share_basis'] ) || ! is_string( $document['currency'] ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The deal text fields are invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The deal text fields are invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$type = mb_substr( sanitize_key( $document['type'] ), 0, 32 );
 		if ( '' === $type || ! self::strict_integer( $document['guarantee_cents'], 0 ) || ! self::strict_integer( $document['revenue_share_basis_points'], 0, 10000 ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The deal financial terms are invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The deal financial terms are invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$basis = sanitize_key( $document['revenue_share_basis'] );
 		if ( ! in_array( $basis, array( 'gross_ticket_sales', 'net_ticket_sales', 'door_receipts' ), true ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The revenue share basis is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The revenue share basis is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$currency = strtoupper( sanitize_text_field( $document['currency'] ) );
 		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The deal currency is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The deal currency is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		foreach ( array(
 			'capacity'                   => 1,
@@ -193,7 +193,7 @@ class BookingMutationService {
 			if ( null !== $document[ $field ] && ! self::strict_integer( $document[ $field ], $minimum ) ) {
 				return new \WP_Error(
 					'invalid_booking_deal',
-					__( 'A deal ticket setting is invalid.', 'extrachill-events' ),
+					__( 'A deal ticket setting is invalid.', 'extrachill-booking' ),
 					array(
 						'field'  => $field,
 						'status' => 400,
@@ -203,15 +203,15 @@ class BookingMutationService {
 		}
 		$on_sale = $document['tickets_on_sale_at'];
 		if ( null !== $on_sale && ! self::valid_datetime( $on_sale ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The ticket on-sale time must be a UTC datetime.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The ticket on-sale time must be a UTC datetime.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$ticket_url = $document['ticket_url'];
 		if ( null !== $ticket_url && ( ! is_string( $ticket_url ) || false === filter_var( $ticket_url, FILTER_VALIDATE_URL ) || ! preg_match( '#^https?://#i', $ticket_url ) ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'The ticket URL must be a valid HTTP or HTTPS URL.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'The ticket URL must be a valid HTTP or HTTPS URL.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$terms = $document['additional_terms'];
 		if ( null !== $terms && ! is_string( $terms ) ) {
-			return new \WP_Error( 'invalid_booking_deal', __( 'Additional terms must be a string or null.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_deal', __( 'Additional terms must be a string or null.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return array(
 			'version'                    => 1,
@@ -249,7 +249,7 @@ class BookingMutationService {
 			$kind,
 			function ( array $current ) use ( $reject_confirmed ) {
 				return $reject_confirmed && null !== $current['confirmed_deal']
-					? new \WP_Error( 'booking_deal_already_confirmed', __( 'Confirmed deal terms are frozen.', 'extrachill-events' ), array( 'status' => 409 ) )
+					? new \WP_Error( 'booking_deal_already_confirmed', __( 'Confirmed deal terms are frozen.', 'extrachill-booking' ), array( 'status' => 409 ) )
 					: array();
 			}
 		);
@@ -258,11 +258,11 @@ class BookingMutationService {
 	private function mutate( int $booking_id, int $expected_version, int $actor_id, array $statuses, array $changes, string $kind, callable $validate ) {
 		$current = $this->bookings->get( $booking_id );
 		if ( ! is_array( $current ) ) {
-			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		$allowed = ( $this->authorization )( 'ec_access_venue', $current['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
-			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		$started = $this->begin_authorized( $current['venue_term_id'], $actor_id );
 		if ( is_wp_error( $started ) ) {
@@ -270,13 +270,13 @@ class BookingMutationService {
 		}
 		$current = $this->bookings->get( $booking_id );
 		if ( ! is_array( $current ) ) {
-			return $this->rollback( is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) ) );
 		}
 		if ( (int) $current['version'] !== $expected_version ) {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_version_conflict',
-					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $current['version'],
@@ -288,7 +288,7 @@ class BookingMutationService {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_mutation_status_forbidden',
-					__( 'This booking mutation is not allowed in the current status.', 'extrachill-events' ),
+					__( 'This booking mutation is not allowed in the current status.', 'extrachill-booking' ),
 					array(
 						'status'         => 409,
 						'booking_status' => $current['status'],
@@ -342,7 +342,7 @@ class BookingMutationService {
 		$table    = BookingSchema::bookings_table();
 		$result   = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE id = %d AND version = %d', $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal columns determine the prepared value count.
 		if ( 1 !== $result ) {
-			return $this->rollback( false === $result ? new \WP_Error( 'booking_mutation_update_failed', __( 'The booking mutation could not be saved.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : new \WP_Error( 'booking_version_conflict', __( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( false === $result ? new \WP_Error( 'booking_mutation_update_failed', __( 'The booking mutation could not be saved.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) : new \WP_Error( 'booking_version_conflict', __( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$before = array();
 		$after  = array();
@@ -377,15 +377,15 @@ class BookingMutationService {
 	private function begin_authorized( int $venue_id, int $actor_id ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate boundary.
-			return new \WP_Error( 'booking_mutation_transaction_start_failed', __( 'The booking mutation transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_mutation_transaction_start_failed', __( 'The booking mutation transaction could not start.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$this->transaction_active = true;
 		$locked                   = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
 		if ( is_wp_error( $locked ) ) {
-			return $this->rollback( new \WP_Error( 'booking_mutation_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_mutation_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-booking' ) ) );
 		}
 		$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id );
-		return true === $allowed ? true : $this->rollback( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+		return true === $allowed ? true : $this->rollback( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) ) );
 	}
 
 	private function encode( array $data, string $field ) {
@@ -397,7 +397,7 @@ class BookingMutationService {
 		);
 		return false === $json ? new \WP_Error(
 			'booking_payload_encode_failed',
-			__( 'Booking payload JSON encoding failed.', 'extrachill-events' ),
+			__( 'Booking payload JSON encoding failed.', 'extrachill-booking' ),
 			array(
 				'field'      => $field,
 				'json_error' => json_last_error_msg(),
@@ -411,7 +411,7 @@ class BookingMutationService {
 		}
 		return self::valid_datetime( $value ) ? $value : new \WP_Error(
 			'invalid_booking_datetime',
-			__( 'Booking datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-events' ),
+			__( 'Booking datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-booking' ),
 			array(
 				'field'  => $field,
 				'status' => 400,
@@ -449,7 +449,7 @@ class BookingMutationService {
 		global $wpdb;
 		$result                   = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate boundary.
 		$this->transaction_active = false;
-		return false === $result ? new \WP_Error( 'booking_mutation_transaction_commit_uncertain', __( 'The booking mutation transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : true;
+		return false === $result ? new \WP_Error( 'booking_mutation_transaction_commit_uncertain', __( 'The booking mutation transaction outcome could not be confirmed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) : true;
 	}
 
 	private function rollback( \WP_Error $cause ) {
@@ -461,7 +461,7 @@ class BookingMutationService {
 		$this->transaction_active = false;
 		return false === $result ? new \WP_Error(
 			'booking_mutation_transaction_rollback_failed',
-			__( 'The booking mutation transaction could not be rolled back.', 'extrachill-events' ),
+			__( 'The booking mutation transaction could not be rolled back.', 'extrachill-booking' ),
 			array(
 				'cause'          => $cause->get_error_code(),
 				'database_error' => $wpdb->last_error,

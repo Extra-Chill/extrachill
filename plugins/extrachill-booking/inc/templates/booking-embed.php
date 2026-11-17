@@ -17,14 +17,14 @@ $markup  = do_blocks( '<!-- wp:extrachill/venue-booking-inquiry {"venueId":' . a
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<?php // translators: %s is the venue name. ?>
-	<title><?php echo esc_html( sprintf( __( 'Book %s', 'extrachill-events' ), $context['venue_name'] ?? '' ) ); ?></title>
+	<title><?php echo esc_html( sprintf( __( 'Book %s', 'extrachill-booking' ), $context['venue_name'] ?? '' ) ); ?></title>
 	<?php wp_head(); ?>
 	<style>html,body{margin:0;background:transparent}.ec-booking-embed{padding:1rem;max-width:72rem;margin:0 auto}.ec-booking-embed__fallback{text-align:center}</style>
 </head>
 <body class="ec-booking-embed-document">
 	<main class="ec-booking-embed">
 		<?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted dynamic block output. ?>
-		<p class="ec-booking-embed__fallback"><a href="<?php echo esc_url( $context['booking_url'] ?? '' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open this booking form on Extra Chill', 'extrachill-events' ); ?></a></p>
+		<p class="ec-booking-embed__fallback"><a href="<?php echo esc_url( $context['booking_url'] ?? '' ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Open this booking form on Extra Chill', 'extrachill-booking' ); ?></a></p>
 	</main>
 	<script>
 	( function () {

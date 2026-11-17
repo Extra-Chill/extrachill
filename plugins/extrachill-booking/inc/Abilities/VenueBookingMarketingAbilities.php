@@ -65,8 +65,8 @@ class VenueBookingMarketingAbilities {
 		wp_register_ability(
 			'extrachill/trigger-booking-marketing',
 			array(
-				'label'               => __( 'Trigger Booking Marketing', 'extrachill-events' ),
-				'description'         => __( 'Recover or start configured marketing for a confirmed booking with a canonical event.', 'extrachill-events' ),
+				'label'               => __( 'Trigger Booking Marketing', 'extrachill-booking' ),
+				'description'         => __( 'Recover or start configured marketing for a confirmed booking with a canonical event.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->booking_schema(),
 				'output_schema'       => array(
@@ -92,8 +92,8 @@ class VenueBookingMarketingAbilities {
 				'extrachill/' . $verb . '-booking-marketing-operation',
 				array(
 					/* translators: %s: delegated operation action, such as Get, Retry, or Cancel. */
-					'label'               => sprintf( __( '%s Booking Marketing Operation', 'extrachill-events' ), ucfirst( $verb ) ),
-					'description'         => __( 'Act on one venue-authorized delegated marketing operation.', 'extrachill-events' ),
+					'label'               => sprintf( __( '%s Booking Marketing Operation', 'extrachill-booking' ), ucfirst( $verb ) ),
+					'description'         => __( 'Act on one venue-authorized delegated marketing operation.', 'extrachill-booking' ),
 					'category'            => 'extrachill-events',
 					'input_schema'        => $this->operation_schema(),
 					'output_schema'       => array(
@@ -135,13 +135,13 @@ class VenueBookingMarketingAbilities {
 	 */
 	public function can_access( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	/**
 	 * Register approval replay and fresh authorization callbacks.
 	 *
-	 * @param array $handlers Existing pending-action handlers.
+	 * @param mixed $handlers Existing pending-action handlers from the filter chain.
 	 * @return array Filtered handlers.
 	 */
 	public function pending_action_handlers( $handlers ) {
