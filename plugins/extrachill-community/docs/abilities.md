@@ -231,7 +231,7 @@ Registered in `inc/core/infrastructure-abilities.php`.
 - **Input:** `forum_id` (integer, required).
 - **Output:** `{forum_id, title, show_in_archive}` (the new state).
 - **Permission:** `__return_true`. There's no capability check, so only in-process callers can reach it because REST is off.
-- **Exposure:** `show_in_rest: false`. No working caller found. `wp extrachill community toggle-homepage` looks up the old name `extrachill/community-toggle-forum-homepage`, which is no longer registered.
+- **Exposure:** `show_in_rest: false`. Called by `wp extrachill community toggle-archive` (alias `toggle-homepage`).
 - **Side effects:** Adds or deletes the forum's `_show_on_homepage` meta.
 
 ### `extrachill/community-flush-cache`

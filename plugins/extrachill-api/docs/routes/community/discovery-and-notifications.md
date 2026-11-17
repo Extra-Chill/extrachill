@@ -6,7 +6,7 @@ Paths are relative to `/wp-json/extrachill/v1`; source files are under `inc/rout
 
 **Source:** `forums.php`. **Permission:** `__return_true`.
 
-**Parameters:** optional `homepage_only` boolean (false); forwarded only when true.
+**Parameters:** optional `archive_only` boolean (false); forwarded as the ability's `archive_only` input only when true. `homepage_only` is accepted as a deprecated alias for `archive_only`.
 
 **Owner:** Community ability `extrachill/community-list-forums`. **Response:** `{forums: [{forum_id, title, parent_id, status, topic_count, reply_count, show_in_archive, url}]}`, filtered by owner visibility checks. Missing ability: `ability_missing` (503).
 

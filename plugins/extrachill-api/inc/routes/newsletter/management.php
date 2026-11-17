@@ -134,31 +134,6 @@ function extrachill_api_register_newsletter_campaign_management_routes() {
 		)
 	);
 
-	// GET /newsletter/subscriber-status — Check subscriber.
-	register_rest_route(
-		'extrachill/v1',
-		'/newsletter/subscriber-status',
-		array(
-			'methods'             => WP_REST_Server::READABLE,
-			'callback'            => 'extrachill_api_newsletter_subscriber_status_handler',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
-			},
-			'args'                => array(
-				'email'   => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_email',
-				),
-				'list_id' => array(
-					'required'          => true,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-			),
-		)
-	);
-
 	// POST /newsletter/sync — Bulk sync.
 	register_rest_route(
 		'extrachill/v1',
@@ -282,25 +257,6 @@ function extrachill_api_newsletter_update_settings_handler( $request ) {
 	}
 
 	$result = $ability->execute( $input );
-
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return rest_ensure_response( $result );
-}
-
-function extrachill_api_newsletter_subscriber_status_handler( $request ) {
-	$ability = wp_get_ability( 'extrachill/subscriber-status' );
-	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_available', 'Subscriber status ability not available.', array( 'status' => 500 ) );
-	}
-	$result = $ability->execute(
-		array(
-			'email'   => $request->get_param( 'email' ),
-			'list_id' => $request->get_param( 'list_id' ),
-		)
-	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

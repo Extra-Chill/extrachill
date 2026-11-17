@@ -596,52 +596,6 @@ class NewsletterCommand {
 	}
 
 	/**
-	 * Check a subscriber's status in a Sendy list.
-	 *
-	 * ## OPTIONS
-	 *
-	 * <email>
-	 * : Email address to check.
-	 *
-	 * --list-id=<list-id>
-	 * : Sendy list ID (encrypted).
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     wp extrachill newsletter subscriber-status user@example.com --list-id=abc123
-	 *
-	 * @subcommand subscriber-status
-	 * @alias subscriber_status
-	 * @when after_wp_load
-	 */
-	public function subscriber_status( $args, $assoc_args ) {
-		$email   = $args[0] ?? '';
-		$list_id = $assoc_args['list-id'] ?? '';
-
-		if ( empty( $email ) || ! is_email( $email ) ) {
-			WP_CLI::error( 'Valid email address is required.' );
-		}
-
-		if ( empty( $list_id ) ) {
-			WP_CLI::error( '--list-id is required.' );
-		}
-
-		$result = $this->call_dependency(
-			'extrachill_newsletter_ability_subscriber_status',
-			array(
-				'email'   => $email,
-				'list_id' => $list_id,
-			)
-		);
-
-		if ( is_wp_error( $result ) ) {
-			WP_CLI::error( $result->get_error_message() );
-		}
-
-		WP_CLI::line( sprintf( '%s: %s', $result['email'], $result['status'] ) );
-	}
-
-	/**
 	 * Get total active subscribers across all Sendy lists.
 	 *
 	 * Returns the network-wide count plus a per-list breakdown.

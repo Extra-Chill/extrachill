@@ -105,8 +105,8 @@ class OrderCommand extends ShopCommandBase {
 	 * : Order ID.
 	 *
 	 * [--amount=<amount>]
-	 * : Partial refund amount. Accepted only once extrachill/shop-refund-order
-	 * declares an `amount` input; until then refunds are always full.
+	 * : Partial refund amount in the order currency. Defaults to everything
+	 * still refundable; the ability rejects amounts above that.
 	 *
 	 * [--reason=<reason>]
 	 * : Reason recorded on the refund.
@@ -130,6 +130,7 @@ class OrderCommand extends ShopCommandBase {
 	 *
 	 *     wp extrachill shop order refund 1234 --reason="Out of stock" --url=shop.extrachill.com --user=1
 	 *     wp extrachill shop order refund 1234 --yes --url=shop.extrachill.com --user=1
+	 *     wp extrachill shop order refund 1234 --amount=12.50 --reason="Partial" --url=shop.extrachill.com --user=1
 	 *
 	 * @when after_wp_load
 	 */
@@ -139,10 +140,6 @@ class OrderCommand extends ShopCommandBase {
 		$input    = array( 'id' => $order_id );
 
 		if ( isset( $assoc_args['amount'] ) ) {
-			$schema = (array) $refund->get_input_schema();
-			if ( ! isset( $schema['properties']['amount'] ) ) {
-				WP_CLI::error( 'extrachill/shop-refund-order only issues full refunds; --amount is not supported yet. Re-run without --amount for a full refund.' );
-			}
 			if ( ! is_numeric( $assoc_args['amount'] ) || (float) $assoc_args['amount'] <= 0 ) {
 				WP_CLI::error( '--amount must be a positive number.' );
 			}
