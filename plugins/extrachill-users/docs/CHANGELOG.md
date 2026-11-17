@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.70.3] - 2026-11-17
+
+### Fixed
+- key Local Scene digest on the subscribed city
+
 ## [0.70.2] - 2026-11-16
 
 ### Fixed
