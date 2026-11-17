@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.29.1] - 2026-11-17
+
+### Changed
+- run contact and studio PHPUnit on Docker MySQL, guard against external DB config
+
 ## [0.29.0] - 2026-11-16
 
 ### Added
