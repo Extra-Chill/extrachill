@@ -179,7 +179,7 @@ function extrachill_analytics_pageview_proof( $post_id, $source_path, $route_fam
  * @return bool
  */
 function extrachill_analytics_write_post_is_published( $post ) {
-	$status = isset( $post->post_status ) ? (string) $post->post_status : get_post_status( $post );
+	$status = (string) $post->post_status;
 
 	return 'publish' === $status;
 }
@@ -202,9 +202,9 @@ function extrachill_analytics_public_post_matches_source( $post_id, $source_path
 		return false;
 	}
 
-	$permalink      = get_permalink( $post );
-	$canonical_host = is_string( $permalink ) ? wp_parse_url( $permalink, PHP_URL_HOST ) : '';
-	$canonical_path = is_string( $permalink ) ? extrachill_analytics_normalize_route_path( $permalink ) : '';
+	$permalink      = (string) get_permalink( $post );
+	$canonical_host = '' !== $permalink ? wp_parse_url( $permalink, PHP_URL_HOST ) : '';
+	$canonical_path = '' !== $permalink ? extrachill_analytics_normalize_route_path( $permalink ) : '';
 	$canonical_host = is_string( $canonical_host ) ? strtolower( rtrim( $canonical_host, '.' ) ) : '';
 	$source_host    = strtolower( rtrim( (string) $source_host, '.' ) );
 	if ( $canonical_host === $source_host && $canonical_path === $source_path ) {
@@ -215,13 +215,13 @@ function extrachill_analytics_public_post_matches_source( $post_id, $source_path
 		return false;
 	}
 
-	$post_slug = isset( $post->post_name ) ? sanitize_title( $post->post_name ) : '';
+	$post_slug = sanitize_title( $post->post_name );
 	$path_slug = sanitize_title( basename( untrailingslashit( $source_path ) ) );
 	if ( '' !== $post_slug && $post_slug === $path_slug ) {
 		return true;
 	}
 
-	$host_label = sanitize_title( strtok( $source_host, '.' ) );
+	$host_label = sanitize_title( (string) strtok( $source_host, '.' ) );
 
 	return '/' === $source_path
 		&& '' !== $post_slug
@@ -428,7 +428,7 @@ function extrachill_analytics_validate_public_event_data( $event_type, $event_da
  * Validate and normalize an Analytics-owned public browser event contract.
  *
  * @param string $event_type Event type.
- * @param array  $event_data Event dimensions.
+ * @param mixed  $event_data Event dimensions.
  * @param string $source_url Claimed browser source.
  * @return array{event_data: array, source_url: string}|WP_Error
  */

@@ -102,7 +102,7 @@ function extrachill_analytics_revenue_resolve_slug( $raw_slug, $hostname ) {
 
 	if ( $post_id > 0 && function_exists( 'get_post' ) ) {
 		$post = get_post( $post_id );
-		if ( is_object( $post ) && isset( $post->post_name ) ) {
+		if ( is_object( $post ) ) {
 			$slug = $post->post_name;
 		} else {
 			$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
@@ -212,7 +212,15 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
 		return array(
 			'success' => false,
-			'error'   => 'CSV has no slug/url/page column. Headers seen: ' . implode( ', ', array_map( 'sanitize_text_field', $headers ) ),
+			'error'   => 'CSV has no slug/url/page column. Headers seen: ' . implode(
+				', ',
+				array_map(
+					static function ( $header ) {
+						return sanitize_text_field( (string) $header );
+					},
+					$headers
+				)
+			),
 		);
 	}
 

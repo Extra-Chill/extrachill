@@ -157,16 +157,21 @@ function extrachill_analytics_revenue_snapshot_identity( array $args ) {
  * batch counts the ability reports, so the load-bearing logic is fully testable
  * without a database.
  *
- * @param array              $records Normalized incoming records, each with at least a `slug`.
- * @param array<int, object> $existing Existing rows of the target snapshot (objects with `id`, `slug`).
- * @param string             $mode     'replace' or 'additive'.
+ * @param array                                      $records Normalized incoming records, each with at least a `slug`.
+ * @param array<int, \stdClass|array<string, mixed>> $existing Existing rows of the target snapshot (objects or arrays with `id`, `slug`).
+ * @param string                                     $mode     'replace' or 'additive'.
  * @return array{inserts:array,replaces:array,deletes:array} Plan.
  */
 function extrachill_analytics_revenue_build_ingestion_plan( array $records, array $existing, $mode ) {
 	$existing_by_slug = array();
 	foreach ( $existing as $row ) {
-		$slug                      = is_object( $row ) && isset( $row->slug ) ? (string) $row->slug : (string) ( isset( $row['slug'] ) ? $row['slug'] : '' );
-		$id                        = is_object( $row ) && isset( $row->id ) ? (int) $row->id : (int) ( isset( $row['id'] ) ? $row['id'] : 0 );
+		if ( is_object( $row ) ) {
+			$slug = isset( $row->slug ) ? (string) $row->slug : '';
+			$id   = isset( $row->id ) ? (int) $row->id : 0;
+		} else {
+			$slug = (string) ( isset( $row['slug'] ) ? $row['slug'] : '' );
+			$id   = (int) ( isset( $row['id'] ) ? $row['id'] : 0 );
+		}
 		$existing_by_slug[ $slug ] = $id;
 	}
 
@@ -512,7 +517,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			$post_id = (int) $input['post_id'];
 			if ( function_exists( 'get_post' ) ) {
 				$post = get_post( $post_id );
-				$slug = ( is_object( $post ) && isset( $post->post_name ) ) ? $post->post_name : trim( (string) strtok( $raw_slug, '?#' ), '/' );
+				$slug = is_object( $post ) ? $post->post_name : trim( (string) strtok( $raw_slug, '?#' ), '/' );
 			} else {
 				$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
 			}

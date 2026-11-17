@@ -10,8 +10,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Apply observation-horizon semantics to exact-week cohort aggregates.
  *
- * @param array<object> $rows Cohort query rows.
- * @param string        $as_of UTC observation cutoff.
+ * @param array<\stdClass> $rows Cohort query rows.
+ * @param string           $as_of UTC observation cutoff.
  * @return array<int,array<string,int|float|string|bool|null>> Cohort response rows.
  */
 function extrachill_analytics_build_cohort_retention( $rows, $as_of ) {

@@ -164,7 +164,7 @@ function extrachill_analytics_activation_each_event_page( $table, $event_types, 
  * Registration events carry the newly created user in event_data before that
  * account is authenticated, matching conversion-map outcome deduplication.
  *
- * @param object $row Analytics event row.
+ * @param \stdClass $row Analytics event row.
  * @return int Positive user ID, or 0 when unavailable.
  */
 function extrachill_analytics_activation_event_user_id( $row ) {
@@ -204,7 +204,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	$window_values = array( $now_utc );
 
 	if ( $days > 0 ) {
-		$since           = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$since           = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 		$window_where[]  = 'created_at >= %s';
 		$window_values[] = $since;
 	}
@@ -299,7 +299,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 	);
 
 	$step_rows = array();
-	$top_count = isset( $ordered_counts[0] ) ? $ordered_counts[0] : 0;
+	$top_count = $ordered_counts[0];
 
 	foreach ( $steps as $index => $event_type ) {
 		$step_rows[] = array(
@@ -347,7 +347,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		$prev_count = $people;
 	}
 
-	$last_count         = ! empty( $step_rows ) ? end( $step_rows )['people'] : 0;
+	$last_count         = end( $step_rows )['people'];
 	$overall_conversion = $top_count > 0 ? round( $last_count / $top_count, 4 ) : 0.0;
 
 	// Friction / anomaly signals — failure modes that run ALONGSIDE the ordered
@@ -384,7 +384,7 @@ function extrachill_analytics_ability_get_activation_funnel( $input ) {
 		'days'                 => $days,
 		'blog_id'              => $blog_id,
 		'period'               => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		// Exact UTC window the counts were computed over, reproducible with the
 		// same created_at >= since bound used by get-analytics-summary.

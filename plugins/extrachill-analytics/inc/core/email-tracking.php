@@ -33,7 +33,8 @@ function extrachill_analytics_email_recipient_count( $recipients ) {
 	if ( is_array( $recipients ) ) {
 		$count = count( array_filter( $recipients ) );
 	} else {
-		$count = count( preg_split( '/\s*,\s*/', (string) $recipients, -1, PREG_SPLIT_NO_EMPTY ) );
+		$parts = preg_split( '/\s*,\s*/', (string) $recipients, -1, PREG_SPLIT_NO_EMPTY );
+		$count = is_array( $parts ) ? count( $parts ) : 0;
 	}
 
 	return min( 100, $count );

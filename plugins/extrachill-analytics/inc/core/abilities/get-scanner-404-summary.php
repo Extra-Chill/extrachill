@@ -122,7 +122,7 @@ function extrachill_analytics_ability_get_scanner_404_summary( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -146,11 +146,7 @@ function extrachill_analytics_ability_get_scanner_404_summary( $input ) {
 		WHERE {$where_clause}
 		GROUP BY url, ip_hash, day";
 
-	if ( ! empty( $values ) ) {
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-	} else {
-		$rows = $wpdb->get_results( $sql );
-	}
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$scanner_total = 0;
@@ -225,7 +221,7 @@ function extrachill_analytics_ability_get_scanner_404_summary( $input ) {
 		'group_by'      => $group_by,
 		'days'          => $days,
 		'period'        => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'truncated'     => $truncated,
 	);

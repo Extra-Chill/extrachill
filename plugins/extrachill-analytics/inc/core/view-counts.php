@@ -32,7 +32,7 @@ function ec_track_post_views($post_id) {
  * @return int
  */
 function ec_get_post_views($post_id = null) {
-	$post_id = $post_id ? $post_id : get_the_ID();
+	$post_id = $post_id ? $post_id : (int) get_the_ID();
 	return (int) get_post_meta($post_id, 'ec_post_views', true);
 }
 

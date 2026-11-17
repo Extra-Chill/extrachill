@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  * Returns the FIRST matching pattern, or null if the string looks benign.
  * Order is important: higher-confidence patterns fire first.
  *
- * @param string $term The raw search term.
+ * @param mixed $term The raw search term.
  * @return array|null Classification array on match, null if benign.
  *                    Shape: [
  *                      'pattern_name'    => 'time_based_sqli',

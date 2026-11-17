@@ -152,7 +152,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$since   = '';
 
 	if ( $days > 0 ) {
-		$since    = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$since    = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 		$where[]  = 'created_at >= %s';
 		$values[] = $since;
 	}
@@ -253,9 +253,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$distinct_terms_sql = "SELECT {$term_expr} AS term, COUNT(*) AS cnt "
 		. 'FROM ' . $table . ' WHERE ' . implode( ' AND ', $where ) . ' '
 		. 'GROUP BY term';
-	$distinct_term_rows = empty( $values )
-		? $wpdb->get_results( $distinct_terms_sql )
-		: $wpdb->get_results( $wpdb->prepare( $distinct_terms_sql, $values ) );
+	$distinct_term_rows = $wpdb->get_results( $wpdb->prepare( $distinct_terms_sql, $values ) );
 
 	$attack_terms             = array();
 	$excluded_attack_searches = 0;
@@ -285,9 +283,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	// filtered-vs-human split; total_searches is the honest denominator for
 	// zero_result_rate.
 	$total_sql      = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
-	$total_searches = empty( $where_values )
-		? (int) $wpdb->get_var( $total_sql )
-		: (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $where_values ) );
+	$total_searches = (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $where_values ) );
 
 	// Of those human-counted searches, how many are pre-classifier NULL/no-flag
 	// rows kept as human by design vs. explicitly stamped is_bot:false by the
@@ -301,9 +297,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 	$unclassified_where[]  = "JSON_EXTRACT(event_data, '$.is_bot') IS NULL";
 	$unclassified_clause   = implode( ' AND ', $unclassified_where );
 	$unclassified_sql      = "SELECT COUNT(*) FROM {$table} WHERE {$unclassified_clause}";
-	$unclassified_searches = empty( $where_values )
-		? (int) $wpdb->get_var( $unclassified_sql )
-		: (int) $wpdb->get_var( $wpdb->prepare( $unclassified_sql, $where_values ) );
+	$unclassified_searches = (int) $wpdb->get_var( $wpdb->prepare( $unclassified_sql, $where_values ) );
 	$classified_human      = max( 0, $total_searches - $unclassified_searches );
 
 	// Grouped gap terms. Each term is bucketed by its BEST result (MIN): a term
@@ -328,9 +322,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		. "FROM {$table} WHERE {$gap_where_clause} "
 		. 'GROUP BY term ORDER BY cnt DESC';
 
-	$gap_rows = empty( $gap_values )
-		? $wpdb->get_results( $gap_sql )
-		: $wpdb->get_results( $wpdb->prepare( $gap_sql, $gap_values ) );
+	$gap_rows = $wpdb->get_results( $wpdb->prepare( $gap_sql, $gap_values ) );
 
 	// Per-source breakdown (issue #86): how the in-window search volume splits
 	// across surfaces (nav / archive / bbpress_forum / unknown), and how many
@@ -343,9 +335,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		. "FROM {$table} WHERE {$where_clause} "
 		. 'GROUP BY source ORDER BY cnt DESC';
 
-	$by_source_rows = empty( $where_values )
-		? $wpdb->get_results( $by_source_sql )
-		: $wpdb->get_results( $wpdb->prepare( $by_source_sql, $where_values ) );
+	$by_source_rows = $wpdb->get_results( $wpdb->prepare( $by_source_sql, $where_values ) );
 
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
@@ -434,7 +424,7 @@ function extrachill_analytics_ability_get_search_gaps( $input ) {
 		'max_results'              => $max_results,
 		'days'                     => $days,
 		'period'                   => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'since'                    => $since,
 		'as_of'                    => $now_utc,

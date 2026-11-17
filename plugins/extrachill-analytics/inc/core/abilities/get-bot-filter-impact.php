@@ -135,7 +135,7 @@ function extrachill_analytics_ability_get_bot_filter_impact( $input ) {
 	$since   = '';
 
 	if ( $days > 0 ) {
-		$since    = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$since    = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 		$where[]  = 'created_at >= %s';
 		$values[] = $since;
 	}
@@ -237,7 +237,7 @@ function extrachill_analytics_ability_get_bot_filter_impact( $input ) {
 		'days'           => $days,
 		'blog_id'        => $blog_id,
 		'period'         => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'since'          => $since,
 		'as_of'          => $now_utc,

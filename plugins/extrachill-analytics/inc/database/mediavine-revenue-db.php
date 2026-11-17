@@ -222,7 +222,7 @@ function extrachill_analytics_revenue_upsert( array $row ) {
  *     @type string $period_start Inclusive window start (Y-m-d), or '' for any.
  *     @type string $period_end   Inclusive window end (Y-m-d), or '' for any.
  * }
- * @return array<int, object> Snapshot rows.
+ * @return array<int, \stdClass> Snapshot rows.
  */
 function extrachill_analytics_revenue_get_rows( array $args = array() ) {
 	global $wpdb;
@@ -298,7 +298,7 @@ function extrachill_analytics_revenue_build_scope_clause( array $args = array() 
  * itself.
  *
  * @param array $args See extrachill_analytics_revenue_build_scope_clause().
- * @return object|null { rows_count, views, revenue } or null on error.
+ * @return \stdClass|null { rows_count, views, revenue } or null on error.
  */
 function extrachill_analytics_revenue_get_scope_totals( array $args = array() ) {
 	global $wpdb;
@@ -318,7 +318,7 @@ function extrachill_analytics_revenue_get_scope_totals( array $args = array() ) 
  * List distinct import batches for a blog, newest first.
  *
  * @param int $blog_id Blog ID (default: current blog).
- * @return array<int, object> Rows with import_batch, period_label, period_start, period_end, rows, imported_at.
+ * @return array<int, \stdClass> Rows with import_batch, period_label, period_start, period_end, rows, imported_at.
  */
 function extrachill_analytics_revenue_list_batches( $blog_id = 0 ) {
 	global $wpdb;
@@ -352,7 +352,7 @@ function extrachill_analytics_revenue_list_batches( $blog_id = 0 ) {
  *     @type int  $blog_id        Blog ID (default: current blog).
  *     @type bool $include_alltime Include the cumulative "all-time" bucket (default: false).
  * }
- * @return array<int, object> Rows: period_label, period_start, period_end, pages, views, revenue.
+ * @return array<int, \stdClass> Rows: period_label, period_start, period_end, pages, views, revenue.
  */
 function extrachill_analytics_revenue_get_timeseries( array $args = array() ) {
 	global $wpdb;

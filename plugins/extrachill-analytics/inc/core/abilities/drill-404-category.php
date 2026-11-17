@@ -90,7 +90,7 @@ function extrachill_analytics_ability_drill_404_category( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -110,11 +110,7 @@ function extrachill_analytics_ability_drill_404_category( $input ) {
 		GROUP BY url
 		ORDER BY hits DESC";
 
-	if ( ! empty( $values ) ) {
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
-	} else {
-		$rows = $wpdb->get_results( $sql );
-	}
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL
 
 	// Drop URLs that already have an active redirect rule so solved 404s
