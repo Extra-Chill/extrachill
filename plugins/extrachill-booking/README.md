@@ -10,6 +10,10 @@ Booking depends on Events and owns the inquiry block and its configuration/polic
 
 Deploy Booking before Events. After deployment, network-deactivate the retired Events inquiry adapter. Booking tolerates the old adapter's already-loaded classes during the deploy window.
 
+## Documentation
+
+- [Booking abilities](docs/abilities.md) — input/output contracts, permissions, transport exposure, and side effects.
+
 ## Development
 
 Build `packages/tokens`, `packages/api-client`, and `packages/components` first, then:
