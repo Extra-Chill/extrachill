@@ -55,14 +55,14 @@ foreach ( $user_artists as $artist_id ) {
 
 // Build config payload for frontend (management-only, no creation)
 $config = array(
-	'restUrl'       => rest_url( 'extrachill/v1/' ),
-	'nonce'         => wp_create_nonce( 'wp_rest' ),
-	'userArtists'   => $user_artists_data,
-	'selectedId'    => (int) $selected_artist_id,
-	'artistSiteUrl' => home_url(),
+	'restUrl'         => rest_url( 'extrachill/v1/' ),
+	'nonce'           => wp_create_nonce( 'wp_rest' ),
+	'userArtists'     => $user_artists_data,
+	'selectedId'      => (int) $selected_artist_id,
+	'artistSiteUrl'   => home_url(),
 	'eventsSubmitUrl' => ec_artist_shows_submit_url(),
 	'qrCodesUrl'      => function_exists( 'extrachill_artist_platform_managed_qr_url' ) ? extrachill_artist_platform_managed_qr_url() : '',
-	'assets'        => array(
+	'assets'          => array(
 		'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
 		'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
 		'shareModalCssUrl'  => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-share-modal.css',

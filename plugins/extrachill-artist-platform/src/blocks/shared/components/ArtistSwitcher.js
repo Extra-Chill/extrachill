@@ -4,6 +4,9 @@
  * Dropdown for switching between user's artists across all artist platform blocks.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useCallback, useId } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 

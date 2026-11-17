@@ -4,8 +4,14 @@
  * Mounts the React analytics app when the block is rendered on the frontend.
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch, { createRootURLMiddleware, createNonceMiddleware } from '@wordpress/api-fetch';
 import { createRoot } from '@wordpress/element';
+/**
+ * Internal dependencies
+ */
 import { AnalyticsProvider } from './context/AnalyticsContext';
 import Analytics from './components/Analytics';
 
