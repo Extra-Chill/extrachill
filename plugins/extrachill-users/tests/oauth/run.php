@@ -68,6 +68,16 @@ function wp_native_auth_issue_refresh_token( ...$args ) {
 	);
 }
 function ec_is_onboarding_complete( $id ) { return false; }
+function extrachill_users_maybe_challenge_login( $user, $device_id, $login_options, $flow ) {
+	if ( empty( $GLOBALS['challenge'] ) ) {
+		return null;
+	}
+	$GLOBALS['challenge_calls'][] = array( $user->ID, $device_id, $login_options, $flow );
+	return array(
+		'challenge_required' => true,
+		'challenge_policy'   => 'two-factor',
+	);
+}
 function ec_users_is_valid_return_to_url( $url ) { return str_starts_with( $url, 'https://community.extrachill.com/' ); }
 function ec_users_create_account_created_token( $id ) { return 'created'; }
 function ec_users_post_registration_redirect_url( $join, $complete, $url, $token ) { return $url ? $url : 'https://community.extrachill.com/'; }
@@ -95,11 +105,12 @@ function add_test_user( $email, $name = 'existing' ) {
 	return $GLOBALS['users'][ $id ];
 }
 function reset_accounts() {
-	foreach ( array( 'users', 'meta', 'filters', 'actions', 'consent', 'access', 'refresh' ) as $key ) {
+	foreach ( array( 'users', 'meta', 'filters', 'actions', 'consent', 'access', 'refresh', 'challenge_calls' ) as $key ) {
 		$GLOBALS[ $key ] = array();
 	}
-	$GLOBALS['member']  = true;
-	$GLOBALS['cookies'] = 0;
+	$GLOBALS['member']    = true;
+	$GLOBALS['challenge'] = false;
+	$GLOBALS['cookies']   = 0;
 }
 function b64( $s ) {
 	return rtrim( strtr( base64_encode( $s ), '+/', '-_' ), '=' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url encoding for JWT fixtures.
@@ -226,6 +237,18 @@ $r      = ec_google_login_with_tokens( jwt( $google ), $device, array(
 check( $r['success'] && 'access' === $r['access_token'] && 2 === $GLOBALS['cookies'] && 'https://community.extrachill.com/feature/' === $r['redirect_url'], 'Google still uses shared tail with browser behavior' );
 check( 'google' === $GLOBALS['consent'][0][4] && array( 1, $device, 'browser' ) === $GLOBALS['refresh'][0], 'Google attribution and device preserved' );
 check( array( 'success', 'access_token', 'access_expires_at', 'refresh_token', 'refresh_expires_at', 'onboarding_completed', 'redirect_url', 'user' ) === array_keys( $r ), 'unchanged token response keys' );
+reset_accounts();
+$GLOBALS['challenge'] = true;
+$r                    = ec_google_login_with_tokens( jwt( $google ), $device, array(
+	'set_cookie'           => true,
+	'success_redirect_url' => 'https://community.extrachill.com/feature/',
+) );
+check( ! empty( $r['challenge_required'] ) && 0 === $GLOBALS['cookies'] && empty( $GLOBALS['access'] ) && empty( $GLOBALS['refresh'] ), 'Google 2FA challenge stops before cookies and tokens' );
+check( 'oauth' === $GLOBALS['challenge_calls'][0][3]['flow'] && 'google' === $GLOBALS['challenge_calls'][0][3]['provider'] && 'https://community.extrachill.com/feature/' === $GLOBALS['challenge_calls'][0][3]['success_redirect_url'], 'Google challenge carries the OAuth flow' );
+reset_accounts();
+$GLOBALS['challenge'] = true;
+$r                    = ec_apple_login_with_tokens( jwt( $claims ), $device, array( 'raw_nonce' => 'raw-nonce' ) );
+check( ! empty( $r['challenge_required'] ) && empty( $GLOBALS['access'] ) && 'apple' === $GLOBALS['challenge_calls'][0][3]['provider'], 'Apple 2FA challenge stops before tokens' );
 $google['aud'] = array( 'other', 'google-client' );
 check( ! is_wp_error( ec_verify_google_token( jwt( $google ) ) ), 'Google array audience compatibility' );
 $google['email_verified'] = 'true';

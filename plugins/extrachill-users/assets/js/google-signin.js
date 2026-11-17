@@ -188,7 +188,7 @@
                         cancelable: true,
                         detail: {
                             challenge: data,
-                            deviceId: deviceId,
+                            deviceId,
                             continueUrl: new URL('auth/login/continue', config.restUrl || utils.getRestRoot()).toString()
                         }
                     });

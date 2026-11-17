@@ -16,7 +16,7 @@
 if ( ! function_exists( 'wp_native_auth_get_current_session' ) && ! function_exists( 'wp_native_auth_mark_current_session_verified' ) ) {
 	define( 'EXTRACHILL_USERS_WP_NATIVE_SESSION_DOUBLE', true );
 
-	// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound, Squiz.Commenting
+	// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed, Squiz.Commenting -- the double's state class and the helpers it backs belong together.
 	class Extrachill_Users_WP_Native_Session_Double {
 		/** @var array<string,mixed>|null Current bearer session. */
 		public static $session = null;

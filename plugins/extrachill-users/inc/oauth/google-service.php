@@ -413,7 +413,7 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
  * @param array<string,mixed>  $flow   is_new, set_cookie, from_join, success_redirect_url.
  * @return array<string,mixed>
  */
-function ec_oauth_token_login_response( WP_User $user, array $tokens, array $flow ): array {
+function ec_oauth_token_login_response( $user, array $tokens, array $flow ): array {
 	$user_id              = (int) $user->ID;
 	$is_new               = ! empty( $flow['is_new'] );
 	$set_cookie           = ! empty( $flow['set_cookie'] );
