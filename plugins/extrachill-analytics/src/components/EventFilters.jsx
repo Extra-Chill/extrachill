@@ -4,6 +4,9 @@
  * Filter controls for the analytics dashboard.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState } from '@wordpress/element';
 import {
 	SelectControl,
@@ -42,7 +45,9 @@ export default function EventFilters( {
 	};
 
 	const formatDateForDisplay = ( dateString ) => {
-		if ( ! dateString ) return 'Select date';
+		if ( ! dateString ) {
+			return 'Select date';
+		}
 		return dateString;
 	};
 
@@ -101,8 +106,9 @@ export default function EventFilters( {
 
 				{ /* Date From */ }
 				<div className="ec-analytics__date-filter">
-					<label>From Date</label>
+					<label htmlFor="ec-analytics-date-from">From Date</label>
 					<Button
+						id="ec-analytics-date-from"
 						variant="secondary"
 						onClick={ () => setShowDateFrom( ! showDateFrom ) }
 					>
@@ -126,8 +132,9 @@ export default function EventFilters( {
 
 				{ /* Date To */ }
 				<div className="ec-analytics__date-filter">
-					<label>To Date</label>
+					<label htmlFor="ec-analytics-date-to">To Date</label>
 					<Button
+						id="ec-analytics-date-to"
 						variant="secondary"
 						onClick={ () => setShowDateTo( ! showDateTo ) }
 					>

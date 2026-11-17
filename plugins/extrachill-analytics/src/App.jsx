@@ -4,8 +4,15 @@
  * Main application component for the analytics dashboard.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useEffect, useCallback } from '@wordpress/element';
 import { Notice } from '@wordpress/components';
+
+/**
+ * Internal dependencies
+ */
 import { useAnalytics } from './context/AnalyticsContext';
 import { getEvents, getAnalyticsMeta } from './api/client';
 import EventFilters from './components/EventFilters';
@@ -35,17 +42,7 @@ export default function App() {
 	const [ page, setPage ] = useState( 1 );
 	const [ total, setTotal ] = useState( 0 );
 
-	// Load metadata (event types, blogs) on mount
-	useEffect( () => {
-		loadMeta();
-	}, [] );
-
-	// Load events when filters or page changes
-	useEffect( () => {
-		loadEvents();
-	}, [ filters, page ] );
-
-	const loadMeta = async () => {
+	const loadMeta = useCallback( async () => {
 		setIsLoadingMeta( true );
 		try {
 			const response = await getAnalyticsMeta();
@@ -58,7 +55,7 @@ export default function App() {
 		} finally {
 			setIsLoadingMeta( false );
 		}
-	};
+	}, [ addNotice ] );
 
 	const loadEvents = useCallback( async () => {
 		setIsLoading( true );
@@ -77,6 +74,16 @@ export default function App() {
 			setIsLoading( false );
 		}
 	}, [ filters, page, addNotice ] );
+
+	// Load metadata (event types, blogs) on mount
+	useEffect( () => {
+		loadMeta();
+	}, [ loadMeta ] );
+
+	// Load events when filters or page changes
+	useEffect( () => {
+		loadEvents();
+	}, [ loadEvents ] );
 
 	const handleFilterChange = ( newFilters ) => {
 		setFilters( newFilters );
