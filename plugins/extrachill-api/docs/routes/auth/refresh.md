@@ -49,7 +49,16 @@ Refresh an expired access token using a valid refresh token. Maintains user sess
 - `400` - Missing refresh_token, invalid device_id format, or validation errors
 - `401` - Invalid or expired refresh token
 - `403` - Device mismatch or token revoked
+- `403 two_factor_required` - `set_cookie` was requested for a member who uses Two Factor, and this device session never passed the `two-factor` challenge policy. No cookie is set and the tokens are not rotated. The member signs in on the web, which asks for the code.
+- `401 two_factor_required` - Once the in-app `two-factor` policy is active: this app session belongs to a member who uses Two Factor and never passed the policy. The app must sign in again and complete the code step.
 - `500` - Token refresh service unavailable
+
+### Two-factor members
+
+A refresh never turns a device session that skipped Two Factor into a web session:
+
+- **Cookie (`set_cookie: true`):** requires a device session the `two-factor` policy verified. This applies even while the policy is inactive.
+- **Tokens only:** sessions the policy verified refresh as before. Unverified native app sessions are refused once the policy is active, which requires the Two Factor login API (WordPress/two-factor#1045). Until then they keep refreshing, so members are not locked out of the app. OAuth client sessions are not refused, because they were granted from a web login that already asked for the code.
 
 **Implementation Details**:
 - Validates device_id as UUID v4 format

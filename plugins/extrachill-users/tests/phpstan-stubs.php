@@ -63,6 +63,9 @@ namespace {
 
 	function wp_native_auth_revoke_refresh_token( int $user_id, string $device_id ): bool {}
 
+	/** @return array{user_id:int, device_id:string, device_name:?string, oauth_client_id:?string, created_at:int, challenge_policy:?string, challenge_verified_at:?int}|null */
+	function wp_native_auth_get_session( int $user_id, string $device_id ): ?array {}
+
 	function wp_native_auth_register_challenge_policy( string $policy_id, callable $challenge_callback, callable $verify_callback ): bool {}
 }
 

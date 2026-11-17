@@ -82,13 +82,27 @@ function extrachill_users_token_user_payload( WP_User $user ): array {
  * EC-only behavior (optional cookie issuance), so the client-facing shape is
  * identical to the pre-cutover response.
  *
+ * Two Factor members: a refresh never upgrades a device session that did not
+ * pass the `two-factor` policy. See extrachill_users_two_factor_refresh_gate().
+ *
  * @param string $refresh_token Refresh token.
  * @param string $device_id     Device ID (UUIDv4).
  * @param array  $options       Optional. { 'remember' => bool, 'set_cookie' => bool }.
  * @return array|WP_Error
  */
 function extrachill_users_refresh_tokens( string $refresh_token, string $device_id, array $options = array() ) {
-	$result = wp_native_auth_refresh_tokens( $refresh_token, $device_id );
+	$remember   = ! empty( $options['remember'] );
+	$set_cookie = ! empty( $options['set_cookie'] );
+
+	// A cookie needs a session that passed 2FA; the refresh gate checks before
+	// the token rotates (extrachill_users_two_factor_refresh_gate()).
+	extrachill_users_refresh_cookie_requested( $set_cookie );
+	try {
+		$result = wp_native_auth_refresh_tokens( $refresh_token, $device_id );
+	} finally {
+		extrachill_users_refresh_cookie_requested( false );
+	}
+
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -102,9 +116,7 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 		);
 	}
 
-	$remember   = ! empty( $options['remember'] );
-	$set_cookie = ! empty( $options['set_cookie'] );
-	if ( $set_cookie ) {
+	if ( $set_cookie && extrachill_users_refresh_may_set_cookie( $user, $device_id ) ) {
 		wp_set_current_user( (int) $user->ID, $user->user_login );
 		wp_set_auth_cookie( (int) $user->ID, $remember );
 	}
@@ -116,6 +128,21 @@ function extrachill_users_refresh_tokens( string $refresh_token, string $device_
 		'refresh_expires_at' => $result['refresh_expires_at'],
 		'user'               => extrachill_users_token_user_payload( $user ),
 	);
+}
+
+/**
+ * Whether a refreshed device session may become a web cookie session.
+ *
+ * Members who use Two Factor need a device session that passed the
+ * `two-factor` policy. The refresh gate already refused anything else before
+ * the rotation; this is the last check before the cookie is set.
+ *
+ * @param WP_User $user      Session owner.
+ * @param string  $device_id Device UUID.
+ */
+function extrachill_users_refresh_may_set_cookie( WP_User $user, string $device_id ): bool {
+	return ! extrachill_users_user_uses_two_factor( (int) $user->ID )
+		|| extrachill_users_two_factor_device_session_time( (int) $user->ID, $device_id ) > 0;
 }
 
 /**

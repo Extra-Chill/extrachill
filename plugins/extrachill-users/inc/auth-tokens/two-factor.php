@@ -150,7 +150,9 @@ function extrachill_users_two_factor_descriptor( WP_User $user ): ?array {
  * @return array<string,mixed>|null
  */
 function extrachill_users_two_factor_challenge( WP_User $user, array $context ): ?array {
-	unset( $context );
+	// wp-native-auth also asks whether this policy would challenge before a
+	// browser handoff. That is a probe, so no code is sent for it.
+	$probe = 'browser_handoff' === ( $context['reason'] ?? '' );
 
 	// The primary credential is verified; the scoped API-login allowance used
 	// to reach this point must not outlive it.
@@ -164,7 +166,7 @@ function extrachill_users_two_factor_challenge( WP_User $user, array $context ):
 
 	// Like Two Factor's own form, prompting for an emailed code sends one.
 	// A rate-limited send still prompts: the member may already have a code.
-	if ( null !== $descriptor && extrachill_users_two_factor_provider_sends_codes( $descriptor['provider'] ) ) {
+	if ( ! $probe && null !== $descriptor && extrachill_users_two_factor_provider_sends_codes( $descriptor['provider'] ) ) {
 		$sent = Two_Factor_Core::verify_authentication_code( $user, $descriptor['provider'], array( 'resend' => true ) );
 		if ( is_array( $sent ) ) {
 			$descriptor['status'] = 'code_sent';
@@ -413,6 +415,203 @@ function extrachill_users_two_factor_session_time( $time, $user ) {
 	return (int) $session['challenge_verified_at'];
 }
 add_filter( 'two_factor_current_session_two_factor_time', 'extrachill_users_two_factor_session_time', 10, 2 );
+
+/**
+ * Whether a user has Two Factor turned on.
+ *
+ * Works with any Two Factor release (production runs 0.16.0, which has no
+ * non-rendering login API), so it gates paths that must fail closed even
+ * while the `two-factor` policy is inactive.
+ *
+ * @param int $user_id User ID.
+ */
+function extrachill_users_user_uses_two_factor( int $user_id ): bool {
+	return $user_id > 0
+		&& class_exists( 'Two_Factor_Core' )
+		&& is_callable( array( 'Two_Factor_Core', 'is_user_using_two_factor' ) )
+		&& Two_Factor_Core::is_user_using_two_factor( $user_id );
+}
+
+/**
+ * When a wp-native-auth device session last passed the `two-factor` policy.
+ *
+ * @param int    $user_id   Session owner.
+ * @param string $device_id Device UUID.
+ * @return int Unix time, or 0 when the session is unknown, inactive, never verified, or verified by another policy.
+ */
+function extrachill_users_two_factor_device_session_time( int $user_id, string $device_id ): int {
+	if ( ! function_exists( 'wp_native_auth_get_session' ) ) {
+		return 0;
+	}
+
+	$session = wp_native_auth_get_session( $user_id, $device_id );
+	if ( ! is_array( $session )
+		|| EXTRACHILL_USERS_TWO_FACTOR_POLICY !== ( $session['challenge_policy'] ?? null )
+		|| empty( $session['challenge_verified_at'] ) ) {
+		return 0;
+	}
+
+	return (int) $session['challenge_verified_at'];
+}
+
+/**
+ * Raise or read the flag that the refresh in progress will set a web cookie.
+ *
+ * extrachill_users_refresh_tokens() raises it around the token rotation so
+ * the refresh gate can refuse before anything rotates.
+ *
+ * @param bool|null $requested True or false to set, null to read.
+ */
+function extrachill_users_refresh_cookie_requested( ?bool $requested = null ): bool {
+	static $current = false;
+
+	if ( null !== $requested ) {
+		$current = $requested;
+	}
+
+	return $current;
+}
+
+/**
+ * Stop a refresh token from upgrading a session that never passed 2FA.
+ *
+ * Runs on wp-native-auth's refresh (the `wp_native_auth_pre_login` filter
+ * with reason `refresh`), before the token rotates, for every refresh
+ * surface: extrachill/v1/auth/refresh, wp-native/auth-refresh, and the
+ * OAuth refresh grant. For a member who uses Two Factor and whose device
+ * session has no `two-factor` verification:
+ *
+ * - A refresh that would set a web cookie is refused (`two_factor_required`,
+ *   403) whether or not the policy is active. The tokens are untouched and
+ *   the member can sign in on the web, which asks for the code.
+ * - A plain token refresh of a native app session is refused
+ *   (`two_factor_required`, 401) once the policy is active, so the app signs
+ *   in again and completes the code step. While the policy is inactive, it
+ *   still succeeds: the app has no way to verify a session yet, and refusing
+ *   would lock those members out of the app.
+ *
+ * OAuth-bound sessions are not refused on token refresh. They were granted
+ * from a web session, and the web login already asked for the code.
+ * Sessions that passed the policy refresh as before.
+ *
+ * @param null|WP_Error $blocked Null to continue.
+ * @param WP_User|mixed $user    Session owner.
+ * @param array|mixed   $context wp-native-auth context: device_id, reason.
+ * @return null|WP_Error
+ */
+function extrachill_users_two_factor_refresh_gate( $blocked, $user, $context ) {
+	if ( is_wp_error( $blocked ) || ! $user instanceof WP_User || ! is_array( $context ) || 'refresh' !== ( $context['reason'] ?? '' ) ) {
+		return $blocked;
+	}
+
+	$refused = extrachill_users_two_factor_refresh_refusal(
+		$user,
+		isset( $context['device_id'] ) ? (string) $context['device_id'] : '',
+		extrachill_users_refresh_cookie_requested(),
+		extrachill_users_two_factor_policy_active()
+	);
+
+	return null !== $refused ? $refused : $blocked;
+}
+
+/**
+ * Decide whether a refresh of one device session must be refused for 2FA.
+ *
+ * @param WP_User $user          Session owner.
+ * @param string  $device_id     Device UUID.
+ * @param bool    $cookie        Whether the refresh would set a web cookie.
+ * @param bool    $policy_active Whether the `two-factor` policy can verify sessions.
+ * @return WP_Error|null Error to refuse with, or null to allow.
+ */
+function extrachill_users_two_factor_refresh_refusal( WP_User $user, string $device_id, bool $cookie, bool $policy_active ): ?WP_Error {
+	if ( ! extrachill_users_user_uses_two_factor( (int) $user->ID ) ) {
+		return null;
+	}
+
+	if ( extrachill_users_two_factor_device_session_time( (int) $user->ID, $device_id ) > 0 ) {
+		return null;
+	}
+
+	if ( $cookie ) {
+		return new WP_Error(
+			'two_factor_required',
+			__( 'Sign in again to continue on the web.', 'extrachill-users' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	if ( ! $policy_active || extrachill_users_is_oauth_device_session( (int) $user->ID, $device_id ) ) {
+		return null;
+	}
+
+	return new WP_Error(
+		'two_factor_required',
+		__( 'Sign in again to finish two-step sign-in.', 'extrachill-users' ),
+		array( 'status' => 401 )
+	);
+}
+add_filter( 'wp_native_auth_pre_login', 'extrachill_users_two_factor_refresh_gate', 20, 3 );
+
+/**
+ * Whether a device session belongs to an OAuth client grant.
+ *
+ * @param int    $user_id   Session owner.
+ * @param string $device_id Device UUID.
+ */
+function extrachill_users_is_oauth_device_session( int $user_id, string $device_id ): bool {
+	if ( ! function_exists( 'wp_native_auth_get_session' ) ) {
+		return false;
+	}
+
+	$session = wp_native_auth_get_session( $user_id, $device_id );
+
+	return is_array( $session ) && ! empty( $session['oauth_client_id'] );
+}
+
+/**
+ * Refuse a wp-native-auth browser handoff that would skip 2FA.
+ *
+ * wp-native-auth's receiver (`?wp-native-handoff=`) already refuses when the
+ * `two-factor` policy would challenge and the minting session did not pass
+ * it. While the policy is inactive (Two Factor without its login API), no
+ * policy challenges, so this filter applies the same rule: a Two Factor
+ * member's handoff needs a minting session the `two-factor` policy verified.
+ * A refused handoff lands on the login URL, which Extra Chill sends to
+ * /login/ with the destination kept.
+ *
+ * When it is allowed, Two Factor's wp_login handler is detached for this
+ * request so it doesn't replace the new session with its own form.
+ *
+ * This is a separate flow from extrachill/v1/auth/browser-handoff
+ * (`?ec_browser_handoff=`), which Extra Chill handles itself.
+ *
+ * @param null|WP_Error $blocked Null to allow.
+ * @param WP_User|mixed $user    Handoff user.
+ * @param array|mixed   $context wp-native-auth context: device_id, session, challenge_policy.
+ * @return null|WP_Error
+ */
+function extrachill_users_two_factor_pre_browser_handoff( $blocked, $user, $context ) {
+	if ( is_wp_error( $blocked ) || ! $user instanceof WP_User || ! extrachill_users_user_uses_two_factor( (int) $user->ID ) ) {
+		return $blocked;
+	}
+
+	$session = is_array( $context ) && isset( $context['session'] ) && is_array( $context['session'] ) ? $context['session'] : null;
+	if ( null === $session
+		|| (int) ( $session['user_id'] ?? 0 ) !== (int) $user->ID
+		|| EXTRACHILL_USERS_TWO_FACTOR_POLICY !== ( $session['challenge_policy'] ?? null )
+		|| empty( $session['challenge_verified_at'] ) ) {
+		return new WP_Error(
+			'two_factor_required',
+			__( 'Sign in to continue.', 'extrachill-users' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	remove_action( 'wp_login', array( 'Two_Factor_Core', 'wp_login' ), PHP_INT_MAX );
+
+	return $blocked;
+}
+add_filter( 'wp_native_auth_pre_browser_handoff', 'extrachill_users_two_factor_pre_browser_handoff', 10, 3 );
 
 /**
  * Record a Two Factor revalidation on the current bearer session.
