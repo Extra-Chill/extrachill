@@ -80,6 +80,9 @@ function extrachill_network_register_taxonomies() {
 			array( 'post' ),
 			array(
 				'hierarchical'      => false,
+				// Persist per-object term order (core term_relationships.term_order)
+				// so lineups keep billing order.
+				'sort'              => true,
 				'labels'            => array(
 					'name'          => _x( 'Artists', 'taxonomy general name', 'extrachill-network' ),
 					'singular_name' => _x( 'Artist', 'taxonomy singular name', 'extrachill-network' ),
