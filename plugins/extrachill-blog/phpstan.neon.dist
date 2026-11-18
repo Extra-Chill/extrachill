@@ -1,4 +1,7 @@
-# Stories schemas and projections are supplied by the network foundation.
+# Stories schemas and projections, blog/site lookups, and cross-site REST
+# helpers are supplied by the network foundation.
 parameters:
 	scanFiles:
 		- ../extrachill-network/inc/core/stories.php
+		- ../extrachill-network/inc/core/blog-ids.php
+		- ../extrachill-network/inc/core/cross-site-rest.php

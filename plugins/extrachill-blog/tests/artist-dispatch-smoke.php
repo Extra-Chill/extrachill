@@ -2,7 +2,7 @@
 /**
  * Focused Artist Dispatch product and policy tests.
  *
- * Run: php tests/artist-dispatch.php
+ * Run: php tests/artist-dispatch-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ );

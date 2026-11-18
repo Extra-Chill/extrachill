@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * Resolve canonical represented artist display data.
  *
  * @param int $artist_id Artist profile ID on the Artist Platform site.
- * @return array{name:string,url:string}|array Empty on failure.
+ * @return array{name:string,url:string|false}|array{} Empty on failure.
  */
 function extrachill_blog_dispatch_artist_display( $artist_id ) {
 	$artist_id = absint( $artist_id );
@@ -70,7 +70,7 @@ function extrachill_blog_dispatch_disclosure_html( $post_id ) {
 			wp_kses_post( __( 'A first-person story by %1$s, who is a member of or directly connected to <a href="%3$s">%2$s</a>. Edited and published by Extra Chill.', 'extrachill-blog' ) ),
 			esc_html( $author ),
 			esc_html( $artist['name'] ),
-			esc_url( $artist['url'] )
+			esc_url( (string) $artist['url'] )
 		);
 	}
 	$notice = '<aside class="artist-dispatch-disclosure notice notice-info" aria-label="' . esc_attr__( 'Artist Dispatch disclosure', 'extrachill-blog' ) . '"><span class="artist-dispatch-label">' . esc_html__( 'Artist Dispatch', 'extrachill-blog' ) . '</span><p>' . $disclosure . '</p></aside>';
@@ -88,7 +88,7 @@ function extrachill_blog_dispatch_public_disclosure( $content ) {
 	if ( ! is_singular( 'post' ) || ! is_main_query() || ! in_the_loop() ) {
 		return $content;
 	}
-	$notice = extrachill_blog_dispatch_disclosure_html( get_the_ID() );
+	$notice = extrachill_blog_dispatch_disclosure_html( (int) get_the_ID() );
 	return $notice ? $notice . $content : $content;
 }
 add_filter( 'the_content', 'extrachill_blog_dispatch_public_disclosure', 8 );
@@ -100,7 +100,7 @@ add_filter( 'the_content', 'extrachill_blog_dispatch_public_disclosure', 8 );
  * @return string[] Classes.
  */
 function extrachill_blog_dispatch_post_class( $classes ) {
-	if ( extrachill_blog_is_artist_dispatch( get_the_ID() ) ) {
+	if ( extrachill_blog_is_artist_dispatch( (int) get_the_ID() ) ) {
 		$classes[] = 'artist-dispatch-post';
 	}
 	return $classes;

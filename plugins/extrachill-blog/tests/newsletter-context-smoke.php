@@ -2,7 +2,7 @@
 /**
  * Focused tests for contextual post-content newsletter copy.
  *
- * Run with: php tests/newsletter-context.php
+ * Run with: php tests/newsletter-context-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ . '/' );

@@ -2,7 +2,7 @@
 /**
  * Focused tests for homepage event-market ordering.
  *
- * Run with: php tests/homepage-event-markets.php
+ * Run with: php tests/homepage-event-markets-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ . '/' );

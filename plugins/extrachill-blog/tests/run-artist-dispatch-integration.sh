@@ -7,7 +7,7 @@ artifact_root="${TMPDIR:-/tmp}/extrachill-blog-artist-dispatch-integration"
 wp-codebox run \
   --mount "${repo_root}:/wordpress/wp-content/plugins/extrachill-blog" \
   --command wordpress.run-php \
-  --arg "code-file=${repo_root}/tests/integration/artist-dispatch-rest.php" \
+  --arg "code-file=${repo_root}/tests/integration/artist-dispatch-rest-smoke.php" \
   --wp nightly \
   --artifacts "${artifact_root}" \
   --json
