@@ -76,13 +76,35 @@
 			     WordPress the core registry wins, so the double never applies
 			     and the test can only fail here. Runs in phpunit-artist-unit. -->
 			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
+			<!-- Pure-PHP guest-list tests built on file-level doubles (array
+			     posts, an in-memory $wpdb without set_blog_id()/get_blog_prefix(),
+			     user_can/get_post shims). Under real WordPress the core
+			     functions and WP_Post win over the doubles, so they can only
+			     fail here. All of them run in phpunit-rsvp-perks-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/RsvpGuestListTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestListPartiesTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestListRequestsTest.php</exclude>
+			<exclude>tests/Unit/Core/OwnerGuestListTest.php</exclude>
+			<exclude>tests/Unit/Core/GuestListModeTest.php</exclude>
+			<exclude>tests/Unit/Core/GuestListShowDayPinTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassCardTest.php</exclude>
+			<!-- Pure-PHP tests whose doubles the sandbox replaces with the real
+			     thing (ActionScheduler, get_terms/wp_get_ability, exec() of a
+			     PHP subprocess, sibling extrachill-booking files that are not
+			     mounted). They run in phpunit-qualify-v2-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/FlowOpsResumeTest.php</exclude>
+			<exclude>tests/Unit/Core/RootLocationReconcilerTest.php</exclude>
+			<exclude>tests/Unit/Core/LocationSeoCountTest.php</exclude>
+			<exclude>tests/Unit/Core/DocsLinksTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
-			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
+			<!-- PriorityBoostAbilityTest doubles ec_cross_site_request_has_service_grant(),
+			     which the real extrachill-network defines here; it runs in
+			     phpunit-qualify-v2-unit.xml.dist. -->
 			<!-- Real-registry output validation for get/set-event-perk (extrachill#1244). -->
 			<file>tests/Unit/Abilities/EventPerkOutputSchemaManagedTest.php</file>
 			<!-- Isolated bridge doubles run in phpunit-single-event-network-bridge-unit.xml.dist. -->

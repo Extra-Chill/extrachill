@@ -48,7 +48,7 @@ final class ManagedVenueVoicesRestTest extends WP_UnitTestCase {
 					TeamMembershipRepository::table(),
 					array(
 						'team_type'          => 'venue',
-						'team_term_id'       => $this->venue_term_id,
+						'team_id'            => $this->venue_term_id,
 						'user_id'            => $this->member_user_id,
 						'is_owner'           => 0,
 						'status'             => 'active',

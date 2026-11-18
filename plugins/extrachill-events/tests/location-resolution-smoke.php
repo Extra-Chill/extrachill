@@ -101,6 +101,11 @@ function get_term( $term_id ) {
 function get_terms() {
 	return array_values( $GLOBALS['ec_resolution_terms'] );
 }
+// No registered location taxonomy here, so the #820 venue-metadata creation
+// path refuses; LocationTermCreationTest covers creation under real WordPress.
+function taxonomy_exists( $taxonomy ) {
+	return false;
+}
 
 require_once dirname( __DIR__ ) . '/inc/core/location-normalizer.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/EventLocationAlignmentAbilities.php';
