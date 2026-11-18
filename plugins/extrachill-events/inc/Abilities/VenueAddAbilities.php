@@ -365,7 +365,7 @@ class VenueAddAbilities {
 			)
 		);
 		$terms = is_wp_error( $terms ) ? array() : array_values( (array) $terms );
-		if ( 1 === count( $terms ) && $terms[0] instanceof \WP_Term ) {
+		if ( 1 === count( $terms ) ) {
 			return $terms[0];
 		}
 		if ( count( $terms ) > 1 ) {
