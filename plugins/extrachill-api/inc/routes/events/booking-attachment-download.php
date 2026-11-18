@@ -235,11 +235,11 @@ function extrachill_api_issue_booking_attachment_descriptor( array $input ) {
 
 /** Obtain the private descriptor before opening the streamed loopback. */
 function extrachill_api_prepare_booking_attachment_affinity_handoff( WP_REST_Request $request ) {
-	$input     = array(
+	$input  = array(
 		'booking_id'    => (int) $request->get_param( 'booking_id' ),
 		'attachment_id' => (int) $request->get_param( 'attachment_id' ),
 	);
-	$result    = ec_cross_site_rest_request_http(
+	$result = ec_cross_site_rest_request_http(
 		'events',
 		'POST',
 		'/events/internal/booking-attachment-handoff',
@@ -267,6 +267,7 @@ function extrachill_api_validate_booking_attachment_handoff( $handoff ) {
 
 /** Encode a bounded internal handoff for one signed affinity hop. */
 function extrachill_api_encode_booking_attachment_handoff( array $handoff ) {
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url transport encoding for an HMAC-verified handoff.
 	return rtrim( strtr( base64_encode( (string) wp_json_encode( $handoff ) ), '+/', '-_' ), '=' );
 }
 
@@ -280,6 +281,7 @@ function extrachill_api_decode_booking_attachment_handoff( $encoded ) {
 	if ( $padding ) {
 		$encoded .= str_repeat( '=', 4 - $padding );
 	}
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- base64url transport decoding for an HMAC-verified handoff.
 	$decoded = base64_decode( strtr( $encoded, '-_', '+/' ), true );
 	$handoff = is_string( $decoded ) ? json_decode( $decoded, true ) : null;
 
@@ -301,7 +303,7 @@ function extrachill_api_record_booking_attachment_delivery( array $delivery, $ou
 	if ( ! function_exists( 'ec_cross_site_rest_request_http' ) || get_current_user_id() < 1 ) {
 		return false;
 	}
-	$result    = ec_cross_site_rest_request_http(
+	$result = ec_cross_site_rest_request_http(
 		'events',
 		'POST',
 		'/events/internal/booking-attachment-delivery',
