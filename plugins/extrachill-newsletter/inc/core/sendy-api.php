@@ -71,8 +71,9 @@ const EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS = 'DataMachineBusiness\\Abilities\\S
  * @return array {configured: bool, sendy_url: string}.
  */
 function extrachill_newsletter_get_sendy_connection() {
-	$class  = EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS;
-	$config = class_exists( $class ) && method_exists( $class, 'get_campaign_config' ) ? $class::get_campaign_config() : array();
+	// Shared DMB config lookup, defined in inc/core/member-subscriptions.php
+	// (loaded unconditionally via inc/core/abilities/register.php).
+	$config = extrachill_newsletter_subscription_config();
 
 	return array(
 		'configured' => ! empty( $config['api_key'] ) && ! empty( $config['sendy_url'] ),
