@@ -362,6 +362,9 @@ class FlowOpsResumeTest extends TestCase {
 	}
 
 	public function test_repause_cancels_only_this_flows_recheck(): void {
+		if ( ! property_exists( '\ActionScheduler', 'cancelled' ) ) {
+			$this->markTestSkipped( 'Needs the Action Scheduler test double; the real library is loaded.' );
+		}
 		\ActionScheduler::$cancelled = array();
 		$this->gateway->seed(
 			113,
@@ -379,6 +382,9 @@ class FlowOpsResumeTest extends TestCase {
 	}
 
 	public function test_pause_without_prior_recheck_cancels_nothing(): void {
+		if ( ! property_exists( '\ActionScheduler', 'cancelled' ) ) {
+			$this->markTestSkipped( 'Needs the Action Scheduler test double; the real library is loaded.' );
+		}
 		\ActionScheduler::$cancelled = array();
 		$this->gateway->seed( 114, array(), array( 'interval' => 'daily' ) );
 
