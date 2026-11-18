@@ -158,6 +158,7 @@ $expected = array(
 		'object_type' => array( 'post' ),
 		'args'        => array(
 			'hierarchical'      => false,
+			'sort'              => true,
 			'labels'            => array(
 				'name'          => 'Artists',
 				'singular_name' => 'Artist',

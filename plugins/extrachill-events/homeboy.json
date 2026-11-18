@@ -203,6 +203,11 @@
             "name": "dme-ability-capabilities-unit",
             "config": "phpunit-dme-ability-capabilities-unit.xml.dist",
             "runtime": "host"
+          },
+          {
+            "name": "venue-add-unit",
+            "config": "phpunit-venue-add-unit.xml.dist",
+            "runtime": "host"
           }
         ],
         "wp_config_defines": {

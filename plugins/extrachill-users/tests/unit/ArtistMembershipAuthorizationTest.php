@@ -50,6 +50,27 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		ec_users_tests_set_artist_members( $artist_id, $user_ids );
 	}
 
+	/**
+	 * Revoke one artist membership row through the users-owned repository.
+	 *
+	 * Mirrors the revocation write that artist-platform's
+	 * ec_remove_artist_membership() performs, without depending on that
+	 * plugin: authorization only reads the shared team membership table.
+	 */
+	private function revoke_artist_member( int $user_id, int $artist_id ): bool {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$row        = $repository->get( 'artist', $artist_id, $user_id );
+		if ( ! is_array( $row ) ) {
+			return false;
+		}
+		if ( 1 !== $repository->mutate( 'artist', $artist_id, $user_id, (int) $row['version'], null, true, 0 ) ) {
+			return false;
+		}
+		$revoked = $repository->get( 'artist', $artist_id, $user_id );
+
+		return is_array( $revoked ) && \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_REVOKED === $revoked['status'];
+	}
+
 	public function test_active_membership_can_manage_artist(): void {
 		$user_id   = self::factory()->user->create();
 		$artist_id = $this->create_artist( self::factory()->user->create() );
@@ -63,12 +84,7 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		$artist_side_id = self::factory()->user->create();
 		$artist_id      = $this->create_artist( self::factory()->user->create() );
 		$this->set_artist_members( $artist_id, array( $user_side_id ) );
-		// Revoke through the users-owned team repository: ec_remove_artist_membership()
-		// lives in extrachill-artist-platform, which is not loaded in this suite.
-		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
-		$membership = $repository->get( 'artist', $artist_id, $user_side_id );
-		$this->assertIsArray( $membership );
-		$this->assertSame( 1, $repository->mutate( 'artist', $artist_id, $user_side_id, (int) $membership['version'], null, true, 0 ) );
+		$this->assertTrue( $this->revoke_artist_member( $user_side_id, $artist_id ) );
 		$other_artist_id = $this->create_artist( self::factory()->user->create() );
 		$this->set_artist_members( $other_artist_id, array( $artist_side_id ) );
 

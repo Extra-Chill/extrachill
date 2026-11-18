@@ -187,10 +187,11 @@ Registration: [`VenueAddAbilities.php`](../inc/Abilities/VenueAddAbilities.php).
 ### `extrachill/add-venue`
 
 - **Purpose:** Add a venue scraper flow to an existing city pipeline. Creates the venue taxonomy term and configures the universal web scraper.
-- **Input:** `pipeline_id` (integer, required); `name` (string, required); `venue_term_id` (integer, optional); `url` (string, required); `address` (string, optional); `city` (string, optional); `state` (string, optional); `zip` (string, optional); `website` (string, optional); `interval` (string, optional); `dry_run` (boolean, optional).
+- **Input:** `name` (string, required); `url` (string, required); one of `pipeline_id` (integer) or `location` (location term ID, slug, or exact name); `venue_term_id` (integer, optional); `address` (string, optional); `city` (string, optional); `state` (string, optional); `zip` (string, optional); `website` (string, optional); `interval` (string, optional); `dry_run` (boolean, optional).
+- **City resolution:** with `location` alone, the city pipeline is the one whose flows bind that location term (the canonical binding `validateCityPipeline()` reads), never a pipeline name. No match returns `no_city_pipeline`. Several matches return `ambiguous_city_pipeline` with `pipeline_ids`; pass `pipeline_id` to choose one. A `pipeline_id` bound to a different location than `location` returns `pipeline_location_mismatch`.
 - **Output:** `object {message: string, flow_id: integer, venue_term_id: integer, pipeline_id: integer}`.
-- **Permission:** `current_user_can('manage_options')`.
-- **Exposure:** `show_in_rest: true`; `wp extrachill venues` adapter.
+- **Permission:** events staff through `TeamAuthorization::current_user_is_events_staff()`: `access_events_admin` (the events team capability) or `manage_options`. `extrachill/add-city` stays administrator-only.
+- **Exposure:** `show_in_rest: true`; `wp extrachill venues add` adapter (`--pipeline` or `--location`).
 - **Side effects:** Creates or reuses a venue term, creates a Data Machine flow and patches steps unless dry-run.
 
 ## Guest List Party

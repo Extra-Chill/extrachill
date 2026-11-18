@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.44.0] - 2026-11-18
+
+### Added
+- honor core term_order for sort-enabled taxonomies; enable sort on artist
+
 ## [2.43.0] - 2026-11-17
 
 ### Added

@@ -199,6 +199,7 @@ class VenueProfileAbilities {
 				'country'            => $text,
 				'phone'              => $text,
 				'website'            => $text,
+				'instagram'          => $this->instagram_schema(),
 				'ticketing_url'      => $text,
 				'capacity'           => $text,
 				'logo_attachment_id' => array(
@@ -216,10 +217,30 @@ class VenueProfileAbilities {
 		);
 	}
 
+	/**
+	 * Return the profile document's Instagram field schema.
+	 *
+	 * DME reads `_venue_instagram` as a string and stores only normalized
+	 * handles (lowercase, no "@", no URL). It is optional so profile documents
+	 * from DME releases that predate the field still validate.
+	 */
+	private function instagram_schema(): array {
+		return array(
+			'type'        => 'string',
+			'description' => __( 'Normalized Instagram username without "@", or an empty string.', 'extrachill-events' ),
+		);
+	}
+
 	/** Return the bounded partial-change input schema owned by DME. */
 	private function changes_schema(): array {
 		$text       = array( 'type' => 'string' );
 		$properties = array_fill_keys( array( 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'capacity' ), $text );
+		// DME normalizes handles, profile URLs, and "@handle" input itself.
+		$properties['instagram'] = array(
+			'type'        => 'string',
+			'maxLength'   => 255,
+			'description' => __( 'Instagram username or profile URL. An empty string clears it.', 'extrachill-events' ),
+		);
 		return array(
 			'type'                 => 'object',
 			'properties'           => $properties,
