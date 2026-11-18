@@ -42,9 +42,10 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
 	// The buyer pays the Service fee; the venue nets the subtotal. The
 	// application fee depends on who pays processing (see extrachill_commerce_ticket_fee()).
+	// Rates resolve for this show and seller: global, then any seller and event override.
 	$subtotal  = $offer['price_minor'] * $input['quantity'];
 	$fee_payer = extrachill_shop_get_seller_fee_payer( $seller );
-	$fees      = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'], $fee_payer );
+	$fees      = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'], $fee_payer, array( 'event_id' => (int) $offer['event_id'] ) );
 
 	$amounts = array(
 		'subtotal_minor'        => $subtotal,

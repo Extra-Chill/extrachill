@@ -63,3 +63,4 @@ require_once __DIR__ . '/shop-delete-product.php';
 require_once __DIR__ . '/shop-delete-product-image.php';
 require_once __DIR__ . '/shop-create-shipping-label.php';
 require_once __DIR__ . '/shop-operator.php';
+require_once __DIR__ . '/commerce-fee-overrides.php';
