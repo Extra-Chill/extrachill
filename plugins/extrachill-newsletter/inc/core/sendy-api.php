@@ -62,6 +62,18 @@ function get_sendy_config() {
 const EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS = 'DataMachineBusiness\\Abilities\\Sendy\\SendyAbilities';
 
 /**
+ * Get the canonical DMB API configuration, never the legacy newsletter copy.
+ *
+ * @return array
+ */
+function extrachill_newsletter_subscription_config(): array {
+	$class = EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS;
+	// DMB is an optional runtime dependency and may be absent from analysis.
+	// @phpstan-ignore function.impossibleType
+	return class_exists( $class ) && method_exists( $class, 'get_campaign_config' ) ? $class::get_campaign_config() : array();
+}
+
+/**
  * Report whether Data Machine Business has a usable Sendy API connection.
  *
  * Read-only status for settings screens. Credentials are owned and managed by
@@ -71,8 +83,6 @@ const EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS = 'DataMachineBusiness\\Abilities\\S
  * @return array {configured: bool, sendy_url: string}.
  */
 function extrachill_newsletter_get_sendy_connection() {
-	// Shared DMB config lookup, defined in inc/core/member-subscriptions.php
-	// (loaded unconditionally via inc/core/abilities/register.php).
 	$config = extrachill_newsletter_subscription_config();
 
 	return array(
