@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * }
  * @return array|WP_Error Fresh link page data on success.
  */
-function extrachill_artist_platform_ability_artist_update_links( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_update_links( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 
 	if ( ! $artist_id ) {

@@ -59,7 +59,7 @@ if ( ! empty( $existing_artists ) ) {
 		echo '<p>' . sprintf(
 			/* translators: %d: number of artist profiles */
 			esc_html__( 'You already have %d artist profiles.', 'extrachill-artist-platform' ),
-			esc_html( $artist_count )
+			esc_html( (string) $artist_count )
 		) . '</p>';
 	}
 	echo '<a href="' . esc_url( home_url( '/manage-artist' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Manage Artist', 'extrachill-artist-platform' ) . '</a>';
@@ -97,7 +97,7 @@ if ( function_exists( 'ec_artist_platform_emit_funnel_event' )
 // consciously type the act's name.
 $prefill      = array();
 $current_user = wp_get_current_user(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- block render local; deliberately reuses the WP global name in isolated scope.
-if ( $current_user && $current_user->ID ) {
+if ( $current_user->ID ) {
 	$prefill['avatar_id'] = get_user_meta( $current_user->ID, 'custom_avatar_id', true );
 	if ( $prefill['avatar_id'] ) {
 		$prefill['avatar_thumb'] = wp_get_attachment_image_url( $prefill['avatar_id'], 'thumbnail' );

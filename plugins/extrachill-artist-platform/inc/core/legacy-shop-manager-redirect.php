@@ -50,7 +50,8 @@ function ec_artist_platform_legacy_shop_manager_url( $user_id, array $query = ar
  */
 function ec_artist_platform_is_legacy_shop_manager_request() {
 	global $wp;
-	$path = ( $wp instanceof WP && is_string( $wp->request ) ) ? trim( $wp->request, '/' ) : '';
+	// WP::$request stays null until parse_request() runs; the cast maps that to ''.
+	$path = $wp instanceof WP ? trim( (string) $wp->request, '/' ) : '';
 	return 'manage-shop' === $path || is_page( 'manage-shop' );
 }
 

@@ -38,18 +38,14 @@ function ec_artist_save_link_page_fields( $link_page_id, $fields ) {
 	if ( ! $link_page_id || ! function_exists( 'ec_with_link_page_storage_blog' ) || ! function_exists( 'ec_with_link_page_lock_scope' ) || ! function_exists( 'ec_save_link_page_persistence_locked' ) ) {
 		return new WP_Error( 'link_pages_runtime_unavailable', 'The Link Pages runtime is not loaded.' );
 	}
-	// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
 	return ec_with_link_page_storage_blog(
 		static function () use ( $link_page_id, $fields ) {
-			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
 			if ( ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 				return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
 			}
-			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
 			return ec_with_link_page_lock_scope(
 				$link_page_id,
 				static function () use ( $link_page_id, $fields ) {
-					// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
 					return ec_save_link_page_persistence_locked( $link_page_id, $fields );
 				},
 				'separate'

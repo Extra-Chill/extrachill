@@ -11,7 +11,10 @@ require_once __DIR__ . '/preview-link-page-screenshot.php';
 
 /** Return the same defaults and derived variables used by public persistence. */
 function extrachill_artist_platform_ability_preview_link_page( $input ) {
-	$viewport = $input['viewport'] ?? array( 'width' => 390, 'height' => 844 );
+	$viewport = $input['viewport'] ?? array(
+		'width'  => 390,
+		'height' => 844,
+	);
 	if ( ! is_array( $viewport ) || ! isset( $viewport['width'], $viewport['height'] ) ) {
 		return new WP_Error( 'invalid_viewport', 'viewport requires width and height.' );
 	}
@@ -78,7 +81,7 @@ function extrachill_artist_platform_preview_composite( $front, $back ) {
 	}
 	$result = array();
 	for ( $i = 0; $i < 3; ++$i ) {
-		$result[] = $front[$i] * $front[3] + $back[$i] * ( 1 - $front[3] );
+		$result[] = $front[ $i ] * $front[3] + $back[ $i ] * ( 1 - $front[3] );
 	}
 	$result[] = 1.0;
 	return $result;
@@ -88,7 +91,7 @@ function extrachill_artist_platform_preview_composite( $front, $back ) {
 function extrachill_artist_platform_preview_luminance( $color ) {
 	$linear = array();
 	for ( $i = 0; $i < 3; ++$i ) {
-		$c = $color[$i] / 255;
+		$c        = $color[ $i ] / 255;
 		$linear[] = $c <= 0.04045 ? $c / 12.92 : pow( ( $c + 0.055 ) / 1.055, 2.4 );
 	}
 	return 0.2126 * $linear[0] + 0.7152 * $linear[1] + 0.0722 * $linear[2];
@@ -179,7 +182,7 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
  * @return array Contrast report keyed by pair name.
  */
 function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
-	$get = static function ( $key ) use ( $styles ) {
+	$get  = static function ( $key ) use ( $styles ) {
 		return extrachill_artist_platform_preview_color( $styles[ '--link-page-' . $key ] ?? '' );
 	};
 	$type = $styles['--link-page-background-type'] ?? 'color';
@@ -232,7 +235,7 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	if ( $page && $page[3] < 1 ) {
 		$page = null;
 	}
-	$card = empty( $settings['overlay_enabled'] ) ? $page : extrachill_artist_platform_preview_composite( $get( 'card-bg-color' ), $page );
+	$card   = empty( $settings['overlay_enabled'] ) ? $page : extrachill_artist_platform_preview_composite( $get( 'card-bg-color' ), $page );
 	$button = extrachill_artist_platform_preview_composite( $get( 'button-bg-color' ), $card );
 	$icon   = $get( 'icon-color' );
 	$icon   = $icon ? $icon : $get( 'text-color' );
@@ -246,17 +249,17 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	$report = array();
 	foreach ( $pairs as $name => $pair ) {
 		$foreground = extrachill_artist_platform_preview_composite( $pair[0], $pair[1] );
-		$ratio = null;
+		$ratio      = null;
 		if ( $foreground && $pair[1] ) {
-			$a = extrachill_artist_platform_preview_luminance( $foreground );
-			$b = extrachill_artist_platform_preview_luminance( $pair[1] );
+			$a     = extrachill_artist_platform_preview_luminance( $foreground );
+			$b     = extrachill_artist_platform_preview_luminance( $pair[1] );
 			$ratio = ( max( $a, $b ) + 0.05 ) / ( min( $a, $b ) + 0.05 );
 		}
 		$report[ $name ] = array(
-			'ratio' => null === $ratio ? null : round( $ratio, 4 ),
-			'threshold' => 4.5,
+			'ratio'           => null === $ratio ? null : round( $ratio, 4 ),
+			'threshold'       => 4.5,
 			'below_threshold' => null === $ratio ? null : $ratio < 4.5,
-			'status' => null === $ratio ? 'unknown' : ( $ratio < 4.5 ? 'fail' : 'pass' ),
+			'status'          => null === $ratio ? 'unknown' : ( $ratio < 4.5 ? 'fail' : 'pass' ),
 		);
 		if ( null === $ratio && 'image' === $type ) {
 			$report[ $name ]['reason'] = $page ? 'Unsupported foreground or surface color.' : 'Background image average could not be read or its overlay is unsupported.';

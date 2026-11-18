@@ -59,7 +59,7 @@ function ec_get_artist_profile_sections( $artist_id, $artist_term_id = null ) {
 	/**
 	 * Filter the artist profile sections.
 	 *
-	 * @param array[] $sections       Registered sections.
+	 * @param mixed   $sections       Registered sections (array[] expected; filter output is untrusted).
 	 * @param int     $artist_id      Artist profile post ID.
 	 * @param int     $artist_term_id Bound main-blog `artist` term_id (0 if unbound).
 	 */

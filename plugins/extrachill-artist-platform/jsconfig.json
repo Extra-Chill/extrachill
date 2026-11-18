@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"allowJs": true,
+		"checkJs": false,
+		"noEmit": true,
+		"paths": {
+			"@extrachill/components": [ "../../packages/components/src/index.tsx" ],
+			"@extrachill/api-client": [ "../../packages/api-client/src/index.ts" ],
+			"@extrachill/api-client/wordpress": [ "../../packages/api-client/src/wordpress.ts" ]
+		}
+	},
+	"include": [ "src/**/*.js" ],
+	"exclude": [ "node_modules", "build" ]
+}

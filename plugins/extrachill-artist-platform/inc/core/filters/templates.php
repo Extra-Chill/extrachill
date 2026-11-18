@@ -27,7 +27,7 @@ function ec_render_template( $template_name, $args = array() ) {
  *
  * @param string $output Current output (empty by default)
  * @param string $template_name Template name
- * @param array $args Template arguments
+ * @param mixed  $args Template arguments (array expected; filter input is untrusted)
  * @return string Rendered HTML
  */
 function ec_template_handler( $output, $template_name, $args = array() ) {
@@ -36,7 +36,9 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
 		return $output;
 	}
 
-	// Template validation and file mapping
+	// Template validation and file mapping. The required-arg validator below is
+	// generic over argument names, not just the ones this map uses today.
+	/** @var array<string, array{file: string, required: list<string>}> $template_map */
 	$template_map = array(
 		'single-link'            => array(
 			'file'     => 'inc/link-pages/live/templates/components/single-link.php',
@@ -156,5 +158,5 @@ function ec_template_handler( $output, $template_name, $args = array() ) {
 		extract( $args, EXTR_SKIP );
 	}
 	include $template_file;
-	return ob_get_clean();
+	return (string) ob_get_clean();
 }

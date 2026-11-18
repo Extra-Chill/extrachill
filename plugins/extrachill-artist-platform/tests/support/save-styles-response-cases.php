@@ -3,34 +3,37 @@
 
 $assert = static function ( $condition, $message ) {
 	if ( ! $condition ) {
-		throw new RuntimeException( $message );
+		throw new RuntimeException( esc_html( $message ) );
 	}
 };
-$target = array( 'link_page_id' => $created, 'owner_reference' => \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 20 ) );
+$target = array(
+	'link_page_id'    => $created,
+	'owner_reference' => \ExtraChillArtistPlatform\Artist_Link_Pages::owner_reference( 20 ),
+);
 
 // Simulate old metadata whose redundant styles disagree with canonical settings.
 update_post_meta( $created, '_link_page_custom_css_vars', array(
-	'_link_page_profile_img_shape' => 'circle',
-	'--link-page-profile-img-shape' => 'rectangle',
+	'_link_page_profile_img_shape'     => 'circle',
+	'--link-page-profile-img-shape'    => 'rectangle',
 	'--link-page-background-image-url' => '',
-	'--link-page-text-color' => '#123456',
+	'--link-page-text-color'           => '#123456',
 ) );
 $response = extrachill_artist_platform_ability_save_link_page_settings( array(
-	'artist_id' => 20,
-	'settings' => array( 'profile_image_shape' => 'square' ),
+	'artist_id'           => 20,
+	'settings'            => array( 'profile_image_shape' => 'square' ),
 	'background_image_id' => 55,
 ) );
 $assert( ! is_wp_error( $response ), 'Settings save failed.' );
-$assert( $response === ec_read_link_page( $target ), 'Settings response differs from fresh read.' );
+$assert( ec_read_link_page( $target ) === $response, 'Settings response differs from fresh read.' );
 
 foreach ( array( 4, 1, 7 ) as $caller_blog ) {
 	switch_to_blog( $caller_blog );
 	$response = extrachill_artist_platform_ability_save_link_page_styles( array(
 		'artist_id' => 20,
-		'css_vars' => array( '--link-page-button-radius' => '12px' ),
+		'css_vars'  => array( '--link-page-button-radius' => '12px' ),
 	) );
 	$assert( ! is_wp_error( $response ), 'Style save failed.' );
-	$assert( $response === ec_read_link_page( $target ), 'Styles response differs from fresh read.' );
+	$assert( ec_read_link_page( $target ) === $response, 'Styles response differs from fresh read.' );
 	$persistence = ec_read_link_page_persistence( $created );
 	$assert( $response['css_vars'] === $persistence['css_vars'], 'Response differs from storage projection.' );
 	$assert( '' !== $response['background_image_url'], 'Attachment URL is missing.' );
@@ -41,17 +44,17 @@ foreach ( array( 4, 1, 7 ) as $caller_blog ) {
 	}
 	$assert( '#123456' === $response['css_vars']['--link-page-text-color'], 'Style patch lost existing data.' );
 	$assert( '12px' === $response['css_vars']['--link-page-button-radius'], 'Style patch was not saved.' );
-	$assert( $caller_blog === get_current_blog_id(), 'Caller blog was not restored.' );
+	$assert( get_current_blog_id() === $caller_blog, 'Caller blog was not restored.' );
 	restore_current_blog();
 }
 
 $response = extrachill_artist_platform_ability_save_link_page_settings( array(
-	'artist_id' => 20,
+	'artist_id'           => 20,
 	'background_image_id' => 0,
-	'settings' => array( 'profile_image_shape' => 'rectangle' ),
+	'settings'            => array( 'profile_image_shape' => 'rectangle' ),
 ) );
 $assert( ! is_wp_error( $response ), 'Image removal failed.' );
-$assert( $response === ec_read_link_page( $target ), 'Removal response differs from fresh read.' );
+$assert( ec_read_link_page( $target ) === $response, 'Removal response differs from fresh read.' );
 $assert( '' === $response['background_image_url'] && '' === $response['css_vars']['--link-page-background-image-url'], 'Removed image left a stale URL.' );
 $assert( 'rectangle' === $response['profile_img_shape'] && 'rectangle' === $response['css_vars']['_link_page_profile_img_shape'], 'Shape change left a stale alias.' );
 echo wp_json_encode( array( 'save_styles_response' => true ) );

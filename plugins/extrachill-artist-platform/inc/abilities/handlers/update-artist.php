@@ -58,9 +58,12 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
 	}
 	$did_switch = get_current_blog_id() !== (int) $artist_blog_id;
-	// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: switch_to_blog() is stubbed @return true, but the guard is retained.)
-	if ( $did_switch && ( ! switch_to_blog( $artist_blog_id ) || get_current_blog_id() !== (int) $artist_blog_id ) ) {
-		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
+	if ( $did_switch ) {
+		// switch_to_blog() always returns true; verify the switch took effect instead.
+		switch_to_blog( $artist_blog_id );
+		if ( get_current_blog_id() !== (int) $artist_blog_id ) {
+			return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
+		}
 	}
 
 	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {

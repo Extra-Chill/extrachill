@@ -4,6 +4,9 @@
  * React context providing artist state and configuration for the analytics dashboard.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { createContext, useContext, useState, useCallback } from '@wordpress/element';
 
 const AnalyticsContext = createContext( null );
