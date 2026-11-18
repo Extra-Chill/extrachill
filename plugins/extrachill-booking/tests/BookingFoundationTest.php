@@ -1456,14 +1456,13 @@ final class BookingFoundationTest extends BookingTestCase {
 		$fields  = $service->defaults()['intake']['fields'];
 
 		$this->assertSame(
-			array( 'played_area_before', 'listen_link', 'socials_link' ),
+			array( 'listen_link', 'socials_link' ),
 			array_column( $fields, 'key' ),
-			'A venue that never opens the form editor still asks the questions that qualify an inquiry.'
+			'A venue that never opens the form editor asks only for a listen link and socials.'
 		);
-		$this->assertSame( array( 'Yes', 'No' ), $fields[0]['options'] );
-		$this->assertSame( array( true, true, false ), array_column( $fields, 'required' ) );
-		$this->assertSame( array( 'select', 'url', 'url' ), array_column( $fields, 'type' ) );
-		$this->assertSame( array( null, null, null ), array_column( $fields, 'visible_when' ) );
+		$this->assertSame( array( true, false ), array_column( $fields, 'required' ) );
+		$this->assertSame( array( 'url', 'url' ), array_column( $fields, 'type' ) );
+		$this->assertSame( array( null, null ), array_column( $fields, 'visible_when' ) );
 
 		$normalized = $service->normalize( $service->defaults() );
 		$this->assertIsArray( $normalized, 'The starter questions must satisfy the same contract as venue-authored ones.' );
