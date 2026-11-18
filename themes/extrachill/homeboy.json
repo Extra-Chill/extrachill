@@ -7,6 +7,7 @@
         "local_workspace_dependencies": [
           { "name": "@extrachill/tokens", "path": "../../packages/tokens" }
         ],
+        "standalone_php_test_paths": ["tests/*.php"],
         "validation_dependencies": [
           "../../plugins/extrachill-network"
         ],
