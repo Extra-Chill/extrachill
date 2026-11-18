@@ -14,7 +14,6 @@ import { __ } from '@wordpress/i18n';
 /**
  * External dependencies
  */
-import { executeAbility } from '../../abilities';
 import {
 	ActionRow,
 	BlockShell,
@@ -31,6 +30,7 @@ import { cssVar, spacing, colors } from '@extrachill/tokens';
 /**
  * Internal dependencies
  */
+import { executeAbility } from '../../abilities';
 import type { UserProfile, UserLink } from '../../types/users';
 
 const client = { execute: executeAbility };

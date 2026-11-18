@@ -32,7 +32,7 @@ if ( bbp_is_reply_edit() ) : ?>
 					<?php
 					$reply_to = bbp_get_form_reply_to();
 					if ( $reply_to ) {
-						$reply_author_id = bbp_get_reply_author_id( $reply_to );
+						$reply_author_id = bbp_get_reply_author_id( (int) $reply_to );
 						$reply_author    = get_userdata( $reply_author_id );
 						$username        = $reply_author ? $reply_author->user_nicename : '';
 						if ( $username ) {
@@ -71,18 +71,6 @@ if ( bbp_is_reply_edit() ) : ?>
 
 				<?php endif; ?>
 
-				<?php // Carefully comment out only the unfiltered_html notice block ?>
-				<?php
-				/* if ( current_user_can( 'unfiltered_html' ) ) : ?>
-
-					<div class="notice notice-info">
-						<ul>
-							<li><?php esc_html_e( 'Your account has the ability to post unrestricted HTML content.', 'bbpress' ); ?></li>
-						</ul>
-					</div>
-
-				<?php endif; */
-				?>
 
 					<div>
 
@@ -115,7 +103,7 @@ if ( bbp_is_reply_edit() ) : ?>
 
 					<?php endif; ?>
 
-					<?php if ( bbp_is_subscriptions_active() && ! bbp_is_anonymous() && ( ! bbp_is_reply_edit() || ( bbp_is_reply_edit() && ! bbp_is_reply_anonymous() ) ) ) : ?>
+					<?php if ( bbp_is_subscriptions_active() && ! bbp_is_anonymous() && ( ! bbp_is_reply_edit() || ! bbp_is_reply_anonymous() ) ) : ?>
 
 						<?php do_action( 'bbp_theme_before_reply_form_subscription' ); ?>
 

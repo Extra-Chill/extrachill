@@ -59,7 +59,7 @@ function extrachill_display_profile_meta_line() {
 		$parts[] = sprintf(
 			/* translators: %s: localized month + year the user registered. */
 			esc_html__( 'Joined %s', 'extra-chill-community' ),
-			esc_html( date_i18n( 'F Y', strtotime( $join_date ) ) )
+			esc_html( date_i18n( 'F Y', strtotime( (string) $join_date ) ) )
 		);
 	}
 

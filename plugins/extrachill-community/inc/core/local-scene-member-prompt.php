@@ -62,14 +62,14 @@ function extrachill_community_enqueue_local_scene_prompt_assets() {
 		'extrachill-local-scene-member-prompt',
 		EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/css/local-scene-member-prompt.css',
 		array( 'extrachill-community-global' ),
-		filemtime( $css_path )
+		(string) filemtime( $css_path )
 	);
 
 	wp_enqueue_script(
 		'extrachill-local-scene-member-prompt',
 		EXTRACHILL_COMMUNITY_PLUGIN_URL . '/inc/assets/js/local-scene-member-prompt.js',
 		array(),
-		filemtime( $js_path ),
+		(string) filemtime( $js_path ),
 		true
 	);
 
@@ -77,9 +77,9 @@ function extrachill_community_enqueue_local_scene_prompt_assets() {
 		'extrachill-local-scene-member-prompt',
 		'extrachillLocalScenePrompt',
 		array(
-			'abilitiesUrl' => rest_url( 'wp-abilities/v1/abilities/' ),
-			'restNonce'    => wp_create_nonce( 'wp_rest' ),
-			'analyticsUrl' => admin_url( 'admin-ajax.php' ),
+			'abilitiesUrl'   => rest_url( 'wp-abilities/v1/abilities/' ),
+			'restNonce'      => wp_create_nonce( 'wp_rest' ),
+			'analyticsUrl'   => admin_url( 'admin-ajax.php' ),
 			'analyticsNonce' => wp_create_nonce( 'extrachill_local_scene_prompt_analytics' ),
 		)
 	);

@@ -151,7 +151,7 @@ function extrachill_process_points_recalculation_queue() {
 	$queue = get_option('extrachill_points_recalculation_queue', array());
 
 	foreach ( array_keys($queue) as $user_id ) {
-		extrachill_get_user_total_points($user_id);
+		extrachill_get_user_total_points( (int) $user_id );
 		// Remove the user from the queue after processing
 		unset($queue[ $user_id ]);
 	}

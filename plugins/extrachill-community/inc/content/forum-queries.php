@@ -82,7 +82,7 @@ function ec_get_topics_loop_args() {
 function ec_get_popular_topic_ids( $days = 45, $limit = 100 ) {
 	global $wpdb;
 
-	$since = gmdate( 'Y-m-d H:i:s', strtotime( '-' . absint( $days ) . ' days' ) );
+	$since = gmdate( 'Y-m-d H:i:s', (int) strtotime( '-' . absint( $days ) . ' days' ) );
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate ordering not expressible via WP_Query; uncached by design (live ranking).
 	$popular_ids = $wpdb->get_col(

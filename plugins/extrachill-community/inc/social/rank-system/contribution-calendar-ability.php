@@ -75,10 +75,10 @@ function extrachill_community_get_contribution_calendar( $user_id, $days = 365, 
 	if ( $year > 0 ) {
 		// Calendar-year mode (Jan 1 – Dec 31 of a past year, GitHub's year
 		// tabs). Grid runs from the Sunday on/before Jan 1 through Dec 31.
-		$tz         = wp_timezone();
-		$jan_first  = new DateTimeImmutable( sprintf( '%d-01-01', $year ), $tz );
-		$dec_last   = new DateTimeImmutable( sprintf( '%d-12-31', $year ), $tz );
-		$start_dow  = (int) $jan_first->format( 'w' );
+		$tz           = wp_timezone();
+		$jan_first    = new DateTimeImmutable( sprintf( '%d-01-01', $year ), $tz );
+		$dec_last     = new DateTimeImmutable( sprintf( '%d-12-31', $year ), $tz );
+		$start_dow    = (int) $jan_first->format( 'w' );
 		$first_sunday = $jan_first->modify( '-' . $start_dow . ' days' );
 		$grid_end     = $dec_last;
 
@@ -120,6 +120,9 @@ function extrachill_community_get_contribution_calendar( $user_id, $days = 365, 
 	// source (forum, main posts, concerts) and converts UTC → site-local day.
 	$counts = array();
 	if ( function_exists( 'ec_get_contribution_events' ) ) {
+		// Cross-plugin seam (extrachill-users ships separately): keep the shape
+		// checks below rather than trusting the provider's declared return type.
+		/** @var mixed $events */
 		$events = ec_get_contribution_events( $user_id, $window_start );
 		if ( is_array( $events ) ) {
 			foreach ( $events as $event ) {
@@ -155,7 +158,7 @@ function extrachill_community_get_contribution_calendar( $user_id, $days = 365, 
 
 	ksort( $counts );
 
-	$total        = array_sum( $counts );
+	$total         = array_sum( $counts );
 	$max_day_count = $counts ? (int) max( $counts ) : 0;
 
 	// Streaks are relative to the displayed window. The "current" streak only

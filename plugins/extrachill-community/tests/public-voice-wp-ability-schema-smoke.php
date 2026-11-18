@@ -50,7 +50,15 @@ function extrachill_community_ability_update_reply() { return array( 'public_voi
 function extrachill_community_ability_update_reply_permission() { return true; }
 
 require dirname( __DIR__ ) . '/inc/content/topic-reply-abilities.php';
-extrachill_community_register_topic_reply_abilities();
+require_once __DIR__ . '/support/booted-ability-registry.php';
+if ( extrachill_community_test_has_booted_ability_registry() ) {
+	extrachill_community_test_register_abilities( 'extrachill_community_register_topic_reply_abilities' );
+	foreach ( array( 'extrachill/community-create-topic', 'extrachill/community-create-reply', 'extrachill/community-update-topic', 'extrachill/community-update-reply' ) as $public_voice_ability_name ) {
+		$GLOBALS['_public_voice_registered_abilities'][ $public_voice_ability_name ] = wp_get_ability( $public_voice_ability_name );
+	}
+} else {
+	extrachill_community_register_topic_reply_abilities();
+}
 
 function public_voice_ability_assert( $condition, $message ) {
 	if ( ! $condition ) {

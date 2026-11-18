@@ -1,4 +1,8 @@
-/** Core owns discovery, schema validation, defaults and transport. */
+/* Core owns discovery, schema validation, defaults and transport. */
+
+/**
+ * WordPress dependencies
+ */
 import { executeAbility as executeCoreAbility } from '@wordpress/abilities';
 import { ready } from '@wordpress/core-abilities';
 

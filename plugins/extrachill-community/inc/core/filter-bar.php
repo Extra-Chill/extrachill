@@ -24,8 +24,8 @@ function extrachill_community_filter_bar_items( $items ) {
 		return $items;
 	}
 
-	$current_sort   = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'default';
-	$current_search = isset( $_GET['bbp_search'] ) ? sanitize_text_field( wp_unslash( $_GET['bbp_search'] ) ) : '';
+	$current_sort   = isset( $_GET['sort'] ) ? sanitize_key( wp_unslash( $_GET['sort'] ) ) : 'default'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public sort selection.
+	$current_search = isset( $_GET['bbp_search'] ) ? sanitize_text_field( wp_unslash( $_GET['bbp_search'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only public search selection.
 
 	// Sort dropdown with community-specific options.
 	$items[] = array(

@@ -14,9 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Render a forum badge.
  *
- * @param string $icon_id The extrachill.svg symbol ID.
- * @param string $class   CSS class for the badge.
- * @param string $title   Tooltip title.
+ * @param string $icon_id    The extrachill.svg symbol ID.
+ * @param string $class_name CSS class for the badge.
+ * @param string $title      Tooltip title.
  */
 function extrachill_render_badge( $icon_id, $class_name, $title ) {
 	printf(

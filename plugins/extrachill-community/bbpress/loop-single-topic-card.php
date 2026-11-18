@@ -18,7 +18,7 @@ if ( ! $topic_id ) {
 
 ?>
 
-<div id="bbp-topic-card-<?php echo esc_attr( $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-full-width-panel<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
+<div id="bbp-topic-card-<?php echo esc_attr( (string) $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-full-width-panel<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
 	<div class="bbp-topic-info">
 		<?php do_action( 'bbp_theme_before_topic_title' ); ?>
 		<div class="topic-card-header-area">
@@ -41,12 +41,12 @@ if ( ! $topic_id ) {
 					<div class="upvote-date">
 						<div class="upvote">
 							<span class="upvote-icon" 
-									data-post-id="<?php echo esc_attr($topic_id); ?>" 
+									data-post-id="<?php echo esc_attr( (string) $topic_id ); ?>" 
 									data-type="topic"
 									data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
 								<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 							</span>
-							<span class="upvote-count"><?php echo esc_html($display_upvote_count); ?></span>
+							<span class="upvote-count"><?php echo esc_html( (string) $display_upvote_count ); ?></span>
 						</div> 
 					</div> 
 				</div><!-- .bbp-meta-upvote -->
@@ -74,10 +74,10 @@ if ( ! $topic_id ) {
 	<div class="bbp-topic-stats">
 		<span class="topic-views"><?php echo esc_html( number_format( ec_get_post_views( $topic_id ) ) ); ?> views</span>
 		<div class="bbp-topic-voice-count">
-			<?php echo esc_html( bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
+			<?php echo esc_html( (string) bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
 		</div>
 		<div class="bbp-topic-reply-count">
-			<?php echo esc_html( bbp_show_lead_topic() ? bbp_get_topic_reply_count( $topic_id ) : bbp_get_topic_post_count( $topic_id ) ); ?> Replies
+			<?php echo esc_html( (string) ( bbp_show_lead_topic() ? bbp_get_topic_reply_count( $topic_id ) : bbp_get_topic_post_count( $topic_id ) ) ); ?> Replies
 		</div>
 	</div>
 
@@ -127,4 +127,4 @@ if ( ! $topic_id ) {
 		endif;
 		?>
 	</div>
-</div><!-- #bbp-topic-card-<?php echo esc_attr( $topic_id ); ?> -->
+</div><!-- #bbp-topic-card-<?php echo esc_attr( (string) $topic_id ); ?> -->

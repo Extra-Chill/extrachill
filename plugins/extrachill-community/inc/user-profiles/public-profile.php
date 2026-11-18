@@ -99,7 +99,7 @@ function extrachill_community_display_identity_line() {
 		// so the hero placement keeps the archive link.
 		ob_start();
 		extrachill_community_render_local_scene_badge( $local_scene, true );
-		$scene_badge = trim( ob_get_clean() );
+		$scene_badge = trim( (string) ob_get_clean() );
 		if ( '' !== $scene_badge ) {
 			$parts[] = '<strong>' . esc_html__( 'Local Scene:', 'extra-chill-community' ) . '</strong> ' . $scene_badge;
 		}

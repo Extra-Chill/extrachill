@@ -196,7 +196,7 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 
 	// User profile: Community › Username
 	if ( function_exists( 'bbp_is_single_user' ) && bbp_is_single_user() ) {
-		return '<span>' . esc_html( bbp_get_displayed_user_field( 'display_name' ) ) . '</span>';
+		return '<span>' . esc_html( (string) bbp_get_displayed_user_field( 'display_name' ) ) . '</span>';
 	}
 
 	return $custom_trail;
