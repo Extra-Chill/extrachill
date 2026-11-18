@@ -1,4 +1,10 @@
 /** Booking dependencies may only be imported by explicitly owned modules. */
+
+/* global test, expect */
+
+/**
+ * External dependencies
+ */
 import fs from 'fs';
 import path from 'path';
 

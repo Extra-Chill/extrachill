@@ -75,7 +75,8 @@ if ( ! function_exists( 'datamachine_get_event_dates' ) ) {
 
 if ( ! function_exists( 'wp_timezone' ) ) {
 	function wp_timezone() {
-		return new DateTimeZone( $GLOBALS['guest_list_pin_test']['timezone'] ?? 'UTC' );
+		// Also honor the digest stubs' key: whichever wp_timezone() shim loads first serves both (qualify-v2-unit).
+		return new DateTimeZone( $GLOBALS['guest_list_pin_test']['timezone'] ?? $GLOBALS['ec_digest_timezone'] ?? 'UTC' );
 	}
 }
 

@@ -175,7 +175,7 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
 	if ( ! empty( $input['venue_id'] ) ) {
 		$tax_filter['venue'] = array( absint( $input['venue_id'] ) );
 	}
-	$mappings   = array(
+	$mappings = array(
 		'venue'    => 'venue',
 		'promoter' => 'promoter',
 		'location' => 'location',
@@ -191,7 +191,7 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
 		}
 
 		$term = get_term_by( 'slug', sanitize_text_field( $slug ), $taxonomy );
-		if ( $term && ! is_wp_error( $term ) ) {
+		if ( $term ) {
 			$tax_filter[ $taxonomy ] = array( $term->term_id );
 		}
 	}

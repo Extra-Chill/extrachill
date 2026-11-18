@@ -88,7 +88,8 @@ final class ArchiveEventsFirstTest extends TestCase {
 		// and the sign-in prompt this test pins below. See
 		// VenueBookingInquiryRenderTest, which asserts the rendered order
 		// heading -> booking CTA -> operator action -> calendar.
-		$workspace = file_get_contents( $base . 'booking-console.php' );
+		// The console moved to extrachill-booking with the rest of booking (#548).
+		$workspace = file_get_contents( dirname( __DIR__, 4 ) . '/extrachill-booking/inc/core/booking-console.php' );
 		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 )", $workspace );
 		$this->assertStringNotContainsString( 'extrachill_archive_below_calendar', $workspace );
 
@@ -107,7 +108,9 @@ final class ArchiveEventsFirstTest extends TestCase {
 		$this->assertStringNotContainsString( 'VenueBooking', $archive );
 		$this->assertStringNotContainsString( 'venue-booking-inquiry', $archive );
 		$this->assertStringNotContainsString( 'venue-booking-inquiry', file_get_contents( $base . '/inc/core/bootstrap.php' ) );
-		$this->assertStringContainsString( 'inc/core/booking-ui.php', file_get_contents( $base . '/inc/Providers/BookingProvider.php' ) );
+		// Booking UI lives in extrachill-booking (#548); Events ships no copy.
+		$this->assertFileDoesNotExist( $base . '/inc/core/booking-ui.php' );
+		$this->assertStringContainsString( 'inc/core/booking-ui.php', file_get_contents( dirname( $base ) . '/extrachill-booking/inc/Providers/BookingProvider.php' ) );
 	}
 
 	/** Archive maps ship collapsed by default with the taller expanded height. */

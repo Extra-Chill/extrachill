@@ -55,9 +55,8 @@ function extrachill_events_register_filters_ability(): void {
 }
 
 /**
- * Execute the events-filters ability.
+ * Execute the events-filters ability (takes no input).
  *
- * @param array $input Input (unused — no params).
  * @return array|WP_Error Filter options or error.
  */
 function extrachill_events_ability_filters(): array|\WP_Error {

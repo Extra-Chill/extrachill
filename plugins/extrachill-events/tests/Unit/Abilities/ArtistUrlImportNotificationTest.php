@@ -51,6 +51,16 @@ final class ArtistUrlImportNotificationTest extends PHPUnit\Framework\TestCase {
 			'recipients' => array( 22 => array( 'status' => 'existing' ) ),
 		);
 		$GLOBALS['ec_artist_test']                      = array( 'fired_actions' => array() );
+		// In qualify-v2-unit, earlier files' get_current_user_id()/get_userdata()
+		// shims (Stubs/wp-stubs.php, RsvpGuestListPartiesTest.php) win; seed the
+		// keys they read with the same actor.
+		$GLOBALS['test_current_user_id']                = 31;
+		$GLOBALS['rsvp_pass_mail_test']['users'][31]    = (object) array( 'ID' => 31 );
+	}
+
+	protected function tearDown(): void {
+		unset( $GLOBALS['test_current_user_id'], $GLOBALS['rsvp_pass_mail_test']['users'][31], $GLOBALS['artist_import_notification_actor_id'] );
+		parent::tearDown();
 	}
 
 	/**

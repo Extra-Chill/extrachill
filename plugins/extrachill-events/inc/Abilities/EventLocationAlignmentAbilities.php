@@ -24,7 +24,7 @@ class EventLocationAlignmentAbilities {
 	/**
 	 * Cached flow location terms by flow ID.
 	 *
-	 * @var array<int, array<string, mixed>>
+	 * @var array<int, array{name: string, term: \WP_Term|null}>
 	 */
 	private array $flow_location_cache = array();
 
@@ -485,7 +485,7 @@ class EventLocationAlignmentAbilities {
 			}
 		}
 
-		if ( is_wp_error( $term ) ) {
+		if ( ! $term instanceof \WP_Term ) {
 			$term = null;
 		}
 

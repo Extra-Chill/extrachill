@@ -23,7 +23,7 @@ function extrachill_events_get_calendar_stats(): array {
 	$cached    = get_transient( $cache_key );
 
 	if ( false !== $cached && is_array( $cached ) ) {
-		return $cached;
+		return extrachill_events_normalize_calendar_stats( $cached );
 	}
 
 	// Requires data-machine-events to be active.
@@ -64,7 +64,7 @@ function extrachill_events_get_calendar_stats(): array {
 			'exclude_roots' => false,
 		)
 	);
-	$venues       = count( $venue_result['terms'] ?? array() );
+	$venues       = is_wp_error( $venue_result ) ? 0 : count( $venue_result['terms'] ?? array() );
 
 	$location_result = $counts_ability->executeGetUpcomingCounts(
 		array(
@@ -72,7 +72,7 @@ function extrachill_events_get_calendar_stats(): array {
 			'exclude_roots' => false,
 		)
 	);
-	$locations       = count( $location_result['terms'] ?? array() );
+	$locations       = is_wp_error( $location_result ) ? 0 : count( $location_result['terms'] ?? array() );
 
 	$stats = array(
 		'events'    => $events,
@@ -167,7 +167,7 @@ function extrachill_events_get_term_calendar_stats( string $taxonomy, int $term_
 	$cache_key = "extrachill_calendar_stats_{$taxonomy}_{$term_id}";
 	$cached    = get_transient( $cache_key );
 	if ( false !== $cached && is_array( $cached ) ) {
-		return $cached;
+		return extrachill_events_normalize_calendar_stats( $cached );
 	}
 
 	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
@@ -326,4 +326,18 @@ function extrachill_events_render_term_calendar_stats( string $taxonomy, int $te
 	}
 
 	echo '<p class="calendar-stats">' . $sentence . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- All interpolated values are esc_html()'d above.
+}
+
+/**
+ * Coerce a cached stats payload into the typed stats shape.
+ *
+ * @param array $stats Cached stats payload.
+ * @return array{events: int, venues: int, locations: int}
+ */
+function extrachill_events_normalize_calendar_stats( array $stats ): array {
+	return array(
+		'events'    => (int) ( $stats['events'] ?? 0 ),
+		'venues'    => (int) ( $stats['venues'] ?? 0 ),
+		'locations' => (int) ( $stats['locations'] ?? 0 ),
+	);
 }

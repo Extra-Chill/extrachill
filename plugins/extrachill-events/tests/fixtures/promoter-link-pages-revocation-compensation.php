@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Classes.DuplicateClassName,Universal.Files.SeparateFunctionsFromOO,WordPress.WP.AlternativeFunctions -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 /** Deterministic promoter revocation owner-audit compensation fixture. */
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -70,7 +71,7 @@ $link_pages_engine = getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKT
 require_once $link_pages_engine . '/inc/class-owned-link-pages.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/PromoterLinkPages.php';
 
-$restored = ExtraChillEvents\Core\PromoterLinkPages::authority_precommit( true, 30, 'organization_revoked' );
+$restored       = ExtraChillEvents\Core\PromoterLinkPages::authority_precommit( true, 30, 'organization_revoked' );
 $restored_audit = $GLOBALS['promoter_revocation_fixture']['audit'];
 
 $GLOBALS['promoter_revocation_fixture']['audit']        = array( 'state' => 'before' );

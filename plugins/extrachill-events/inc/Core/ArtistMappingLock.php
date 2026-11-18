@@ -26,7 +26,7 @@ final class ArtistMappingLock {
 	 */
 	public static function acquire( int $events_term_id ) {
 		global $wpdb;
-		if ( $events_term_id < 1 || preg_match( '/sqlite|pgsql|postgres/', strtolower( get_class( $wpdb ) ) ) ) {
+		if ( $events_term_id < 1 || preg_match( '/sqlite|pgsql|postgres/', strtolower( (string) get_class( $wpdb ) ) ) ) {
 			return new \WP_Error( 'events_artist_mapping_lock_unsupported', __( 'Artist mapping serialization requires MySQL advisory locks.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$lock_name = 'ec_events_artist_mapping_' . $events_term_id;

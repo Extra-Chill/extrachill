@@ -63,7 +63,7 @@ function extrachill_events_render_artist_map() {
 	// artists with a single (or zero) upcoming venue.
 	if ( function_exists( 'extrachill_events_get_term_calendar_stats' ) ) {
 		$stats = extrachill_events_get_term_calendar_stats( 'artist', (int) $term->term_id );
-		if ( (int) ( $stats['venues'] ?? 0 ) < 2 ) {
+		if ( $stats['venues'] < 2 ) {
 			return;
 		}
 	}

@@ -44,7 +44,7 @@ function extrachill_events_resolve_upcoming_shows( $context ) {
 		return $owner;
 	}
 	if ( 'post' !== ( $owner['kind'] ?? '' ) || 'artist_profile' !== ( $owner['subtype'] ?? '' )
-		|| (int) $owner['blog_id'] !== (int) ec_get_blog_id( 'artist' ) ) {
+		|| (int) ec_get_blog_id( 'artist' ) !== (int) $owner['blog_id'] ) {
 		return new WP_Error( 'upcoming_shows_owner_unsupported', 'Upcoming shows require an artist profile owner.' );
 	}
 	if ( ! function_exists( 'extrachill_events_ability_events_by_artist' ) ) {
@@ -57,12 +57,16 @@ function extrachill_events_resolve_upcoming_shows( $context ) {
 	}
 	$limit  = max( 1, min( 25, (int) ( $context['section']['source_config']['limit'] ?? 5 ) ) );
 	$result = extrachill_events_ability_events_by_artist(
-		array( 'artist_term_id' => $term_id, 'scope' => 'upcoming', 'limit' => $limit )
+		array(
+			'artist_term_id' => $term_id,
+			'scope'          => 'upcoming',
+			'limit'          => $limit,
+		)
 	);
 	if ( is_wp_error( $result ) ) {
 		return $result; // Preserve the last good snapshot on dependency/mapping failure.
 	}
-	if ( ! is_array( $result ) || ! isset( $result['upcoming'] ) || ! is_array( $result['upcoming'] ) ) {
+	if ( ! isset( $result['upcoming'] ) || ! is_array( $result['upcoming'] ) ) {
 		return new WP_Error( 'upcoming_shows_invalid_result', 'The artist events response is invalid.' );
 	}
 	$links = array();

@@ -11,6 +11,7 @@ namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
 	define( 'HOUR_IN_SECONDS', 3600 );
 	define( 'MINUTE_IN_SECONDS', 60 );
+	define( 'MB_IN_BYTES', 1024 * 1024 );
 	$GLOBALS['bootstrap_matrix_hooks'] = array();
 	$GLOBALS['bootstrap_matrix_blog']  = 'unrelated' === ( $argv[1] ?? '' ) ? 2 : 7;
 	$GLOBALS['bootstrap_matrix_fail']  = 'provider-throwing' === ( $argv[1] ?? '' );
@@ -107,6 +108,13 @@ namespace {
 				self::$commands[ $name ] = $class;
 			}
 		}
+	}
+
+	// extrachill-users is a required plugin (Requires Plugins header); its team
+	// onboarding classes are constructed by VenueOnboardingAbilities. Load the
+	// class declarations only, no extrachill-users runtime functions.
+	foreach ( array( 'TeamMembershipRepository', 'TeamInvitationToken', 'TeamOnboardingAdapter', 'TeamOnboardingAdapters', 'TeamOnboardingRepository', 'TeamOnboardingService' ) as $users_team_class ) {
+		require_once dirname( __DIR__, 3 ) . '/extrachill-users/inc/teams/' . $users_team_class . '.php';
 	}
 
 	require dirname( __DIR__, 2 ) . '/extrachill-events.php';

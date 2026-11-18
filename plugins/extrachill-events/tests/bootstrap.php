@@ -14,7 +14,7 @@
  * @package ExtraChillEvents\Tests
  */
 
-// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO -- Test bootstrap stubs intentionally mix WP function shims with shadow classes.
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Generic.Classes.DuplicateClassName -- Test bootstrap stubs intentionally mix WP function shims with shadow classes.
 
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/fixtures/' );

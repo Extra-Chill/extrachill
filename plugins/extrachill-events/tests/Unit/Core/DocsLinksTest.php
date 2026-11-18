@@ -16,6 +16,11 @@ if ( ! function_exists( 'sanitize_title' ) ) {
 	function sanitize_title( $title ) { return strtolower( trim( preg_replace( '/[^A-Za-z0-9]+/', '-', (string) $title ), '-' ) ); }
 }
 
+if ( ! function_exists( 'ec_get_site_url' ) ) {
+	// extrachill-network is absent here; a null URL exercises the docs fallback.
+	function ec_get_site_url( $key ) { return null; }
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/core/docs-links.php';
 
 final class DocsLinksTest extends TestCase {
@@ -39,7 +44,8 @@ final class DocsLinksTest extends TestCase {
 	public static function screen_links(): array {
 		return array(
 			'submit form, logged in and logged out' => array( 'blocks/event-submission/render.php', 'add-your-tour', 2 ),
-			'venue booking button'                  => array( 'inc/core/booking-ui.php', 'venue-booking-inquiries', 1 ),
+			// Booking UI moved to extrachill-booking (#548) and still links this Events doc.
+			'venue booking button'                  => array( '../extrachill-booking/inc/core/booking-ui.php', 'venue-booking-inquiries', 1 ),
 			'home search'                           => array( 'inc/core/account-market.php', 'finding-live-music', 1 ),
 		);
 	}

@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Minimal WP polyfills for QualifyDigestAbilityTest.
  *
@@ -47,7 +48,8 @@ if ( ! function_exists( 'wp_timezone' ) ) {
 	 * Return the timezone configured by the current digest test.
 	 */
 	function wp_timezone(): \DateTimeZone {
-		return new \DateTimeZone( $GLOBALS['ec_digest_timezone'] ?? 'UTC' );
+		// Also honor GuestListShowDayPinTest's key: whichever wp_timezone() shim loads first serves both.
+		return new \DateTimeZone( $GLOBALS['ec_digest_timezone'] ?? $GLOBALS['guest_list_pin_test']['timezone'] ?? 'UTC' );
 	}
 }
 

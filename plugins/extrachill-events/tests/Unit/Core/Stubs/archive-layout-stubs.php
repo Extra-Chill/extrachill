@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,WordPress.WP.AlternativeFunctions -- Test doubles mirror WordPress and dependency signatures.
 /**
  * File-level WP doubles owned by the archive-layout-unit suite.
  *

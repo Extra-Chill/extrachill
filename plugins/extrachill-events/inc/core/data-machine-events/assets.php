@@ -42,7 +42,7 @@ function extrachill_events_enqueue_single_styles() {
 			'extrachill-single-post',
 			$theme_uri . '/assets/css/single-post.css',
 			array( 'extrachill-style' ),
-			filemtime( $single_post_css )
+			(string) filemtime( $single_post_css )
 		);
 	}
 
@@ -53,7 +53,7 @@ function extrachill_events_enqueue_single_styles() {
 			'extrachill-sidebar',
 			$theme_uri . '/assets/css/sidebar.css',
 			array( 'extrachill-root', 'extrachill-style' ),
-			filemtime( $sidebar_css )
+			(string) filemtime( $sidebar_css )
 		);
 	}
 
@@ -64,7 +64,7 @@ function extrachill_events_enqueue_single_styles() {
 			'extrachill-events-single',
 			EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/single-event.css',
 			array( 'extrachill-style' ),
-			filemtime( $single_event_css )
+			(string) filemtime( $single_event_css )
 		);
 	}
 }
@@ -88,7 +88,7 @@ function extrachill_events_enqueue_calendar_styles() {
 			'extrachill-events-calendar',
 			EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/css/calendar.css',
 			array( 'extrachill-style' ),
-			filemtime( $calendar_css )
+			(string) filemtime( $calendar_css )
 		);
 	}
 }

@@ -84,21 +84,13 @@ function ec_events_reorder_by_priority( $events, $date_key, $context ) {
 			$b_venue_priority = ec_is_priority_venue_event( $b, $priority_venue_ids );
 
 			// Tier 1: Priority events first.
-			if ( $a_event_priority && ! $b_event_priority ) {
-				return -1;
-			}
-			if ( ! $a_event_priority && $b_event_priority ) {
-				return 1;
+			if ( $a_event_priority !== $b_event_priority ) {
+				return $a_event_priority ? -1 : 1;
 			}
 
 			// Tier 2: Priority venue events next (only if neither is priority event).
-			if ( ! $a_event_priority && ! $b_event_priority ) {
-				if ( $a_venue_priority && ! $b_venue_priority ) {
-					return -1;
-				}
-				if ( ! $a_venue_priority && $b_venue_priority ) {
-					return 1;
-				}
+			if ( ! $a_event_priority && $a_venue_priority !== $b_venue_priority ) {
+				return $a_venue_priority ? -1 : 1;
 			}
 
 			// Same priority tier: maintain datetime order.

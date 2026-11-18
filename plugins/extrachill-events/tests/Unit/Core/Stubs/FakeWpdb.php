@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Minimal $wpdb stub for qualify v2 unit tests.
  *

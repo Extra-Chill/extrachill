@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Classes.DuplicateClassName,Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.DisallowCurlyBraceSyntax,Universal.Namespaces.DisallowDeclarationWithoutName,Universal.Namespaces.OneDeclarationPerFile,WordPress.Security.EscapeOutput,WordPress.WP.AlternativeFunctions -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 /**
  * Standalone promoter-mode venue settings render fixture.
  *

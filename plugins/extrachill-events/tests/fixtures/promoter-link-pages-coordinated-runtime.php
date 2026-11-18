@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,Universal.Files.SeparateFunctionsFromOO,WordPress.WP.AlternativeFunctions,WordPress.WP.GlobalVariablesOverride -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 
 $runtime = getenv( 'LINK_PAGES_WORKTREE' );
 if ( ! $runtime || ! is_file( $runtime . '/tests/bootstrap.php' ) ) {

@@ -310,7 +310,7 @@ function extrachill_events_guest_list_party_open_kinds( int $event_id, array $pa
 	}
 
 	$kinds = array();
-	if ( isset( $party['requested_spots'] ) && null !== $party['requested_spots'] ) {
+	if ( isset( $party['requested_spots'] ) ) {
 		$kinds[] = 'spots';
 	}
 	if ( RsvpPassesTable::count_pending_for_party( $event_id, (int) $party['id'] ) > 0 ) {
@@ -354,7 +354,7 @@ function extrachill_events_list_guest_list_requests( int $event_id ) {
 				'requested_spots' => 'list' === $kind || null === ( $party['requested_spots'] ?? null ) ? null : (int) $party['requested_spots'],
 				'note'            => 'list' === $kind ? '' : (string) ( $party['request_note'] ?? '' ),
 				'names'           => 'spots' === $kind ? array() : $pending_names,
-				'allotment'       => isset( $party['allotment'] ) && null !== $party['allotment'] ? (int) $party['allotment'] : null,
+				'allotment'       => isset( $party['allotment'] ) ? (int) $party['allotment'] : null,
 				'used'            => RsvpPassesTable::count_for_party( $event_id, (int) $party['id'] ),
 				'requested_at'    => (string) ( $party['requested_at'] ?? $party['created_at'] ?? '' ),
 			);
@@ -469,7 +469,7 @@ function extrachill_events_approve_guest_list_request( int $event_id, int $party
 	if ( null !== $spots && ( $spots < 0 || $spots > 100000 ) ) {
 		return new WP_Error( 'invalid_spots', __( 'Spots must be 0 or more.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
-	$asked  = isset( $party['requested_spots'] ) && null !== $party['requested_spots'] ? (int) $party['requested_spots'] : 0;
+	$asked  = isset( $party['requested_spots'] ) ? (int) $party['requested_spots'] : 0;
 	$spots  = null === $spots ? $asked : $spots;
 	$result = array(
 		'approved'  => true,

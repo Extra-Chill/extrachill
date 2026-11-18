@@ -396,7 +396,7 @@ class MarketReportAbilities {
 			)
 		);
 		$name_to_id    = array();
-		foreach ( $all_locations as $term ) {
+		foreach ( is_wp_error( $all_locations ) ? array() : $all_locations as $term ) {
 			$name_to_id[ $term->name ] = $term->term_id;
 		}
 
@@ -495,7 +495,7 @@ class MarketReportAbilities {
 		}
 
 		$end   = gmdate( 'Y-m-d' );
-		$start = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$start = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 
 		$result = $ga->execute(
 			array(
@@ -544,7 +544,7 @@ class MarketReportAbilities {
 		}
 
 		$end   = gmdate( 'Y-m-d' );
-		$start = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$start = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 
 		$result = $gsc->execute(
 			array(
