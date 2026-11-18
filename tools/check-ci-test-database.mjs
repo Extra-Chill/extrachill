@@ -17,7 +17,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // actually run (#1622). Each one is reported as a CI warning. Remove the entry
 // together with the switch to the Docker provider.
 const PENDING_EXTERNAL_DB = {
-  'plugins/extrachill-booking/homeboy.json': '#1622',
   'plugins/extrachill-events/homeboy.json': '#1622',
 };
 
