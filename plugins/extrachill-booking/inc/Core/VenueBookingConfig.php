@@ -531,17 +531,6 @@ class VenueBookingConfig {
 	public function starter_intake_fields(): array {
 		return array(
 			array(
-				'key'          => 'played_area_before',
-				'label'        => __( 'Have you played in the area before?', 'extrachill-booking' ),
-				'type'         => 'select',
-				'required'     => true,
-				'options'      => array(
-					__( 'Yes', 'extrachill-booking' ),
-					__( 'No', 'extrachill-booking' ),
-				),
-				'visible_when' => null,
-			),
-			array(
 				'key'          => 'listen_link',
 				'label'        => __( 'Link to listen', 'extrachill-booking' ),
 				'type'         => 'url',

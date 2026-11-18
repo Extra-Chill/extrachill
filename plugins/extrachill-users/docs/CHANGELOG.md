@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.75.1] - 2026-11-18
+
+### Fixed
+- revoke artist membership via users-owned repository in authorization test
+
 ## [0.75.0] - 2026-11-17
 
 ### Added

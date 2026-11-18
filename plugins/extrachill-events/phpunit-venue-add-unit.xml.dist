@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			venue-add-unit: pure-PHP tests for extrachill/add-venue (events-team
+			gate and city pipeline resolution by location). This suite owns
+			file-level current_user_can, get_term(s) and $wpdb doubles, so it
+			runs in its own process.
+		-->
+		<testsuite name="venue-add-unit">
+			<file>tests/Unit/Abilities/VenueAddAbilitiesTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

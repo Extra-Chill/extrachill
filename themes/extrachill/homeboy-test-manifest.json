@@ -21,6 +21,9 @@
     },
     "tests/comments-template-classes.php": {
       "environment": "standalone-php"
+    },
+    "tests/taxonomy-badge-term-order.php": {
+      "environment": "standalone-php"
     }
   }
 }

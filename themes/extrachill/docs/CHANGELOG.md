@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.23.0] - 2026-11-18
+
+### Added
+- honor core term_order for sort-enabled taxonomies; enable sort on artist
+
 ## [2.22.0] - 2026-11-17
 
 ### Added

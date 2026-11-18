@@ -64,7 +64,7 @@ class VenueProfile {
 		$changed_fields = array_values(
 			array_intersect(
 				(array) ( $result['updated_fields'] ?? array() ),
-				array( 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'capacity' )
+				array( 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'instagram', 'capacity' )
 			)
 		);
 		if ( empty( $changed_fields ) ) {
