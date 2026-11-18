@@ -12,10 +12,13 @@
 namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\FlowLocationGuard;
+use ExtraChillEvents\Core\TeamAuthorization;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+require_once dirname( __DIR__ ) . '/Core/TeamAuthorization.php';
 
 class VenueAddAbilities {
 
@@ -44,15 +47,19 @@ class VenueAddAbilities {
 				'extrachill/add-venue',
 				array(
 					'label'               => __( 'Add Venue', 'extrachill-events' ),
-					'description'         => __( 'Add a venue scraper flow to an existing city pipeline. Creates the venue taxonomy term and configures the universal web scraper.', 'extrachill-events' ),
+					'description'         => __( 'Add a venue scraper flow to an existing city pipeline. Pass the city as location (term ID, slug, or name) or pass pipeline_id. Creates the venue taxonomy term and configures the universal web scraper.', 'extrachill-events' ),
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
-						'required'   => array( 'pipeline_id', 'name', 'url' ),
+						'required'   => array( 'name', 'url' ),
 						'properties' => array(
 							'pipeline_id'   => array(
 								'type'        => 'integer',
-								'description' => 'Pipeline ID for the city this venue belongs to.',
+								'description' => 'Pipeline ID for the city this venue belongs to. Optional when location is given; disambiguates a city with more than one pipeline. One of pipeline_id or location is required.',
+							),
+							'location'      => array(
+								'type'        => array( 'integer', 'string' ),
+								'description' => 'City this venue belongs to: location term ID, slug, or exact name (e.g. "Charleston"). Resolves the city event pipeline when pipeline_id is omitted. One of pipeline_id or location is required.',
 							),
 							'name'          => array(
 								'type'        => 'string',
@@ -106,9 +113,7 @@ class VenueAddAbilities {
 						),
 					),
 					'execute_callback'    => array( $this, 'executeAddVenue' ),
-					'permission_callback' => function () {
-						return current_user_can( 'manage_options' );
-					},
+					'permission_callback' => array( TeamAuthorization::class, 'current_user_is_events_staff' ),
 					'meta'                => array( 'show_in_rest' => true ),
 				)
 			);
@@ -125,6 +130,8 @@ class VenueAddAbilities {
 	 */
 	public function executeAddVenue( array $input ) {
 		$pipeline_id   = (int) ( $input['pipeline_id'] ?? 0 );
+		$location_in   = $input['location'] ?? '';
+		$location_in   = is_int( $location_in ) || is_string( $location_in ) ? sanitize_text_field( (string) $location_in ) : '';
 		$name          = sanitize_text_field( $input['name'] ?? '' );
 		$url           = esc_url_raw( $input['url'] ?? '' );
 		$address       = sanitize_text_field( $input['address'] ?? '' );
@@ -136,8 +143,8 @@ class VenueAddAbilities {
 		$interval      = sanitize_text_field( $input['interval'] ?? self::DEFAULT_INTERVAL );
 		$dry_run       = ! empty( $input['dry_run'] );
 
-		if ( $pipeline_id <= 0 ) {
-			return new \WP_Error( 'missing_pipeline', 'pipeline_id is required.', array( 'status' => 400 ) );
+		if ( $pipeline_id <= 0 && '' === $location_in ) {
+			return new \WP_Error( 'missing_pipeline', 'Either pipeline_id or location is required.', array( 'status' => 400 ) );
 		}
 		if ( empty( $name ) ) {
 			return new \WP_Error( 'missing_name', 'Venue name is required.', array( 'status' => 400 ) );
@@ -152,9 +159,32 @@ class VenueAddAbilities {
 			}
 		}
 
+		$requested_location = null;
+		if ( '' !== $location_in ) {
+			$requested_location = $this->resolveLocationInput( $location_in );
+			if ( is_wp_error( $requested_location ) ) {
+				return $requested_location;
+			}
+		}
+
+		if ( $pipeline_id <= 0 ) {
+			$resolved = $this->findCityPipelineForLocation( $requested_location );
+			if ( is_wp_error( $resolved ) ) {
+				return $resolved;
+			}
+			$pipeline_id = (int) $resolved['pipeline_id'];
+		}
+
 		$pipeline_context = $this->validateCityPipeline( $pipeline_id );
 		if ( is_wp_error( $pipeline_context ) ) {
 			return $pipeline_context;
+		}
+		if ( $requested_location && (int) $pipeline_context['location_term_id'] !== (int) $requested_location->term_id ) {
+			return new \WP_Error(
+				'pipeline_location_mismatch',
+				sprintf( 'Pipeline %d imports events for %s, not %s.', $pipeline_id, $pipeline_context['location']->name, $requested_location->name ),
+				array( 'status' => 400 )
+			);
 		}
 		$pipeline = $pipeline_context['pipeline'];
 
@@ -302,6 +332,111 @@ class VenueAddAbilities {
 			/* translators: %s: city name. */
 			sprintf( __( 'No city pipeline imports events for %s yet. Create one, or pick a pipeline under Change details.', 'extrachill-events' ), '' !== $name ? $name : '#' . $location_id ),
 			array( 'status' => 409 )
+		);
+	}
+
+	/**
+	 * Resolve a location input (term ID, slug, or exact name) to one location term.
+	 *
+	 * @param string $value Location term ID, slug, or name.
+	 * @return \WP_Term|\WP_Error
+	 */
+	private function resolveLocationInput( string $value ) {
+		$value = trim( $value );
+		if ( ctype_digit( $value ) ) {
+			$term = (int) $value > 0 ? get_term( (int) $value, 'location' ) : null;
+			if ( $term instanceof \WP_Term ) {
+				return $term;
+			}
+			return new \WP_Error( 'location_not_found', sprintf( 'Location term %s was not found.', $value ), array( 'status' => 404 ) );
+		}
+
+		$term = get_term_by( 'slug', $value, 'location' );
+		if ( $term instanceof \WP_Term ) {
+			return $term;
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'name'       => $value,
+				'hide_empty' => false,
+				'number'     => 2,
+			)
+		);
+		$terms = is_wp_error( $terms ) ? array() : array_values( (array) $terms );
+		if ( 1 === count( $terms ) && $terms[0] instanceof \WP_Term ) {
+			return $terms[0];
+		}
+		if ( count( $terms ) > 1 ) {
+			return new \WP_Error( 'ambiguous_location', sprintf( 'More than one location is named "%s". Pass the location term ID or slug instead.', $value ), array( 'status' => 400 ) );
+		}
+
+		return new \WP_Error( 'location_not_found', sprintf( 'No location matches "%s". Pass a location term ID, slug, or exact name.', $value ), array( 'status' => 404 ) );
+	}
+
+	/**
+	 * Find the one event city pipeline bound to a location.
+	 *
+	 * Identity comes from validateCityPipeline()'s canonical binding (the
+	 * flows' upsert location term), never from pipeline names. Flow configs
+	 * are prefiltered in SQL by the stored location value, then every
+	 * candidate is confirmed through validateCityPipeline().
+	 *
+	 * @param \WP_Term $location Location term.
+	 * @return array{pipeline_id:int,location_term_id:int}|\WP_Error
+	 */
+	public function findCityPipelineForLocation( \WP_Term $location ) {
+		global $wpdb;
+		$table    = $wpdb->prefix . 'datamachine_flows';
+		$key      = '"taxonomy_location_selection":';
+		$id       = (string) (int) $location->term_id;
+		$patterns = array(
+			'%' . $wpdb->esc_like( $key . $id ) . '%',
+			'%' . $wpdb->esc_like( $key . '"' . $id . '"' ) . '%',
+			'%' . $wpdb->esc_like( $key . wp_json_encode( (string) $location->name ) ) . '%',
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$candidates = (array) $wpdb->get_col(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				"SELECT DISTINCT pipeline_id FROM {$table} WHERE flow_config LIKE %s OR flow_config LIKE %s OR flow_config LIKE %s ORDER BY pipeline_id ASC",
+				$patterns[0],
+				$patterns[1],
+				$patterns[2]
+			)
+		);
+
+		$matches = array();
+		foreach ( $candidates as $candidate ) {
+			$check = $this->validateCityPipeline( (int) $candidate );
+			if ( ! is_wp_error( $check ) && (int) $check['location_term_id'] === (int) $location->term_id ) {
+				$matches[] = (int) $candidate;
+			}
+		}
+
+		if ( empty( $matches ) ) {
+			return new \WP_Error(
+				'no_city_pipeline',
+				sprintf( 'No event city pipeline imports events for %s (location %d). Ask an administrator to add the city first.', $location->name, (int) $location->term_id ),
+				array( 'status' => 404 )
+			);
+		}
+		if ( count( $matches ) > 1 ) {
+			return new \WP_Error(
+				'ambiguous_city_pipeline',
+				sprintf( 'More than one event city pipeline imports events for %s (pipelines %s). Pass pipeline_id to choose one.', $location->name, implode( ', ', $matches ) ),
+				array(
+					'status'       => 409,
+					'pipeline_ids' => $matches,
+				)
+			);
+		}
+
+		return array(
+			'pipeline_id'      => $matches[0],
+			'location_term_id' => (int) $location->term_id,
 		);
 	}
 
