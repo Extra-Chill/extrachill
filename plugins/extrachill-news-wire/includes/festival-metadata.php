@@ -29,6 +29,8 @@ function ec_news_wire_get_festival_metadata( $festival_slug ) {
 		return null;
 	}
 
+	// get_term_by() passes through the filterable get_term(), so a WP_Error is possible.
+	/** @var \WP_Term|\WP_Error|false $term */
 	$term = get_term_by( 'slug', $festival_slug, 'festival' );
 	if ( ! $term || is_wp_error( $term ) ) {
 		return null;
