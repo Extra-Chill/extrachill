@@ -30,7 +30,7 @@ add_filter(
 	'extrachill_sidebar_content',
 	function ( $sidebar_content ) {
 		if ( is_singular( 'page' ) ) {
-			return extrachill_docs_generate_sidebar( get_the_ID() );
+			return extrachill_docs_generate_sidebar( (int) get_the_ID() );
 		}
 		return $sidebar_content;
 	}

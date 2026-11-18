@@ -33,11 +33,13 @@ function extrachill_docs_render_homepage_cards() {
 		'order'          => 'ASC',
 	) );
 
-	if ( empty( $platforms ) || is_wp_error( $platforms ) ) {
+	if ( empty( $platforms ) ) {
 		return;
 	}
 
-	extrachill_breadcrumbs();
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		extrachill_breadcrumbs();
+	}
 	?>
 	<div class="docs-homepage">
 		<div class="docs-intro">
@@ -64,13 +66,11 @@ function extrachill_docs_render_homepage_cards() {
 					<?php if ( ! empty( $platform->post_excerpt ) ) : ?>
 						<p class="docs-category-description"><?php echo esc_html( $platform->post_excerpt ); ?></p>
 					<?php endif; ?>
-					<?php if ( ! empty( $recent_docs ) ) : ?>
-						<ul class="docs-recent-list">
-							<?php foreach ( array_slice( $recent_docs, 0, 3 ) as $doc ) : ?>
-								<li><a href="<?php echo esc_url( get_permalink( $doc ) ); ?>"><?php echo esc_html( $doc->post_title ); ?></a></li>
-							<?php endforeach; ?>
-						</ul>
-					<?php endif; ?>
+					<ul class="docs-recent-list">
+						<?php foreach ( array_slice( $recent_docs, 0, 3 ) as $doc ) : ?>
+							<li><a href="<?php echo esc_url( get_permalink( $doc ) ); ?>"><?php echo esc_html( $doc->post_title ); ?></a></li>
+						<?php endforeach; ?>
+					</ul>
 					<a href="<?php echo esc_url( get_permalink( $platform ) ); ?>" class="docs-view-all">
 						<?php
 						printf(

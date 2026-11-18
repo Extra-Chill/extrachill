@@ -52,7 +52,7 @@ function extrachill_docs_register_mdi_layout(): void {
 add_action( 'init', 'extrachill_docs_register_mdi_layout', 20 );
 
 /** MDI v0.15 has no layout ID in context; scope to our layout import. */
-function extrachill_docs_is_mdi_source( object $source ): bool {
+function extrachill_docs_is_mdi_source( object $source ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- MDI v0.15 source objects carry no layout ID; the parameter keeps the call sites source-aware for when it does.
 	return ! empty( $GLOBALS['extrachill_docs_mdi_importing'] );
 }
 
