@@ -96,6 +96,10 @@
 			<exclude>tests/Unit/Core/RootLocationReconcilerTest.php</exclude>
 			<exclude>tests/Unit/Core/LocationSeoCountTest.php</exclude>
 			<exclude>tests/Unit/Core/DocsLinksTest.php</exclude>
+			<!-- Runs in a separate PHP process with its own doubles; the sandbox
+			     cannot spawn one ("child process ended unexpectedly"). Runs in
+			     phpunit-qualify-v2-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/RecurringScheduleGateTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
