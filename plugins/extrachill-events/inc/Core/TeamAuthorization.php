@@ -266,6 +266,16 @@ final class TeamAuthorization {
 	}
 
 	/**
+	 * Whether the current user is events staff: the events team or a site administrator.
+	 *
+	 * Shared gate for events operations such as adding a venue scraper to an
+	 * existing city pipeline. Whole-city provisioning stays administrator-only.
+	 */
+	public static function current_user_is_events_staff(): bool {
+		return current_user_can( self::ACCESS_CAPABILITY ) || current_user_can( 'manage_options' ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- access_events_admin is granted by the team role.
+	}
+
+	/**
 	 * Apply a capability only as an active execution-principal ceiling.
 	 *
 	 * Normal WordPress requests retain their established domain-only policy.
