@@ -136,6 +136,12 @@ final class CommerceFeeOverrideTest extends TestCase {
 		$this->assertSame( array( array( 'kind' => 'extrachill_ticket', 'event_id' => self::EVENT ), array( 'event' => array( 'ticket_percent' => 4.0 ) ) ), $GLOBALS['fee_filter_seen'] );
 	}
 
+	public function test_a_filter_returning_garbage_keeps_the_resolved_settings(): void {
+		$this->event_override( array( 'ticket_percent' => 4 ) );
+		add_filter( 'ec_commerce_fee_settings_resolved', static fn() => 'broken' );
+		$this->assertSame( array_merge( ec_commerce_fee_global_settings(), array( 'ticket_percent' => 4.0 ) ), ec_commerce_fee_settings( array( 'event_id' => self::EVENT ) ) );
+	}
+
 	public function test_zero_fee_event_takes_nothing(): void {
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_percent' => 5, 'ticket_buyer_fee_flat_minor' => 100 );
 		$this->event_override( self::ZERO );

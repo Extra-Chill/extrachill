@@ -200,7 +200,8 @@ function ec_commerce_fee_settings( array $context = array() ) {
 	 * @param array $layers   Overrides applied, keyed by scope (`seller`, `event`).
 	 */
 	$filtered = apply_filters( 'ec_commerce_fee_settings_resolved', $settings, $context, $layers );
-	return ec_commerce_fee_sanitize( is_array( $filtered ) ? $filtered : array(), $settings );
+	// A filter returning a non-array keeps the resolved settings.
+	return ec_commerce_fee_sanitize( (array) $filtered, $settings );
 }
 
 /**
