@@ -47,7 +47,7 @@ function ec_badge_assert( array $expected, array $terms, $label ) {
 		fwrite( STDERR, "FAIL {$label}: expected " . implode( ', ', $expected ) . ' got ' . implode( ', ', $actual ) . "\n" );
 		exit( 1 );
 	}
-	echo "ok - {$label}\n";
+	fwrite( STDOUT, "ok - {$label}\n" );
 }
 
 $lineup = array(
@@ -60,7 +60,13 @@ $lineup = array(
 
 ec_badge_assert(
 	array( 'Alpha', 'Bravo', 'Charlie' ),
-	extrachill_select_badge_terms( $lineup, array( 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5 ) ),
+	extrachill_select_badge_terms( $lineup, array(
+		1 => 1,
+		2 => 2,
+		3 => 3,
+		4 => 4,
+		5 => 5,
+	) ),
 	'stored order leads even when later terms have higher counts'
 );
 
@@ -72,7 +78,13 @@ ec_badge_assert(
 
 ec_badge_assert(
 	array( 'Echo', 'Delta', 'Charlie' ),
-	extrachill_select_badge_terms( $lineup, array( 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0 ) ),
+	extrachill_select_badge_terms( $lineup, array(
+		1 => 0,
+		2 => 0,
+		3 => 0,
+		4 => 0,
+		5 => 0,
+	) ),
 	'legacy zero term_order falls back to count'
 );
 
