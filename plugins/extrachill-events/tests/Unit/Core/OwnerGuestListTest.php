@@ -352,7 +352,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 	protected function tearDown(): void {
 		$GLOBALS['wpdb']                  = $this->original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring the runtime database.
 		$GLOBALS['event_management_test'] = $this->original_management;
-		unset( $GLOBALS['owner_list_test'], $GLOBALS['rsvp_pass_mail_test'], $GLOBALS['ec_test_filters']['extrachill_events_owner_list_door_event_ids'] );
+		unset( $GLOBALS['owner_list_test'], $GLOBALS['test_current_user_id'], $GLOBALS['rsvp_pass_mail_test'], $GLOBALS['ec_test_filters']['extrachill_events_owner_list_door_event_ids'] );
 		unset( $GLOBALS['event_perk_test']['meta'][ self::VENUE_SHOW ] );
 	}
 
@@ -372,6 +372,8 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 
 	private function as_user( int $user_id ): void {
 		$GLOBALS['owner_list_test']['current_user'] = $user_id;
+		// In qualify-v2-unit, Stubs/wp-stubs.php's get_current_user_id() loads first.
+		$GLOBALS['test_current_user_id'] = $user_id;
 	}
 
 	/** Tonight's shows per owner, as the door-window query would find them. */

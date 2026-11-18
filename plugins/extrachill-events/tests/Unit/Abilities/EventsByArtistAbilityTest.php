@@ -26,6 +26,17 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		}
 	}
 }
+if ( ! class_exists( 'WP_Term' ) ) {
+	// Mirrors core's constructor: slug lookups only accept WP_Term instances.
+	#[\AllowDynamicProperties]
+	class WP_Term {
+		public function __construct( $term ) {
+			foreach ( get_object_vars( $term ) as $key => $value ) {
+				$this->$key = $value;
+			}
+		}
+	}
+}
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action() {}
 }
@@ -335,10 +346,12 @@ final class EventsByArtistAbilityTest extends TestCase {
 	}
 
 	private function addTerm( int $blog_id, int $term_id, string $slug, string $taxonomy = 'artist' ): void {
-		$GLOBALS['ec_artist_test']['terms'][ $blog_id ][ $term_id ] = (object) array(
-			'term_id'  => $term_id,
-			'slug'     => $slug,
-			'taxonomy' => $taxonomy,
+		$GLOBALS['ec_artist_test']['terms'][ $blog_id ][ $term_id ] = new WP_Term(
+			(object) array(
+				'term_id'  => $term_id,
+				'slug'     => $slug,
+				'taxonomy' => $taxonomy,
+			)
 		);
 		if ( class_exists( 'WP_UnitTestCase' ) ) {
 			global $wpdb;

@@ -119,6 +119,10 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 
 if ( ! function_exists( 'user_can' ) ) {
 	function user_can( $user_id, $capability, ...$args ) {
+		// Same shape as EventManagementAuthorityTest's stub, so whichever loads first serves sibling suites.
+		if ( 'ec_access_promoter' === $capability && class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
+			return is_array( ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->get_active_membership( (int) ( $args[0] ?? 0 ), (int) $user_id ) );
+		}
 		if ( 'edit_post' === $capability ) {
 			$post_id = $args[0] ?? 0;
 			return in_array( (int) $post_id, $GLOBALS['event_management_test']['editable_posts'][ $user_id ] ?? array(), true );

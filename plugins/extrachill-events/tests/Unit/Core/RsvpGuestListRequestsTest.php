@@ -25,6 +25,10 @@ require_once __DIR__ . '/RsvpGuestListPartiesTest.php';
 if ( ! function_exists( 'user_can' ) ) {
 	// Same shape as EventManagementAuthorityTest's stub, which loads first in the suite.
 	function user_can( $user_id, $capability, ...$args ) {
+		// Same shape as EventManagementAuthorityTest's stub, so whichever loads first serves sibling suites.
+		if ( 'ec_access_promoter' === $capability && class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
+			return is_array( ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->get_active_membership( (int) ( $args[0] ?? 0 ), (int) $user_id ) );
+		}
 		if ( 'edit_post' === $capability ) {
 			$post_id = $args[0] ?? 0;
 			return in_array( (int) $post_id, $GLOBALS['event_management_test']['editable_posts'][ $user_id ] ?? array(), true );
@@ -68,6 +72,21 @@ if ( ! function_exists( 'set_transient' ) ) {
 		unset( $expiration );
 		$GLOBALS['rsvp_guest_test']['transients'][ $key ] = $value;
 		return true;
+	}
+}
+
+if ( ! function_exists( 'extrachill_rate_limit_admit' ) ) {
+	/**
+	 * Mirrors the extrachill-network rate-limit contract (#1327): true while
+	 * the window has room, otherwise the retry-after seconds. Counters live in
+	 * the per-test transient store, which setUp() resets.
+	 */
+	function extrachill_rate_limit_admit( string $key, int $limit, int $window_seconds ) {
+		$counter = 'rate_limit_' . $key;
+		$count   = (int) ( $GLOBALS['rsvp_guest_test']['transients'][ $counter ] ?? 0 ) + 1;
+
+		$GLOBALS['rsvp_guest_test']['transients'][ $counter ] = $count;
+		return $count <= $limit ? true : max( 1, $window_seconds );
 	}
 }
 
