@@ -4,7 +4,14 @@
  * Mounts the React analytics app in the Network Admin.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import { AnalyticsProvider } from './context/AnalyticsContext';
 import App from './App';
 import './styles/analytics.scss';

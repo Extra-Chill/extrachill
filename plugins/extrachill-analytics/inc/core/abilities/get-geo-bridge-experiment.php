@@ -246,7 +246,7 @@ function extrachill_analytics_geo_bridge_transition_rows( $buckets ) {
 			if ( $a['people'] !== $b['people'] ) {
 				return $b['people'] <=> $a['people'];
 			}
-			return strcmp( wp_json_encode( $a ), wp_json_encode( $b ) );
+			return strcmp( (string) wp_json_encode( $a ), (string) wp_json_encode( $b ) );
 		}
 	);
 	return $rows;
@@ -531,7 +531,7 @@ function extrachill_analytics_build_geo_bridge_experiment_report( $rows, $option
 				continue;
 			}
 			foreach ( array( 'assignment', 'exposure' ) as $lens ) {
-				$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
+				$anchor = 'assignment' === $lens ? $assignments[ $person ] : ( $exposures[ $person ] ?? null );
 				if ( null === $anchor || ! extrachill_analytics_geo_bridge_is_after( $event, $anchor ) || isset( $outcome_seen[ $lens ][ $type ][ $person ] ) ) {
 					continue;
 				}

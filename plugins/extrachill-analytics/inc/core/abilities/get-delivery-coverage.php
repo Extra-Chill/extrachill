@@ -349,7 +349,7 @@ function extrachill_analytics_delivery_validate_snapshot_window( array $rows, $s
 		);
 	}
 	for ( $i = 1, $count = count( $periods ); $i < $count; ++$i ) {
-		$expected = gmdate( 'Y-m-d', strtotime( $periods[ $i - 1 ]['end'] . ' +1 day' ) );
+		$expected = gmdate( 'Y-m-d', (int) strtotime( $periods[ $i - 1 ]['end'] . ' +1 day' ) );
 		if ( $periods[ $i ]['start'] !== $expected ) {
 			return array(
 				'exact'   => false,
@@ -509,7 +509,7 @@ function extrachill_analytics_delivery_unknown_source( $reason ) {
 /**
  * Validate an exact Y-m-d date.
  *
- * @param string $date Candidate date.
+ * @param mixed $date Candidate date.
  * @return bool Whether valid.
  */
 function extrachill_analytics_delivery_valid_date( $date ) {

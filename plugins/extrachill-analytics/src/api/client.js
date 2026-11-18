@@ -16,7 +16,14 @@
  *   - GET extrachill/v1/analytics/meta     → getAnalyticsMeta()
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+
+/**
+ * External dependencies
+ */
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 
@@ -33,8 +40,8 @@ export const getConfig = () => window.extraChillAnalytics || {};
 /**
  * Build a query string from params (filters out falsy values).
  *
- * @param {Record<string, string|number|boolean|undefined>} params
- * @return {string}
+ * @param {Record<string, string|number|boolean|undefined>} params Query parameters.
+ * @return {string} Query string including the leading `?`, or an empty string.
  */
 function buildQuery( params ) {
 	const parts = Object.entries( params )
@@ -53,8 +60,8 @@ function buildQuery( params ) {
  *
  * No ability equivalent registered — uses direct REST endpoint.
  *
- * @param {AnalyticsEventsParams} params
- * @return {Promise<AnalyticsEventsResponse>}
+ * @param {AnalyticsEventsParams} params Event query parameters.
+ * @return {Promise<AnalyticsEventsResponse>} Paginated events response.
  */
 export const getEvents = ( params = {} ) =>
 	apiFetch( {
@@ -66,7 +73,7 @@ export const getEvents = ( params = {} ) =>
  *
  * No ability equivalent registered — uses direct REST endpoint.
  *
- * @return {Promise<AnalyticsMetaResponse>}
+ * @return {Promise<AnalyticsMetaResponse>} Analytics metadata response.
  */
 export const getAnalyticsMeta = () =>
 	apiFetch( { path: 'extrachill/v1/analytics/meta' } );
@@ -76,10 +83,10 @@ export const getAnalyticsMeta = () =>
  *
  * Uses: extrachill/get-analytics-summary
  *
- * @param {string}  eventType
- * @param {number}  [days=30]
- * @param {number}  [blogId]
- * @return {Promise<AnalyticsSummaryResponse>}
+ * @param {string} eventType Event type to summarize.
+ * @param {number} [days=30] Lookback window in days.
+ * @param {number} [blogId]  Optional blog ID filter.
+ * @return {Promise<AnalyticsSummaryResponse>} Analytics summary response.
  */
 export const getEventsSummary = ( eventType, days = 30, blogId ) =>
 	client.execute( 'extrachill/get-analytics-summary', {

@@ -39,7 +39,7 @@ final class Extrachill_Analytics_Revenue_Store {
 	 * @param int    $blog_id      Blog ID.
 	 * @param string $period_label Canonical period label.
 	 * @param string $import_batch Snapshot identity / batch label.
-	 * @return array<int, object> Existing snapshot rows.
+	 * @return array<int, \stdClass> Existing snapshot rows.
 	 */
 	public function get_snapshot( $blog_id, $period_label, $import_batch ) {
 		return extrachill_analytics_revenue_get_rows(

@@ -80,7 +80,7 @@ function extrachill_analytics_ability_list_404_events( $input ) {
 	);
 
 	if ( $days > 0 ) {
-		$args['date_from'] = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$args['date_from'] = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {

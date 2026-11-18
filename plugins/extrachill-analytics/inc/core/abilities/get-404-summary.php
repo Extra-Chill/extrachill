@@ -74,7 +74,7 @@ function extrachill_analytics_ability_get_404_summary( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -87,35 +87,19 @@ function extrachill_analytics_ability_get_404_summary( $input ) {
 	// Total count.
 	// phpcs:disable WordPress.DB.PreparedSQL
 	$total_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
-	if ( ! empty( $values ) ) {
-		$total = (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $values ) );
-	} else {
-		$total = (int) $wpdb->get_var( $total_sql );
-	}
+	$total     = (int) $wpdb->get_var( $wpdb->prepare( $total_sql, $values ) );
 
 	// Unique URLs.
 	$unique_urls_sql = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.requested_url'))) FROM {$table} WHERE {$where_clause}";
-	if ( ! empty( $values ) ) {
-		$unique_urls = (int) $wpdb->get_var( $wpdb->prepare( $unique_urls_sql, $values ) );
-	} else {
-		$unique_urls = (int) $wpdb->get_var( $unique_urls_sql );
-	}
+	$unique_urls     = (int) $wpdb->get_var( $wpdb->prepare( $unique_urls_sql, $values ) );
 
 	// Unique IPs.
 	$unique_ips_sql = "SELECT COUNT(DISTINCT JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.ip_hash'))) FROM {$table} WHERE {$where_clause}";
-	if ( ! empty( $values ) ) {
-		$unique_ips = (int) $wpdb->get_var( $wpdb->prepare( $unique_ips_sql, $values ) );
-	} else {
-		$unique_ips = (int) $wpdb->get_var( $unique_ips_sql );
-	}
+	$unique_ips     = (int) $wpdb->get_var( $wpdb->prepare( $unique_ips_sql, $values ) );
 
 	// Daily breakdown.
-	$daily_sql = "SELECT DATE(created_at) as date, COUNT(*) as hits FROM {$table} WHERE {$where_clause} GROUP BY DATE(created_at) ORDER BY date DESC";
-	if ( ! empty( $values ) ) {
-		$daily_rows = $wpdb->get_results( $wpdb->prepare( $daily_sql, $values ) );
-	} else {
-		$daily_rows = $wpdb->get_results( $daily_sql );
-	}
+	$daily_sql  = "SELECT DATE(created_at) as date, COUNT(*) as hits FROM {$table} WHERE {$where_clause} GROUP BY DATE(created_at) ORDER BY date DESC";
+	$daily_rows = $wpdb->get_results( $wpdb->prepare( $daily_sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL
 
 	$daily = array();
@@ -135,7 +119,7 @@ function extrachill_analytics_ability_get_404_summary( $input ) {
 		'per_day_avg' => $per_day_avg,
 		'days'        => $days,
 		'period'      => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'daily'       => $daily,
 	);

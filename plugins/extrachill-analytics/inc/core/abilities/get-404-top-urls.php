@@ -86,7 +86,7 @@ function extrachill_analytics_ability_get_404_top_urls( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {

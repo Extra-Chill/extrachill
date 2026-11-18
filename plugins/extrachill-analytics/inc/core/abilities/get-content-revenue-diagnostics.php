@@ -385,7 +385,7 @@ function extrachill_analytics_ability_get_content_revenue_diagnostics( $input ) 
 	// Network/blog authorization.
 	$auth = extrachill_analytics_revenue_authorize_blog_read( $blog_id );
 	if ( true !== $auth ) {
-		return $fail_shape( is_string( $auth ) ? $auth : __( 'Permission denied.', 'extrachill-analytics' ) );
+		return $fail_shape( $auth );
 	}
 
 	// Independent SQL aggregate over the scope — the reconciliation check
