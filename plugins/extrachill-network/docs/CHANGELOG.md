@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.45.0] - 2026-11-19
+
+### Added
+- commerce fees resolve global → seller → event overrides
+
 ## [2.44.0] - 2026-11-18
 
 ### Added
