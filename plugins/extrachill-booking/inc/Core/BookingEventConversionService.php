@@ -418,8 +418,38 @@ class BookingEventConversionService {
 	 * @param array $booking Hydrated confirmed booking.
 	 */
 	private function canonical_event_type( array $booking ): string {
-		$fields = is_array( $booking['intake']['data']['fields'] ?? null ) ? $booking['intake']['data']['fields'] : array();
-		return ! isset( $fields['event_type'] ) || 'Concert' === $fields['event_type'] ? 'MusicEvent' : 'Event';
+		$fields     = is_array( $booking['intake']['data']['fields'] ?? null ) ? $booking['intake']['data']['fields'] : array();
+		$is_concert = ! isset( $fields['event_type'] ) || 'Concert' === $fields['event_type'];
+		$schema     = $is_concert ? 'MusicEvent' : 'Event';
+
+		// DME validates eventType against the active vocabulary's term names
+		// (a closed enum), which a site may replace via filter. Resolve to a
+		// name from that vocabulary; fall back to the Schema.org type only when
+		// DME's taxonomy API is unavailable.
+		if ( ! class_exists( \DataMachineEvents\Core\Event_Type_Taxonomy::class ) ) {
+			return $schema;
+		}
+		$vocabulary = \DataMachineEvents\Core\Event_Type_Taxonomy::get_vocabulary();
+		$wanted     = $is_concert ? 'Concert' : (string) $fields['event_type'];
+		foreach ( $vocabulary as $entry ) {
+			if ( 0 === strcasecmp( (string) $entry['name'], $wanted ) ) {
+				return (string) $entry['name'];
+			}
+		}
+		if ( $is_concert ) {
+			foreach ( $vocabulary as $entry ) {
+				if ( 'MusicEvent' === $entry['schema_type'] ) {
+					return (string) $entry['name'];
+				}
+			}
+		}
+		// Unresolvable formats land on the vocabulary default ("unresolvable", never "confirmed").
+		foreach ( $vocabulary as $entry ) {
+			if ( ! empty( $entry['default'] ) ) {
+				return (string) $entry['name'];
+			}
+		}
+		return $schema;
 	}
 
 	/** Require DME to return the exact canonical identity and venue proof requested. */
