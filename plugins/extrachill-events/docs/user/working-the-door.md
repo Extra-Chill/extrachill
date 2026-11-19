@@ -1,37 +1,31 @@
 # Working the Door
 
-Check guests in fast from your phone. Scan a pass, or find the name on the door list and tap once.
+Check guests in fast from your phone. Scan a pass, or find the name on the check-in list and tap once.
 
 ## Before Doors
 
 1. Log in on your phone with an account on the venue's team or the promoter's team for the show.
 2. Open the show's page on the [Events Calendar](https://events.extrachill.com/).
-3. Tap **Open door list**, or scroll down to **Door List**.
+3. Tap the red **Guest Check-In** button.
 
-When the show has a guest list, the guest list panel moves to the top of the page on show day, so **Open door list** is the first thing you see. Only your team can see the door list. Guests and the public never do.
+**Guest Check-In** opens the show's guest list page (the show's page address with "guest-list" on the end). Only your team sees the button, and only your team gets the check-in screen there. Guests and the public never do.
 
-## The Door List
+## The Check-In Screen
 
-Everyone coming to the show is in one list, sorted A to Z:
+The check-in list comes first. Everyone with a pass for the show is in one list, sorted A to Z:
 
 - People on the guest list, including comps and password claims. Comps show "Added by" and the name of the person who added them.
 - Guests a band added, with the band's name next to theirs, like "Jake (Slim S.O.U.L.)".
 - People on the venue's or promoter's standing list, marked "(Venue list)" or "(Promoter list)". See [Venue and Promoter Guest Lists](venue-and-promoter-guest-lists.md).
-- People who marked themselves Going with their Extra Chill account.
+- Ticket buyers, marked "Ticket ·" before their name.
+- People who marked themselves Going with their Extra Chill account and got a pass.
 
-Plus-ones, like "Jake +1", sit right under the person they came with.
+Plus-ones, like "Jake +1", sit right under the person they came with. Each name has a big green **Check in** button. Tap it and the name gets a ✅ and a green **Checked in**. People who are checked in already show the same.
 
-When the show has a guest list, the top of the list shows the count, such as "12 of 60 checked in. 37 spots left."
+Under the list:
 
-## The Door View
-
-The show's guest list page (the show's page address with "guest-list" on the end) turns into a door view when you open it logged in on the show's team. Tap **Open door view** in **Manage guest list** to get there. It has only what the door needs:
-
-- The show's title and pass image.
 - **Add names**: paste names or upload a CSV or TXT file, one name per line.
-- Everyone with a pass, A to Z, each with a big green **Check in** button.
-
-Tap **Check in** and the name gets a ✅ and a green **Checked in**. People who are checked in already show the same.
+- **Host tools**, folded up so they stay out of the way at the door. Tap to open them: guest list settings, the counts (such as "12 of 60 checked in. 37 spots left."), the share link and QR code, band invites and requests, and your venue or promoter list. See [Hosting a Guest List](hosting-a-guest-list.md).
 
 ## Find a Name
 
@@ -49,7 +43,7 @@ If you see "This pass could not be verified," you're either logged out or logged
 
 ## Check In by Name
 
-Tap the green **Check in** next to a guest's name on the door list. The name gets a ✅ and the button turns into **Checked in**.
+Tap the green **Check in** next to a guest's name on the check-in list. The name gets a ✅ and the button turns into **Checked in**.
 
 ## When Someone Isn't on the List
 
@@ -63,4 +57,4 @@ A scanned pass might show one of these:
 
 If someone has no pass, search for their first name, their last name, and other spellings. Check the band names next to guests too.
 
-Still not there? That's the host's call. If the show has a guest list, anyone on the team can add them on the spot under **Add a guest** on the show's page, then check them in. See [Hosting a Guest List](hosting-a-guest-list.md).
+Still not there? That's the host's call. If the show has a guest list, anyone on the team can add them on the spot under **Add names**, or **Add a guest** in **Host tools**, then check them in. See [Hosting a Guest List](hosting-a-guest-list.md).

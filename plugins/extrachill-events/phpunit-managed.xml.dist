@@ -71,6 +71,9 @@
 			<!-- Same reason: requires inc/core/rsvp-pass-service.php and inc/admin/event-perks.php. -->
 			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpGuestRsvpTest.php</exclude>
+			<!-- Pure-PHP host screen test with host-panel and door-row fixtures
+			     (extrachill#1702); runs in phpunit-rsvp-perks-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/GuestCheckInTest.php</exclude>
 			<!-- Resolves the scraper through the bootstrap's wp_get_ability()
 			     double ($GLOBALS['ec_test_ability_resolver']). Under real
 			     WordPress the core registry wins, so the double never applies

@@ -414,7 +414,7 @@ function extrachill_events_door_list_import_source( array $pass ): string {
  * "Name (Venue list)", carry `owner_list: true` and tonight's check-in.
  *
  * @param int  $event_id      Event post ID.
- * @param bool $event_guests  Include the event's own guest list passes (false when the event has no guest list page).
+ * @param bool $event_guests  Include the event's own guest list passes (false when the event has no guest list page). Paid ticket passes are included either way.
  * @return array[] Each: pass_id, label, guest_name, source (party name or ''), added_by (host display name or ''), code, status, redeemed_at (formatted).
  */
 function extrachill_events_door_list_guest_rows( int $event_id, bool $event_guests = true ): array {
@@ -427,10 +427,6 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 			$owners[ $owner['owner_type'] . ':' . $owner['owner_id'] ] = $owner;
 		}
 	}
-	if ( ! $event_guests && ! $owners ) {
-		return array();
-	}
-
 	$owner_keys = array_map(
 		static function ( $owner ) {
 			return array( $owner['owner_type'], $owner['owner_id'] );
@@ -446,7 +442,10 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 				}
 				// Only names the venue put on the list: pending and denied
 				// submissions (extrachill#1129) are not on the door list.
-				return $event_guests && in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
+				// Paid tickets are always on the door, even once the ticket
+				// offer or guest list is switched off (extrachill#1702).
+				$is_ticket = ! empty( $pass['order_reference'] );
+				return ( $event_guests || $is_ticket ) && in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
 			}
 		)
 	);

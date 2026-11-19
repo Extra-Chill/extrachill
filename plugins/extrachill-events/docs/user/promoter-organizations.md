@@ -30,7 +30,7 @@ Your organization gets its own Link Page: one simple page for all your links tha
 
 ## Shows You Put On
 
-When a show on the [Events Calendar](https://events.extrachill.com/) lists your organization as its promoter, your team can run that show's guest list and door list. Log in and open the show's page to get started.
+When a show on the [Events Calendar](https://events.extrachill.com/) lists your organization as its promoter, your team can run that show's guest list and check-in. Log in, open the show's page, and tap **Guest Check-In** to get started.
 
 You can also keep a standing list of people who get into every one of your shows. See:
 

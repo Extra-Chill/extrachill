@@ -3,10 +3,9 @@
  * RSVP Pass Integration
  *
  * Event-page composition for the RSVP perk pass feature: the attendee-facing
- * pass card (right after the attendance button) and the host-facing door
- * list (appended to the content, authorized viewers only — available on
- * any event the caller manages, not just perk-enabled ones; see
- * extrachill_events_append_door_list()). Mirrors
+ * pass card (right after the attendance button), and the door list rows the
+ * host screen on /guest-list checks in from (extrachill#1246, #1702; the
+ * event page itself carries no host panels). Mirrors
  * inc/core/concert-tracking-integration.php's role: this is composition,
  * not domain logic — the domain logic lives in RsvpPassesTable,
  * rsvp-pass-service.php, and event-management-authority.php.
@@ -87,74 +86,12 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 add_action( 'data_machine_events_action_buttons', 'extrachill_events_render_rsvp_pass_card', 6, 3 );
 
 /**
- * Append the host-facing door list to the event content.
- *
- * Authorized hosts only (extrachill_events_user_can_manage_event()); every
- * other viewer — including a logged-in attendee — sees nothing added.
- *
- * Available on ANY event the caller manages, perk or not: a guest list is
- * useful to a host for planning/capacity/outreach regardless of whether
- * that event happens to offer an RSVP perk (extrachill-events#879). The
- * pass/redeem column is perk-specific and only renders when the event has
- * a perk enabled — see templates/door-list.php's own `$perk_enabled` gate.
- *
- * @param string $content Post content.
- * @return string
- */
-function extrachill_events_append_door_list( $content ) {
-	if ( ! is_singular( 'data_machine_events' ) || ! in_the_loop() || ! is_main_query() ) {
-		return $content;
-	}
-
-	if ( ! function_exists( 'ec_is_events_site' ) || ! ec_is_events_site() ) {
-		return $content;
-	}
-
-	$post_id = get_the_ID();
-	if ( ! $post_id ) {
-		return $content;
-	}
-
-	$user_id = get_current_user_id();
-	if ( ! $user_id || ! function_exists( 'extrachill_events_user_can_manage_event' ) || ! extrachill_events_user_can_manage_event( $user_id, $post_id ) ) {
-		return $content;
-	}
-
-	if ( ! function_exists( 'ec_users_get_event_attendees_full' ) || ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
-		return $content;
-	}
-
-	$door_list      = extrachill_events_get_door_list_rows( (int) $post_id );
-	$event_id       = $post_id;
-	$perk_enabled   = $door_list['perk_enabled'];
-	$perk_text      = $door_list['perk_text'];
-	$guest_list     = $door_list['guest_list'];
-	$guest_list_url = $door_list['guest_list_url'];
-	$rows           = $door_list['rows'];
-	$guest_rows     = $door_list['guest_rows'];
-	$door_rows      = $door_list['door_rows'];
-
-	// The type-to-filter box lives in the host panel script; the panel
-	// usually enqueued it already.
-	if ( $door_rows && ! wp_script_is( 'ec-guest-list-management', 'enqueued' ) ) {
-		wp_enqueue_script( 'ec-guest-list-management', EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/guest-list-management.js', array(), EXTRACHILL_EVENTS_VERSION, true );
-	}
-
-	ob_start();
-	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';
-	$door_list_html = ob_get_clean();
-
-	return $content . $door_list_html;
-}
-add_filter( 'the_content', 'extrachill_events_append_door_list', 20 );
-
-/**
  * Everything the door renders for an event: account RSVPs with their pass
  * state, account-less guests (comps, band adds, password claims, tickets),
  * and the venue's and promoter's standing lists, merged A to Z.
  *
- * Shared by the event-page door list and the /guest-list host door view
- * (extrachill#1246). Authorization is the caller's job.
+ * Read by the /guest-list host screen (extrachill#1246, #1702).
+ * Authorization is the caller's job.
  *
  * @param int $event_id Event post ID.
  * @return array{perk_enabled: bool, perk_text: string, guest_list: array, guest_list_url: string, rows: array[], guest_rows: array[], door_rows: array[]}
@@ -220,7 +157,8 @@ function extrachill_events_get_door_list_rows( int $event_id ): array {
 /**
  * Enqueue the pass-watcher / door-list / verify-redeem script.
  *
- * Fires on perk-enabled event pages (pass card + door-list redeem) and on
+ * Fires on perk-enabled event pages and their /guest-list page (pass card,
+ * guest list claims) and on
  * the RSVP verify page (QR-scan redeem, slice 2). Depends on
  * 'wp-api-fetch': WordPress core auto-wires the REST root URL and nonce
  * middleware for that handle on every enqueue (front end included, see
