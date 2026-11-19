@@ -35,6 +35,9 @@ function wp_get_ability( $name ) {
 		}
 	};
 }
+function get_current_user_id() { return $GLOBALS['current_user_id'] ?? 0; }
+function get_queried_object_id() { return 42; }
+function extrachill_events_user_can_manage_event( $user_id, $event_id ) { return 42 === $event_id && in_array( $user_id, $GLOBALS['managers'] ?? array(), true ); }
 function check( $condition, $message ) {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -84,6 +87,18 @@ check( '' === extrachill_events_ticket_return_state(), 'Malformed session ignore
 $_GET = array( 'tickets' => 'cancelled' );
 $GLOBALS['singular'] = false;
 check( ! extrachill_events_is_ad_free_page(), 'Return state only affects event pages' );
+$_GET = array();
+$GLOBALS['singular'] = true;
+$GLOBALS['managers'] = array( 7 );
+$GLOBALS['current_user_id'] = 0;
+check( ! extrachill_events_is_ad_free_page(), 'Logged-out visitors see ads on event pages' );
+$GLOBALS['current_user_id'] = 8;
+check( ! extrachill_events_is_ad_free_page(), 'Non-managers see ads on event pages' );
+$GLOBALS['current_user_id'] = 7;
+check( extrachill_events_is_ad_free_page(), 'Managers see no ads on events they manage' );
+$GLOBALS['singular'] = false;
+check( ! extrachill_events_is_ad_free_page(), 'Manager exemption only applies to event pages' );
+$GLOBALS['current_user_id'] = 0;
 echo "Ticket checkout rendering passed.\n";
 
 eval( 'namespace ExtraChillEvents\\Abilities; class TicketAbilities { public static function settings( $id ) { return $GLOBALS["ticket_settings"]; } }' );
