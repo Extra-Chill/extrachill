@@ -39,10 +39,10 @@ class VenueBookingMutationAbilities {
 	}
 
 	public function register(): void {
-		$this->register_ability( 'extrachill/correct-venue-booking-intake', __( 'Correct Venue Booking Intake', 'extrachill-events' ), $this->intake_schema(), 'correct_intake' );
-		$this->register_ability( 'extrachill/select-venue-booking-performance', __( 'Select Venue Booking Performance', 'extrachill-events' ), $this->performance_schema(), 'select_performance' );
-		$this->register_ability( 'extrachill/update-venue-booking-production', __( 'Update Venue Booking Production', 'extrachill-events' ), $this->document_input( 'production', $this->schemas->production_document_schema() ), 'update_production' );
-		$this->register_ability( 'extrachill/update-venue-booking-deal', __( 'Update Venue Booking Deal', 'extrachill-events' ), $this->document_input( 'deal', $this->schemas->deal_document_schema() ), 'update_deal' );
+		$this->register_ability( 'extrachill/correct-venue-booking-intake', __( 'Correct Venue Booking Intake', 'extrachill-booking' ), $this->intake_schema(), 'correct_intake' );
+		$this->register_ability( 'extrachill/select-venue-booking-performance', __( 'Select Venue Booking Performance', 'extrachill-booking' ), $this->performance_schema(), 'select_performance' );
+		$this->register_ability( 'extrachill/update-venue-booking-production', __( 'Update Venue Booking Production', 'extrachill-booking' ), $this->document_input( 'production', $this->schemas->production_document_schema() ), 'update_production' );
+		$this->register_ability( 'extrachill/update-venue-booking-deal', __( 'Update Venue Booking Deal', 'extrachill-booking' ), $this->document_input( 'deal', $this->schemas->deal_document_schema() ), 'update_deal' );
 	}
 
 	private function register_ability( string $name, string $label, array $input, string $callback ): void {
@@ -125,7 +125,7 @@ class VenueBookingMutationAbilities {
 			$next    = $normalized;
 			unset( $current['ticket_url'], $next['ticket_url'] );
 			if ( ! BookingMutationService::documents_equal( $current, $next ) ) {
-				return new \WP_Error( 'booking_deal_already_confirmed', __( 'Only the public ticket URL can change after confirmation.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_deal_already_confirmed', __( 'Only the public ticket URL can change after confirmation.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$result = ( new \ExtraChillEvents\Core\BookingEventSyncService( $this->bookings, null, $this->authorization ) )->reconcile( (int) $input['booking_id'], (int) $input['expected_version'], get_current_user_id(), array( 'ticket_url' => $normalized['ticket_url'] ) );
 			if ( is_wp_error( $result ) ) {
@@ -140,7 +140,7 @@ class VenueBookingMutationAbilities {
 
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function base_properties(): array {

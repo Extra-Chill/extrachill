@@ -26,10 +26,10 @@ final class ArtistBookingInquiryAbilities {
 	}
 
 	public function register(): void {
-		$this->register_ability( 'get-artist-booking-inquiry', __( 'Get Artist Booking Inquiry', 'extrachill-events' ), $this->access_schema(), $this->status_output_schema(), array( $this, 'status' ), true, false );
-		$this->register_ability( 'request-artist-booking-correction', __( 'Request Artist Booking Correction', 'extrachill-events' ), $this->mutation_schema( true ), $this->correction_output_schema(), array( $this, 'request_correction' ), false, false );
-		$this->register_ability( 'withdraw-artist-booking-inquiry', __( 'Withdraw Artist Booking Inquiry', 'extrachill-events' ), $this->mutation_schema( false ), $this->withdrawal_output_schema(), array( $this, 'withdraw' ), false, true );
-		$this->register_ability( 'recover-artist-booking-inquiry-receipt', __( 'Recover Artist Booking Inquiry Receipt', 'extrachill-events' ), $this->recovery_schema(), $this->recovery_output_schema(), array( $this, 'recover_receipt' ), false, false );
+		$this->register_ability( 'get-artist-booking-inquiry', __( 'Get Artist Booking Inquiry', 'extrachill-booking' ), $this->access_schema(), $this->status_output_schema(), array( $this, 'status' ), true, false );
+		$this->register_ability( 'request-artist-booking-correction', __( 'Request Artist Booking Correction', 'extrachill-booking' ), $this->mutation_schema( true ), $this->correction_output_schema(), array( $this, 'request_correction' ), false, false );
+		$this->register_ability( 'withdraw-artist-booking-inquiry', __( 'Withdraw Artist Booking Inquiry', 'extrachill-booking' ), $this->mutation_schema( false ), $this->withdrawal_output_schema(), array( $this, 'withdraw' ), false, true );
+		$this->register_ability( 'recover-artist-booking-inquiry-receipt', __( 'Recover Artist Booking Inquiry Receipt', 'extrachill-booking' ), $this->recovery_schema(), $this->recovery_output_schema(), array( $this, 'recover_receipt' ), false, false );
 	}
 
 	public function status( array $input ) {
@@ -56,7 +56,7 @@ final class ArtistBookingInquiryAbilities {
 			'extrachill-events/' . $slug,
 			array(
 				'label'               => $label,
-				'description'         => __( 'Artist-authorized booking inquiry follow-through.', 'extrachill-events' ),
+				'description'         => __( 'Artist-authorized booking inquiry follow-through.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $input,
 				'output_schema'       => $output,

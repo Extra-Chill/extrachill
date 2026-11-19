@@ -63,8 +63,8 @@ class ShowSettlementAbilities {
 		wp_register_ability(
 			$name,
 			array(
-				'label'               => __( $label, 'extrachill-events' ),
-				'description'         => __( $label, 'extrachill-events' ),
+				'label'               => __( $label, 'extrachill-booking' ),
+				'description'         => __( $label, 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $input,
 				'output_schema'       => $this->output_schema(),
@@ -130,20 +130,20 @@ class ShowSettlementAbilities {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
 			? ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], get_current_user_id() )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage this venue settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage this venue settlement.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	public function can_acknowledge( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		if ( ! is_array( $booking ) ) {
-			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to acknowledge this settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to acknowledge this settlement.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		if ( 'counterparty_verified' === ( $input['acknowledgement_type'] ?? '' ) && null !== $booking['artist_term_id'] ) {
 			return $this->artist_authorization->authorize_artist( $booking['artist_term_id'], get_current_user_id() );
 		}
 		return 'venue_recorded' === ( $input['acknowledgement_type'] ?? '' )
 			? ( $this->authorization )( 'ec_manage_venue_finances', $booking['venue_term_id'], get_current_user_id() )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to acknowledge this settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to acknowledge this settlement.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function revision_input( bool $replacement, bool $correction = false ): array {

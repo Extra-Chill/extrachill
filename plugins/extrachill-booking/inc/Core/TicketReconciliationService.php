@@ -52,7 +52,7 @@ class TicketReconciliationService {
 		$key      = TicketSettlementService::opaque_identifier( $input['source_key'] ?? null, 'source_key' );
 		$url      = $this->canonical_url( $input['ticket_url'] ?? null );
 		if ( '' === $provider || is_wp_error( $key ) || is_wp_error( $url ) || null === $booking['event_id'] ) {
-			return is_wp_error( $key ) ? $key : ( is_wp_error( $url ) ? $url : new \WP_Error( 'invalid_ticket_source_identity', __( 'A linked event and valid provider source identity are required.', 'extrachill-events' ), array( 'status' => 400 ) ) );
+			return is_wp_error( $key ) ? $key : ( is_wp_error( $url ) ? $url : new \WP_Error( 'invalid_ticket_source_identity', __( 'A linked event and valid provider source identity are required.', 'extrachill-booking' ), array( 'status' => 400 ) ) );
 		}
 		$row                 = array(
 			'public_id'          => wp_generate_uuid4(),
@@ -75,7 +75,7 @@ class TicketReconciliationService {
 		}
 		$booking = $this->bookings->get_for_update( $booking['id'] );
 		if ( ! is_array( $booking ) || $row['event_id'] !== $booking['event_id'] || $row['venue_term_id'] !== $booking['venue_term_id'] ) {
-			return $this->rollback( new \WP_Error( 'ticket_source_booking_changed', __( 'The booking identity changed before the ticket source was recorded.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'ticket_source_booking_changed', __( 'The booking identity changed before the ticket source was recorded.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$existing = $this->find_source_identity( $booking['id'], $provider, $key, true );
 		if ( is_wp_error( $existing ) ) {
@@ -86,7 +86,7 @@ class TicketReconciliationService {
 				$committed = $this->commit();
 				return is_wp_error( $committed ) ? $committed : $this->present_source( $existing );
 			}
-			return $this->rollback( new \WP_Error( 'ticket_source_idempotency_conflict', __( 'This source identity is already bound to a different ticket URL.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'ticket_source_idempotency_conflict', __( 'This source identity is already bound to a different ticket URL.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only private source identity.
@@ -96,11 +96,11 @@ class TicketReconciliationService {
 				$committed = $this->commit();
 				return is_wp_error( $committed ) ? $committed : $this->present_source( $winner );
 			}
-			return $this->rollback( new \WP_Error( 'ticket_source_write_failed', __( 'The ticket source could not be recorded.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'ticket_source_write_failed', __( 'The ticket source could not be recorded.', 'extrachill-booking' ) ) );
 		}
 		$source = $this->get_source( (int) $wpdb->insert_id, true );
 		if ( ! is_array( $source ) ) {
-			return $this->rollback( is_wp_error( $source ) ? $source : new \WP_Error( 'ticket_source_write_failed', __( 'The recorded ticket source could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $source ) ? $source : new \WP_Error( 'ticket_source_write_failed', __( 'The recorded ticket source could not be verified.', 'extrachill-booking' ) ) );
 		}
 		$audit = $this->activity->append(
 			array(
@@ -134,7 +134,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::ticket_sources_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY id ASC LIMIT 200", $booking['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded immutable identities.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'ticket_source_list_failed', __( 'Ticket sources could not be listed.', 'extrachill-events' ) );
+			return new \WP_Error( 'ticket_source_list_failed', __( 'Ticket sources could not be listed.', 'extrachill-booking' ) );
 		}
 		$presented = array();
 		foreach ( (array) $rows as $row ) {
@@ -145,7 +145,7 @@ class TicketReconciliationService {
 			if ( $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] ) {
 				return new \WP_Error(
 					'ticket_source_booking_changed',
-					__( 'A ticket source no longer matches the booking event and venue identity.', 'extrachill-events' ),
+					__( 'A ticket source no longer matches the booking event and venue identity.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'source_id' => $source['id'],
@@ -170,14 +170,14 @@ class TicketReconciliationService {
 		}
 		$source = $this->get_source( $source_id );
 		if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] ) {
-			return new \WP_Error( 'ticket_source_not_found', __( 'The ticket source was not found for this booking.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return new \WP_Error( 'ticket_source_not_found', __( 'The ticket source was not found for this booking.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		$attachment = $this->attachments->get_for_booking( $booking['id'], $attachment_id );
 		if ( is_wp_error( $attachment ) ) {
 			return $attachment;
 		}
 		if ( 'active' !== $attachment['state'] || 'text/csv' !== $attachment['mime_type'] || 'other_private_evidence' !== $attachment['purpose'] ) {
-			return new \WP_Error( 'sales_csv_attachment_invalid', __( 'CSV sales import requires an active approved private evidence attachment.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'sales_csv_attachment_invalid', __( 'CSV sales import requires an active approved private evidence attachment.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$descriptor = $this->attachment_service->download_descriptor( $booking['id'], $attachment_id, $actor_id );
 		if ( is_wp_error( $descriptor ) ) {
@@ -188,7 +188,7 @@ class TicketReconciliationService {
 			return $stream;
 		}
 		if ( ! is_resource( $stream ) ) {
-			return new \WP_Error( 'sales_csv_stream_invalid', __( 'The private CSV stream could not be opened.', 'extrachill-events' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'sales_csv_stream_invalid', __( 'The private CSV stream could not be opened.', 'extrachill-booking' ), array( 'status' => 502 ) );
 		}
 		$verified = $this->verified_csv_stream( $stream, $attachment );
 		fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes the approved private stream after bounded parsing.
@@ -223,7 +223,7 @@ class TicketReconciliationService {
 			$source_id = $this->positive_integer( $input['ticket_source_id'], 'ticket_source_id' );
 		}
 		if ( is_wp_error( $report_id ) || is_wp_error( $source_id ) || ! is_int( $expected ) || $expected < 0 || ! in_array( $decision, self::DECISIONS, true ) || '' === $reason ) {
-			return is_wp_error( $report_id ) ? $report_id : ( is_wp_error( $source_id ) ? $source_id : new \WP_Error( 'invalid_sales_resolution', __( 'A valid versioned reconciliation decision and reason are required.', 'extrachill-events' ), array( 'status' => 400 ) ) );
+			return is_wp_error( $report_id ) ? $report_id : ( is_wp_error( $source_id ) ? $source_id : new \WP_Error( 'invalid_sales_resolution', __( 'A valid versioned reconciliation decision and reason are required.', 'extrachill-booking' ), array( 'status' => 400 ) ) );
 		}
 		$started = $this->begin_authorized( $booking, $actor_id, 'ec_manage_venue_finances' );
 		if ( is_wp_error( $started ) ) {
@@ -238,7 +238,7 @@ class TicketReconciliationService {
 			return $this->rollback(
 				new \WP_Error(
 					'sales_resolution_settlement_frozen',
-					__( 'Ticket-sales reconciliation cannot change after settlement is finalized.', 'extrachill-events' ),
+					__( 'Ticket-sales reconciliation cannot change after settlement is finalized.', 'extrachill-booking' ),
 					array(
 						'status'        => 409,
 						'settlement_id' => (int) $settlement['id'],
@@ -248,13 +248,13 @@ class TicketReconciliationService {
 		}
 		$report = $this->get_report_row( $report_id, true );
 		if ( ! is_array( $booking ) || ! is_array( $report ) || (int) $report['booking_id'] !== (int) $booking['id'] ) {
-			return $this->rollback( new \WP_Error( 'sales_report_not_found', __( 'The sales report was not found for this booking.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+			return $this->rollback( new \WP_Error( 'sales_report_not_found', __( 'The sales report was not found for this booking.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 		}
 		if ( (int) $report['event_id'] !== (int) $booking['event_id'] || (int) $report['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
 			return $this->rollback(
 				new \WP_Error(
 					'sales_report_booking_changed',
-					__( 'Ticket-sales evidence no longer matches the booking event and venue identity.', 'extrachill-events' ),
+					__( 'Ticket-sales evidence no longer matches the booking event and venue identity.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'report_id' => $report_id,
@@ -290,7 +290,7 @@ class TicketReconciliationService {
 			return $this->rollback(
 				new \WP_Error(
 					'sales_resolution_version_conflict',
-					__( 'The reconciliation decision changed since it was read.', 'extrachill-events' ),
+					__( 'The reconciliation decision changed since it was read.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $current_version,
@@ -301,7 +301,7 @@ class TicketReconciliationService {
 		if ( null !== $source_id ) {
 			$source = $this->get_source( $source_id, true );
 			if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] || $source['provider'] !== $report['provider'] ) {
-				return $this->rollback( new \WP_Error( 'ticket_source_not_found', __( 'The ticket source was not found for this booking.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+				return $this->rollback( new \WP_Error( 'ticket_source_not_found', __( 'The ticket source was not found for this booking.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 			}
 		}
 		$row                 = array(
@@ -326,7 +326,7 @@ class TicketReconciliationService {
 				$committed = $this->commit();
 				return is_wp_error( $committed ) ? $committed : $winner;
 			}
-			return $this->rollback( new \WP_Error( 'sales_resolution_version_conflict', __( 'A different reconciliation decision won this version.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'sales_resolution_version_conflict', __( 'A different reconciliation decision won this version.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$resolution = $this->resolution_version( $report_id, $row['version'], true );
 		$audit      = is_array( $resolution )
@@ -347,7 +347,7 @@ class TicketReconciliationService {
 			)
 			: $resolution;
 		if ( is_wp_error( $audit ) || ! is_array( $resolution ) ) {
-			return $this->rollback( is_wp_error( $audit ) ? $audit : new \WP_Error( 'sales_resolution_write_failed', __( 'The reconciliation decision could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $audit ) ? $audit : new \WP_Error( 'sales_resolution_write_failed', __( 'The reconciliation decision could not be verified.', 'extrachill-booking' ) ) );
 		}
 		$committed = $this->commit();
 		return is_wp_error( $committed ) ? $committed : $resolution;
@@ -364,7 +364,7 @@ class TicketReconciliationService {
 			if ( 'unresolved' === $item['state'] ) {
 				return new \WP_Error(
 					'settlement_reconciliation_required',
-					__( 'Ticket-sales evidence must be reconciled before settlement.', 'extrachill-events' ),
+					__( 'Ticket-sales evidence must be reconciled before settlement.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'report_id' => $item['report_id'],
@@ -401,17 +401,17 @@ class TicketReconciliationService {
 		if ( null !== $source_id ) {
 			$source = $this->get_source( (int) $source_id, true );
 			if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] || $source['provider'] !== $report['provider'] ) {
-				return new \WP_Error( 'invalid_sales_report_source_identity', __( 'The ticket source does not match this booking, event, and provider.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_sales_report_source_identity', __( 'The ticket source does not match this booking, event, and provider.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 		}
 		$attachment_id = $report['evidence_attachment_id'] ?? null;
 		if ( 'csv_certified' === $report['source_type'] ) {
 			if ( null === $attachment_id || ! is_array( $source ) || ! is_array( $csv_certification ) ) {
-				return new \WP_Error( 'sales_csv_attachment_required', __( 'Certified CSV evidence requires its approved private attachment.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'sales_csv_attachment_required', __( 'Certified CSV evidence requires its approved private attachment.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$attachment = $this->attachments->get_for_booking( $booking['id'], (int) $attachment_id );
 			if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) || 'text/csv' !== ( $attachment['mime_type'] ?? '' ) || 'other_private_evidence' !== ( $attachment['purpose'] ?? '' ) ) {
-				return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'sales_csv_attachment_invalid', __( 'Certified CSV evidence requires an active approved private CSV attachment.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'sales_csv_attachment_invalid', __( 'Certified CSV evidence requires an active approved private CSV attachment.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$expected = array(
 				'ticket_source_id'                 => $source['id'],
@@ -422,10 +422,10 @@ class TicketReconciliationService {
 				'evidence_byte_size'               => $attachment['byte_size'],
 			);
 			if ( $expected !== $csv_certification ) {
-				return new \WP_Error( 'sales_csv_certification_invalid', __( 'Certified CSV evidence no longer matches the authenticated source and attachment bytes.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'sales_csv_certification_invalid', __( 'Certified CSV evidence no longer matches the authenticated source and attachment bytes.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 		} elseif ( null !== $attachment_id ) {
-			return new \WP_Error( 'sales_report_attachment_invalid', __( 'Only certified CSV evidence may bind a private file.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'sales_report_attachment_invalid', __( 'Only certified CSV evidence may bind a private file.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return array(
 			'provenance_version'               => 2,
@@ -447,14 +447,14 @@ class TicketReconciliationService {
 		}
 		$source_id = is_array( $resolution ) && null !== $resolution['ticket_source_id'] ? $resolution['ticket_source_id'] : $report['ticket_source_id'];
 		if ( null === $source_id ) {
-			return new \WP_Error( 'settlement_source_evidence_missing', __( 'Settlement evidence has no immutable ticket source attribution.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_source_evidence_missing', __( 'Settlement evidence has no immutable ticket source attribution.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$source = $this->get_source( (int) $source_id, $lock );
 		if ( ! is_array( $source ) || $source['booking_id'] !== $booking['id'] || $source['event_id'] !== $booking['event_id'] || $source['venue_term_id'] !== $booking['venue_term_id'] || $source['provider'] !== $report['provider'] ) {
-			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence is missing, corrupt, or belongs to another booking.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence is missing, corrupt, or belongs to another booking.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( 2 <= (int) ( $report['provenance_version'] ?? 1 ) && $report['ticket_source_id'] === $source['id'] && ! hash_equals( (string) $report['ticket_source_request_hash'], $source['request_hash'] ) ) {
-			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence no longer matches its observation hash.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_source_evidence_invalid', __( 'Settlement ticket-source evidence no longer matches its observation hash.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 
 		$evidence = array(
@@ -466,11 +466,11 @@ class TicketReconciliationService {
 			return $evidence;
 		}
 		if ( 2 > (int) ( $report['provenance_version'] ?? 1 ) ) {
-			return new \WP_Error( 'settlement_csv_evidence_legacy', __( 'Legacy CSV observations were not authenticated by the certified importer and cannot enter a new settlement.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_csv_evidence_legacy', __( 'Legacy CSV observations were not authenticated by the certified importer and cannot enter a new settlement.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$attachment = $this->attachments->get_for_booking( $booking['id'], (int) $report['evidence_attachment_id'] );
 		if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) || 'text/csv' !== ( $attachment['mime_type'] ?? '' ) || 'other_private_evidence' !== ( $attachment['purpose'] ?? '' ) ) {
-			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV evidence is retired, deleted, purged, or invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV evidence is retired, deleted, purged, or invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		foreach ( array(
 			'evidence_attachment_request_hash' => 'request_hash',
@@ -478,7 +478,7 @@ class TicketReconciliationService {
 			'evidence_byte_size'               => 'byte_size',
 		) as $report_field => $attachment_field ) {
 			if ( $report[ $report_field ] !== $attachment[ $attachment_field ] ) {
-				return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV attachment metadata no longer matches its observation hash.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV attachment metadata no longer matches its observation hash.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 		}
 		$verified = $authenticate_bytes ? $this->authenticate_attachment_bytes( $booking, $attachment, $actor_id ) : array(
@@ -501,11 +501,11 @@ class TicketReconciliationService {
 	private function authenticate_attachment_bytes( array $booking, array $attachment, int $actor_id ) {
 		$descriptor = $this->attachment_service->download_descriptor( $booking['id'], $attachment['id'], $actor_id );
 		if ( is_wp_error( $descriptor ) ) {
-			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$stream = $this->attachment_service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], $actor_id, $descriptor['correlation_id'] );
 		if ( is_wp_error( $stream ) || ! is_resource( $stream ) ) {
-			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes are unavailable for authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$verified = $this->verified_csv_stream( $stream, $attachment );
 		fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes the approved private stream after complete authentication.
@@ -515,7 +515,7 @@ class TicketReconciliationService {
 		$outcome = is_wp_error( $verified ) ? 'failed' : 'completed';
 		$logged  = $this->attachment_service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], $outcome, 'completed' === $outcome ? $attachment['byte_size'] : 0, $actor_id );
 		if ( is_wp_error( $verified ) || is_wp_error( $logged ) ) {
-			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes failed complete authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'settlement_csv_evidence_invalid', __( 'Settlement CSV bytes failed complete authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		return array(
 			'content_hash' => $attachment['content_hash'],
@@ -528,10 +528,10 @@ class TicketReconciliationService {
 		$table = BookingSchema::sales_reports_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY id ASC LIMIT 1001", $booking['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded reconciliation snapshot.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be read for reconciliation.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_list_failed', __( 'Ticket-sales evidence could not be read for reconciliation.', 'extrachill-booking' ) );
 		}
 		if ( 1000 < count( (array) $rows ) ) {
-			return new \WP_Error( 'sales_reconciliation_too_large', __( 'Ticket-sales evidence exceeds the bounded reconciliation limit.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'sales_reconciliation_too_large', __( 'Ticket-sales evidence exceeds the bounded reconciliation limit.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$reports = array();
 		foreach ( (array) $rows as $row ) {
@@ -549,7 +549,7 @@ class TicketReconciliationService {
 			if ( $report['booking_id'] !== $booking['id'] || $report['event_id'] !== $booking['event_id'] || $report['venue_term_id'] !== $booking['venue_term_id'] ) {
 				return new \WP_Error(
 					'sales_report_booking_changed',
-					__( 'Ticket-sales evidence no longer matches the booking event and venue identity.', 'extrachill-events' ),
+					__( 'Ticket-sales evidence no longer matches the booking event and venue identity.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'report_id' => $report['id'],
@@ -628,7 +628,7 @@ class TicketReconciliationService {
 			return $header;
 		}
 		if ( self::CSV_HEADER !== $header ) {
-			return new \WP_Error( 'sales_csv_header_invalid', __( 'The CSV header does not match the canonical ticket-sales contract.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'sales_csv_header_invalid', __( 'The CSV header does not match the canonical ticket-sales contract.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$inputs        = array();
 		$certification = array(
@@ -653,7 +653,7 @@ class TicketReconciliationService {
 			if ( count( $values ) !== count( self::CSV_HEADER ) || self::MAX_CSV_ROWS < count( $inputs ) + 1 ) {
 				return new \WP_Error(
 					'sales_csv_row_invalid',
-					__( 'The CSV contains a malformed row or exceeds the import limit.', 'extrachill-events' ),
+					__( 'The CSV contains a malformed row or exceeds the import limit.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'row'    => count( $inputs ) + 2,
@@ -665,7 +665,7 @@ class TicketReconciliationService {
 				if ( ! preg_match( '/^-?\d+$/', $row[ $field ] ) || ltrim( $row[ $field ], '+' ) !== (string) (int) $row[ $field ] ) {
 					return new \WP_Error(
 						'sales_csv_integer_invalid',
-						__( 'CSV counts and money must use canonical signed integers.', 'extrachill-events' ),
+						__( 'CSV counts and money must use canonical signed integers.', 'extrachill-booking' ),
 						array(
 							'status' => 400,
 							'row'    => count( $inputs ) + 2,
@@ -691,14 +691,14 @@ class TicketReconciliationService {
 				)
 			);
 		}
-		return empty( $inputs ) ? new \WP_Error( 'sales_csv_empty', __( 'The CSV contains no ticket-sales observations.', 'extrachill-events' ), array( 'status' => 400 ) ) : $inputs;
+		return empty( $inputs ) ? new \WP_Error( 'sales_csv_empty', __( 'The CSV contains no ticket-sales observations.', 'extrachill-booking' ), array( 'status' => 400 ) ) : $inputs;
 	}
 
 	/** Copy and authenticate every private byte before parsing any observation. */
 	private function verified_csv_stream( $stream, array $attachment ) {
 		$verified = fopen( 'php://temp/maxmemory:' . BookingAttachmentPolicy::MAX_BYTES, 'w+b' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Bounded in-process verification copy.
 		if ( false === $verified ) {
-			return new \WP_Error( 'sales_csv_stream_invalid', __( 'A bounded CSV verification stream could not be created.', 'extrachill-events' ), array( 'status' => 500 ) );
+			return new \WP_Error( 'sales_csv_stream_invalid', __( 'A bounded CSV verification stream could not be created.', 'extrachill-booking' ), array( 'status' => 500 ) );
 		}
 		$hash  = hash_init( 'sha256' );
 		$bytes = 0;
@@ -706,22 +706,22 @@ class TicketReconciliationService {
 			$chunk = fread( $stream, 8192 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Reads only the approved private stream.
 			if ( false === $chunk ) {
 				fclose( $verified ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Error-path cleanup.
-				return new \WP_Error( 'sales_csv_stream_invalid', __( 'The private CSV stream could not be read completely.', 'extrachill-events' ), array( 'status' => 502 ) );
+				return new \WP_Error( 'sales_csv_stream_invalid', __( 'The private CSV stream could not be read completely.', 'extrachill-booking' ), array( 'status' => 502 ) );
 			}
 			$bytes += strlen( $chunk );
 			if ( BookingAttachmentPolicy::MAX_BYTES < $bytes || $attachment['byte_size'] < $bytes ) {
 				fclose( $verified ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Error-path cleanup.
-				return new \WP_Error( 'sales_csv_evidence_mismatch', __( 'The streamed CSV exceeds its immutable attachment evidence.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'sales_csv_evidence_mismatch', __( 'The streamed CSV exceeds its immutable attachment evidence.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			hash_update( $hash, $chunk );
 			if ( strlen( $chunk ) !== fwrite( $verified, $chunk ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Writes only to the bounded verification stream.
 				fclose( $verified ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Error-path cleanup.
-				return new \WP_Error( 'sales_csv_stream_invalid', __( 'The CSV verification copy could not be completed.', 'extrachill-events' ), array( 'status' => 500 ) );
+				return new \WP_Error( 'sales_csv_stream_invalid', __( 'The CSV verification copy could not be completed.', 'extrachill-booking' ), array( 'status' => 500 ) );
 			}
 		}
 		if ( $bytes !== $attachment['byte_size'] || ! hash_equals( $attachment['content_hash'], hash_final( $hash ) ) ) {
 			fclose( $verified ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Error-path cleanup.
-			return new \WP_Error( 'sales_csv_evidence_mismatch', __( 'The streamed CSV does not match its immutable attachment evidence.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'sales_csv_evidence_mismatch', __( 'The streamed CSV does not match its immutable attachment evidence.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		rewind( $verified );
 		return $verified;
@@ -735,12 +735,12 @@ class TicketReconciliationService {
 		}
 		$has_newline = "\n" === substr( $line, -1 );
 		if ( self::MAX_CSV_LINE_BYTES < strlen( $line ) || ( ! $has_newline && ! feof( $stream ) ) ) {
-			return $this->csv_record_error( 'sales_csv_line_too_long', __( 'A CSV record exceeds the bounded line length.', 'extrachill-events' ), $row );
+			return $this->csv_record_error( 'sales_csv_line_too_long', __( 'A CSV record exceeds the bounded line length.', 'extrachill-booking' ), $row );
 		}
 		$line   = rtrim( $line, "\r\n" );
 		$values = str_getcsv( $line, ',', '"', '\\' );
 		if ( false !== strpos( $line, '"' ) && 1 === substr_count( $line, '"' ) % 2 ) {
-			return $this->csv_record_error( 'sales_csv_multiline_forbidden', __( 'Multiline or unterminated CSV fields are not supported.', 'extrachill-events' ), $row );
+			return $this->csv_record_error( 'sales_csv_multiline_forbidden', __( 'Multiline or unterminated CSV fields are not supported.', 'extrachill-booking' ), $row );
 		}
 		return $values;
 	}
@@ -758,12 +758,12 @@ class TicketReconciliationService {
 
 	private function canonical_url( $value ) {
 		if ( ! is_string( $value ) || 2048 < strlen( $value ) ) {
-			return new \WP_Error( 'invalid_ticket_source_url', __( 'The ticket source URL is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_ticket_source_url', __( 'The ticket source URL is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$url   = esc_url_raw( trim( $value ), array( 'http', 'https' ) );
 		$parts = wp_parse_url( $url );
 		if ( '' === $url || ! is_array( $parts ) || empty( $parts['host'] ) || ! in_array( strtolower( (string) ( $parts['scheme'] ?? '' ) ), array( 'http', 'https' ), true ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || isset( $parts['fragment'] ) ) {
-			return new \WP_Error( 'invalid_ticket_source_url', __( 'The ticket source URL must be an HTTP or HTTPS URL without credentials or a fragment.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_ticket_source_url', __( 'The ticket source URL must be an HTTP or HTTPS URL without credentials or a fragment.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return $url;
 	}
@@ -799,18 +799,18 @@ class TicketReconciliationService {
 			return $id;
 		}
 		$booking = $this->bookings->get( $id );
-		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+		return is_array( $booking ) ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 	}
 
 	private function begin_authorized( array $booking, int $actor_id, string $action ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial attribution aggregate boundary.
-			return new \WP_Error( 'sales_reconciliation_transaction_start_failed', __( 'The ticket reconciliation transaction could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_reconciliation_transaction_start_failed', __( 'The ticket reconciliation transaction could not start.', 'extrachill-booking' ) );
 		}
 		$this->transaction_active = true;
 		$members                  = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
 		if ( is_wp_error( $members ) ) {
-			return $this->rollback( new \WP_Error( 'sales_reconciliation_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'sales_reconciliation_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-booking' ) ) );
 		}
 		$allowed = ( $this->authorization )( $action, $booking['venue_term_id'], $actor_id, (array) $members );
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
@@ -821,7 +821,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::ticket_sources_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND provider = %s AND source_key_hash = %s LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $provider, hash( 'sha256', $source_key ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Stable source lookup.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'ticket_source_read_failed', __( 'The ticket source could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_source( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'ticket_source_read_failed', __( 'The ticket source could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_source( $row ) : null );
 	}
 
 	private function get_source( int $id, bool $lock = false ) {
@@ -829,7 +829,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::ticket_sources_table();
 		$query = "SELECT * FROM {$table} WHERE id = %d LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Immutable source lookup.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'ticket_source_read_failed', __( 'The ticket source could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_source( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'ticket_source_read_failed', __( 'The ticket source could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_source( $row ) : null );
 	}
 
 	private function hydrate_source( array $row ) {
@@ -842,7 +842,7 @@ class TicketReconciliationService {
 			? $row
 			: new \WP_Error(
 				'ticket_source_integrity_failed',
-				__( 'Stored ticket source identity failed its immutable content check.', 'extrachill-events' ),
+				__( 'Stored ticket source identity failed its immutable content check.', 'extrachill-booking' ),
 				array(
 					'status'    => 409,
 					'source_id' => $row['id'],
@@ -855,7 +855,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::sales_resolutions_table();
 		$query = "SELECT * FROM {$table} WHERE report_id = %d ORDER BY version DESC LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $report_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current append-only decision.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_resolution_read_failed', __( 'The reconciliation decision could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_resolution( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_resolution_read_failed', __( 'The reconciliation decision could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_resolution( $row ) : null );
 	}
 
 	private function resolution_version( int $report_id, int $version, bool $lock = false ) {
@@ -863,7 +863,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::sales_resolutions_table();
 		$query = "SELECT * FROM {$table} WHERE report_id = %d AND version = %d LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $report_id, $version ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact immutable decision.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_resolution_read_failed', __( 'The reconciliation decision could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_resolution( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_resolution_read_failed', __( 'The reconciliation decision could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_resolution( $row ) : null );
 	}
 
 	private function hydrate_resolution( array $row ) {
@@ -878,7 +878,7 @@ class TicketReconciliationService {
 			? $row
 			: new \WP_Error(
 				'sales_resolution_integrity_failed',
-				__( 'Stored reconciliation decision failed its immutable content check.', 'extrachill-events' ),
+				__( 'Stored reconciliation decision failed its immutable content check.', 'extrachill-booking' ),
 				array(
 					'status'        => 409,
 					'resolution_id' => $row['id'],
@@ -891,7 +891,7 @@ class TicketReconciliationService {
 		$table = BookingSchema::sales_reports_table();
 		$query = "SELECT * FROM {$table} WHERE id = %d LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $report_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact report resolution target.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-events' ) ) : $row;
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'sales_report_read_failed', __( 'Ticket-sales evidence could not be read.', 'extrachill-booking' ) ) : $row;
 	}
 
 	private function get_settlement_for_booking( int $booking_id, bool $lock = false ) {
@@ -899,13 +899,13 @@ class TicketReconciliationService {
 		$table = BookingSchema::settlements_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Frozen settlement boundary.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'settlement_read_failed', __( 'The booking settlement could not be read.', 'extrachill-events' ) ) : $row;
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'settlement_read_failed', __( 'The booking settlement could not be read.', 'extrachill-booking' ) ) : $row;
 	}
 
 	private function hydrate_report_row( array $row ) {
 		$source = json_decode( (string) ( $row['source_payload'] ?? '' ), true );
 		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $source ) || 1 !== ( $source['version'] ?? null ) || ! array_key_exists( 'data', $source ) ) {
-			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-events' ) );
+			return new \WP_Error( 'sales_report_source_invalid', __( 'Stored ticket-sales source evidence is malformed.', 'extrachill-booking' ) );
 		}
 		foreach ( array( 'id', 'booking_id', 'event_id', 'venue_term_id', 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'provenance_version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
@@ -921,7 +921,7 @@ class TicketReconciliationService {
 		if ( ! preg_match( '/^[a-f0-9]{64}$/', $identity_hash ) || ! hash_equals( $identity_hash, hash( 'sha256', $row['external_report_id'] ) ) || ! preg_match( '/^[a-f0-9]{64}$/', $stored_hash ) || ! hash_equals( $stored_hash, TicketSettlementService::report_request_hash( $row ) ) ) {
 			return new \WP_Error(
 				'sales_report_integrity_failed',
-				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-events' ),
+				__( 'Stored ticket-sales evidence failed its immutable content check.', 'extrachill-booking' ),
 				array(
 					'status'    => 409,
 					'report_id' => $row['id'],
@@ -942,7 +942,7 @@ class TicketReconciliationService {
 	private function positive_integer( $value, string $field ) {
 		return is_int( $value ) && 0 < $value ? $value : new \WP_Error(
 			'invalid_ticket_reconciliation_integer',
-			__( 'A positive integer is required.', 'extrachill-events' ),
+			__( 'A positive integer is required.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -951,14 +951,14 @@ class TicketReconciliationService {
 	}
 
 	private function denied( $result ): \WP_Error {
-		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function commit() {
 		global $wpdb;
 		$result                   = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial attribution aggregate boundary.
 		$this->transaction_active = false;
-		return false === $result ? new \WP_Error( 'sales_reconciliation_commit_uncertain', __( 'The reconciliation transaction outcome could not be confirmed.', 'extrachill-events' ) ) : true;
+		return false === $result ? new \WP_Error( 'sales_reconciliation_commit_uncertain', __( 'The reconciliation transaction outcome could not be confirmed.', 'extrachill-booking' ) ) : true;
 	}
 
 	private function rollback( \WP_Error $error ) {

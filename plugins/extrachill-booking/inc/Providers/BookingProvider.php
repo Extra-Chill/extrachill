@@ -115,7 +115,7 @@ final class BookingProvider {
 	 * Register the booking schema version so a stale booking schema opens the
 	 * Events lock-guarded install path that fires install_schema().
 	 *
-	 * @param array $versions Schema versions keyed by version option name.
+	 * @param mixed $versions Schema versions keyed by version option name, from the filter chain.
 	 * @return array
 	 */
 	public static function schema_versions( $versions ): array {

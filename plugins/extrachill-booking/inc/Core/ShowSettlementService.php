@@ -87,7 +87,7 @@ class ShowSettlementService {
 		}
 		$row = null === $revision ? $this->latest_revision( $booking['id'] ) : $this->revision_number( $booking['id'], $revision );
 		if ( ! is_array( $row ) ) {
-			return is_wp_error( $row ) ? $row : new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return is_wp_error( $row ) ? $row : new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		$verified = $this->verify_revision( $row, $booking, $actor_id, false, false, $max_sales_reports );
 		return is_wp_error( $verified ) ? $verified : $this->present( $verified );
@@ -106,7 +106,7 @@ class ShowSettlementService {
 		}
 		$type = sanitize_key( (string) ( $input['acknowledgement_type'] ?? '' ) );
 		if ( ! in_array( $type, array( 'counterparty_verified', 'venue_recorded' ), true ) || null === $booking['artist_term_id'] || null === $booking['artist_profile_id'] ) {
-			return new \WP_Error( 'show_settlement_acknowledgement_invalid', __( 'Acknowledgement requires a supported type and canonical booking counterparty.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'show_settlement_acknowledgement_invalid', __( 'Acknowledgement requires a supported type and canonical booking counterparty.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$authority = 'counterparty_verified' === $type ? 'artist' : 'venue';
 		$allowed   = $this->authorize_action( $booking, $actor_id, $authority );
@@ -120,7 +120,7 @@ class ShowSettlementService {
 				return $evidence;
 			}
 		} elseif ( ! empty( $input['acknowledgement_evidence_attachment_ids'] ) ) {
-			return new \WP_Error( 'show_settlement_acknowledgement_invalid', __( 'Direct counterparty acknowledgement must not claim venue-recorded evidence.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'show_settlement_acknowledgement_invalid', __( 'Direct counterparty acknowledgement must not claim venue-recorded evidence.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return $this->action(
 			$input,
@@ -198,7 +198,7 @@ class ShowSettlementService {
 			if ( ! isset( $terms[ $field ] ) || ! is_int( $terms[ $field ] ) ) {
 				return new \WP_Error(
 					'invalid_show_settlement_amount',
-					__( 'Show settlement money and rates must use integers.', 'extrachill-events' ),
+					__( 'Show settlement money and rates must use integers.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field,
@@ -207,12 +207,12 @@ class ShowSettlementService {
 			}
 		}
 		if ( $terms['artist_split_basis_points'] < 0 || $terms['artist_split_basis_points'] > 10000 || $terms['artist_guarantee_minor'] < 0 ) {
-			return new \WP_Error( 'invalid_show_settlement_terms', __( 'The artist guarantee or split is outside the supported range.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_show_settlement_terms', __( 'The artist guarantee or split is outside the supported range.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$adjustment_total = 0;
 		foreach ( $terms['adjustments'] ?? array() as $adjustment ) {
 			if ( ! is_array( $adjustment ) || ! isset( $adjustment['amount_minor'] ) || ! is_int( $adjustment['amount_minor'] ) ) {
-				return new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Every signed adjustment must use integer minor units.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Every signed adjustment must use integer minor units.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$adjustment_total = self::safe_add( $adjustment_total, $adjustment['amount_minor'] );
 			if ( is_wp_error( $adjustment_total ) ) {
@@ -228,7 +228,7 @@ class ShowSettlementService {
 			if ( $terms[ $field ] < 0 ) {
 				return new \WP_Error(
 					'invalid_show_settlement_terms',
-					__( 'Show settlement deductions cannot be negative.', 'extrachill-events' ),
+					__( 'Show settlement deductions cannot be negative.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field,
@@ -310,7 +310,7 @@ class ShowSettlementService {
 			return $this->rollback(
 				is_wp_error( $ticket_gross ) ? $ticket_gross : new \WP_Error(
 					'show_settlement_ticket_gross_conflict',
-					__( 'Ticket gross does not match the frozen reconciled ticket evidence.', 'extrachill-events' ),
+					__( 'Ticket gross does not match the frozen reconciled ticket evidence.', 'extrachill-booking' ),
 					array(
 						'status'                      => 409,
 						'expected_ticket_gross_minor' => $ticket_gross,
@@ -340,7 +340,7 @@ class ShowSettlementService {
 		}
 		if ( is_array( $retry ) ) {
 			if ( ! hash_equals( $retry['request_hash'], $request_hash ) ) {
-				return $this->rollback( new \WP_Error( 'show_settlement_idempotency_conflict', __( 'This show-settlement idempotency key is bound to different inputs.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+				return $this->rollback( new \WP_Error( 'show_settlement_idempotency_conflict', __( 'This show-settlement idempotency key is bound to different inputs.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 			}
 			$verified = $this->verify_revision( $retry, $booking, $actor_id, false );
 			$commit   = is_wp_error( $verified ) ? $this->rollback( $verified ) : $this->commit();
@@ -351,15 +351,19 @@ class ShowSettlementService {
 			return $this->rollback( $current );
 		}
 		if ( ! $requires_current && is_array( $current ) ) {
-			return $this->rollback( new \WP_Error( 'show_settlement_already_exists', __( 'Use a revision operation after the first show-settlement draft.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'show_settlement_already_exists', __( 'Use a revision operation after the first show-settlement draft.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		if ( $requires_current && ( ! is_array( $current ) || $current['id'] !== $expected ) ) {
-			return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'The current show-settlement revision changed.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'The current show-settlement revision changed.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
+		}
+		$state = null;
+		if ( $correction && ! is_array( $current ) ) {
+			return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'The current show-settlement revision changed.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		if ( is_array( $current ) ) {
 			$state = $this->state( $current, true );
 			if ( is_wp_error( $state ) || ( $correction && $state['version'] !== $expected_action_version ) || ( $correction ? ! in_array( $state['status'], array( 'finalized', 'acknowledged', 'disputed' ), true ) : 'draft' !== $state['status'] ) ) {
-				return $this->rollback( is_wp_error( $state ) ? $state : new \WP_Error( 'show_settlement_status_conflict', __( 'The current revision cannot be replaced by this operation.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+				return $this->rollback( is_wp_error( $state ) ? $state : new \WP_Error( 'show_settlement_status_conflict', __( 'The current revision cannot be replaced by this operation.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 			}
 		}
 		$metadata = $this->verify_attachment_snapshot( $booking, $evidence );
@@ -404,13 +408,16 @@ class ShowSettlementService {
 		);
 		$row['integrity_hash'] = self::hash( self::revision_hashable( $row ) );
 		if ( false === $wpdb->insert( BookingSchema::show_settlements_table(), $row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only financial revision.
-			return $this->rollback( new \WP_Error( 'show_settlement_write_failed', __( 'The show-settlement revision could not be recorded.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'show_settlement_write_failed', __( 'The show-settlement revision could not be recorded.', 'extrachill-booking' ) ) );
 		}
 		$created = $this->revision_id( (int) $wpdb->insert_id, true );
 		if ( ! is_array( $created ) ) {
-			return $this->rollback( is_wp_error( $created ) ? $created : new \WP_Error( 'show_settlement_write_failed', __( 'The show-settlement revision could not be verified.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $created ) ? $created : new \WP_Error( 'show_settlement_write_failed', __( 'The show-settlement revision could not be verified.', 'extrachill-booking' ) ) );
 		}
 		if ( $correction ) {
+			if ( ! is_array( $current ) || ! is_array( $state ) ) {
+				return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'The current show-settlement revision changed.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
+			}
 			$action = $this->append_action_row(
 				$current,
 				'corrected',
@@ -461,7 +468,7 @@ class ShowSettlementService {
 		);
 		$revision     = $this->revision_id( $revision_id );
 		if ( ! is_array( $revision ) || $revision['booking_id'] !== $booking['id'] ) {
-			return new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+			return new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 		}
 		if ( $authenticate_revision ) {
 			$verified = $this->verify_revision( $revision, $booking, $actor_id, true );
@@ -493,11 +500,11 @@ class ShowSettlementService {
 		}
 		if ( is_array( $retry ) ) {
 			if ( ! hash_equals( $retry['request_hash'], $request_hash ) ) {
-				return $this->rollback( new \WP_Error( 'show_settlement_idempotency_conflict', __( 'This lifecycle idempotency key is bound to a different request.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+				return $this->rollback( new \WP_Error( 'show_settlement_idempotency_conflict', __( 'This lifecycle idempotency key is bound to a different request.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 			}
 			$current = $this->revision_id( $revision_id, true );
 			if ( ! is_array( $current ) || $current['booking_id'] !== $booking['id'] ) {
-				return $this->rollback( is_wp_error( $current ) ? $current : new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+				return $this->rollback( is_wp_error( $current ) ? $current : new \WP_Error( 'show_settlement_not_found', __( 'The show settlement was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 			}
 			$verified = $this->verify_revision( $current, $booking, $actor_id, false, true );
 			$commit   = is_wp_error( $verified ) ? $this->rollback( $verified ) : $this->commit();
@@ -506,14 +513,14 @@ class ShowSettlementService {
 		$revision = $this->revision_id( $revision_id, true );
 		$latest   = $this->latest_revision( $booking['id'], true );
 		if ( ! is_array( $latest ) || ! is_array( $revision ) || $latest['id'] !== $revision['id'] ) {
-			return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'Only the current show-settlement revision may transition.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'show_settlement_revision_conflict', __( 'Only the current show-settlement revision may transition.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
-		$state = is_array( $revision ) ? $this->state( $revision, true ) : $revision;
+		$state = $this->state( $revision, true );
 		if ( ! is_array( $state ) || $state['version'] !== $expected_version || ! in_array( $state['status'], $allowed_states, true ) ) {
 			return $this->rollback(
 				is_wp_error( $state ) ? $state : new \WP_Error(
 					'show_settlement_version_conflict',
-					__( 'The show-settlement lifecycle changed before this transition.', 'extrachill-events' ),
+					__( 'The show-settlement lifecycle changed before this transition.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => is_array( $state ) ? $state['version'] : null,
@@ -522,7 +529,7 @@ class ShowSettlementService {
 			);
 		}
 		if ( 'paid' === $action && 'completed' !== $booking['status'] ) {
-			return $this->rollback( new \WP_Error( 'show_settlement_payment_booking_status_conflict', __( 'The booking must be completed before artist payout is recorded.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'show_settlement_payment_booking_status_conflict', __( 'The booking must be completed before artist payout is recorded.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$verified = $this->verify_revision( $revision, $booking, $actor_id, false, true );
 		if ( is_wp_error( $verified ) ) {
@@ -556,14 +563,14 @@ class ShowSettlementService {
 	private function terms( array $input, int $actor_id ) {
 		$currency = strtoupper( sanitize_text_field( (string) ( $input['currency'] ?? '' ) ) );
 		if ( ! preg_match( '/^[A-Z]{3}$/', $currency ) ) {
-			return new \WP_Error( 'invalid_show_settlement_currency', __( 'Currency must be an uppercase three-letter code.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_show_settlement_currency', __( 'Currency must be an uppercase three-letter code.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$terms = array( 'currency' => $currency );
 		foreach ( array( 'ticket_gross_minor', 'door_gross_minor', 'fees_minor', 'taxes_minor', 'refunds_minor', 'venue_expenses_minor', 'production_expenses_minor', 'artist_guarantee_minor', 'artist_split_basis_points' ) as $field ) {
 			if ( ! array_key_exists( $field, $input ) || ! is_int( $input[ $field ] ) ) {
 				return new \WP_Error(
 					'invalid_show_settlement_amount',
-					__( 'Show settlement money and rates must use integers.', 'extrachill-events' ),
+					__( 'Show settlement money and rates must use integers.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field,
@@ -574,13 +581,13 @@ class ShowSettlementService {
 		}
 		$adjustments = $input['adjustments'] ?? array();
 		if ( ! is_array( $adjustments ) || 100 < count( $adjustments ) ) {
-			return new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Signed adjustments must be a bounded array.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Signed adjustments must be a bounded array.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$terms['adjustments'] = array();
 		foreach ( $adjustments as $adjustment ) {
 			$reason = $this->text( is_array( $adjustment ) ? ( $adjustment['reason'] ?? null ) : null, 'adjustment_reason', 500 );
 			if ( is_wp_error( $reason ) || ! is_array( $adjustment ) || ! is_int( $adjustment['amount_minor'] ?? null ) ) {
-				return is_wp_error( $reason ) ? $reason : new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Every adjustment requires signed integer minor units and a reason.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return is_wp_error( $reason ) ? $reason : new \WP_Error( 'invalid_show_settlement_adjustment', __( 'Every adjustment requires signed integer minor units and a reason.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$terms['adjustments'][] = array(
 				'amount_minor'      => $adjustment['amount_minor'],
@@ -594,13 +601,13 @@ class ShowSettlementService {
 
 	private function attachment_evidence( array $booking, $ids, int $actor_id, bool $required ) {
 		if ( ! is_array( $ids ) || 20 < count( $ids ) || ( $required && empty( $ids ) ) ) {
-			return new \WP_Error( 'show_settlement_evidence_required', __( 'Authorized immutable evidence is required for this settlement operation.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'show_settlement_evidence_required', __( 'Authorized immutable evidence is required for this settlement operation.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$normalized = array();
 		foreach ( $ids as $id ) {
 			$id = $this->positive_integer( $id, 'attachment_id' );
 			if ( is_wp_error( $id ) || in_array( $id, $normalized, true ) ) {
-				return is_wp_error( $id ) ? $id : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Evidence attachment IDs must be unique.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return is_wp_error( $id ) ? $id : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Evidence attachment IDs must be unique.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$normalized[] = $id;
 		}
@@ -609,7 +616,7 @@ class ShowSettlementService {
 		foreach ( $normalized as $id ) {
 			$attachment = $this->attachments->get_for_booking( $booking['id'], $id );
 			if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) || 'other_private_evidence' !== ( $attachment['purpose'] ?? '' ) ) {
-				return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence is unavailable, inactive, or not approved private evidence.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence is unavailable, inactive, or not approved private evidence.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$verified = $this->authenticate_attachment( $booking, $attachment, $actor_id );
 			if ( is_wp_error( $verified ) ) {
@@ -631,11 +638,11 @@ class ShowSettlementService {
 	private function authenticate_attachment( array $booking, array $attachment, int $actor_id ) {
 		$descriptor = $this->attachment_service->download_descriptor( $booking['id'], $attachment['id'], $actor_id );
 		if ( is_wp_error( $descriptor ) ) {
-			return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes are unavailable.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes are unavailable.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$stream = $this->attachment_service->open_download_stream( $booking['id'], $attachment['id'], $descriptor['stream_token'], $actor_id, $descriptor['correlation_id'] );
 		if ( is_wp_error( $stream ) || ! is_resource( $stream ) ) {
-			return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes are unavailable.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes are unavailable.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$hash  = hash_init( 'sha256' );
 		$bytes = 0;
@@ -655,18 +662,18 @@ class ShowSettlementService {
 		fclose( $stream ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes the approved private stream.
 		$valid  = $bytes === $attachment['byte_size'] && hash_equals( $attachment['content_hash'], hash_final( $hash ) );
 		$logged = $this->attachment_service->record_delivery_outcome( $booking['id'], $attachment['id'], $descriptor['correlation_id'], $valid ? 'completed' : 'failed', $valid ? $bytes : 0, $actor_id );
-		return $valid && ! is_wp_error( $logged ) ? true : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes failed authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+		return $valid && ! is_wp_error( $logged ) ? true : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Settlement evidence bytes failed authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function verify_attachment_snapshot( array $booking, array $snapshot ) {
 		foreach ( $snapshot as $expected ) {
 			$attachment = $this->attachments->get_for_booking( $booking['id'], (int) $expected['id'] );
 			if ( is_wp_error( $attachment ) || 'active' !== ( $attachment['state'] ?? '' ) ) {
-				return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence is missing or inactive.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence is missing or inactive.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			foreach ( array( 'public_id', 'request_hash', 'content_hash', 'byte_size', 'mime_type', 'purpose' ) as $field ) {
 				if ( $attachment[ $field ] !== $expected[ $field ] ) {
-					return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence metadata was changed.', 'extrachill-events' ), array( 'status' => 409 ) );
+					return new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence metadata was changed.', 'extrachill-booking' ), array( 'status' => 409 ) );
 				}
 			}
 		}
@@ -675,7 +682,7 @@ class ShowSettlementService {
 
 	private function verify_revision( array $revision, array $booking, int $actor_id, bool $authenticate_bytes, bool $lock_commission = false, int $max_sales_reports = 10000 ) {
 		if ( $revision['booking_id'] !== $booking['id'] || $revision['event_id'] !== $booking['event_id'] || $revision['venue_term_id'] !== $booking['venue_term_id'] || ! hash_equals( $revision['integrity_hash'], self::hash( self::revision_hashable( $revision ) ) ) ) {
-			return new \WP_Error( 'show_settlement_integrity_failed', __( 'The immutable show-settlement revision failed integrity verification.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_integrity_failed', __( 'The immutable show-settlement revision failed integrity verification.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$commission = $this->commission( $booking, $actor_id, $revision['commission_settlement_id'], $revision['commission_integrity_hash'], $revision['currency'], $lock_commission );
 		if ( is_wp_error( $commission ) ) {
@@ -683,11 +690,11 @@ class ShowSettlementService {
 		}
 		$calculation = self::calculate_amounts( $revision['terms'], $commission['amount_due_minor'] );
 		if ( is_wp_error( $calculation ) || $calculation !== $revision['calculation'] ) {
-			return new \WP_Error( 'show_settlement_calculation_invalid', __( 'The frozen show-settlement calculation is not reproducible.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_calculation_invalid', __( 'The frozen show-settlement calculation is not reproducible.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$ticket_gross = $this->ticket_gross( $booking, $commission, $actor_id, $lock_commission, $max_sales_reports );
 		if ( is_wp_error( $ticket_gross ) || $ticket_gross !== $revision['terms']['ticket_gross_minor'] ) {
-			return is_wp_error( $ticket_gross ) ? $ticket_gross : new \WP_Error( 'show_settlement_ticket_gross_conflict', __( 'Frozen ticket gross no longer matches its reconciled ticket evidence.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return is_wp_error( $ticket_gross ) ? $ticket_gross : new \WP_Error( 'show_settlement_ticket_gross_conflict', __( 'Frozen ticket gross no longer matches its reconciled ticket evidence.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$metadata = $this->verify_attachment_snapshot( $booking, $revision['evidence'] );
 		if ( is_wp_error( $metadata ) ) {
@@ -698,7 +705,7 @@ class ShowSettlementService {
 				$attachment = $this->attachments->get_for_booking( $booking['id'], $item['id'] );
 				$verified   = is_array( $attachment ) ? $this->authenticate_attachment( $booking, $attachment, $actor_id ) : $attachment;
 				if ( true !== $verified ) {
-					return is_wp_error( $verified ) ? $verified : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence bytes failed authentication.', 'extrachill-events' ), array( 'status' => 409 ) );
+					return is_wp_error( $verified ) ? $verified : new \WP_Error( 'show_settlement_evidence_invalid', __( 'Frozen settlement evidence bytes failed authentication.', 'extrachill-booking' ), array( 'status' => 409 ) );
 				}
 			}
 		}
@@ -749,12 +756,12 @@ class ShowSettlementService {
 			}
 		}
 		if ( $found < $needed && ! $lock && ! $exhausted ) {
-			return new \WP_Error( 'show_settlement_reporting_limit_exceeded', __( 'The show settlement exceeds the bounded reporting evidence limit.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_reporting_limit_exceeded', __( 'The show settlement exceeds the bounded reporting evidence limit.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$gross = 0;
 		foreach ( $commission['included_report_ids'] as $report_id ) {
 			if ( ! isset( $by_id[ $report_id ] ) || $by_id[ $report_id ]['currency'] !== $commission['currency'] ) {
-				return new \WP_Error( 'show_settlement_ticket_evidence_invalid', __( 'Frozen ticket evidence is missing from the complete show settlement.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'show_settlement_ticket_evidence_invalid', __( 'Frozen ticket evidence is missing from the complete show settlement.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$gross = self::safe_add( $gross, $by_id[ $report_id ]['gross_minor'] );
 			if ( is_wp_error( $gross ) ) {
@@ -773,7 +780,7 @@ class ShowSettlementService {
 		}
 		$rows = $wpdb->get_results( $wpdb->prepare( $query, $revision['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete immutable lifecycle.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'show_settlement_action_read_failed', __( 'The show-settlement lifecycle could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'show_settlement_action_read_failed', __( 'The show-settlement lifecycle could not be read.', 'extrachill-booking' ) );
 		}
 		$status  = 'draft';
 		$version = 1;
@@ -781,7 +788,7 @@ class ShowSettlementService {
 		foreach ( (array) $rows as $row ) {
 			$row = $this->hydrate_action( $row );
 			if ( is_wp_error( $row ) || $row['expected_version'] !== $version || $row['show_settlement_id'] !== $revision['id'] ) {
-				return is_wp_error( $row ) ? $row : new \WP_Error( 'show_settlement_action_integrity_failed', __( 'The show-settlement lifecycle chain is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return is_wp_error( $row ) ? $row : new \WP_Error( 'show_settlement_action_integrity_failed', __( 'The show-settlement lifecycle chain is invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$status = $row['action'];
 			++$version;
@@ -822,7 +829,7 @@ class ShowSettlementService {
 		);
 		$row['integrity_hash'] = self::hash( self::action_hashable( $row ) );
 		return false === $wpdb->insert( BookingSchema::show_settlement_actions_table(), $row ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only lifecycle transition.
-			? new \WP_Error( 'show_settlement_action_write_failed', __( 'The show-settlement lifecycle transition could not be recorded.', 'extrachill-events' ) )
+			? new \WP_Error( 'show_settlement_action_write_failed', __( 'The show-settlement lifecycle transition could not be recorded.', 'extrachill-booking' ) )
 			: $row;
 	}
 
@@ -838,7 +845,7 @@ class ShowSettlementService {
 		) as $field => $target ) {
 			$decoded = json_decode( (string) $row[ $field ], true );
 			if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) || 1 !== ( $decoded['version'] ?? null ) || ! is_array( $decoded['data'] ?? null ) ) {
-				return new \WP_Error( 'show_settlement_integrity_failed', __( 'Stored show-settlement data is malformed.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'show_settlement_integrity_failed', __( 'Stored show-settlement data is malformed.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$row[ $target ] = $decoded['data'];
 			unset( $row[ $field ] );
@@ -852,7 +859,7 @@ class ShowSettlementService {
 		}
 		$payload = json_decode( (string) $row['payload'], true );
 		if ( JSON_ERROR_NONE !== json_last_error() || 1 !== ( $payload['version'] ?? null ) || ! is_array( $payload['data'] ?? null ) || ! in_array( $row['action'], self::ACTIONS, true ) ) {
-			return new \WP_Error( 'show_settlement_action_integrity_failed', __( 'Stored show-settlement lifecycle data is malformed.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_action_integrity_failed', __( 'Stored show-settlement lifecycle data is malformed.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$row['payload'] = $payload['data'];
 		$hash           = self::hash(
@@ -863,7 +870,7 @@ class ShowSettlementService {
 				'payload'          => $row['payload'],
 			)
 		);
-		return hash_equals( $row['request_hash'], $hash ) && hash_equals( $row['integrity_hash'], self::hash( self::action_hashable( $row ) ) ) ? $row : new \WP_Error( 'show_settlement_action_integrity_failed', __( 'Stored show-settlement lifecycle data failed integrity verification.', 'extrachill-events' ), array( 'status' => 409 ) );
+		return hash_equals( $row['request_hash'], $hash ) && hash_equals( $row['integrity_hash'], self::hash( self::action_hashable( $row ) ) ) ? $row : new \WP_Error( 'show_settlement_action_integrity_failed', __( 'Stored show-settlement lifecycle data failed integrity verification.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	private function latest_revision( int $booking_id, bool $lock = false ) {
@@ -871,7 +878,7 @@ class ShowSettlementService {
 		$table = BookingSchema::show_settlements_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY revision DESC LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact latest revision with optional lock.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
 	}
 
 	private function revision_id( int $id, bool $lock = false ) {
@@ -879,14 +886,14 @@ class ShowSettlementService {
 		$table = BookingSchema::show_settlements_table();
 		$query = "SELECT * FROM {$table} WHERE id = %d LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact immutable revision.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
 	}
 
 	private function revision_number( int $booking_id, int $revision ) {
 		global $wpdb;
 		$table = BookingSchema::show_settlements_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d AND revision = %d LIMIT 1", $booking_id, $revision ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact immutable revision.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
 	}
 
 	private function idempotent_revision( int $booking_id, string $key, bool $lock ) {
@@ -894,7 +901,7 @@ class ShowSettlementService {
 		$table = BookingSchema::show_settlements_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND idempotency_key = %s LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency lookup.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_read_failed', __( 'The show settlement could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_revision( $row ) : null );
 	}
 
 	private function idempotent_action( int $booking_id, string $key, bool $lock ) {
@@ -902,13 +909,13 @@ class ShowSettlementService {
 		$table = BookingSchema::show_settlement_actions_table();
 		$query = "SELECT * FROM {$table} WHERE booking_id = %d AND idempotency_key = %s LIMIT 1" . ( $lock ? ' FOR UPDATE' : '' );
 		$row   = $wpdb->get_row( $wpdb->prepare( $query, $booking_id, $key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Idempotency lookup.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_action_read_failed', __( 'The show-settlement lifecycle could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_action( $row ) : null );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'show_settlement_action_read_failed', __( 'The show-settlement lifecycle could not be read.', 'extrachill-booking' ) ) : ( is_array( $row ) ? $this->hydrate_action( $row ) : null );
 	}
 
 	private function begin_authorized( array $booking, int $actor_id, string $authority = 'venue' ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete financial transaction.
-			return new \WP_Error( 'show_settlement_transaction_start_failed', __( 'The show-settlement transaction could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'show_settlement_transaction_start_failed', __( 'The show-settlement transaction could not start.', 'extrachill-booking' ) );
 		}
 		$this->transaction_active = true;
 		if ( 'artist' === $authority ) {
@@ -930,7 +937,7 @@ class ShowSettlementService {
 	private function commission( array $booking, int $actor_id, int $expected_id, ?string $expected_hash, string $currency, bool $lock ) {
 		$commission = $lock ? $this->commissions->get_for_update( $booking['id'] ) : $this->commissions->get( $booking['id'], $actor_id );
 		if ( is_wp_error( $commission ) || ! is_array( $commission ) || $commission['id'] !== $expected_id || ! in_array( $commission['status'], array( 'finalized', 'paid' ), true ) || $commission['currency'] !== $currency || ( null !== $expected_hash && ! hash_equals( $commission['integrity_hash'], $expected_hash ) ) ) {
-			return new \WP_Error( 'show_settlement_commission_invalid', __( 'The frozen Extra Chill commission is missing, void, mismatched, or failed integrity verification.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'show_settlement_commission_invalid', __( 'The frozen Extra Chill commission is missing, void, mismatched, or failed integrity verification.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		return $commission;
 	}
@@ -941,15 +948,15 @@ class ShowSettlementService {
 			return $id;
 		}
 		$booking = $this->bookings->get( $id );
-		return is_array( $booking ) && null !== $booking['event_id'] ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'An event-linked booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) ) );
+		return is_array( $booking ) && null !== $booking['event_id'] ? $booking : ( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'An event-linked booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) ) );
 	}
 
 	private function locked_booking( int $booking_id ) {
 		$booking = $this->bookings->get_for_update( $booking_id );
 		if ( is_wp_error( $booking ) ) {
-			return new \WP_Error( 'show_settlement_booking_lock_failed', __( 'The booking could not be locked for this settlement operation.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return new \WP_Error( 'show_settlement_booking_lock_failed', __( 'The booking could not be locked for this settlement operation.', 'extrachill-booking' ), array( 'status' => 503 ) );
 		}
-		return is_array( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+		return is_array( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 	}
 
 	private function append_audit( array $revision, string $kind, int $actor_id ) {
@@ -1049,20 +1056,20 @@ class ShowSettlementService {
 
 	private static function safe_add( int $left, int $right ) {
 		if ( ( $right > 0 && $left > PHP_INT_MAX - $right ) || ( $right < 0 && $left < PHP_INT_MIN - $right ) ) {
-			return new \WP_Error( 'show_settlement_amount_out_of_range', __( 'The show-settlement calculation exceeds the supported integer range.', 'extrachill-events' ) );
+			return new \WP_Error( 'show_settlement_amount_out_of_range', __( 'The show-settlement calculation exceeds the supported integer range.', 'extrachill-booking' ) );
 		}
 		return $left + $right;
 	}
 
 	private static function safe_subtract( int $left, int $right ) {
 		if ( ( $right > 0 && $left < PHP_INT_MIN + $right ) || ( $right < 0 && $left > PHP_INT_MAX + $right ) ) {
-			return new \WP_Error( 'show_settlement_amount_out_of_range', __( 'The show-settlement calculation exceeds the supported integer range.', 'extrachill-events' ) );
+			return new \WP_Error( 'show_settlement_amount_out_of_range', __( 'The show-settlement calculation exceeds the supported integer range.', 'extrachill-booking' ) );
 		}
 		return $left - $right;
 	}
 
 	private static function hash( $value ): string {
-		return hash( 'sha256', wp_json_encode( self::canonicalize( $value ) ) );
+		return hash( 'sha256', (string) wp_json_encode( self::canonicalize( $value ) ) );
 	}
 
 	private static function canonicalize( $value ) {
@@ -1081,7 +1088,7 @@ class ShowSettlementService {
 	private function positive_integer( $value, string $field ) {
 		return is_int( $value ) && 0 < $value ? $value : new \WP_Error(
 			'invalid_show_settlement_integer',
-			__( 'A positive integer is required.', 'extrachill-events' ),
+			__( 'A positive integer is required.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -1093,7 +1100,7 @@ class ShowSettlementService {
 		$value = sanitize_text_field( (string) $value );
 		return '' !== $value && mb_strlen( $value ) <= $max ? $value : new \WP_Error(
 			'invalid_show_settlement_text',
-			__( 'A bounded text value is required.', 'extrachill-events' ),
+			__( 'A bounded text value is required.', 'extrachill-booking' ),
 			array(
 				'status' => 400,
 				'field'  => $field,
@@ -1108,18 +1115,18 @@ class ShowSettlementService {
 
 	private function date( $value ) {
 		$date = is_string( $value ) ? \DateTimeImmutable::createFromFormat( '!Y-m-d', $value, new \DateTimeZone( 'UTC' ) ) : false;
-		return false !== $date && $date->format( 'Y-m-d' ) === $value ? $value : new \WP_Error( 'invalid_show_settlement_payment_date', __( 'Payment date must use Y-m-d format.', 'extrachill-events' ), array( 'status' => 400 ) );
+		return false !== $date && $date->format( 'Y-m-d' ) === $value ? $value : new \WP_Error( 'invalid_show_settlement_payment_date', __( 'Payment date must use Y-m-d format.', 'extrachill-booking' ), array( 'status' => 400 ) );
 	}
 
 	private function denied( $result ): \WP_Error {
-		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage this venue settlement.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_wp_error( $result ) ? $result : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage this venue settlement.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function commit() {
 		global $wpdb;
 		$result                   = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Complete financial transaction.
 		$this->transaction_active = false;
-		return false === $result ? new \WP_Error( 'show_settlement_commit_uncertain', __( 'The show-settlement transaction outcome could not be confirmed.', 'extrachill-events' ) ) : true;
+		return false === $result ? new \WP_Error( 'show_settlement_commit_uncertain', __( 'The show-settlement transaction outcome could not be confirmed.', 'extrachill-booking' ) ) : true;
 	}
 
 	private function rollback( \WP_Error $error ) {

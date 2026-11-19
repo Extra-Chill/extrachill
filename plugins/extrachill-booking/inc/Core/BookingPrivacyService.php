@@ -47,7 +47,7 @@ class BookingPrivacyService {
 
 	public static function register_exporter( array $exporters ): array {
 		$exporters['extrachill-events-bookings'] = array(
-			'exporter_friendly_name' => __( 'Extra Chill Venue Bookings', 'extrachill-events' ),
+			'exporter_friendly_name' => __( 'Extra Chill Venue Bookings', 'extrachill-booking' ),
 			'callback'               => array( self::class, 'export_personal_data' ),
 		);
 		return $exporters;
@@ -55,7 +55,7 @@ class BookingPrivacyService {
 
 	public static function register_eraser( array $erasers ): array {
 		$erasers['extrachill-events-bookings'] = array(
-			'eraser_friendly_name' => __( 'Extra Chill Venue Bookings', 'extrachill-events' ),
+			'eraser_friendly_name' => __( 'Extra Chill Venue Bookings', 'extrachill-booking' ),
 			'callback'             => array( self::class, 'erase_personal_data' ),
 		);
 		return $erasers;
@@ -79,10 +79,10 @@ class BookingPrivacyService {
 		$policy = self::retention_policy();
 		$text   = sprintf(
 			'<p>%s</p><p>%s</p>',
-			esc_html__( 'Venue booking inquiries contain contact details, requested dates, intake answers, and correspondence. Verified privacy requests can export or anonymize those fields.', 'extrachill-events' ),
-			esc_html( sprintf( /* translators: 1: rejected inquiry days, 2: active inquiry days, 3: confirmed booking days. */ __( 'Code defaults anonymize rejected or withdrawn inquiries after %1$d days, active inquiries after %2$d days, and confirmed or completed booking contact data after %3$d days. Financial, delivery, and audit facts may be retained longer where policy or law requires. Venue policy owners must review and override these defaults as appropriate.', 'extrachill-events' ), $policy['categories']['rejected']['contact_intake_days'], $policy['categories']['active']['contact_intake_days'], $policy['categories']['confirmed']['contact_intake_days'] ) )
+			esc_html__( 'Venue booking inquiries contain contact details, requested dates, intake answers, and correspondence. Verified privacy requests can export or anonymize those fields.', 'extrachill-booking' ),
+			esc_html( sprintf( /* translators: 1: rejected inquiry days, 2: active inquiry days, 3: confirmed booking days. */ __( 'Code defaults anonymize rejected or withdrawn inquiries after %1$d days, active inquiries after %2$d days, and confirmed or completed booking contact data after %3$d days. Financial, delivery, and audit facts may be retained longer where policy or law requires. Venue policy owners must review and override these defaults as appropriate.', 'extrachill-booking' ), $policy['categories']['rejected']['contact_intake_days'], $policy['categories']['active']['contact_intake_days'], $policy['categories']['confirmed']['contact_intake_days'] ) )
 		);
-		wp_add_privacy_policy_content( __( 'Extra Chill Venue Bookings', 'extrachill-events' ), wp_kses_post( $text ) );
+		wp_add_privacy_policy_content( __( 'Extra Chill Venue Bookings', 'extrachill-booking' ), wp_kses_post( $text ) );
 	}
 
 	/** Return code-owned defaults with one explicit legal/policy override seam. */
@@ -179,19 +179,19 @@ class BookingPrivacyService {
 		}
 		$rows = $this->read( 'erasable', $identity, 0, self::BATCH_SIZE );
 		if ( $rows instanceof \WP_Error ) {
-			return $this->erasure_result( false, true, array( __( 'Booking records could not be anonymized.', 'extrachill-events' ) ), true );
+			return $this->erasure_result( false, true, array( __( 'Booking records could not be anonymized.', 'extrachill-booking' ) ), true );
 		}
 		$removed  = false;
 		$retained = false;
 		foreach ( $rows as $row ) {
 			$result = $this->redact( $row, 'verified_privacy_request', 0 );
 			if ( $result instanceof \WP_Error ) {
-				return $this->erasure_result( $removed, true, array( __( 'A booking record could not be anonymized.', 'extrachill-events' ) ), true );
+				return $this->erasure_result( $removed, true, array( __( 'A booking record could not be anonymized.', 'extrachill-booking' ) ), true );
 			}
 			$removed  = $removed || ! empty( $result['changed'] );
 			$retained = $retained || ! empty( $result['retained_evidence'] );
 		}
-		$messages = $retained ? array( __( 'Non-personal financial, delivery, and audit evidence was retained.', 'extrachill-events' ) ) : array();
+		$messages = $retained ? array( __( 'Non-personal financial, delivery, and audit evidence was retained.', 'extrachill-booking' ) ) : array();
 		return $this->erasure_result( $removed, $retained, $messages, count( $rows ) < self::BATCH_SIZE );
 	}
 
@@ -297,7 +297,7 @@ class BookingPrivacyService {
 		$limit    = max( 1, min( self::MAX_LIMIT, $limit ) );
 		if ( 'cleanup' === $stream ) {
 			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$bookings} WHERE venue_term_id = %d AND status = %s AND id > %d AND updated_at < %s AND (contact_name IS NOT NULL OR contact_email IS NOT NULL OR contact_phone IS NOT NULL OR submitter_user_id IS NOT NULL) ORDER BY id ASC LIMIT %d", $scope['venue_term_id'], $scope['status'], $scope['after_id'], $scope['retention_cutoff'], $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Authorized bounded retention scan.
-			return '' === (string) $wpdb->last_error && is_array( $rows ) ? $rows : new \WP_Error( 'booking_privacy_read_failed', __( 'Booking retention candidates could not be read.', 'extrachill-events' ) );
+			return '' === (string) $wpdb->last_error && is_array( $rows ) ? $rows : new \WP_Error( 'booking_privacy_read_failed', __( 'Booking retention candidates could not be read.', 'extrachill-booking' ) );
 		}
 
 		$where  = "b.status <> 'admission_pending' AND (b.submitter_user_id = %d OR (b.submitter_user_id IS NULL AND LOWER(b.contact_email) = %s))";
@@ -322,7 +322,7 @@ class BookingPrivacyService {
 			$values[] = max( 0, $offset );
 		}
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal table and clauses; all values are prepared.
-		return '' === (string) $wpdb->last_error && is_array( $rows ) ? $rows : new \WP_Error( 'booking_privacy_read_failed', __( 'Booking privacy data could not be read.', 'extrachill-events' ) );
+		return '' === (string) $wpdb->last_error && is_array( $rows ) ? $rows : new \WP_Error( 'booking_privacy_read_failed', __( 'Booking privacy data could not be read.', 'extrachill-booking' ) );
 	}
 
 	/** Redact personal fields transactionally while preserving referential and audit facts. */
@@ -331,12 +331,12 @@ class BookingPrivacyService {
 		$bookings = BookingSchema::bookings_table();
 		$activity = BookingSchema::activity_table();
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic privacy mutation.
-			return new \WP_Error( 'booking_privacy_transaction_failed', __( 'Booking anonymization could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_privacy_transaction_failed', __( 'Booking anonymization could not start.', 'extrachill-booking' ) );
 		}
 		$current = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$bookings} WHERE id = %d AND venue_term_id = %d LIMIT 1 FOR UPDATE", (int) $candidate['id'], (int) $candidate['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact aggregate lock.
 		if ( ! is_array( $current ) || '' !== (string) $wpdb->last_error ) {
 			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed privacy mutation rollback.
-			return new \WP_Error( 'booking_privacy_conflict', __( 'The booking could not be locked for anonymization.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_privacy_conflict', __( 'The booking could not be locked for anonymization.', 'extrachill-booking' ) );
 		}
 		$changed = null !== $current['contact_name'] || null !== $current['contact_email'] || null !== $current['contact_phone'] || null !== $current['submitter_user_id'];
 		if ( $changed ) {
@@ -368,7 +368,7 @@ class BookingPrivacyService {
 			);
 			if ( 1 !== $updated ) {
 				$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed privacy mutation rollback.
-				return new \WP_Error( 'booking_privacy_conflict', __( 'The booking changed before anonymization completed.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_privacy_conflict', __( 'The booking changed before anonymization completed.', 'extrachill-booking' ) );
 			}
 		}
 
@@ -377,7 +377,7 @@ class BookingPrivacyService {
 		// @phpstan-ignore notIdentical.alwaysFalse
 		if ( ! is_array( $communications ) || '' !== (string) $wpdb->last_error ) {
 			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed privacy mutation rollback.
-			return new \WP_Error( 'booking_privacy_activity_read_failed', __( 'Booking correspondence could not be anonymized.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_privacy_activity_read_failed', __( 'Booking correspondence could not be anonymized.', 'extrachill-booking' ) );
 		}
 		foreach ( $communications as $communication ) {
 			$payload = json_decode( (string) $communication['payload'], true );
@@ -407,7 +407,7 @@ class BookingPrivacyService {
 				)
 			) ) {
 				$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Failed privacy mutation rollback.
-				return new \WP_Error( 'booking_privacy_activity_write_failed', __( 'Booking correspondence could not be anonymized.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_privacy_activity_write_failed', __( 'Booking correspondence could not be anonymized.', 'extrachill-booking' ) );
 			}
 			$changed = true;
 		}
@@ -432,7 +432,7 @@ class BookingPrivacyService {
 			}
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic privacy mutation commit.
-			return new \WP_Error( 'booking_privacy_commit_uncertain', __( 'The booking anonymization outcome is uncertain.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_privacy_commit_uncertain', __( 'The booking anonymization outcome is uncertain.', 'extrachill-booking' ) );
 		}
 		return array(
 			'changed'           => $changed,
@@ -463,7 +463,7 @@ class BookingPrivacyService {
 			$overdue  = $wpdb->get_results( $wpdb->prepare( "SELECT public_id AS booking_ref, status, updated_at FROM {$bookings} WHERE venue_term_id = %d AND status = %s AND updated_at < %s AND (contact_name IS NOT NULL OR contact_email IS NOT NULL OR contact_phone IS NOT NULL OR submitter_user_id IS NOT NULL) ORDER BY id ASC LIMIT %d", $venue, $status, $cutoff, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Authorized bounded non-sensitive diagnostic.
 		}
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_diagnostics_read_failed', __( 'Booking diagnostics could not be read.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_diagnostics_read_failed', __( 'Booking diagnostics could not be read.', 'extrachill-booking' ) );
 		}
 		return array(
 			'stale_holds'                    => $stale_holds,
@@ -481,7 +481,7 @@ class BookingPrivacyService {
 		$before    = (string) ( $input['before'] ?? '' );
 		$date      = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $before, new \DateTimeZone( 'UTC' ) );
 		if ( ! in_array( $operation, array( 'diagnose', 'cleanup' ), true ) || $venue < 1 || ! $date || $date->format( 'Y-m-d H:i:s' ) !== $before || ( null !== $status && ! in_array( $status, BookingRepository::STATUSES, true ) ) || ( 'cleanup' === $operation && null === $status ) ) {
-			return new \WP_Error( 'invalid_booking_privacy_operation', __( 'A valid operation, venue, UTC boundary, and cleanup status are required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_privacy_operation', __( 'A valid operation, venue, UTC boundary, and cleanup status are required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return array(
 			'operation'     => $operation,
@@ -501,14 +501,14 @@ class BookingPrivacyService {
 	private function booking_export_item( array $row ): array {
 		$fields = array();
 		foreach ( array(
-			'artist_name'        => __( 'Artist', 'extrachill-events' ),
-			'contact_name'       => __( 'Contact name', 'extrachill-events' ),
-			'contact_email'      => __( 'Contact email', 'extrachill-events' ),
-			'contact_phone'      => __( 'Contact phone', 'extrachill-events' ),
-			'requested_start_at' => __( 'Requested start', 'extrachill-events' ),
-			'requested_end_at'   => __( 'Requested end', 'extrachill-events' ),
-			'status'             => __( 'Status', 'extrachill-events' ),
-			'created_at'         => __( 'Submitted at', 'extrachill-events' ),
+			'artist_name'        => __( 'Artist', 'extrachill-booking' ),
+			'contact_name'       => __( 'Contact name', 'extrachill-booking' ),
+			'contact_email'      => __( 'Contact email', 'extrachill-booking' ),
+			'contact_phone'      => __( 'Contact phone', 'extrachill-booking' ),
+			'requested_start_at' => __( 'Requested start', 'extrachill-booking' ),
+			'requested_end_at'   => __( 'Requested end', 'extrachill-booking' ),
+			'status'             => __( 'Status', 'extrachill-booking' ),
+			'created_at'         => __( 'Submitted at', 'extrachill-booking' ),
 		) as $key => $label ) {
 			if ( null !== ( $row[ $key ] ?? null ) && '' !== (string) $row[ $key ] ) {
 				$fields[] = array(
@@ -520,14 +520,14 @@ class BookingPrivacyService {
 		$intake = json_decode( (string) ( $row['intake_payload'] ?? '' ), true );
 		if ( is_array( $intake['data'] ?? null ) && empty( $intake['data']['privacy_redacted'] ) ) {
 			$fields[] = array(
-				'name'  => __( 'Intake answers', 'extrachill-events' ),
+				'name'  => __( 'Intake answers', 'extrachill-booking' ),
 				'value' => wp_json_encode( $intake['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ),
 			);
 		}
 		return array(
 			'group_id'          => 'extrachill-events-bookings',
-			'group_label'       => __( 'Venue Bookings', 'extrachill-events' ),
-			'group_description' => __( 'Private venue booking inquiries associated with the verified email or account.', 'extrachill-events' ),
+			'group_label'       => __( 'Venue Bookings', 'extrachill-booking' ),
+			'group_description' => __( 'Private venue booking inquiries associated with the verified email or account.', 'extrachill-booking' ),
 			'item_id'           => 'booking-' . (string) $row['public_id'],
 			'data'              => $fields,
 		);
@@ -541,20 +541,20 @@ class BookingPrivacyService {
 		}
 		$fields = array(
 			array(
-				'name'  => __( 'Type', 'extrachill-events' ),
+				'name'  => __( 'Type', 'extrachill-booking' ),
 				'value' => (string) ( $row['kind'] ?? '' ),
 			),
 			array(
-				'name'  => __( 'Recorded at', 'extrachill-events' ),
+				'name'  => __( 'Recorded at', 'extrachill-booking' ),
 				'value' => (string) ( $row['occurred_at'] ?? '' ),
 			),
 		);
 		foreach ( array(
-			'recipient' => __( 'Recipient', 'extrachill-events' ),
-			'subject'   => __( 'Subject', 'extrachill-events' ),
-			'message'   => __( 'Message', 'extrachill-events' ),
-			'body'      => __( 'Message', 'extrachill-events' ),
-			'reply_to'  => __( 'Reply to', 'extrachill-events' ),
+			'recipient' => __( 'Recipient', 'extrachill-booking' ),
+			'subject'   => __( 'Subject', 'extrachill-booking' ),
+			'message'   => __( 'Message', 'extrachill-booking' ),
+			'body'      => __( 'Message', 'extrachill-booking' ),
+			'reply_to'  => __( 'Reply to', 'extrachill-booking' ),
 		) as $key => $label ) {
 			if ( isset( $data[ $key ] ) && '' !== (string) $data[ $key ] ) {
 				$fields[] = array(
@@ -565,7 +565,7 @@ class BookingPrivacyService {
 		}
 		return array(
 			'group_id'    => 'extrachill-events-booking-correspondence',
-			'group_label' => __( 'Venue Booking Correspondence', 'extrachill-events' ),
+			'group_label' => __( 'Venue Booking Correspondence', 'extrachill-booking' ),
 			'item_id'     => 'booking-communication-' . (int) $row['id'],
 			'data'        => $fields,
 		);
@@ -610,7 +610,7 @@ class BookingPrivacyService {
 	}
 
 	private function forbidden(): \WP_Error {
-		return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private static function valid_policy( $policy ): bool {

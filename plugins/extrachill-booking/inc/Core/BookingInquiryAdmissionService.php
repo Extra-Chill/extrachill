@@ -94,7 +94,7 @@ final class BookingInquiryAdmissionService {
 		$resolved                   = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
 		$this->provider             = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
 			? $resolved
-			: new \WP_Error( 'booking_private_storage_invalid_provider', __( 'The private booking file provider is invalid.', 'extrachill-events' ) );
+			: new \WP_Error( 'booking_private_storage_invalid_provider', __( 'The private booking file provider is invalid.', 'extrachill-booking' ) );
 		$this->attachment_service   = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, null, null, $this->policy, $this->provider );
 	}
 
@@ -184,7 +184,7 @@ final class BookingInquiryAdmissionService {
 				if ( 'active' === $existing['state'] ) {
 					continue;
 				}
-				return $this->public_error( new \WP_Error( 'booking_inquiry_attachment_reconciliation_required', __( 'The inquiry attachment state requires reconciliation.', 'extrachill-events' ) ) );
+				return $this->public_error( new \WP_Error( 'booking_inquiry_attachment_reconciliation_required', __( 'The inquiry attachment state requires reconciliation.', 'extrachill-booking' ) ) );
 			}
 			$file['idempotency_key'] = $key;
 			$pending[]               = $file;
@@ -258,13 +258,13 @@ final class BookingInquiryAdmissionService {
 	private function acquire_inquiry_lock( int $venue_id, string $idempotency_key ) {
 		global $wpdb;
 		if ( $venue_id < 1 || '' === trim( $idempotency_key ) ) {
-			return new \WP_Error( 'booking_inquiry_lock_invalid', __( 'The inquiry ownership lock is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_inquiry_lock_invalid', __( 'The inquiry ownership lock is invalid.', 'extrachill-booking' ) );
 		}
 		$name     = self::inquiry_lock_name( $venue_id, $idempotency_key );
 		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 10 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes the cross-store inquiry saga.
 		return 1 === (int) $acquired ? $name : new \WP_Error(
 			'booking_inquiry_processing',
-			__( 'The inquiry is still being processed. Retry shortly.', 'extrachill-events' ),
+			__( 'The inquiry is still being processed. Retry shortly.', 'extrachill-booking' ),
 			array(
 				'status'      => 423,
 				'retryable'   => true,
@@ -281,11 +281,11 @@ final class BookingInquiryAdmissionService {
 	/** Canonicalize without allowing two lossy raw forms to alias. */
 	public static function canonical_idempotency_key( $raw ) {
 		if ( ! is_string( $raw ) && ! is_int( $raw ) ) {
-			return new \WP_Error( 'booking_idempotency_key_invalid', __( 'Inquiry idempotency keys must be plain text.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_idempotency_key_invalid', __( 'Inquiry idempotency keys must be plain text.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$key = trim( (string) $raw );
 		if ( '' === $key || strlen( $key ) > 191 || sanitize_text_field( $key ) !== $key ) {
-			return new \WP_Error( 'booking_idempotency_key_invalid', __( 'Inquiry idempotency keys must be unambiguous plain text no longer than 191 bytes.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_idempotency_key_invalid', __( 'Inquiry idempotency keys must be unambiguous plain text no longer than 191 bytes.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		return $key;
 	}
@@ -294,7 +294,7 @@ final class BookingInquiryAdmissionService {
 	private function release_inquiry_lock( string $name ) {
 		global $wpdb;
 		$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the inquiry saga lock.
-		return 1 === (int) $released ? true : new \WP_Error( 'booking_inquiry_lock_release_uncertain', __( 'The inquiry lock release could not be confirmed.', 'extrachill-events' ) );
+		return 1 === (int) $released ? true : new \WP_Error( 'booking_inquiry_lock_release_uncertain', __( 'The inquiry lock release could not be confirmed.', 'extrachill-booking' ) );
 	}
 
 	/** Fail closed before a current-prefix repository can touch the wrong site. */
@@ -302,7 +302,7 @@ final class BookingInquiryAdmissionService {
 		$events_blog_id = (int) ec_get_blog_id( 'events' );
 		return 0 < $events_blog_id && (int) get_current_blog_id() === $events_blog_id
 			? true
-			: new \WP_Error( 'booking_inquiry_wrong_site', __( 'Booking inquiries must execute on the Events site.', 'extrachill-events' ) );
+			: new \WP_Error( 'booking_inquiry_wrong_site', __( 'Booking inquiries must execute on the Events site.', 'extrachill-booking' ) );
 	}
 
 	/**
@@ -312,20 +312,20 @@ final class BookingInquiryAdmissionService {
 	 */
 	private function preflight_files( $files ) {
 		if ( ! is_array( $files ) || count( $files ) > self::MAX_FILES ) {
-			return new \WP_Error( 'invalid_booking_attachment_count', __( 'Too many booking attachments were submitted.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_attachment_count', __( 'Too many booking attachments were submitted.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$normalized = array();
 		$aggregate  = 0;
 		foreach ( array_values( $files ) as $file ) {
 			if ( ! is_array( $file ) || UPLOAD_ERR_OK !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
-				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be received completely.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be received completely.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$path     = (string) ( $file['tmp_name'] ?? '' );
 			$filename = (string) ( $file['name'] ?? '' );
 			$purpose  = sanitize_key( (string) ( $file['purpose'] ?? '' ) );
 			$trusted  = '' !== $path && is_readable( $path ) && ( is_uploaded_file( $path ) || true === apply_filters( 'extrachill_events_allow_test_booking_file', false, $file ) );
 			if ( ! $trusted ) {
-				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be verified.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be verified.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$safe_filename = sanitize_file_name( $filename );
 			$filetype      = wp_check_filetype( $safe_filename, BookingAttachmentPolicy::allowed_mimes() );
@@ -333,27 +333,27 @@ final class BookingInquiryAdmissionService {
 			$actual_size   = filesize( $path );
 			$declared_size = $file['size'] ?? null;
 			if ( '' === $safe_filename || $safe_filename !== $filename || basename( $safe_filename ) !== $safe_filename ) {
-				return new \WP_Error( 'invalid_booking_attachment_filename', __( 'The attachment filename is unsafe.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_booking_attachment_filename', __( 'The attachment filename is unsafe.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			if ( ! in_array( $purpose, BookingAttachmentPolicy::PURPOSES, true ) ) {
-				return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'The attachment purpose is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'The attachment purpose is not supported.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			if ( empty( $filetype['ext'] ) || empty( $filetype['type'] ) || empty( $checked['ext'] ) || empty( $checked['type'] ) || $filetype['type'] !== $checked['type'] ) {
-				return new \WP_Error( 'invalid_booking_attachment_type', __( 'The attachment type is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_booking_attachment_type', __( 'The attachment type is not supported.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			if ( false === $actual_size || ! is_int( $declared_size ) || $declared_size !== $actual_size || $actual_size < 1 || $actual_size > BookingAttachmentPolicy::max_bytes() ) {
-				return new \WP_Error( 'invalid_booking_attachment_size', __( 'The attachment size is outside the allowed range.', 'extrachill-events' ), array( 'status' => 413 ) );
+				return new \WP_Error( 'invalid_booking_attachment_size', __( 'The attachment size is outside the allowed range.', 'extrachill-booking' ), array( 'status' => 413 ) );
 			}
 			if ( $this->policy->is_default_denied_filename( $safe_filename ) ) {
-				return new \WP_Error( 'booking_tax_document_denied', __( 'Tax identity documents are not accepted here.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'booking_tax_document_denied', __( 'Tax identity documents are not accepted here.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$aggregate += $actual_size;
 			if ( $aggregate > self::MAX_AGGREGATE_BYTES ) {
-				return new \WP_Error( 'invalid_booking_attachment_aggregate_size', __( 'The combined attachment size is too large.', 'extrachill-events' ), array( 'status' => 413 ) );
+				return new \WP_Error( 'invalid_booking_attachment_aggregate_size', __( 'The combined attachment size is too large.', 'extrachill-booking' ), array( 'status' => 413 ) );
 			}
 			$hash = hash_file( 'sha256', $path );
 			if ( false === $hash ) {
-				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be fingerprinted.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'booking_attachment_upload_failed', __( 'A booking attachment could not be fingerprinted.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$normalized[] = array(
 				'path'     => $path,
@@ -401,23 +401,23 @@ final class BookingInquiryAdmissionService {
 			return true;
 		}
 		if ( empty( $policy['enabled'] ) ) {
-			return new \WP_Error( 'booking_attachments_disabled', __( 'This venue is not accepting private booking files.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_attachments_disabled', __( 'This venue is not accepting private booking files.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$submitted_revision = $input['intake']['config_revision'] ?? null;
 		if ( ! is_int( $submitted_revision ) || $submitted_revision !== (int) $config['revision'] ) {
-			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( ! $this->attachment_readiness->is_ready( $this->provider ) ) {
-			return new \WP_Error( 'booking_attachments_unavailable', __( 'Private booking files are not currently available.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return new \WP_Error( 'booking_attachments_unavailable', __( 'Private booking files are not currently available.', 'extrachill-booking' ), array( 'status' => 503 ) );
 		}
 
 		$allowed   = array_column( $purposes, 'key' );
 		$submitted = array_column( $files, 'purpose' );
 		if ( array_diff( $submitted, $allowed ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'An attachment purpose is not enabled for this venue.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'An attachment purpose is not enabled for this venue.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( array_diff( $required, $submitted ) ) {
-			return new \WP_Error( 'required_booking_attachment_missing', __( 'A required venue booking attachment is missing.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'required_booking_attachment_missing', __( 'A required venue booking attachment is missing.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 
 		return true;
@@ -435,7 +435,7 @@ final class BookingInquiryAdmissionService {
 		try {
 			return $this->provider->stage( $file['path'], $file['filename'], $file['purpose'] );
 		} catch ( \Throwable $throwable ) {
-			return new \WP_Error( 'booking_private_stage_failed', __( 'The private attachment could not be staged.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_private_stage_failed', __( 'The private attachment could not be staged.', 'extrachill-booking' ) );
 		}
 	}
 
@@ -447,12 +447,12 @@ final class BookingInquiryAdmissionService {
 	private function retire_staged( array $files ) {
 		foreach ( $files as $file ) {
 			try {
-				$retired = $this->provider->retire( (string) $file['storage_reference'] );
+				$retired = $this->provider instanceof BookingPrivateFileProvider ? $this->provider->retire( (string) $file['storage_reference'] ) : false;
 			} catch ( \Throwable $throwable ) {
 				$retired = false;
 			}
 			if ( true !== $retired ) {
-				return new \WP_Error( 'booking_inquiry_attachment_cleanup_uncertain', __( 'The failed inquiry attachment requires reconciliation.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_inquiry_attachment_cleanup_uncertain', __( 'The failed inquiry attachment requires reconciliation.', 'extrachill-booking' ) );
 			}
 		}
 		return true;
@@ -462,26 +462,28 @@ final class BookingInquiryAdmissionService {
 	private function compensate( array $booking, array $staged, array $attached ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compensation boundary.
-			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-booking' ) );
 		}
 		$current = $this->bookings->get_for_update( (int) $booking['id'], true );
 		if ( ! is_array( $current ) || 'admission_pending' !== $current['status'] || ( $current['admission_owner_token'] ?? null ) !== ( $booking['admission_owner_token'] ?? null ) || (int) $current['version'] !== (int) $booking['version'] ) {
 			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Ownership mismatch rollback.
-			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry reservation changed ownership.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry reservation changed ownership.', 'extrachill-booking' ) );
 		}
 		foreach ( array( $this->activity->discard_for_booking( (int) $booking['id'] ), $this->attachments->discard_for_booking( (int) $booking['id'] ), $this->bookings->discard_inquiry( $current ) ) as $discarded ) {
 			if ( is_wp_error( $discarded ) ) {
 				$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compensation rollback.
-				return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-booking' ) );
 			}
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compensation commit.
-			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_inquiry_compensation_uncertain', __( 'The failed inquiry requires reconciliation.', 'extrachill-booking' ) );
 		}
 		foreach ( $attached as $file ) {
-			$released = $this->provider->release_claim( $file['storage_reference'], $this->attachment_service->claim_key( (int) $booking['id'], $file['idempotency_key'] ) );
+			$released = $this->provider instanceof BookingPrivateFileProvider
+				? $this->provider->release_claim( $file['storage_reference'], $this->attachment_service->claim_key( (int) $booking['id'], $file['idempotency_key'] ) )
+				: false;
 			if ( true !== $released ) {
-				return new \WP_Error( 'booking_inquiry_attachment_cleanup_uncertain', __( 'The failed inquiry attachment requires reconciliation.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_inquiry_attachment_cleanup_uncertain', __( 'The failed inquiry attachment requires reconciliation.', 'extrachill-booking' ) );
 			}
 		}
 		return $this->retire_staged( $staged );
@@ -532,7 +534,7 @@ final class BookingInquiryAdmissionService {
 		if ( $this->is_uncertain( $error ) || in_array( $code, array( 'booking_transaction_commit_uncertain', 'booking_transaction_rollback_failed', 'booking_inquiry_attachment_reconciliation_required', 'booking_inquiry_attachment_cleanup_uncertain', 'booking_inquiry_compensation_uncertain' ), true ) ) {
 			return new \WP_Error(
 				'booking_inquiry_reconciliation_required',
-				__( 'The inquiry outcome requires reconciliation before retrying.', 'extrachill-events' ),
+				__( 'The inquiry outcome requires reconciliation before retrying.', 'extrachill-booking' ),
 				array(
 					'status'                  => 503,
 					'retryable'               => true,
@@ -545,7 +547,7 @@ final class BookingInquiryAdmissionService {
 		$safe   = in_array( $status, array( 400, 403, 409, 413 ), true );
 		return new \WP_Error(
 			$safe ? $code : 'booking_inquiry_unavailable',
-			$safe ? $error->get_error_message() : __( 'Booking inquiry processing is temporarily unavailable.', 'extrachill-events' ),
+			$safe ? $error->get_error_message() : __( 'Booking inquiry processing is temporarily unavailable.', 'extrachill-booking' ),
 			array(
 				'status'    => $safe ? $status : 503,
 				'retryable' => ! $safe,

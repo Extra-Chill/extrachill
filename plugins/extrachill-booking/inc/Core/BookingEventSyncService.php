@@ -101,7 +101,7 @@ class BookingEventSyncService {
 				$start,
 				new \WP_Error(
 					'booking_event_manual_divergence',
-					__( 'Manual changes conflict with booking-authoritative event fields.', 'extrachill-events' ),
+					__( 'Manual changes conflict with booking-authoritative event fields.', 'extrachill-booking' ),
 					array(
 						'status'    => 409,
 						'conflicts' => $conflicts,
@@ -115,13 +115,13 @@ class BookingEventSyncService {
 		}
 
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'data-machine-events/update-source-event' ) : null;
-		if ( ! is_object( $ability ) || ! is_callable( array( $ability, 'execute' ) ) ) {
+		if ( ! is_object( $ability ) ) {
 			return $this->finish_error(
 				$booking,
 				$start,
 				new \WP_Error(
 					'booking_event_update_ability_unavailable',
-					__( 'Canonical event updates are temporarily unavailable.', 'extrachill-events' ),
+					__( 'Canonical event updates are temporarily unavailable.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -170,7 +170,7 @@ class BookingEventSyncService {
 		if ( is_wp_error( $verified ) || $verified !== $desired ) {
 			$error = is_wp_error( $verified ) ? $verified : new \WP_Error(
 				'booking_event_sync_verification_failed',
-				__( 'The canonical event did not retain the requested booking fields.', 'extrachill-events' ),
+				__( 'The canonical event did not retain the requested booking fields.', 'extrachill-booking' ),
 				array(
 					'status'    => 503,
 					'retryable' => true,
@@ -226,7 +226,7 @@ class BookingEventSyncService {
 	private function conflict_error( array $conflicts ): \WP_Error {
 		return new \WP_Error(
 			'booking_event_manual_divergence',
-			__( 'Manual changes conflict with booking-authoritative event fields.', 'extrachill-events' ),
+			__( 'Manual changes conflict with booking-authoritative event fields.', 'extrachill-booking' ),
 			array(
 				'status'    => 409,
 				'conflicts' => $conflicts,
@@ -238,14 +238,14 @@ class BookingEventSyncService {
 	private function prepare( int $booking_id, int $expected_version, int $actor_id, array $changes, array $request ) {
 		$initial = $this->bookings->get( $booking_id );
 		if ( ! is_array( $initial ) ) {
-			return is_wp_error( $initial ) ? $initial : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $initial ) ? $initial : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		$allowed = $this->authorize( $actor_id, (int) $initial['venue_term_id'] );
 		if ( is_wp_error( $allowed ) ) {
 			return $allowed;
 		}
 		if ( false === $GLOBALS['wpdb']->query( 'START TRANSACTION' ) ) {
-			return new \WP_Error( 'booking_event_sync_transaction_start_failed', __( 'Booking event synchronization could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_event_sync_transaction_start_failed', __( 'Booking event synchronization could not start.', 'extrachill-booking' ) );
 		}
 		$this->transaction_active = true;
 		$venue_ids                = array( (int) $initial['venue_term_id'] );
@@ -262,20 +262,20 @@ class BookingEventSyncService {
 		}
 		$booking = $this->bookings->get_for_update( $booking_id );
 		if ( ! is_array( $booking ) ) {
-			return $this->rollback( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) ) );
 		}
 		$allowed = $this->authorize( $actor_id, (int) $booking['venue_term_id'] );
 		if ( is_wp_error( $allowed ) ) {
 			return $this->rollback( $allowed );
 		}
 		if ( null === $booking['event_id'] ) {
-			return $this->rollback( new \WP_Error( 'booking_event_not_converted', __( 'The booking does not have a canonical event.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'booking_event_not_converted', __( 'The booking does not have a canonical event.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		if ( ! in_array( $booking['status'], array( 'confirmed', 'cancelled' ), true ) ) {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_event_sync_status_forbidden',
-					__( 'Only confirmed or cancelled converted bookings can synchronize events.', 'extrachill-events' ),
+					__( 'Only confirmed or cancelled converted bookings can synchronize events.', 'extrachill-booking' ),
 					array(
 						'status'         => 409,
 						'booking_status' => $booking['status'],
@@ -293,7 +293,7 @@ class BookingEventSyncService {
 				return $this->rollback(
 					new \WP_Error(
 						'booking_event_sync_pending',
-						__( 'A different booking event correction is already pending reconciliation.', 'extrachill-events' ),
+						__( 'A different booking event correction is already pending reconciliation.', 'extrachill-booking' ),
 						array(
 							'status'    => 409,
 							'retryable' => true,
@@ -332,7 +332,7 @@ class BookingEventSyncService {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_version_conflict',
-					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => $booking['version'],
@@ -356,7 +356,7 @@ class BookingEventSyncService {
 			return $this->rollback(
 				is_wp_error( $snapshot ) ? $snapshot : new \WP_Error(
 					'booking_event_sync_baseline_missing',
-					__( 'The converted event has no authoritative synchronization baseline.', 'extrachill-events' ),
+					__( 'The converted event has no authoritative synchronization baseline.', 'extrachill-booking' ),
 					array(
 						'status'     => 409,
 						'repairable' => true,
@@ -401,7 +401,7 @@ class BookingEventSyncService {
 	private function normalize_changes( array $booking, array $changes, int $actor_id ) {
 		$allowed = array( 'venue_term_id', 'space_key', 'performance_start_at', 'performance_end_at', 'performer', 'ticket_url', 'cancelled' );
 		if ( array_diff( array_keys( $changes ), $allowed ) ) {
-			return new \WP_Error( 'booking_event_sync_changes_invalid', __( 'An unsupported booking-authoritative field was supplied.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_event_sync_changes_invalid', __( 'An unsupported booking-authoritative field was supplied.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$output = array();
 		if ( isset( $changes['venue_term_id'] ) && (int) $changes['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
@@ -409,14 +409,14 @@ class BookingEventSyncService {
 			$venue    = get_term( $venue_id, 'venue' );
 			$access   = $this->authorize( $actor_id, $venue_id );
 			if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy || is_wp_error( $access ) ) {
-				return is_wp_error( $access ) ? $access : new \WP_Error( 'booking_event_venue_invalid', __( 'The corrected canonical venue is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return is_wp_error( $access ) ? $access : new \WP_Error( 'booking_event_venue_invalid', __( 'The corrected canonical venue is invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$output['venue_term_id'] = $venue_id;
 		}
 		if ( array_key_exists( 'space_key', $changes ) ) {
 			$space = mb_substr( sanitize_key( (string) $changes['space_key'] ), 0, 64 );
 			if ( '' === $space ) {
-				return new \WP_Error( 'booking_event_selection_incomplete', __( 'A corrected performance space is required.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_event_selection_incomplete', __( 'A corrected performance space is required.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$output['space_key'] = $space;
 		}
@@ -427,7 +427,7 @@ class BookingEventSyncService {
 				if ( false === $date || $date->format( 'Y-m-d H:i:s' ) !== $value ) {
 					return new \WP_Error(
 						'invalid_booking_datetime',
-						__( 'Booking datetimes must use strict UTC format.', 'extrachill-events' ),
+						__( 'Booking datetimes must use strict UTC format.', 'extrachill-booking' ),
 						array(
 							'status' => 400,
 							'field'  => $field,
@@ -440,19 +440,19 @@ class BookingEventSyncService {
 		$start = $output['performance_start_at'] ?? $booking['performance_start_at'];
 		$end   = $output['performance_end_at'] ?? $booking['performance_end_at'];
 		if ( $end <= $start ) {
-			return new \WP_Error( 'invalid_booking_date_range', __( 'The performance end must be later than its start.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'invalid_booking_date_range', __( 'The performance end must be later than its start.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( array_key_exists( 'performer', $changes ) ) {
 			$performer = mb_substr( sanitize_text_field( (string) $changes['performer'] ), 0, 255 );
 			if ( '' === $performer ) {
-				return new \WP_Error( 'booking_event_performer_invalid', __( 'The corrected lineup is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'booking_event_performer_invalid', __( 'The corrected lineup is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$output['artist_name'] = $performer;
 		}
 		if ( array_key_exists( 'ticket_url', $changes ) ) {
 			$url = null === $changes['ticket_url'] || '' === $changes['ticket_url'] ? null : esc_url_raw( (string) $changes['ticket_url'] );
 			if ( null !== $url && ! preg_match( '#^https?://#i', $url ) ) {
-				return new \WP_Error( 'invalid_booking_deal', __( 'The ticket URL must be HTTP or HTTPS.', 'extrachill-events' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_booking_deal', __( 'The ticket URL must be HTTP or HTTPS.', 'extrachill-booking' ), array( 'status' => 400 ) );
 			}
 			$deal = $booking['confirmed_deal']['data'];
 			if ( ( $deal['ticket_url'] ?? null ) !== $url ) {
@@ -467,7 +467,7 @@ class BookingEventSyncService {
 		}
 		if ( ! empty( $changes['cancelled'] ) ) {
 			if ( ! in_array( $booking['status'], array( 'confirmed', 'cancelled' ), true ) ) {
-				return new \WP_Error( 'booking_transition_forbidden', __( 'Only a confirmed booking can be cancelled through event synchronization.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_transition_forbidden', __( 'Only a confirmed booking can be cancelled through event synchronization.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$output['status'] = 'cancelled';
 		}
@@ -500,7 +500,7 @@ class BookingEventSyncService {
 		if ( 1 !== $result ) {
 			return new \WP_Error(
 				'booking_event_sync_booking_update_failed',
-				__( 'The approved booking correction could not be saved.', 'extrachill-events' ),
+				__( 'The approved booking correction could not be saved.', 'extrachill-booking' ),
 				array(
 					'status'         => 409,
 					'database_error' => $wpdb->last_error,
@@ -514,7 +514,7 @@ class BookingEventSyncService {
 			if ( 1 !== $hold ) {
 				return new \WP_Error(
 					'booking_event_sync_hold_update_failed',
-					__( 'The converted booking selection could not be corrected.', 'extrachill-events' ),
+					__( 'The converted booking selection could not be corrected.', 'extrachill-booking' ),
 					array(
 						'status'         => 409,
 						'database_error' => $wpdb->last_error,
@@ -531,7 +531,7 @@ class BookingEventSyncService {
 		if ( ! function_exists( 'data_machine_events_get_venue_data' ) ) {
 			return new \WP_Error(
 				'booking_event_venue_contract_unavailable',
-				__( 'Canonical venue data is temporarily unavailable.', 'extrachill-events' ),
+				__( 'Canonical venue data is temporarily unavailable.', 'extrachill-booking' ),
 				array(
 					'status'    => 503,
 					'retryable' => true,
@@ -542,7 +542,7 @@ class BookingEventSyncService {
 		if ( ! is_array( $venue_data ) ) {
 			return new \WP_Error(
 				'booking_event_venue_contract_invalid',
-				__( 'Canonical venue data returned an invalid result.', 'extrachill-events' ),
+				__( 'Canonical venue data returned an invalid result.', 'extrachill-booking' ),
 				array(
 					'status'    => 502,
 					'retryable' => true,
@@ -553,15 +553,18 @@ class BookingEventSyncService {
 		try {
 			$zone = new \DateTimeZone( $timezone );
 		} catch ( \Exception $exception ) {
-			return new \WP_Error( 'booking_event_venue_timezone_invalid', __( 'The canonical venue timezone is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_event_venue_timezone_invalid', __( 'The canonical venue timezone is invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( ! $venue || is_wp_error( $venue ) ) {
-			return new \WP_Error( 'booking_event_venue_invalid', __( 'The canonical venue is unavailable.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_event_venue_invalid', __( 'The canonical venue is unavailable.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$utc   = new \DateTimeZone( 'UTC' );
 		$start = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $booking['performance_start_at'], $utc );
 		$end   = \DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $booking['performance_end_at'], $utc );
-		$deal  = $booking['confirmed_deal']['data'] ?? array();
+		if ( false === $start || false === $end ) {
+			return new \WP_Error( 'booking_event_performance_invalid', __( 'The booking performance window is invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
+		}
+		$deal = $booking['confirmed_deal']['data'] ?? array();
 		return self::authority_from_event(
 			array(
 				'startDate'     => $start->setTimezone( $zone )->format( 'Y-m-d' ),
@@ -581,8 +584,8 @@ class BookingEventSyncService {
 	private function read_event_authority( array $booking ) {
 		$post = get_post( $booking['event_id'] );
 		$type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
-		if ( ! $post || ( $post->post_type ?? '' ) !== $type ) {
-			return new \WP_Error( 'booking_event_existing_invalid', __( 'The linked site-local event is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
+		if ( ! $post || $post->post_type !== $type ) {
+			return new \WP_Error( 'booking_event_existing_invalid', __( 'The linked site-local event is invalid.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$snapshot = $this->activity->latest_event_snapshot( (int) $booking['id'] );
 		if ( is_wp_error( $snapshot ) ) {
@@ -598,18 +601,18 @@ class BookingEventSyncService {
 				&& ( $data['source_identity'] ?? null ) === $identity;
 		}
 		if ( ! $linked ) {
-			return new \WP_Error( 'booking_event_identity_mismatch', __( 'The linked event does not belong to this immutable booking handoff.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_event_identity_mismatch', __( 'The linked event does not belong to this immutable booking handoff.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$attrs = array();
-		foreach ( parse_blocks( (string) ( $post->post_content ?? '' ) ) as $block ) {
+		foreach ( parse_blocks( $post->post_content ) as $block ) {
 			if ( 'data-machine-events/event-details' === ( $block['blockName'] ?? '' ) ) {
-				$attrs = (array) ( $block['attrs'] ?? array() );
+				$attrs = (array) $block['attrs'];
 				break;
 			}
 		}
 		$venues = wp_get_object_terms( $booking['event_id'], 'venue', array( 'fields' => 'ids' ) );
 		if ( is_wp_error( $venues ) || 1 !== count( (array) $venues ) ) {
-			return new \WP_Error( 'booking_event_venue_invalid', __( 'The linked event must have exactly one canonical venue.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_event_venue_invalid', __( 'The linked event must have exactly one canonical venue.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		return self::authority_from_event( $attrs, (int) reset( $venues ) );
 	}
@@ -634,7 +637,7 @@ class BookingEventSyncService {
 			|| 1 !== preg_match( '/^[a-f0-9]{64}$/', (string) ( $result['fingerprint'] ?? '' ) ) ) {
 			return new \WP_Error(
 				'booking_event_update_failed',
-				__( 'Canonical event update returned an invalid source-owned result.', 'extrachill-events' ),
+				__( 'Canonical event update returned an invalid source-owned result.', 'extrachill-booking' ),
 				array(
 					'status'    => 502,
 					'retryable' => true,
@@ -762,14 +765,14 @@ class BookingEventSyncService {
 	private function canonical_cancellation( int $booking_id, int $expected_version, int $actor_id ) {
 		$current = $this->bookings->get( $booking_id );
 		if ( ! is_array( $current ) ) {
-			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		if ( 'confirmed' === $current['status'] && (int) $current['version'] === $expected_version ) {
 			$current = $this->lifecycle->transition( $booking_id, 'cancelled', $expected_version, $actor_id );
 		} elseif ( 'cancelled' !== $current['status'] || (int) $current['version'] < $expected_version + 1 ) {
 			return new \WP_Error(
 				'booking_version_conflict',
-				__( 'The booking changed since cancellation was requested.', 'extrachill-events' ),
+				__( 'The booking changed since cancellation was requested.', 'extrachill-booking' ),
 				array(
 					'status'          => 409,
 					'current_version' => $current['version'],
@@ -801,7 +804,7 @@ class BookingEventSyncService {
 		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
 			$booking = $this->bookings->get( $booking_id );
 			if ( ! is_array( $booking ) ) {
-				return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+				return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 			}
 			$old_venue_id = (int) $booking['venue_term_id'];
 			$venue_ids    = array( $old_venue_id, absint( $changes['venue_term_id'] ?? 0 ) );
@@ -814,7 +817,7 @@ class BookingEventSyncService {
 					$this->release_venue_locks();
 					return new \WP_Error(
 						'booking_event_venue_lock_unavailable',
-						__( 'A booking venue is currently being changed; retry the request.', 'extrachill-events' ),
+						__( 'A booking venue is currently being changed; retry the request.', 'extrachill-booking' ),
 						array(
 							'status'    => 409,
 							'retryable' => true,
@@ -835,7 +838,7 @@ class BookingEventSyncService {
 		}
 		return new \WP_Error(
 			'booking_event_venue_lock_race',
-			__( 'The booking venue changed while synchronization locks were acquired.', 'extrachill-events' ),
+			__( 'The booking venue changed while synchronization locks were acquired.', 'extrachill-booking' ),
 			array(
 				'status'    => 409,
 				'retryable' => true,
@@ -852,7 +855,7 @@ class BookingEventSyncService {
 			if ( '1' !== (string) $released && null === $error ) {
 				$error = new \WP_Error(
 					'booking_event_venue_unlock_uncertain',
-					__( 'A booking venue lock release could not be confirmed.', 'extrachill-events' ),
+					__( 'A booking venue lock release could not be confirmed.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -942,7 +945,7 @@ class BookingEventSyncService {
 
 	private function authorize( int $actor_id, int $venue_id ) {
 		$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id );
-		return true === $allowed ? true : ( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+		return true === $allowed ? true : ( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) ) );
 	}
 
 	private function commit() {
@@ -950,7 +953,7 @@ class BookingEventSyncService {
 		$this->transaction_active = false;
 		return false === $result ? new \WP_Error(
 			'booking_event_sync_commit_uncertain',
-			__( 'The booking synchronization transaction outcome is uncertain.', 'extrachill-events' ),
+			__( 'The booking synchronization transaction outcome is uncertain.', 'extrachill-booking' ),
 			array(
 				'status'    => 503,
 				'retryable' => true,

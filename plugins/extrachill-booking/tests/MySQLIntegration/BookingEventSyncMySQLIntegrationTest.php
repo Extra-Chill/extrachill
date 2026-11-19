@@ -287,8 +287,18 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 			'venueTimezone' => 'America/New_York',
 			'ticketUrl'     => 'https://tickets.example/mysql',
 			'eventStatus'   => 'EventScheduled',
-			'eventType'     => 'MusicEvent',
+			'eventType'     => $this->music_event_type_name(),
 		);
+	}
+
+	/** DME's eventType enum is the active vocabulary's term names, not Schema.org types. */
+	private function music_event_type_name(): string {
+		foreach ( \DataMachineEvents\Core\Event_Type_Taxonomy::get_vocabulary() as $entry ) {
+			if ( 'MusicEvent' === $entry['schema_type'] ) {
+				return $entry['name'];
+			}
+		}
+		return 'MusicEvent';
 	}
 
 	private function connect_second_session(): mysqli {

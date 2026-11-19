@@ -14,12 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Keeps booking-specific file policy out of the generic storage owner. */
 final class BookingAttachmentPolicy {
 
-	public const MAX_BYTES = 20971520;
-	public const MAX_FILES = 5;
+	public const MAX_BYTES           = 20971520;
+	public const MAX_FILES           = 5;
 	public const MAX_AGGREGATE_BYTES = 52428800;
-	public const PURPOSES  = array( 'promo_image', 'epk', 'press_release', 'stage_plot', 'technical_rider', 'hospitality_rider', 'insurance', 'contract', 'other_private_evidence' );
-	public const STATES    = array( 'active', 'replaced', 'deleted', 'purged' );
-	public const UPLOADERS = array( 'anonymous', 'user', 'email', 'system' );
+	public const PURPOSES            = array( 'promo_image', 'epk', 'press_release', 'stage_plot', 'technical_rider', 'hospitality_rider', 'insurance', 'contract', 'other_private_evidence' );
+	public const STATES              = array( 'active', 'replaced', 'deleted', 'purged' );
+	public const UPLOADERS           = array( 'anonymous', 'user', 'email', 'system' );
 
 	private const MIMES = array(
 		'jpg|jpeg|jpe' => 'image/jpeg',
@@ -55,15 +55,15 @@ final class BookingAttachmentPolicy {
 	/** Return public labels for the closed purpose vocabulary. */
 	public static function purpose_labels(): array {
 		return array(
-			'promo_image'            => __( 'Promotional image', 'extrachill-events' ),
-			'epk'                    => __( 'Electronic press kit', 'extrachill-events' ),
-			'press_release'          => __( 'Press release', 'extrachill-events' ),
-			'stage_plot'             => __( 'Stage plot', 'extrachill-events' ),
-			'technical_rider'        => __( 'Technical rider', 'extrachill-events' ),
-			'hospitality_rider'      => __( 'Hospitality rider', 'extrachill-events' ),
-			'insurance'              => __( 'Insurance document', 'extrachill-events' ),
-			'contract'               => __( 'Contract', 'extrachill-events' ),
-			'other_private_evidence' => __( 'Other private booking document', 'extrachill-events' ),
+			'promo_image'            => __( 'Promotional image', 'extrachill-booking' ),
+			'epk'                    => __( 'Electronic press kit', 'extrachill-booking' ),
+			'press_release'          => __( 'Press release', 'extrachill-booking' ),
+			'stage_plot'             => __( 'Stage plot', 'extrachill-booking' ),
+			'technical_rider'        => __( 'Technical rider', 'extrachill-booking' ),
+			'hospitality_rider'      => __( 'Hospitality rider', 'extrachill-booking' ),
+			'insurance'              => __( 'Insurance document', 'extrachill-booking' ),
+			'contract'               => __( 'Contract', 'extrachill-booking' ),
+			'other_private_evidence' => __( 'Other private booking document', 'extrachill-booking' ),
 		);
 	}
 
@@ -92,29 +92,29 @@ final class BookingAttachmentPolicy {
 	 */
 	public function validate( array $metadata, string $purpose ) {
 		if ( ! in_array( $purpose, self::PURPOSES, true ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'The attachment purpose is not supported.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'The attachment purpose is not supported.', 'extrachill-booking' ) );
 		}
 
 		$filename = sanitize_file_name( (string) ( $metadata['filename'] ?? '' ) );
 		if ( '' === $filename || (string) ( $metadata['filename'] ?? '' ) !== $filename || basename( $filename ) !== $filename || 255 < strlen( $filename ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_filename', __( 'The attachment filename is unsafe.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_filename', __( 'The attachment filename is unsafe.', 'extrachill-booking' ) );
 		}
 
 		$size      = $metadata['byte_size'] ?? null;
 		$max_bytes = self::max_bytes();
 		if ( ! is_int( $size ) || 1 > $size || $max_bytes < $size ) {
-			return new \WP_Error( 'invalid_booking_attachment_size', __( 'The attachment size is outside the allowed range.', 'extrachill-events' ), array( 'max_bytes' => $max_bytes ) );
+			return new \WP_Error( 'invalid_booking_attachment_size', __( 'The attachment size is outside the allowed range.', 'extrachill-booking' ), array( 'max_bytes' => $max_bytes ) );
 		}
 
 		$filetype = wp_check_filetype( $filename, self::MIMES );
 		$mime     = (string) ( $metadata['mime_type'] ?? '' );
 		if ( empty( $filetype['ext'] ) || empty( $filetype['type'] ) || $mime !== $filetype['type'] ) {
-			return new \WP_Error( 'invalid_booking_attachment_type', __( 'The attachment extension and detected content type do not agree.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_type', __( 'The attachment extension and detected content type do not agree.', 'extrachill-booking' ) );
 		}
 
 		$hash = strtolower( (string) ( $metadata['content_hash'] ?? '' ) );
 		if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $hash ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_hash', __( 'The attachment requires a valid SHA-256 content hash.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_hash', __( 'The attachment requires a valid SHA-256 content hash.', 'extrachill-booking' ) );
 		}
 
 		return array(

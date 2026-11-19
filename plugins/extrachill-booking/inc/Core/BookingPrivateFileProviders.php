@@ -24,7 +24,7 @@ final class BookingPrivateFileProviders {
 		if ( ! $readiness['ready'] ) {
 			return new \WP_Error(
 				'booking_private_storage_not_approved',
-				__( 'Private booking file storage has not passed operational readiness.', 'extrachill-events' ),
+				__( 'Private booking file storage has not passed operational readiness.', 'extrachill-booking' ),
 				array(
 					'status'    => 503,
 					'readiness' => $readiness,
