@@ -2,8 +2,9 @@
 /**
  * Guest list page — /events/{slug}/guest-list (extrachill#433).
  *
- * Hosts (anyone who manages the event) get the door view instead
- * (templates/guest-list-door.php, extrachill#1246). Guests get the view for
+ * Hosts (anyone who manages the event) get the host screen instead
+ * (templates/guest-list-door.php, extrachill#1246, #1702), even when the
+ * guest list is off and there are no tickets. Guests get the view for
  * the event's access mode: password mode asks for a name and password,
  * host_list mode says the host manages the list, going mode points to the
  * Going button. A pass link (?pass=) opens the pass in every mode with no
@@ -31,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 $event_id = (int) get_queried_object_id();
 $view     = extrachill_events_guest_list_page_view( $event_id, (int) get_current_user_id() );
 
-// Hosts get the door view (extrachill#1246) and nothing else.
+// Hosts get the host screen (extrachill#1246, #1702) and nothing else.
 if ( 'door' === $view ) {
 	get_header();
 	?>

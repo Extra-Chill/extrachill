@@ -1,6 +1,7 @@
 <?php
 /**
- * Guest-list management, shared by the event page and perk meta box.
+ * Guest-list management, shared by the host tools on the /guest-list host
+ * screen (extrachill#1702) and the wp-admin perk meta box.
  *
  * @package ExtraChillEvents
  *
@@ -366,9 +367,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 		</div>
 	<?php endif; ?>
-	<p><a class="button-2 button-small" href="<?php echo esc_url( get_permalink( $event_id ) . '#ec-door-list' ); ?>"><?php esc_html_e( 'Open door list', 'extrachill-events' ); ?></a></p>
-	<?php if ( extrachill_events_has_guest_list_page( $event_id ) ) : ?>
-		<p><a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_guest_list_url( $event_id ) ); ?>"><?php esc_html_e( 'Open door view', 'extrachill-events' ); ?></a> <?php esc_html_e( 'Your guest list page shows you the door view: paste or upload names and check people in.', 'extrachill-events' ); ?></p>
+	<?php if ( ! $settings ) : ?>
+		<?php // The wp-admin perk meta box: the host screen is where the door works. ?>
+		<p><a class="button-danger button-small" href="<?php echo esc_url( extrachill_events_guest_list_url( $event_id ) . '#ec-guest-list-door' ); ?>"><?php esc_html_e( 'Guest Check-In', 'extrachill-events' ); ?></a> <?php esc_html_e( 'Check people in, add names, and manage the guest list.', 'extrachill-events' ); ?></p>
 	<?php endif; ?>
-	<p><?php esc_html_e( 'Door staff: log in on your phone before doors. Scan the attendee’s pass to open /rsvp-verify/, then tap Check in. You can also check in manually from the door list.', 'extrachill-events' ); ?></p>
+	<p><?php esc_html_e( 'Door staff: log in on your phone before doors. Scan the attendee’s pass to open /rsvp-verify/, then tap Check in. You can also check people in by name on the Guest Check-In list.', 'extrachill-events' ); ?></p>
 </section>

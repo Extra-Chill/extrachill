@@ -10,7 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Render the host guest-list panel (settings, counts, share link, QR, door list).
+ * Render the host guest-list panel (settings, counts, share link, QR, band
+ * invites and requests). It lives in the host tools section of the host
+ * screen on /guest-list (extrachill#1702) and in the wp-admin perk meta box;
+ * the event page no longer shows it.
  *
  * Renders nothing unless the current user can manage the event.
  *
@@ -38,81 +41,6 @@ function extrachill_events_render_guest_list_management( int $event_id, bool $se
 	$requests           = is_wp_error( $requests ) ? array() : (array) ( $requests['requests'] ?? array() );
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php';
 }
-
-/**
- * Whether it is the event's show day: the start date, in the site timezone.
- *
- * The event-dates table stores start_datetime as site-local wall time, so the
- * comparison is against "today" in wp_timezone(), not UTC. A 23:30 show is
- * still on its show day at 23:00 local even though UTC has rolled over.
- *
- * @param int      $event_id Event post ID.
- * @param int|null $now      Unix timestamp to evaluate at. Defaults to now.
- * @return bool False when the event has no usable start date.
- */
-function extrachill_events_is_event_show_day( int $event_id, ?int $now = null ): bool {
-	$dates = function_exists( 'datamachine_get_event_dates' ) ? datamachine_get_event_dates( $event_id ) : null;
-	if ( ! is_object( $dates ) || empty( $dates->start_datetime ) ) {
-		return false;
-	}
-
-	$start_day = substr( (string) $dates->start_datetime, 0, 10 );
-	if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $start_day ) ) {
-		return false;
-	}
-
-	$today = ( new DateTimeImmutable( '@' . ( $now ?? time() ) ) )->setTimezone( wp_timezone() )->format( 'Y-m-d' );
-
-	return $start_day === $today;
-}
-
-/**
- * Whether to pin the host panel to the top of the event page (extrachill#1139).
- *
- * True only on show day, for a user who can manage the event, when the guest
- * list is enabled. Everyone else (and hosts on other days) keeps the panel in
- * its usual place below the event content.
- *
- * @param int      $event_id Event post ID.
- * @param int      $user_id  Viewer user ID.
- * @param int|null $now      Unix timestamp to evaluate at. Defaults to now.
- * @return bool
- */
-function extrachill_events_should_pin_guest_list( int $event_id, int $user_id, ?int $now = null ): bool {
-	return $event_id > 0
-		&& $user_id > 0
-		&& extrachill_events_has_guest_list_page( $event_id )
-		&& extrachill_events_is_event_show_day( $event_id, $now )
-		&& extrachill_events_user_can_manage_event( $user_id, $event_id );
-}
-
-/**
- * Add the host panel to the single event page for managers.
- *
- * Appended below the event content normally; on show day it is prepended
- * instead, above the event details block, so hosts at the door find the
- * guest list and the door-list link without scrolling. Rendered once either way.
- *
- * @param string $content Post content.
- * @return string
- */
-function extrachill_events_append_guest_list_management( $content ) {
-	if ( ! ec_is_events_site() || ! is_singular( 'data_machine_events' ) || ! in_the_loop() || ! is_main_query() ) {
-		return $content;
-	}
-	$event_id = (int) get_the_ID();
-	ob_start();
-	extrachill_events_render_guest_list_management( $event_id, true );
-	$panel = (string) ob_get_clean();
-	if ( '' === $panel ) {
-		return $content;
-	}
-
-	return extrachill_events_should_pin_guest_list( $event_id, get_current_user_id() )
-		? $panel . $content
-		: $content . $panel;
-}
-add_filter( 'the_content', 'extrachill_events_append_guest_list_management', 19 );
 
 /**
  * Save the host panel form through the extrachill/set-event-perk ability.
@@ -172,7 +100,7 @@ function extrachill_events_save_guest_list_management(): void {
 		wp_die( esc_html( $result->get_error_message() ), '', array( 'response' => 400 ) );
 	}
 
-	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-management' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-management' ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_settings', 'extrachill_events_save_guest_list_management' );
@@ -245,8 +173,8 @@ function extrachill_events_handle_pass_image_upload( int $event_id, int $user_id
 }
 
 /**
- * Run a host guest-list ability from a panel or door-list form, then return
- * to the event page. The ability owns validation and authorization.
+ * Run a host guest-list ability from a host screen form; the caller then
+ * returns to the host screen on /guest-list. The ability owns validation and authorization.
  *
  * @param string $ability_name Ability to execute.
  * @param array  $input        Ability input.
@@ -290,7 +218,7 @@ function extrachill_events_add_guest_list_name_from_panel(): void {
 		)
 	);
 
-	wp_safe_redirect( add_query_arg( 'ec_guest_added', rawurlencode( (string) ( $result['code'] ?? '' ) ), get_permalink( $event_id ) ) . '#ec-guest-list-management' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-management', array( 'ec_guest_added' => rawurlencode( (string) ( $result['code'] ?? '' ) ) ) ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_add', 'extrachill_events_add_guest_list_name_from_panel' );
@@ -414,7 +342,7 @@ function extrachill_events_import_eventbrite_attendees_from_panel(): void {
 	);
 
 	$summary = implode( '.', array( (int) ( $result['added'] ?? 0 ), (int) ( $result['already_listed'] ?? 0 ), (int) ( $result['skipped'] ?? 0 ) ) );
-	wp_safe_redirect( add_query_arg( 'ec_eventbrite_imported', $summary, get_permalink( $event_id ) ) . '#ec-eventbrite-import' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-eventbrite-import', array( 'ec_eventbrite_imported' => $summary ) ) );
 	exit;
 }
 add_action( 'admin_post_ec_eventbrite_import', 'extrachill_events_import_eventbrite_attendees_from_panel' );
@@ -434,7 +362,7 @@ function extrachill_events_remove_guest_list_name_from_door_list(): void {
 		)
 	);
 
-	wp_safe_redirect( get_permalink( $event_id ) . '#ec-door-list' );
+	wp_safe_redirect( extrachill_events_guest_list_url( $event_id ) . '#ec-guest-list-door' );
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_remove', 'extrachill_events_remove_guest_list_name_from_door_list' );
@@ -460,7 +388,7 @@ function extrachill_events_invite_guest_list_party_from_panel(): void {
 
 	$result = extrachill_events_run_guest_list_form_ability( 'extrachill/create-guest-list-party', $input );
 
-	wp_safe_redirect( add_query_arg( 'ec_party_invite', rawurlencode( (string) ( $result['invite_url'] ?? '' ) ), get_permalink( $event_id ) ) . '#ec-guest-list-parties' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-parties', array( 'ec_party_invite' => rawurlencode( (string) ( $result['invite_url'] ?? '' ) ) ) ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_party_invite', 'extrachill_events_invite_guest_list_party_from_panel' );
@@ -480,7 +408,7 @@ function extrachill_events_revoke_guest_list_party_from_panel(): void {
 		)
 	);
 
-	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-parties' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-parties' ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_party_revoke', 'extrachill_events_revoke_guest_list_party_from_panel' );
@@ -501,7 +429,7 @@ function extrachill_events_set_guest_list_party_allotment_from_panel(): void {
 		)
 	);
 
-	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-parties' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-parties' ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_party_allotment', 'extrachill_events_set_guest_list_party_allotment_from_panel' );
@@ -526,10 +454,8 @@ function extrachill_events_approve_guest_list_request_from_panel(): void {
 	$result = extrachill_events_run_guest_list_form_ability( 'extrachill/approve-guest-list-request', $input );
 
 	// An accepted uninvited band: show its new link once, like a fresh invite.
-	$url = ! empty( $result['invite_url'] )
-		? add_query_arg( 'ec_party_invite', rawurlencode( (string) $result['invite_url'] ), get_permalink( $event_id ) )
-		: get_permalink( $event_id );
-	wp_safe_redirect( $url . '#ec-guest-list-parties' );
+	$args = ! empty( $result['invite_url'] ) ? array( 'ec_party_invite' => rawurlencode( (string) $result['invite_url'] ) ) : array();
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-parties', $args ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_request_approve', 'extrachill_events_approve_guest_list_request_from_panel' );
@@ -551,7 +477,7 @@ function extrachill_events_deny_guest_list_request_from_panel(): void {
 		)
 	);
 
-	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-requests' );
+	wp_safe_redirect( extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-requests' ) );
 	exit;
 }
 add_action( 'admin_post_ec_guest_request_deny', 'extrachill_events_deny_guest_list_request_from_panel' );

@@ -612,9 +612,11 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 	}
 
 	public function test_door_list_template_labels_and_never_offers_permanent_removal(): void {
-		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/door-list.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
-		$this->assertStringContainsString( "empty( \$guest_row['owner_list'] )", $source );
-		$this->assertStringContainsString( 'empty( $guest_rows )', $source );
+		// The host screen's check-in list (extrachill#1702) is the door list now.
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
+		$this->assertStringContainsString( "empty( \$door_row['owner_list'] )", $source, 'Owner\'s-list rows never get Remove at the door.' );
+		$this->assertStringContainsString( 'ec_guest_list_remove', $source );
+		$this->assertFileDoesNotExist( dirname( __DIR__, 3 ) . '/templates/door-list.php', 'The event-page door list is gone (extrachill#1702).' );
 
 		$integration = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-integration.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
 		$this->assertStringContainsString( "extrachill_events_door_list_guest_rows( \$event_id, '' !== \$guest_list_url )", $integration );

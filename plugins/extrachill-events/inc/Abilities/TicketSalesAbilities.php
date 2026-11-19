@@ -277,7 +277,8 @@ class TicketSalesAbilities {
 					'event_id'   => $event_id,
 					'title'      => html_entity_decode( (string) get_the_title( $event_id ), ENT_QUOTES ),
 					'url'        => $url,
-					'manage_url' => '' === $url ? '' : $url . '#ec-guest-list-management',
+					// Host tools live on the /guest-list host screen (extrachill#1702).
+					'manage_url' => '' === $url ? '' : ( function_exists( 'extrachill_events_guest_list_host_tools_url' ) ? extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-management' ) : $url . '#ec-guest-list-management' ),
 					'start'      => $dates && ! empty( $dates->start_datetime ) ? (string) $dates->start_datetime : '',
 					'timing'     => function_exists( 'datamachine_get_event_timing' ) ? datamachine_get_event_timing( $event_id ) : 'past',
 				),
