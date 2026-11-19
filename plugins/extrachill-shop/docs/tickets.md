@@ -7,8 +7,10 @@ the seller is responsible for tax.
 
 ## Fees: the venue keeps the full ticket price
 
-Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity, $fee_payer )`,
-which delegates to `extrachill_commerce_ticket_fee()` and reads the network
+Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity, $fee_payer, array( 'event_id' => … ) )`,
+which delegates to `extrachill_commerce_ticket_fee()` with the rates
+`ec_commerce_fee_settings()` resolves for that show (see
+[Fee overrides](#fee-overrides)). The default is the network
 `extrachill_commerce_fees` setting (Network Admin → Payments → Fees):
 
 | Key | Default | Meaning |
@@ -59,6 +61,28 @@ of Extra Chill's share. Set the estimate conservatively if that matters. Free
 tickets never reach checkout (`invalid_ticket_price`), and a zero subtotal or a
 platform-owned offer has no fee. With every fee and the estimate at 0 there is no
 Service fee line and the application fee is 0.
+
+### Fee overrides
+
+A seller or a single event can override any of the fields above (#1698).
+Rates resolve field by field: the network setting, then the seller override,
+then the event override. A field an override does not set inherits; `0` is an
+override (a memorial show with no fees at all). One filter,
+`ec_commerce_fee_settings_resolved( $settings, $context, $layers )`, runs on the
+result, and the result is sanitized again.
+
+| Override | Stored in |
+| --- | --- |
+| Seller (`type:id`) | Shop blog option `extrachill_shop_fee_seller_{type}:{id}`, next to the seller's `extrachill_shop_stripe_seller_*` and `extrachill_shop_shipping_seller_*` records |
+| Event | Registered post meta `_extrachill_commerce_fee_override` on the `data_machine_events` post (Events blog) |
+
+Only network admins (`manage_network_options`) change them, through
+`extrachill/get-|set-|clear-commerce-fee-override` or
+`wp extrachill shop fees get|set|clear <event:ID|type:id>`. A checkout reads
+the rates when it starts and the order stores the fee it charged
+(`application_fee_minor`, `service_fee_minor`), so changing or clearing an
+override never changes a placed order. Merch resolves with the seller (no
+event).
 
 Worked example at the defaults (US card, 2.9% + 30¢ actual processing):
 

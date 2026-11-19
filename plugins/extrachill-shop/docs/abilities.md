@@ -273,6 +273,15 @@ These abilities read and recover across all sellers. They are for shop operators
 - **Exposure:** `show_in_rest` true. `wp extrachill shop webhook replay` (`WebhookCommand.php`).
 - **Side effects:** Calls the Stripe API (`Event::retrieve`) and runs `extrachill_shop_route_webhook_event()`. That runs whatever the handler does for the event type (order, refund, dispute, ticket and email updates). Handlers are meant to be idempotent.
 
+### `extrachill/get-commerce-fee-override`, `extrachill/set-commerce-fee-override`, `extrachill/clear-commerce-fee-override`
+
+- **Purpose:** Read, set or clear the commerce fee override of a seller or one event. Rates resolve network setting → seller → event, field by field ([Fee overrides](tickets.md#fee-overrides)).
+- **Input:** `scope` (`event` | `seller`, required), `event_id` (integer, for `event`), `seller` (object, for `seller`). Set also takes `fees` (object, required): any of `merch_percent`, `ticket_percent`, `ticket_buyer_fee_per_ticket_minor`, `ticket_buyer_fee_flat_minor`, `ticket_buyer_fee_percent`, `processing_percent`, `processing_fixed_minor`. A number overrides the field; `null` stops overriding it. Fields not given are unchanged.
+- **Output:** `{ scope, event_id, seller, override, global, resolved }`. For an event, `seller` is the event's ticket seller and `resolved` includes that seller's override, as checkout does.
+- **Permission:** `manage_network_options` (network admins). Shop operators (`manage_woocommerce`) and sellers are refused.
+- **Exposure:** `show_in_rest` true. `wp extrachill shop fees get|set|clear` (`FeesCommand.php`).
+- **Side effects:** Set and clear write the Shop blog option or the event post meta. Only checkouts started afterwards are affected.
+
 ### `extrachill/shop-retry-priority-boost`
 
 - **Purpose:** Grant every Priority Boost item on an order that has no receipt yet.

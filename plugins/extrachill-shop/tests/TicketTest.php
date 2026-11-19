@@ -48,6 +48,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_user_id']           = 551;
 		$GLOBALS['test_site_options']      = array();
 		$GLOBALS['test_blog_options']      = array();
+		$GLOBALS['test_post_meta']         = array();
 		$GLOBALS['ticket_refunds']         = array();
 		$GLOBALS['ticket_refund_fail']     = false;
 		$GLOBALS['test_owner_calls']       = array();
@@ -576,6 +577,50 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['ticket_offer']['remaining'] = null;
 		$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['status'] = 'restricted';
 		$this->assertSame( 'seller_payments_unavailable', $this->checkout()->get_error_code() );
+	}
+	public function test_checkout_charges_the_event_fee_override_and_orders_keep_their_fee(): void {
+		// #1698: a zero-fee show (a memorial): no Service fee, no application fee.
+		$GLOBALS['test_post_meta'][101]['_extrachill_commerce_fee_override'] = array(
+			'ticket_percent'                    => 0,
+			'ticket_buyer_fee_per_ticket_minor' => 0,
+			'ticket_buyer_fee_flat_minor'       => 0,
+			'ticket_buyer_fee_percent'          => 0,
+			'processing_percent'                => 0,
+			'processing_fixed_minor'            => 0,
+		);
+		$this->checkout();
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertCount( 1, $params['line_items'], 'No Service fee line.' );
+		$this->assertSame( 0, $params['payment_intent_data']['application_fee_amount'] );
+		$stored = array(
+			'subtotal_minor'        => 2000,
+			'service_fee_minor'     => 0,
+			'total_minor'           => 2000,
+			'application_fee_minor' => 0,
+			'currency'              => 'usd',
+			'processing_payer'      => 'account',
+		);
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+
+		// Clearing the override changes later checkouts, never a placed order.
+		unset( $GLOBALS['test_post_meta'][101] );
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_later' );
+		$this->checkout();
+		$this->assertSame( 200, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+	public function test_checkout_applies_the_seller_override_under_the_event_override(): void {
+		$GLOBALS['test_blog_options'][3]['extrachill_shop_fee_seller_venue:9911'] = array( 'ticket_percent' => 10 );
+		$this->checkout();
+		// The $2.00 the defaults take, plus 10% of the $20 subtotal from the venue.
+		$this->assertSame( 400, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$GLOBALS['test_post_meta'][101]['_extrachill_commerce_fee_override'] = array( 'ticket_percent' => 0 );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_event' );
+		$this->checkout();
+		$this->assertSame( 200, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'], 'The event wins.' );
+		unset( $GLOBALS['stripe_session_ids'], $GLOBALS['test_post_meta'][101] );
 	}
 	public function test_fulfilment_replay_and_service_identity(): void {
 		$this->checkout();

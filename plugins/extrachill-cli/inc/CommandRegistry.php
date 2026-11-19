@@ -123,6 +123,7 @@ class CommandRegistry {
 			'extrachill shop order'                       => Commands\Shop\OrderCommand::class,
 			'extrachill shop webhook'                     => Commands\Shop\WebhookCommand::class,
 			'extrachill shop boost'                       => Commands\Shop\BoostCommand::class,
+			'extrachill shop fees'                        => Commands\Shop\FeesCommand::class,
 
 			// Roadie commands — talk to the Extra Chill platform chat agent.
 		);
