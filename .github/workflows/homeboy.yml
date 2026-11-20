@@ -43,7 +43,7 @@ jobs:
     secrets: inherit
 
   # Site-level infrastructure is not a component: deploy config, the
-  # monorepo deploy planner, nginx/sunrise artifacts, the network rig and
+  # monorepo deploy planner, nginx artifacts, the network rig and
   # the generated MONOREPO.md site map.
   site:
     name: Site infrastructure
@@ -57,9 +57,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 -c 'import yaml' 2>/dev/null || python3 -m pip install --user --quiet pyyaml
-          php -l deploy/sunrise.php
           php deploy/tests/deploy-workflow-smoke.php
-          php deploy/tests/sunrise-cutover-smoke.php
+          php deploy/tests/nginx-link-www-redirect-smoke.php
           php deploy/tests/nginx-login-no-redirect-smoke.php
           python3 deploy/tests/deploy-monorepo-test.py
           python3 deploy/tests/deploy-dispatch-route-test.py

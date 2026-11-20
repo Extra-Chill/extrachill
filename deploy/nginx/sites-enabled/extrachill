@@ -4,15 +4,32 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name extrachill.com *.extrachill.com extrachill.link www.extrachill.link;
+    server_name extrachill.com *.extrachill.com extrachill.link;
     return 301 https://$host$request_uri;
+}
+
+# www.extrachill.link -> apex (#1705). extrachill.link is a native multisite
+# domain (blog 13); there is no sunrise.php drop-in, so canonicalizing www
+# lives here.
+server {
+    listen 80;
+    listen [::]:80;
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name www.extrachill.link;
+
+    ssl_certificate /etc/letsencrypt/live/extrachill.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/extrachill.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    return 301 https://extrachill.link$request_uri;
 }
 
 # HTTPS
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name extrachill.com *.extrachill.com extrachill.link www.extrachill.link;
+    server_name extrachill.com *.extrachill.com extrachill.link;
 
     ssl_certificate /etc/letsencrypt/live/extrachill.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/extrachill.com/privkey.pem;
