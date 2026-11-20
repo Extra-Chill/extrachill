@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.45.1] - 2026-11-20
+
+### Fixed
+- reuse Turnstile verdicts during REST permission rechecks
+
 ## [2.45.0] - 2026-11-19
 
 ### Added
