@@ -56,6 +56,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-integration.
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-reporting.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/write-integrity.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/outcome-trust.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/deleted-account-outcomes.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/gtm.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/reports-permission.php';
