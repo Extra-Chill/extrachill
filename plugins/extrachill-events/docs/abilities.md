@@ -882,6 +882,14 @@ Registration: [`MarketReportAbilities.php`](../inc/Abilities/MarketReportAbiliti
 - **Permission:** `current_user_can('manage_options')`.
 - **Exposure:** `show_in_rest: true`; `wp extrachill events` adapter.
 
+Market demand includes both `/location/` archives and `/events/<slug>/` pages (up to 25,000 rows per source/provider). Event slugs from both providers are resolved together in one database query to published `data_machine_events` posts and their `location` terms. Child terms roll up to reported ancestor markets, deduplicated per event/market; unmatched URLs are ignored. A location filter still includes demand assigned to its descendants.
+
+Both `ga` and `gsc` include `archive` and `events` objects with the same metric fields as their parent. Existing parent fields remain the combined totals (GA sessions are summed page-level sessions, not deduplicated users/sessions across pages). GSC position is impression-weighted across both sources. Empty sources have zero-valued metrics. CLI `event_impr` and `event_clicks` expose event-page search demand alongside combined `gsc_impr` and `gsc_clicks`.
+
+Opportunity formula (unchanged except for combined demand): `(5 * ga.sessions + 0.5 * gsc.impressions + 0.1 * events) * (10 / max(1, venue_scrapers + 1))`, rounded to one decimal. Venues and clicks do not affect the score.
+
+Targeted tests: `vendor/bin/phpunit -c phpunit-market-report-unit.xml.dist`.
+
 ## Pending Event Submissions
 
 Registration: [`PendingEventSubmissionsAbility.php`](../inc/Abilities/PendingEventSubmissionsAbility.php).

@@ -190,6 +190,11 @@
             "runtime": "host"
           },
           {
+            "name": "market-report-unit",
+            "config": "phpunit-market-report-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "events-upcoming-counts-unit",
             "config": "phpunit-events-upcoming-counts-unit.xml.dist",
             "runtime": "host"
