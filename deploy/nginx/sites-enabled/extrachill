@@ -137,6 +137,11 @@ server {
         deny all;
     }
 
+    # agent-md-deny: root-level Markdown (AGENTS.md, CLAUDE.md, prompts) is agent context, never public
+    location ~ ^/[^/]+\.md$ {
+        return 404;
+    }
+
     # Multisite uploads rewrite
     location ~ ^/files/(.*)$ {
         try_files /wp-includes/ms-files.php?file=$1 =404;
