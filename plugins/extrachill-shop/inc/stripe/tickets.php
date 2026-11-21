@@ -66,7 +66,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'offer'     => $offer,
 		'quantity'  => $input['quantity'],
 		'amounts'   => $amounts,
-		'terms'     => $terms,
+		'terms'     => $terms + array( 'venue_show_updates' => true === ( $input['venue_show_updates'] ?? false ) ? 'yes' : 'no' ),
 	) );
 	if ( is_wp_error( $order ) ) {
 		return new WP_Error( 'ticket_checkout_failed', 'Ticket checkout failed.', array( 'status' => 502 ) ); }
@@ -324,6 +324,9 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 		'idempotency_key'   => $session_id,
 		'order_reference'   => $session_id,
 		'payment_reference' => $intent,
+		'buyer_user_id'     => (int) $order->get_customer_id(),
+		'venue_show_updates' => 'yes' === $order->get_meta( '_extrachill_venue_show_updates' ),
+		'seller'            => extrachill_shop_get_order_seller( $order ),
 	) );
 	if ( is_wp_error( $result ) ) {
 		return $result; }

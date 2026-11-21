@@ -187,7 +187,7 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 
 	$throttle = extrachill_events_guest_digest_resend_key( $user_id, $term->slug, $scope );
 	if ( false === get_transient( $throttle ) ) {
-		$sent = extrachill_events_send_guest_digest_confirm_email( $user_id, $email, $term, (string) ( $account['claim_url'] ?? '' ), $scope );
+		$sent = extrachill_events_send_guest_digest_confirm_email( $user_id, $email, $term, (string) ( $account['claim_url'] ?? '' ), $scope, ! empty( $attribution['eventbrite_import'] ) );
 		if ( $sent && extrachill_events_guest_digest_resend_window() > 0 ) {
 			set_transient( $throttle, 1, extrachill_events_guest_digest_resend_window() );
 		}
@@ -553,12 +553,16 @@ function extrachill_events_confirm_guest_digest( array $params ) {
  * @param string  $scope       location|venue.
  * @return string
  */
-function extrachill_events_render_guest_digest_email_body( WP_Term $term, string $confirm_url, string $claim_url = '', string $scope = 'location' ): string {
+function extrachill_events_render_guest_digest_email_body( WP_Term $term, string $confirm_url, string $claim_url = '', string $scope = 'location', bool $eventbrite_import = false ): string {
 	$intro = 'venue' === extrachill_events_normalize_digest_scope( $scope )
 		/* translators: %s: Venue name. */
 		? esc_html__( "Confirm and we'll email you once a week when %s has shows coming up.", 'extrachill-events' )
 		/* translators: %s: City name. */
 		: esc_html__( "Confirm and we'll send you upcoming shows in %s once a week.", 'extrachill-events' );
+	if ( $eventbrite_import && 'venue' === $scope ) {
+		/* translators: %s: Venue name. */
+		$intro = esc_html__( 'You bought tickets at %s on Eventbrite; confirm to keep getting show updates here.', 'extrachill-events' );
+	}
 	$html  = '<p>' . sprintf( $intro, esc_html( $term->name ) ) . '</p>';
 	$html .= '<p><a href="' . esc_url( $confirm_url ) . '">' . esc_html__( 'Confirm the weekly email', 'extrachill-events' ) . '</a></p>';
 	$html .= '<p>' . esc_html__( "Didn't ask for this? Ignore this email and nothing happens.", 'extrachill-events' ) . '</p>';
@@ -581,7 +585,7 @@ function extrachill_events_render_guest_digest_email_body( WP_Term $term, string
  * @param string  $scope     location|venue.
  * @return bool Whether the send was queued.
  */
-function extrachill_events_send_guest_digest_confirm_email( int $user_id, string $email, WP_Term $term, string $claim_url = '', string $scope = 'location' ): bool {
+function extrachill_events_send_guest_digest_confirm_email( int $user_id, string $email, WP_Term $term, string $claim_url = '', string $scope = 'location', bool $eventbrite_import = false ): bool {
 	$scope       = extrachill_events_normalize_digest_scope( $scope );
 	$confirm_url = extrachill_events_guest_digest_confirm_url( $user_id, $term, null, $scope );
 	$subject     = 'venue' === $scope
@@ -596,7 +600,7 @@ function extrachill_events_send_guest_digest_confirm_email( int $user_id, string
 			'from_name' => 'Extra Chill Events',
 			'template'  => 'extrachill/branded',
 			'context'   => array(
-				'body_html' => extrachill_events_render_guest_digest_email_body( $term, $confirm_url, $claim_url, $scope ),
+				'body_html' => extrachill_events_render_guest_digest_email_body( $term, $confirm_url, $claim_url, $scope, $eventbrite_import ),
 				'cta_url'   => $confirm_url,
 				'cta_label' => __( 'Confirm', 'extrachill-events' ),
 			),

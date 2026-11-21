@@ -266,6 +266,9 @@ class TicketAbilities {
 				'idempotency_key'   => $reference,
 				'order_reference'   => $reference,
 				'payment_reference' => $reference,
+				'buyer_user_id' => array( 'type' => 'integer', 'minimum' => 0 ),
+				'venue_show_updates' => array( 'type' => 'boolean' ),
+				'seller' => self::fields()['ticket_seller'],
 			),
 			array( 'event', 'quantity', 'name', 'email', 'idempotency_key', 'order_reference', 'payment_reference' ),
 			array(
@@ -566,6 +569,10 @@ class TicketAbilities {
 			return $rows;
 		}
 
+		if ( ! $existing && null !== $rows && true === ( $input['venue_show_updates'] ?? false ) ) {
+			require_once dirname( __DIR__ ) . '/core/ticket-checkout.php';
+			extrachill_events_ticket_subscribe_venue( (array) ( $input['seller'] ?? array() ), (int) ( $input['buyer_user_id'] ?? 0 ), true, $input['email'] );
+		}
 		$passes = array();
 		foreach ( (array) $rows as $row ) {
 			$passes[] = array(

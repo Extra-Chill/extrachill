@@ -131,6 +131,73 @@ function extrachill_events_parse_eventbrite_attendees( string $csv ) {
 }
 
 /**
+ * Send consent-filtered venue confirmation requests, never door passes.
+ * Missing or unfamiliar consent values fail closed. Counts are per CSV row;
+ * duplicate eligible emails in the same file receive only one request.
+ */
+function extrachill_events_import_eventbrite_venue_list( int $event_id, string $csv ) {
+	if ( strlen( $csv ) > EXTRACHILL_EVENTS_EVENTBRITE_MAX_BYTES ) {
+		return new WP_Error( 'eventbrite_import_too_large', 'That file is too large.', array( 'status' => 413 ) );
+	}
+	$venues = wp_get_post_terms( $event_id, 'venue' );
+	if ( is_wp_error( $venues ) || 1 !== count( $venues ) ) {
+		return new WP_Error( 'eventbrite_venue_required', 'The event must have exactly one venue.', array( 'status' => 400 ) );
+	}
+	$handle = fopen( 'php://temp', 'r+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- In-memory CSV.
+	fwrite( $handle, (string) preg_replace( '/^\xEF\xBB\xBF/', '', $csv ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- In-memory CSV.
+	rewind( $handle );
+	$header = fgetcsv( $handle, 0, ',', '"', '' );
+	$header = is_array( $header ) ? array_map( static fn( $value ) => strtolower( trim( $value ) ), $header ) : array();
+	$email = array_search( 'email', $header, true );
+	$consent = array_search( 'wants organizer email', $header, true );
+	if ( false === $consent ) {
+		$consent = array_search( 'email opt-in', $header, true );
+	}
+	$unsubscribed = array_search( 'unsubscribed', $header, true );
+	if ( false === $email || false === $consent || false === $unsubscribed ) {
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- In-memory CSV.
+		return new WP_Error( 'eventbrite_consent_columns_required', 'Nobody imported: venue-list import requires Email, Wants Organizer Email (or Email Opt-In), and Unsubscribed columns. Export a report containing explicit consent; attendee reports without these fields cannot be used.', array( 'status' => 400 ) );
+	}
+	$result = array( 'imported' => 0, 'skipped_no_consent' => 0, 'skipped_unsubscribed' => 0, 'already_subscribed' => 0, 'skipped_duplicate' => 0, 'failed' => 0 );
+	$seen = array();
+	while ( false !== ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- CSV loop.
+		if ( array( null ) === $row ) {
+			continue;
+		}
+		$cell = static fn( $index ) => strtolower( trim( (string) ( $row[ $index ] ?? '' ) ) );
+		if ( in_array( $cell( $unsubscribed ), array( 'yes', 'true', '1' ), true ) ) {
+			++$result['skipped_unsubscribed'];
+			continue;
+		}
+		if ( ! in_array( $cell( $consent ), array( 'yes', 'true', '1' ), true ) || ! in_array( $cell( $unsubscribed ), array( 'no', 'false', '0' ), true ) ) {
+			++$result['skipped_no_consent'];
+			continue;
+		}
+		$address = $cell( $email );
+		if ( ! is_email( $address ) ) {
+			++$result['failed'];
+			continue;
+		}
+		if ( isset( $seen[ $address ] ) ) {
+			++$result['skipped_duplicate'];
+			continue;
+		}
+		$seen[ $address ] = true;
+		$user = get_user_by( 'email', $address );
+		$definition = extrachill_events_digest_scope( 'venue' );
+		$status = $user ? extrachill_users_entity_subscription_status( $user->ID, $definition['entity'], $definition['taxonomy'], $venues[0]->slug ) : array();
+		if ( ! is_wp_error( $status ) && ! empty( $status['subscribed'] ) ) {
+			++$result['already_subscribed'];
+			continue;
+		}
+		$request = extrachill_events_guest_subscribe_local_scene_digest( $venues[0]->slug, $address, array( 'eventbrite_import' => true ), 'venue' );
+		++$result[ is_wp_error( $request ) ? 'failed' : 'imported' ];
+	}
+	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- In-memory CSV.
+	return $result;
+}
+
+/**
  * Import an Eventbrite attendee report onto an event's door list.
  *
  * @param int    $event_id     Event post ID.
@@ -138,7 +205,13 @@ function extrachill_events_parse_eventbrite_attendees( string $csv ) {
  * @param int    $host_user_id Host running the import.
  * @return array|WP_Error { added: int, already_listed: int, skipped: int }
  */
-function extrachill_events_import_eventbrite_attendees( int $event_id, string $csv, int $host_user_id ) {
+function extrachill_events_import_eventbrite_attendees( int $event_id, string $csv, int $host_user_id, string $mode = 'door_list' ) {
+	if ( 'venue_list' === $mode ) {
+		return extrachill_events_import_eventbrite_venue_list( $event_id, $csv );
+	}
+	if ( 'door_list' !== $mode ) {
+		return new WP_Error( 'invalid_import_mode', 'Choose door_list or venue_list.', array( 'status' => 400 ) );
+	}
 	if ( ! extrachill_events_perk_enabled( $event_id ) ) {
 		return new WP_Error( 'guest_list_unavailable', __( 'Turn on the guest list and save before importing, so there is a door list to add them to.', 'extrachill-events' ), array( 'status' => 409 ) );
 	}

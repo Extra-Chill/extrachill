@@ -53,6 +53,23 @@ function extrachill_events_ticket_terms_url(): string {
 	return (string) apply_filters( 'extrachill_events_ticket_terms_url', $url );
 }
 
+/** Subscribe only explicit, paid checkout consent to the immutable seller venue. */
+function extrachill_events_ticket_subscribe_venue( array $seller, int $buyer, bool $consent, string $email = '' ): void {
+	if ( $consent && $buyer <= 0 && function_exists( 'wp_get_ability' ) ) {
+		$resolve = wp_get_ability( 'extrachill/resolve-account-by-email' );
+		$account = $resolve ? $resolve->execute( array( 'email' => $email, 'registration_source' => 'venue_show_updates' ) ) : null;
+		$buyer = is_array( $account ) ? (int) ( $account['user_id'] ?? 0 ) : 0;
+	}
+	if ( ! $consent || $buyer <= 0 || 'venue' !== ( $seller['type'] ?? '' ) || ! function_exists( 'extrachill_users_subscribe_to_entity' ) ) {
+		return;
+	}
+	$venue = get_term( (int) ( $seller['id'] ?? 0 ), 'venue' );
+	if ( $venue instanceof WP_Term ) {
+		$definition = extrachill_events_digest_scope( 'venue' );
+		extrachill_users_subscribe_to_entity( $buyer, $definition['entity'], $definition['taxonomy'], $venue->slug );
+	}
+}
+
 /** Read the public offer through its owner ability. */
 function extrachill_events_checkout_offer( $post_id ) {
 	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-event-ticket-offer' ) : null;

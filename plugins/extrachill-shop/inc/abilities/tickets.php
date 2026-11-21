@@ -31,6 +31,7 @@ function extrachill_shop_register_ticket_abilities() {
 				),
 				// Optional in the schema so a missing answer returns the
 				// dedicated terms_required error instead of a schema failure.
+				'venue_show_updates' => array( 'type' => 'boolean' ),
 				'terms_accepted' => array(
 					'type'        => 'boolean',
 					'description' => 'The buyer agreed to the Terms of Service. Must be true.',

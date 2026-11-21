@@ -283,7 +283,7 @@ class RsvpPassAbilities {
 			'extrachill/import-eventbrite-attendees',
 			array(
 				'label'               => __( 'Import Eventbrite Attendees', 'extrachill-events' ),
-				'description'         => __( 'Host-only: put the attendees from an Eventbrite attendee report (CSV) on the event door list by name, labeled Eventbrite. Nobody is emailed and no email addresses are stored. Re-importing a newer report only adds new tickets.', 'extrachill-events' ),
+				'description'         => __( 'Host-only CSV import. Default door_list adds names without email. Explicit venue_list sends venue double opt-in confirmations only to organizer-consenting, non-unsubscribed rows; no subscription until confirmation.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -296,6 +296,7 @@ class RsvpPassAbilities {
 							'type'        => 'string',
 							'description' => __( 'Contents of the Eventbrite attendee report CSV.', 'extrachill-events' ),
 						),
+						'mode' => array( 'type' => 'string', 'enum' => array( 'door_list', 'venue_list' ), 'default' => 'door_list' ),
 					),
 					'required'   => array( 'event_id', 'csv' ),
 				),
@@ -305,6 +306,12 @@ class RsvpPassAbilities {
 						'added'          => array( 'type' => 'integer' ),
 						'already_listed' => array( 'type' => 'integer' ),
 						'skipped'        => array( 'type' => 'integer' ),
+						'imported' => array( 'type' => 'integer' ),
+						'skipped_no_consent' => array( 'type' => 'integer' ),
+						'skipped_unsubscribed' => array( 'type' => 'integer' ),
+						'already_subscribed' => array( 'type' => 'integer' ),
+						'skipped_duplicate' => array( 'type' => 'integer' ),
+						'failed' => array( 'type' => 'integer' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'import_eventbrite_attendees' ),
@@ -472,7 +479,8 @@ class RsvpPassAbilities {
 		return extrachill_events_import_eventbrite_attendees(
 			(int) ( $input['event_id'] ?? 0 ),
 			(string) ( $input['csv'] ?? '' ),
-			get_current_user_id()
+			get_current_user_id(),
+			(string) ( $input['mode'] ?? 'door_list' )
 		);
 	}
 

@@ -3,6 +3,12 @@
 use ExtraChillEvents\Abilities\TicketAbilities;
 use ExtraChillEvents\Core\RsvpPassesTable;
 
+require_once dirname( __DIR__, 3 ) . '/inc/core/ticket-checkout.php';
+class WP_Term { public $slug = 'lofi'; }
+function get_term( $id, $taxonomy ) { return 12 === $id ? new WP_Term() : null; }
+function extrachill_events_digest_scope( $scope ) { return array( 'entity' => 'venue_show_updates', 'taxonomy' => 'venue' ); }
+function extrachill_users_subscribe_to_entity( ...$args ) { $GLOBALS['ticket_subscriptions'][] = $args; }
+
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/TicketAbilities.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/priority-boost-service-authority.php';
@@ -94,6 +100,15 @@ final class TicketWpdb {
 }
 
 final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
+	public function test_venue_subscription_requires_explicit_consent_and_a_venue_seller(): void {
+		$GLOBALS['ticket_subscriptions'] = array();
+		extrachill_events_ticket_subscribe_venue( array( 'type' => 'venue', 'id' => 12 ), 9, false );
+		extrachill_events_ticket_subscribe_venue( array( 'type' => 'promoter', 'id' => 12 ), 9, true );
+		$this->assertSame( array(), $GLOBALS['ticket_subscriptions'] );
+		extrachill_events_ticket_subscribe_venue( array( 'type' => 'venue', 'id' => 12 ), 9, true );
+		$this->assertSame( array( array( 9, 'venue_show_updates', 'venue', 'lofi' ) ), $GLOBALS['ticket_subscriptions'] );
+	}
+
 	protected function setUp(): void {
 		$GLOBALS['ticket_request'] = null;
 		$GLOBALS['ticket_claims'] = array();
@@ -216,6 +231,19 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		add_filter( 'extrachill_events_ticket_service_assertion_keys', static function () { return array( 'test-key' => 'test-secret' ); } );
 		$GLOBALS['ticket_request'] = array( 'method' => 'POST', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
 	}
+	public function test_paid_issuance_subscribes_once_and_sold_out_does_not(): void {
+		$this->service_context();
+		$GLOBALS['ticket_subscriptions'] = array();
+		$abilities = new TicketAbilities();
+		$input = array( 'event' => 10, 'quantity' => 2, 'name' => 'Buyer', 'email' => 'buyer@example.com', 'idempotency_key' => 'consent', 'order_reference' => 'cs_consent', 'payment_reference' => 'pi_consent', 'buyer_user_id' => 9, 'seller' => array( 'type' => 'venue', 'id' => 12 ), 'venue_show_updates' => true );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( array( array( 9, 'venue_show_updates', 'venue', 'lofi' ) ), $GLOBALS['ticket_subscriptions'] );
+		$input['idempotency_key'] = 'sold-out';
+		$this->assertSame( 'sold_out', $abilities->issue( $input )['status'] );
+		$this->assertCount( 1, $GLOBALS['ticket_subscriptions'] );
+	}
+
 	public function test_ability_issuance_email_replay_and_order_status(): void {
 		$this->service_context();
 		$abilities = new TicketAbilities();
