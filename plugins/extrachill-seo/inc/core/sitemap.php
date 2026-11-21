@@ -18,6 +18,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/expired-events.php';
+
 /**
  * Register our custom provider into the sitemap index.
  *
