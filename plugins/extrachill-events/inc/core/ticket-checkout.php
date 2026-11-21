@@ -57,8 +57,11 @@ function extrachill_events_ticket_terms_url(): string {
 function extrachill_events_ticket_subscribe_venue( array $seller, int $buyer, bool $consent, string $email = '' ): void {
 	if ( $consent && $buyer <= 0 && function_exists( 'wp_get_ability' ) ) {
 		$resolve = wp_get_ability( 'extrachill/resolve-account-by-email' );
-		$account = $resolve ? $resolve->execute( array( 'email' => $email, 'registration_source' => 'venue_show_updates' ) ) : null;
-		$buyer = is_array( $account ) ? (int) ( $account['user_id'] ?? 0 ) : 0;
+		$account = $resolve ? $resolve->execute( array(
+			'email'               => $email,
+			'registration_source' => 'venue_show_updates',
+		) ) : null;
+		$buyer   = is_array( $account ) ? (int) ( $account['user_id'] ?? 0 ) : 0;
 	}
 	if ( ! $consent || $buyer <= 0 || 'venue' !== ( $seller['type'] ?? '' ) || ! function_exists( 'extrachill_users_subscribe_to_entity' ) ) {
 		return;

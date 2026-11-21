@@ -144,11 +144,14 @@ function extrachill_events_import_eventbrite_venue_list( int $event_id, string $
 		return new WP_Error( 'eventbrite_venue_required', 'The event must have exactly one venue.', array( 'status' => 400 ) );
 	}
 	$handle = fopen( 'php://temp', 'r+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- In-memory CSV.
+	if ( false === $handle ) {
+		return new WP_Error( 'eventbrite_import_failed', 'The file could not be read.', array( 'status' => 500 ) );
+	}
 	fwrite( $handle, (string) preg_replace( '/^\xEF\xBB\xBF/', '', $csv ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- In-memory CSV.
 	rewind( $handle );
-	$header = fgetcsv( $handle, 0, ',', '"', '' );
-	$header = is_array( $header ) ? array_map( static fn( $value ) => strtolower( trim( $value ) ), $header ) : array();
-	$email = array_search( 'email', $header, true );
+	$header  = fgetcsv( $handle, 0, ',', '"', '' );
+	$header  = is_array( $header ) ? array_map( static fn( $value ) => strtolower( trim( $value ) ), $header ) : array();
+	$email   = array_search( 'email', $header, true );
 	$consent = array_search( 'wants organizer email', $header, true );
 	if ( false === $consent ) {
 		$consent = array_search( 'email opt-in', $header, true );
@@ -158,8 +161,15 @@ function extrachill_events_import_eventbrite_venue_list( int $event_id, string $
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- In-memory CSV.
 		return new WP_Error( 'eventbrite_consent_columns_required', 'Nobody imported: venue-list import requires Email, Wants Organizer Email (or Email Opt-In), and Unsubscribed columns. Export a report containing explicit consent; attendee reports without these fields cannot be used.', array( 'status' => 400 ) );
 	}
-	$result = array( 'imported' => 0, 'skipped_no_consent' => 0, 'skipped_unsubscribed' => 0, 'already_subscribed' => 0, 'skipped_duplicate' => 0, 'failed' => 0 );
-	$seen = array();
+	$result = array(
+		'imported'             => 0,
+		'skipped_no_consent'   => 0,
+		'skipped_unsubscribed' => 0,
+		'already_subscribed'   => 0,
+		'skipped_duplicate'    => 0,
+		'failed'               => 0,
+	);
+	$seen   = array();
 	while ( false !== ( $row = fgetcsv( $handle, 0, ',', '"', '' ) ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition.FoundInWhileCondition -- CSV loop.
 		if ( array( null ) === $row ) {
 			continue;
@@ -183,9 +193,9 @@ function extrachill_events_import_eventbrite_venue_list( int $event_id, string $
 			continue;
 		}
 		$seen[ $address ] = true;
-		$user = get_user_by( 'email', $address );
-		$definition = extrachill_events_digest_scope( 'venue' );
-		$status = $user ? extrachill_users_entity_subscription_status( $user->ID, $definition['entity'], $definition['taxonomy'], $venues[0]->slug ) : array();
+		$user             = get_user_by( 'email', $address );
+		$definition       = extrachill_events_digest_scope( 'venue' );
+		$status           = $user ? extrachill_users_entity_subscription_status( $user->ID, $definition['entity'], $definition['taxonomy'], $venues[0]->slug ) : array();
 		if ( ! is_wp_error( $status ) && ! empty( $status['subscribed'] ) ) {
 			++$result['already_subscribed'];
 			continue;

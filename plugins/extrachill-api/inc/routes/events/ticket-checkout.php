@@ -52,11 +52,11 @@ function extrachill_api_ticket_checkout( WP_REST_Request $request ) {
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'Ticket checkout unavailable.', array( 'status' => 503 ) ); }
 	$result = $ability->execute( array(
-		'event'          => (int) $request['event'],
-		'quantity'       => (int) $request['quantity'],
-		'name'           => sanitize_text_field( $request['name'] ),
-		'email'          => trim( $request['email'] ),
-		'terms_accepted' => true === $request->get_param( 'terms_accepted' ),
+		'event'              => (int) $request['event'],
+		'quantity'           => (int) $request['quantity'],
+		'name'               => sanitize_text_field( $request['name'] ),
+		'email'              => trim( $request['email'] ),
+		'terms_accepted'     => true === $request->get_param( 'terms_accepted' ),
 		'venue_show_updates' => true === $request->get_param( 'venue_show_updates' ),
 	) );
 	return is_wp_error( $result ) ? $result : rest_ensure_response( $result );

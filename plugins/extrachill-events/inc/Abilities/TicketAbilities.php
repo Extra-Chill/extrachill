@@ -249,26 +249,29 @@ class TicketAbilities {
 			'issue-ticket-passes',
 			'issue',
 			$event + array(
-				'quantity'          => array(
+				'quantity'           => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 					'maximum' => 10,
 				),
-				'name'              => array(
+				'name'               => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 100,
 				),
-				'email'             => array(
+				'email'              => array(
 					'type'   => 'string',
 					'format' => 'email',
 				),
-				'idempotency_key'   => $reference,
-				'order_reference'   => $reference,
-				'payment_reference' => $reference,
-				'buyer_user_id' => array( 'type' => 'integer', 'minimum' => 0 ),
+				'idempotency_key'    => $reference,
+				'order_reference'    => $reference,
+				'payment_reference'  => $reference,
+				'buyer_user_id'      => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
 				'venue_show_updates' => array( 'type' => 'boolean' ),
-				'seller' => self::fields()['ticket_seller'],
+				'seller'             => self::fields()['ticket_seller'],
 			),
 			array( 'event', 'quantity', 'name', 'email', 'idempotency_key', 'order_reference', 'payment_reference' ),
 			array(
