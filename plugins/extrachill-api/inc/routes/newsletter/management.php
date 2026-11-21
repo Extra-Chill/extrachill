@@ -111,23 +111,23 @@ function extrachill_api_register_newsletter_campaign_management_routes() {
 				return current_user_can( 'manage_options' );
 			},
 			'args'                => array(
-				'from_name'     => array(
+				'from_name'  => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'from_email'    => array(
+				'from_email' => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_email',
 				),
-				'reply_to'      => array(
+				'reply_to'   => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_email',
 				),
-				'brand_id'      => array(
+				'brand_id'   => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'list_ids'      => array(
+				'list_ids'   => array(
 					'type' => 'object',
 				),
 			),
@@ -225,6 +225,7 @@ function extrachill_api_newsletter_delete_campaign_handler( $request ) {
 }
 
 function extrachill_api_newsletter_get_settings_handler( $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/get-newsletter-settings' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_available', 'Settings ability not available.', array( 'status' => 500 ) );

@@ -15,6 +15,18 @@ class Test_OAuth_Service_Standalone extends WP_UnitTestCase {
 			$this->markTestSkipped( 'OpenSSL is required for the OAuth JWT checks.' );
 		}
 
+		// The runner needs a separate PHP process. Runtimes that cannot spawn one
+		// (e.g. WordPress Playground) exit non-zero with no output; skip there
+		// rather than report the runtime limitation as an OAuth failure.
+		$probe      = array();
+		$probe_code = 1;
+		if ( function_exists( 'exec' ) && '' !== PHP_BINARY ) {
+			exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( 'echo "ok";' ) . ' 2>/dev/null', $probe, $probe_code );
+		}
+		if ( 0 !== $probe_code || array( 'ok' ) !== $probe ) {
+			$this->markTestSkipped( 'This runtime cannot spawn a PHP subprocess; run php tests/oauth/run.php directly.' );
+		}
+
 		$runner = dirname( __DIR__ ) . '/oauth/run.php';
 		$output = array();
 		$code   = 0;

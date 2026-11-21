@@ -129,7 +129,8 @@ function extrachill_users_clear_unclaimed_after_password_reset( $user, $new_pass
 		return false;
 	}
 
-	if ( ! metadata_exists( 'user', $user->ID, 'ec_unclaimed' ) ) {
+	$had_unclaimed_marker = metadata_exists( 'user', $user->ID, 'ec_unclaimed' );
+	if ( ! $had_unclaimed_marker ) {
 		return true;
 	}
 
