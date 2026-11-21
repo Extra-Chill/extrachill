@@ -740,7 +740,8 @@ final class RsvpPassesTable {
 	/**
 	 * All-or-nothing paid issuance, serialized with every capacity-capped pass writer.
 	 * A key lock also prevents the same key being used concurrently across events.
-	 * Returns null only when there is insufficient room; failures are errors.
+	 * Returns rows flagged with pre_existing, null only for insufficient room,
+	 * or an error on failure. Only the creator may send the initial pass email.
 	 */
 	public static function issue_tickets( int $event_id, int $quantity, int $capacity, int $ticket_quantity, string $name, string $key, string $order, string $payment ) {
 		global $wpdb;
@@ -751,26 +752,31 @@ final class RsvpPassesTable {
 		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $key_lock ) ) ) {
 			return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
 		}
-		$locked = false;
+		$locked      = false;
+		$transaction = false;
 		try {
-			$rows = self::ticket_rows( $key, true );
+			$locked = self::acquire_capacity_lock( $event_id );
+			if ( ! $locked ) {
+				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
+			}
+			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+				return new \WP_Error( 'ticket_storage_failed', 'Could not start issuance.', array( 'status' => 500 ) );
+			}
+			$transaction = true;
+			$rows        = self::ticket_rows( $key, true );
 			if ( $rows ) {
 				if ( (int) $rows[0]['event_id'] !== $event_id || count( $rows ) !== $quantity || $rows[0]['order_reference'] !== $order || $rows[0]['payment_reference'] !== $payment ) {
 					return new \WP_Error( 'ticket_idempotency_conflict', 'Key already used for another purchase.', array( 'status' => 409 ) );
 				}
+				foreach ( $rows as &$row ) {
+					$row['pre_existing'] = true;
+				}
 				return $rows;
-			}
-			$locked = self::acquire_capacity_lock( $event_id );
-			if ( ! $locked ) {
-				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
 			}
 			$table = self::table_name();
 			$paid  = self::paid_ticket_count( $event_id );
 			if ( ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] + $quantity > $capacity ) || ( $ticket_quantity > 0 && $paid + $quantity > $ticket_quantity ) ) {
 				return null;
-			}
-			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
-				return new \WP_Error( 'ticket_storage_failed', 'Could not start issuance.', array( 'status' => 500 ) );
 			}
 			$now = current_time( 'mysql', true );
 			for ( $i = 0; $i < $quantity; ++$i ) {
@@ -793,8 +799,16 @@ final class RsvpPassesTable {
 				$wpdb->query( 'ROLLBACK' );
 				return new \WP_Error( 'ticket_storage_failed', 'Could not commit issuance.', array( 'status' => 500 ) );
 			}
-			return self::ticket_rows( $key, true );
+			$transaction = false;
+			$rows        = self::ticket_rows( $key, true );
+			foreach ( $rows as &$row ) {
+				$row['pre_existing'] = false;
+			}
+			return $rows;
 		} finally {
+			if ( $transaction ) {
+				$wpdb->query( 'ROLLBACK' );
+			}
 			if ( $locked ) {
 				self::release_capacity_lock( $event_id );
 			}
