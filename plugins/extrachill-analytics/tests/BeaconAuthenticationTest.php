@@ -28,7 +28,8 @@ final class BeaconAuthenticationTest extends Extrachill_Analytics_TestCase {
 			foreach ( array( $config['endpoint'], $click['endpoint'], $click['networkEndpoint'], $click['ctaEndpoint'], $click['formEndpoint'] ) as $url ) {
 				parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $args );
 				if ( $user_id ) {
-					$this->assertNotFalse( wp_verify_nonce( $args['_wpnonce'], 'wp_rest' ) );
+					$this->assertArrayHasKey( '_wpnonce', $args, $url );
+					$this->assertNotFalse( wp_verify_nonce( $args['_wpnonce'], 'wp_rest' ), 'Nonce did not verify for ' . $url );
 				} else {
 					$this->assertArrayNotHasKey( '_wpnonce', $args );
 				}
@@ -65,6 +66,8 @@ final class BeaconAuthenticationTest extends Extrachill_Analytics_TestCase {
 					'route_family' => 'directory',
 					'proof' => extrachill_analytics_pageview_proof( 0, '/events/', 'directory', extrachill_analytics_public_write_source_host() ),
 				) );
+				$request->set_header( 'Content-Type', 'application/json' );
+				$request->set_body( wp_json_encode( array( 'input' => $request->get_param( 'input' ) ) ) );
 				$response = rest_do_request( $request );
 				$this->assertSame( 200, $response->get_status(), wp_json_encode( $response->get_data() ) );
 				$this->assertSame( array( 'recorded' => true ), $response->get_data() );
