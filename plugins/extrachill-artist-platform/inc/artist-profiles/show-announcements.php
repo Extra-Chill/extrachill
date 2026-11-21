@@ -221,23 +221,26 @@ function extrachill_artist_claim_show_announcement_receipt( int $artist_id, stri
 	global $wpdb;
 	$table = extrachill_artist_show_announcements_table();
 
-	$suppress = $wpdb->suppress_errors( true );
-	$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- the unique key is the idempotency claim.
-		$table,
-		array(
-			'artist_profile_id' => $artist_id,
-			'event_key'         => $event_key,
-			'subscriber_email'  => $email,
-			'created_at'        => current_time( 'mysql', true ),
-		),
-		array( '%d', '%s', '%s', '%s' )
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- trusted table name; the unique key is the idempotency claim and receipts must be read live.
+	// INSERT IGNORE (same claim shape as extrachill-users entity subscriptions):
+	// a duplicate affects 0 rows instead of raising an error, so the connection
+	// stays healthy for the follow-up read on every database driver.
+	$inserted = $wpdb->query(
+		$wpdb->prepare(
+			"INSERT IGNORE INTO {$table} (artist_profile_id, event_key, subscriber_email, created_at) VALUES (%d, %s, %s, %s)",
+			$artist_id,
+			$event_key,
+			$email,
+			current_time( 'mysql', true )
+		)
 	);
-	$wpdb->suppress_errors( $suppress );
-	if ( 1 === $inserted ) {
+	if ( 1 === (int) $inserted ) {
 		return 'inserted';
 	}
+	if ( false === $inserted ) {
+		return 'failed';
+	}
 
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- trusted table name; receipts must be read live.
 	$existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE artist_profile_id = %d AND event_key = %s AND subscriber_email = %s", $artist_id, $event_key, $email ) );
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 	return $existing > 0 ? 'existing' : 'failed';
