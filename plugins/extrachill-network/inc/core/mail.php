@@ -334,11 +334,9 @@ function ec_send_email_queued( array $args ) {
  * @return mixed Ability result.
  */
 function extrachill_mail_run_as_system( callable $send ) {
-	$helper = '\\DataMachine\\Abilities\\PermissionHelper';
-	if ( class_exists( $helper ) && method_exists( $helper, 'run_as_system' ) ) {
-		return $helper::run_as_system( $send );
-	}
-	return $send();
+	return class_exists( '\\DataMachine\\Abilities\\PermissionHelper' )
+		? \DataMachine\Abilities\PermissionHelper::run_as_system( $send )
+		: $send();
 }
 
 /**

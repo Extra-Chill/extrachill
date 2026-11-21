@@ -72,7 +72,7 @@ function extrachill_docs_load_platform_map(): array {
 		if ( null !== $current_repo && preg_match( '/^    ([a-z_]+):\s*"?([^"\n]*)"?\s*$/', $raw, $matches ) ) {
 			$key   = $matches[1];
 			$value = trim( $matches[2], " \t\"'" );
-			if ( '' !== $key && '' !== $value ) {
+			if ( '' !== $value ) {
 				$current[ $key ] = $value;
 			}
 		}

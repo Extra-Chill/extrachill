@@ -295,12 +295,13 @@ class CommentEditorAbilities {
 
 		return ec_with_blog(
 			$blog_id,
-			static function () use ( $comment_id, $content, $blog_id ) {
+			static function () use ( $comment_id, $content ) {
 				$comment = get_comment( $comment_id );
 				if ( ! $comment ) {
 					return new \WP_Error( 'comment_not_found', 'Comment not found.', array( 'status' => 404 ) );
 				}
 
+				// With $wp_error = true, wp_update_comment() returns 0|1 or WP_Error, never false.
 				$result = wp_update_comment(
 					array(
 						'comment_ID'      => $comment_id,
@@ -313,10 +314,7 @@ class CommentEditorAbilities {
 					return $result;
 				}
 
-				if ( false === $result ) {
-					return new \WP_Error( 'update_failed', 'Failed to update comment.' );
-				}
-
+				/** @var \WP_Comment|null $fresh Re-read after the update; may be gone if deleted concurrently. */
 				$fresh  = get_comment( $comment_id );
 				$status = $fresh && '1' === (string) $fresh->comment_approved
 					? 'publish'

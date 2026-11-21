@@ -273,6 +273,7 @@ function extrachill_docs_publish_changed_plugin_docs(): void {
 	if ( ! class_exists( 'WP_Markdown_CLI' ) || ! function_exists( 'markdown_db_register_content_layout_profile' ) ) {
 		static $logged = false;
 		if ( ! $logged ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operational signal: the hourly docs import is skipped while MDI is inactive.
 			error_log( 'Extra Chill Docs: MDI inactive; skipping docs import.' );
 			$logged = true;
 		}

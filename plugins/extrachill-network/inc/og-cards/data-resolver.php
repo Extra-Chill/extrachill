@@ -88,7 +88,7 @@ function resolve_card_data( \WP_Post $post ): array {
  * this collector only adapts it to the OG card field contract.
  *
  * @param array    $data Existing data (from earlier hooks).
- * @param \WP_Post $post Event post.
+ * @param mixed    $post Event post; anything else leaves $data unchanged.
  * @return array
  */
 function collect_event_card_data( array $data, $post ): array {
@@ -162,7 +162,7 @@ add_filter( 'extrachill_og_card_data_data_machine_events', __NAMESPACE__ . '\\co
  * taxonomy automatically picks up city-specific palettes.
  *
  * @param array    $data Existing card data.
- * @param \WP_Post $post Post object.
+ * @param mixed    $post Post object; anything else leaves $data unchanged.
  * @return array
  */
 function inject_location_overrides( array $data, $post ): array {

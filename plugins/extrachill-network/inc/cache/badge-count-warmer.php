@@ -61,7 +61,7 @@ function ec_badge_warmer_run() {
 		$warmed = ec_badge_warmer_warm_blog_site();
 	}
 
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	if ( defined( 'WP_CLI' ) && wp_validate_boolean( constant( 'WP_CLI' ) ) ) {
 		foreach ( $warmed as $item ) {
 			\WP_CLI::log( "  Warmed: {$item}" );
 		}

@@ -41,7 +41,7 @@ function extrachill_network_enqueue_404_styles() {
 			'extrachill-network-404',
 			EXTRACHILL_NETWORK_PLUGIN_URL . 'assets/css/404.css',
 			extrachill_network_root_style_deps(),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }
@@ -64,7 +64,7 @@ function extrachill_network_enqueue_community_activity_styles() {
 			'extrachill-network-community-activity',
 			EXTRACHILL_NETWORK_PLUGIN_URL . 'assets/css/community-activity.css',
 			extrachill_network_root_style_deps(),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }
