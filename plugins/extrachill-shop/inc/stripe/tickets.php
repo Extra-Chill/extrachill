@@ -17,20 +17,36 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	if ( true !== ( $input['terms_accepted'] ?? null ) ) {
 		return extrachill_shop_ticket_terms_required_error();
 	}
-	$terms = array(
+	$terms       = array(
 		'terms_accepted_at' => gmdate( 'Y-m-d\TH:i:s\Z' ),
 		'terms_version'     => extrachill_shop_legal_document( 'terms', 'version' ),
 	);
-	$buyer = get_current_user_id();
-	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', array( 'event' => $input['event'] ) );
+	$buyer       = get_current_user_id();
+	$entered     = strtoupper( trim( (string) ( $input['code'] ?? '' ) ) );
+	$offer_input = array( 'event' => $input['event'] );
+	if ( '' !== $entered ) {
+		$offer_input['code'] = $entered;
+	}
+	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', $offer_input );
 	if ( is_wp_error( $offer ) ) {
 		return $offer; }
 	if ( empty( $offer['enabled'] ) || empty( $offer['sale_open'] ) ) {
 		return new WP_Error( 'ticket_sale_closed', 'Ticket sales are closed.', array( 'status' => 409 ) ); }
+	$priced = extrachill_shop_ticket_checkout_type( $offer, (string) ( $input['ticket_type'] ?? '' ), '' !== $entered );
+	if ( is_wp_error( $priced ) ) {
+		return $priced; }
+	$ticket = $priced['ticket'];
+	$code   = $priced['code'];
+	// Name the type on the order and receipt unless it is a single-price show's only type.
+	$ticket['named'] = count( (array) ( $offer['ticket_types'] ?? array() ) ) > 1 || EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE !== $ticket['id'];
 	if ( null !== $offer['remaining'] && $offer['remaining'] < $input['quantity'] ) {
 		return new WP_Error( 'ticket_sold_out', 'Not enough tickets remain.', array( 'status' => 409 ) ); }
+	if ( null !== $ticket['remaining'] && $ticket['remaining'] < $input['quantity'] ) {
+		return new WP_Error( 'ticket_sold_out', sprintf( 'Not enough %s tickets remain.', $ticket['name'] ), array( 'status' => 409 ) ); }
+	if ( $code && $code['max_uses'] > 0 && extrachill_shop_ticket_code_uses( (int) $offer['event_id'], $code['code'] ) + $input['quantity'] > $code['max_uses'] ) {
+		return extrachill_shop_ticket_code_used_up_error(); }
 	// Tickets in other open checkouts are held for them (see the hold check below).
-	if ( null !== $offer['remaining'] && $offer['remaining'] - extrachill_shop_held_ticket_quantity( (int) $offer['event_id'] ) < $input['quantity'] ) {
+	if ( extrachill_shop_ticket_holds_exceed( $offer, $ticket, $input['quantity'] ) ) {
 		return extrachill_shop_tickets_held_error(); }
 	$seller = extrachill_shop_validate_seller_ref( $offer['seller'] );
 	if ( is_wp_error( $seller ) ) {
@@ -41,12 +57,14 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	$account = extrachill_shop_get_seller_stripe_account( $seller );
 	if ( ! $account || ! extrachill_shop_stripe_init() || ! extrachill_shop_seller_can_receive_payments( $seller ) ) {
 		return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments.', array( 'status' => 409 ) ); }
-	if ( ! is_int( $offer['price_minor'] ) || $offer['price_minor'] < 1 ) {
+	$unit_price = $ticket['unit_price_minor'];
+	if ( ! is_int( $unit_price ) || $unit_price < 1 ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
 	// The buyer pays the Service fee; the venue nets the subtotal. The
 	// application fee depends on who pays processing (see extrachill_commerce_ticket_fee()).
 	// Rates resolve for this show and seller: global, then any seller and event override.
-	$subtotal  = $offer['price_minor'] * $input['quantity'];
+	// A code lowers the subtotal, and fees follow what the buyer actually pays.
+	$subtotal  = $unit_price * $input['quantity'];
 	$fee_payer = extrachill_shop_get_seller_fee_payer( $seller );
 	$fees      = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $input['quantity'], $fee_payer, array( 'event_id' => (int) $offer['event_id'] ) );
 
@@ -69,6 +87,8 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'account'    => $account,
 		'fee_payer'  => $fee_payer,
 		'offer'      => $offer,
+		'ticket'     => $ticket,
+		'code'       => $code ? $code['code'] : '',
 		'quantity'   => $input['quantity'],
 		'amounts'    => $amounts,
 		'terms'      => $terms + array( 'venue_show_updates' => true === ( $input['venue_show_updates'] ?? false ) ? 'yes' : 'no' ),
@@ -79,9 +99,13 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	// The order now holds its tickets. Re-count every hold, this one included:
 	// two checkouts racing for the last tickets both see each other's holds
 	// once both are saved, so at worst both step back; neither oversells.
-	if ( null !== $offer['remaining'] && extrachill_shop_held_ticket_quantity( (int) $offer['event_id'] ) > $offer['remaining'] ) {
+	if ( extrachill_shop_ticket_holds_exceed( $offer, $ticket, 0 ) ) {
 		$order->delete( true );
 		return extrachill_shop_tickets_held_error(); }
+	// Same for a capped code: racing checkouts see each other's uses.
+	if ( $code && $code['max_uses'] > 0 && extrachill_shop_ticket_code_uses( (int) $offer['event_id'], $code['code'] ) > $code['max_uses'] ) {
+		$order->delete( true );
+		return extrachill_shop_ticket_code_used_up_error(); }
 
 	$metadata = array(
 		'event_id'    => (string) $offer['event_id'],
@@ -91,7 +115,11 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'seller_id'   => (string) $seller['id'],
 		'kind'        => EXTRACHILL_SHOP_TICKET_KIND,
 		'order_id'    => (string) $order->get_id(),
+		'ticket_type' => (string) $ticket['id'],
 	) + $terms;
+	if ( $code ) {
+		$metadata['ticket_code'] = $code['code'];
+	}
 	if ( $buyer > 0 ) {
 		$metadata['buyer_user_id'] = (string) $buyer;
 	}
@@ -100,8 +128,8 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'quantity'   => $input['quantity'],
 			'price_data' => array(
 				'currency'     => $offer['currency'],
-				'unit_amount'  => $offer['price_minor'],
-				'product_data' => array( 'name' => $offer['title'] ),
+				'unit_amount'  => $unit_price,
+				'product_data' => array( 'name' => extrachill_shop_ticket_line_name( $offer, $ticket, $code ) ),
 			),
 		),
 	);
@@ -141,6 +169,127 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'checkout_url' => $session->url,
 		'session_id'   => $session->id,
 	);
+}
+
+/**
+ * The ticket type a checkout buys, priced with the entered code.
+ *
+ * A show with one buyer-visible type sells it without asking. A code that
+ * does not match, or does not work on the chosen type, is refused rather
+ * than silently charging full price.
+ *
+ * @param array  $offer       Events ticket offer, read with the code.
+ * @param string $type_id     Requested type ('' for the only one).
+ * @param bool   $code_entered Whether the buyer entered a code.
+ * @return array{ticket: array, code: array|null}|WP_Error
+ */
+function extrachill_shop_ticket_checkout_type( array $offer, string $type_id, bool $code_entered ) {
+	$code = is_array( $offer['code'] ?? null ) ? $offer['code'] : null;
+	if ( $code_entered && ( ! $code || ! empty( $offer['code_invalid'] ) ) ) {
+		return new WP_Error( 'ticket_code_invalid', 'That code does not work for this show.', array( 'status' => 400 ) );
+	}
+	// An Events offer from before ticket types sells its one price.
+	$types = isset( $offer['ticket_types'] ) ? array_values( (array) $offer['ticket_types'] ) : array(
+		array(
+			'id'               => EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE,
+			'name'             => 'General admission',
+			'price_minor'      => $offer['price_minor'] ?? 0,
+			'unit_price_minor' => $offer['price_minor'] ?? 0,
+			'remaining'        => $offer['remaining'] ?? null,
+			'code_applies'     => false,
+		),
+	);
+	if ( '' === $type_id && 1 === count( $types ) ) {
+		$type_id = (string) $types[0]['id'];
+	}
+	foreach ( $types as $type ) {
+		if ( (string) $type['id'] !== $type_id ) {
+			continue;
+		}
+		if ( $code && empty( $type['code_applies'] ) ) {
+			return new WP_Error( 'ticket_code_not_applicable', sprintf( 'That code does not work on %s tickets.', $type['name'] ), array( 'status' => 400 ) );
+		}
+		if ( $code && (int) $type['unit_price_minor'] < 1 ) {
+			return new WP_Error( 'ticket_code_free', 'That code makes the ticket free. Ask the host to put you on the guest list.', array( 'status' => 400 ) );
+		}
+		return array(
+			'ticket' => array(
+				'id'               => (string) $type['id'],
+				'name'             => (string) $type['name'],
+				'price_minor'      => (int) $type['price_minor'],
+				'unit_price_minor' => (int) $type['unit_price_minor'],
+				'remaining'        => null === $type['remaining'] ? null : (int) $type['remaining'],
+			),
+			'code'   => $code ? array(
+				'code'     => (string) $code['code'],
+				'max_uses' => (int) ( $code['max_uses'] ?? 0 ),
+			) : null,
+		);
+	}
+	return new WP_Error( 'ticket_type_unavailable', 'Choose a ticket type that is on sale.', array( 'status' => 400 ) );
+}
+
+/**
+ * Whether open checkouts leave too few tickets for this one.
+ *
+ * Checks the show's remaining and the type's own remaining against the
+ * holds on each. Pass 0 for $quantity after this checkout's own order is
+ * saved, which then counts among the holds.
+ *
+ * @param array $offer    Events ticket offer.
+ * @param array $ticket   Ticket type from extrachill_shop_ticket_checkout_type().
+ * @param int   $quantity Tickets wanted, or 0 once this order holds them.
+ * @return bool
+ */
+function extrachill_shop_ticket_holds_exceed( array $offer, array $ticket, int $quantity ): bool {
+	if ( null === $offer['remaining'] && null === $ticket['remaining'] ) {
+		return false;
+	}
+	$holds = extrachill_shop_held_ticket_quantities( (int) $offer['event_id'] );
+	if ( null !== $offer['remaining'] && $offer['remaining'] - $holds['held'] < $quantity ) {
+		return true;
+	}
+	return null !== $ticket['remaining'] && $ticket['remaining'] - (int) ( $holds['by_type'][ $ticket['id'] ] ?? 0 ) < $quantity;
+}
+
+/**
+ * Stripe line item name: the show, plus the type and code when they add anything.
+ *
+ * @param array      $offer  Events ticket offer.
+ * @param array      $ticket Ticket type.
+ * @param array|null $code   Code used.
+ * @return string
+ */
+function extrachill_shop_ticket_line_name( array $offer, array $ticket, ?array $code ): string {
+	$name = (string) $offer['title'];
+	if ( ! empty( $ticket['named'] ) ) {
+		$name .= ' — ' . $ticket['name'];
+	}
+	if ( $code && $ticket['unit_price_minor'] < $ticket['price_minor'] ) {
+		$name .= ' (code ' . $code['code'] . ')';
+	}
+	return $name;
+}
+
+/**
+ * The ticket type to issue passes as. The default type is left out, so
+ * single-price shows send exactly what they always did.
+ *
+ * @param WC_Order $order Ticket order.
+ * @return array `{ ticket_type }` or empty.
+ */
+function extrachill_shop_ticket_issue_type( $order ): array {
+	$type = extrachill_shop_ticket_order_type( $order );
+	return EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE === $type ? array() : array( 'ticket_type' => $type );
+}
+
+/**
+ * Error for a code that has bought all the tickets it may.
+ *
+ * @return WP_Error
+ */
+function extrachill_shop_ticket_code_used_up_error(): WP_Error {
+	return new WP_Error( 'ticket_code_used_up', 'That code has no tickets left. Try fewer tickets or another code.', array( 'status' => 409 ) );
 }
 
 /**
@@ -383,7 +532,7 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	if ( 'sold_out' === $order->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) ) {
 		return extrachill_shop_ticket_refund_payment( $order, 'sold_out' );
 	}
-	$result = extrachill_shop_execute_ticket_owner_ability( 'issue-ticket-passes', array(
+	$issue  = array(
 		'event'              => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
 		'quantity'           => extrachill_shop_ticket_order_quantity( $order ),
 		'name'               => (string) ( $session->metadata->name ?? trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ),
@@ -394,7 +543,8 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 		'buyer_user_id'      => (int) $order->get_customer_id(),
 		'venue_show_updates' => 'yes' === $order->get_meta( '_extrachill_venue_show_updates' ),
 		'seller'             => extrachill_shop_get_order_seller( $order ),
-	) );
+	) + extrachill_shop_ticket_issue_type( $order );
+	$result = extrachill_shop_execute_ticket_owner_ability( 'issue-ticket-passes', $issue );
 	if ( is_wp_error( $result ) ) {
 		return $result; }
 	if ( 'sold_out' === ( $result['status'] ?? '' ) ) {

@@ -337,10 +337,16 @@ class EventPerkAbilities {
 			return new \WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
-		$counts = extrachill_events_get_guest_list_counts( $post->ID );
+		$counts  = extrachill_events_get_guest_list_counts( $post->ID );
+		$tickets = TicketAbilities::settings( $post->ID );
+		// Anyone can read a perk; only the event's managers see its codes.
+		$user_id = get_current_user_id();
+		if ( ! $user_id || ! function_exists( 'extrachill_events_user_can_manage_event' ) || ! extrachill_events_user_can_manage_event( $user_id, $post->ID ) ) {
+			$tickets = TicketAbilities::public_settings( $tickets );
+		}
 
 		return array(
-			...TicketAbilities::output_settings( TicketAbilities::settings( $post->ID ) ),
+			...TicketAbilities::output_settings( $tickets ),
 			'post_id'            => $post->ID,
 			'enabled'            => extrachill_events_perk_enabled( $post->ID ),
 			'text'               => extrachill_events_get_perk_text( $post->ID ),

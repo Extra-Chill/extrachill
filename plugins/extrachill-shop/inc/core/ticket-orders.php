@@ -105,7 +105,19 @@ const EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META = '_extrachill_ticket_pass
 
 /** Order meta: show title and URL at checkout. */
 const EXTRACHILL_SHOP_TICKET_EVENT_TITLE_META = '_extrachill_ticket_event_title';
-const EXTRACHILL_SHOP_TICKET_EVENT_URL_META   = '_extrachill_ticket_event_url';
+
+/** Order meta: the ticket type bought (extrachill#1716). Orders without one bought the default type. */
+const EXTRACHILL_SHOP_TICKET_TYPE_META = '_extrachill_ticket_type';
+
+/** Ticket type of orders placed before ticket types existed. Matches Events' default. */
+const EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE = 'general';
+
+/** Order meta: the discount or access code used, upper-cased. */
+const EXTRACHILL_SHOP_TICKET_CODE_META = '_extrachill_ticket_code';
+
+/** Order meta: money the code took off the whole order, in minor units. */
+const EXTRACHILL_SHOP_TICKET_DISCOUNT_META  = '_extrachill_ticket_discount_minor';
+const EXTRACHILL_SHOP_TICKET_EVENT_URL_META = '_extrachill_ticket_event_url';
 
 /**
  * WooCommerce emails a ticket order never sends. Events emails the passes,
@@ -289,8 +301,110 @@ function extrachill_shop_get_event_ticket_orders( int $event_id ): array {
  * @return int
  */
 function extrachill_shop_held_ticket_quantity( int $event_id, int $exclude_order_id = 0, int $now = 0 ): int {
-	if ( $event_id < 1 || ! function_exists( 'wc_get_orders' ) ) {
+	return extrachill_shop_held_ticket_quantities( $event_id, $exclude_order_id, $now )['held'];
+}
+
+/**
+ * Tickets held by unfinished checkouts for one show, in total and per type.
+ *
+ * Same holds as extrachill_shop_held_ticket_quantity(), split by the ticket
+ * type each order bought, so a capped type is not oversold either.
+ *
+ * @param int $event_id         Event post ID.
+ * @param int $exclude_order_id Order not to count (0 for none).
+ * @param int $now              Current Unix time (0 for now).
+ * @return array{held: int, by_type: array<string,int>}
+ */
+function extrachill_shop_held_ticket_quantities( int $event_id, int $exclude_order_id = 0, int $now = 0 ): array {
+	$holds = array(
+		'held'    => 0,
+		'by_type' => array(),
+	);
+	foreach ( extrachill_shop_holding_ticket_orders( $event_id, $exclude_order_id, $now ) as $order ) {
+		$quantity                  = extrachill_shop_ticket_order_quantity( $order );
+		$type                      = extrachill_shop_ticket_order_type( $order );
+		$holds['held']            += $quantity;
+		$holds['by_type'][ $type ] = ( $holds['by_type'][ $type ] ?? 0 ) + $quantity;
+	}
+	return $holds;
+}
+
+/**
+ * Tickets a code has bought or holds for one show.
+ *
+ * Paid orders count until they are refunded; unfinished checkouts count
+ * while they hold their tickets. Failed, expired and refunded orders give
+ * their uses back.
+ *
+ * @param int    $event_id         Event post ID.
+ * @param string $code             Code, upper-cased.
+ * @param int    $exclude_order_id Order not to count (0 for none).
+ * @param int    $now              Current Unix time (0 for now).
+ * @return int
+ */
+function extrachill_shop_ticket_code_uses( int $event_id, string $code, int $exclude_order_id = 0, int $now = 0 ): int {
+	if ( $event_id < 1 || '' === $code || ! function_exists( 'wc_get_orders' ) ) {
 		return 0;
+	}
+	/**
+	 * Paid orders that used the code, not paginated.
+	 *
+	 * @var WC_Order[] $paid
+	 */
+	$paid = wc_get_orders(
+		extrachill_shop_ticket_order_query(
+			array(
+				'limit'  => -1,
+				'status' => array( 'wc-processing', 'wc-completed', 'wc-on-hold' ),
+			),
+			array(
+				array(
+					'key'   => EXTRACHILL_SHOP_TICKET_EVENT_META,
+					'value' => (string) $event_id,
+				),
+				array(
+					'key'   => EXTRACHILL_SHOP_TICKET_CODE_META,
+					'value' => $code,
+				),
+			)
+		)
+	);
+	$uses = 0;
+	foreach ( $paid as $order ) {
+		if ( (int) $order->get_id() !== $exclude_order_id ) {
+			$uses += extrachill_shop_ticket_order_quantity( $order );
+		}
+	}
+	foreach ( extrachill_shop_holding_ticket_orders( $event_id, $exclude_order_id, $now ) as $order ) {
+		if ( $code === (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_CODE_META ) ) {
+			$uses += extrachill_shop_ticket_order_quantity( $order );
+		}
+	}
+	return $uses;
+}
+
+/**
+ * The ticket type an order bought.
+ *
+ * @param WC_Order $order Ticket order.
+ * @return string
+ */
+function extrachill_shop_ticket_order_type( $order ): string {
+	$type = (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_TYPE_META );
+	return '' === $type ? EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE : $type;
+}
+
+/**
+ * Pending ticket orders for one show that still hold their tickets.
+ *
+ * @param int $event_id         Event post ID.
+ * @param int $exclude_order_id Order not to count (0 for none).
+ * @param int $now              Current Unix time (0 for now).
+ * @return WC_Order[]
+ */
+function extrachill_shop_holding_ticket_orders( int $event_id, int $exclude_order_id = 0, int $now = 0 ): array {
+	if ( $event_id < 1 || ! function_exists( 'wc_get_orders' ) ) {
+		return array();
 	}
 	$now = $now > 0 ? $now : time();
 	/** @var WC_Order[] $orders Not paginated. */
@@ -309,7 +423,7 @@ function extrachill_shop_held_ticket_quantity( int $event_id, int $exclude_order
 		)
 	);
 
-	$held = 0;
+	$holding = array();
 	foreach ( $orders as $order ) {
 		if ( $exclude_order_id > 0 && (int) $order->get_id() === $exclude_order_id ) {
 			continue;
@@ -317,10 +431,10 @@ function extrachill_shop_held_ticket_quantity( int $event_id, int $exclude_order
 		$paid   = '' !== (string) $order->get_meta( '_extrachill_payment_intent' );
 		$active = (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META ) > $now;
 		if ( $paid || $active ) {
-			$held += extrachill_shop_ticket_order_quantity( $order );
+			$holding[] = $order;
 		}
 	}
-	return $held;
+	return $holding;
 }
 
 /**
@@ -402,6 +516,9 @@ function extrachill_shop_ticket_order_quantity( $order ): int {
  *     @type string $fee_payer Stripe processing fee payer.
  *     @type array  $offer     Event ticket offer (event_id, title, url, currency).
  *     @type int    $quantity  Tickets.
+ *     @type array  $ticket    Optional ticket type bought: id, name, price_minor (before any code),
+ *                             named (whether the order names the type).
+ *     @type string $code      Optional code used, upper-cased.
  *     @type array  $amounts   Payment split (extrachill_shop_ticket_order_amounts()).
  *     @type array  $terms     terms_accepted_at, terms_version.
  *     @type int    $hold_until Unix time the inventory hold ends.
@@ -426,13 +543,27 @@ function extrachill_shop_create_ticket_order( array $sale ) {
 	$offer    = $sale['offer'];
 	$event_id = (int) $offer['event_id'];
 
-	$item = new WC_Order_Item_Product();
-	$item->set_name( 'Event tickets: ' . (string) $offer['title'] );
+	$ticket = is_array( $sale['ticket'] ?? null ) ? $sale['ticket'] : null;
+	$code   = (string) ( $sale['code'] ?? '' );
+	// The line shows the list price as its subtotal and what the buyer pays
+	// as its total, so WooCommerce shows the code's discount.
+	$list     = $ticket ? (int) $ticket['price_minor'] * (int) $sale['quantity'] : (int) $amounts['subtotal_minor'];
+	$discount = max( 0, $list - (int) $amounts['subtotal_minor'] );
+
+	$item  = new WC_Order_Item_Product();
+	$named = $ticket && ! empty( $ticket['named'] );
+	$item->set_name( 'Event tickets: ' . (string) $offer['title'] . ( $named ? ' (' . (string) $ticket['name'] . ')' : '' ) );
 	$item->set_quantity( (int) $sale['quantity'] );
-	$item->set_subtotal( (string) ( $amounts['subtotal_minor'] / 100 ) );
+	$item->set_subtotal( (string) ( $list / 100 ) );
 	$item->set_total( (string) ( $amounts['subtotal_minor'] / 100 ) );
 	$item->add_meta_data( 'event_id', (string) $event_id, true );
+	if ( $named ) {
+		$item->add_meta_data( 'ticket_type', (string) $ticket['name'], true );
+	}
 	$order->add_item( $item );
+	if ( $discount > 0 ) {
+		$order->set_discount_total( (string) ( $discount / 100 ) );
+	}
 	if ( $amounts['service_fee_minor'] > 0 ) {
 		$fee = new WC_Order_Item_Fee();
 		$fee->set_name( 'Service fee' );
@@ -462,6 +593,13 @@ function extrachill_shop_create_ticket_order( array $sale ) {
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_TITLE_META, (string) $offer['title'] );
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_URL_META, (string) $offer['url'] );
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) (int) ( $sale['hold_until'] ?? 0 ) );
+	if ( $ticket ) {
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_TYPE_META, (string) $ticket['id'] );
+	}
+	if ( '' !== $code ) {
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_CODE_META, $code );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_DISCOUNT_META, (string) $discount );
+	}
 	foreach ( $sale['terms'] as $key => $value ) {
 		$order->update_meta_data( '_extrachill_' . $key, (string) $value );
 	}

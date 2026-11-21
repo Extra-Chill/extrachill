@@ -73,11 +73,36 @@ function extrachill_events_ticket_subscribe_venue( array $seller, int $buyer, bo
 	}
 }
 
-/** Read the public offer through its owner ability. */
-function extrachill_events_checkout_offer( $post_id ) {
+/**
+ * Read the public offer through its owner ability.
+ *
+ * @param int    $post_id Event post ID.
+ * @param string $code    Code the buyer entered ('' for none).
+ * @return array|\WP_Error|null
+ */
+function extrachill_events_checkout_offer( $post_id, string $code = '' ) {
 	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-event-ticket-offer' ) : null;
-	return $ability ? $ability->execute( array( 'event' => (int) $post_id ) ) : null;
+	$input   = array( 'event' => (int) $post_id );
+	if ( '' !== $code ) {
+		$input['code'] = $code;
+	}
+	return $ability ? $ability->execute( $input ) : null;
 }
+
+// phpcs:disable WordPress.Security.NonceVerification.Recommended
+/**
+ * The code a buyer entered on the event page. A read-only GET field that
+ * only changes which prices are shown, so it needs no nonce.
+ *
+ * @return string
+ */
+function extrachill_events_checkout_entered_code(): string {
+	if ( ! isset( $_GET['ticket_code'] ) || ! is_string( $_GET['ticket_code'] ) ) {
+		return '';
+	}
+	return substr( strtoupper( trim( sanitize_text_field( wp_unslash( $_GET['ticket_code'] ) ) ) ), 0, 32 );
+}
+// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 /**
  * Read advisory checkout holds from Shop's owning runtime.
@@ -88,10 +113,23 @@ function extrachill_events_checkout_offer( $post_id ) {
  * @return int Held ticket quantity.
  */
 function extrachill_events_checkout_held_quantity( int $event_id ): int {
-	$key  = 'extrachill_events_ticket_holds_' . $event_id;
-	$held = get_transient( $key );
-	if ( false !== $held ) {
-		return max( 0, (int) $held );
+	return extrachill_events_checkout_holds( $event_id )['held'];
+}
+
+/**
+ * Advisory checkout holds for a show, in total and per ticket type.
+ *
+ * @param int $event_id Event post ID.
+ * @return array{held: int, by_type: array<string,int>}
+ */
+function extrachill_events_checkout_holds( int $event_id ): array {
+	$key    = 'extrachill_events_ticket_holds_v2_' . $event_id;
+	$cached = get_transient( $key );
+	if ( is_array( $cached ) ) {
+		return array(
+			'held'    => max( 0, (int) ( $cached['held'] ?? 0 ) ),
+			'by_type' => array_map( 'intval', (array) ( $cached['by_type'] ?? array() ) ),
+		);
 	}
 	$result = function_exists( 'ec_cross_site_rest_request_http' ) ? ec_cross_site_rest_request_http(
 		'shop',
@@ -102,9 +140,35 @@ function extrachill_events_checkout_held_quantity( int $event_id ): int {
 			'query'   => array( 'input' => array( 'event' => $event_id ) ),
 		)
 	) : null;
-	$held   = is_array( $result ) ? max( 0, (int) ( $result['held'] ?? 0 ) ) : 0;
-	set_transient( $key, $held, 60 );
-	return $held;
+	$holds  = array(
+		'held'    => is_array( $result ) ? max( 0, (int) ( $result['held'] ?? 0 ) ) : 0,
+		'by_type' => is_array( $result ) ? array_map( 'intval', (array) ( $result['by_type'] ?? array() ) ) : array(),
+	);
+	set_transient( $key, $holds, 60 );
+	return $holds;
+}
+
+/**
+ * The offer's buyer-visible ticket types. An offer without any lists its
+ * single price as one type.
+ *
+ * @param array $offer Public ticket offer.
+ * @return array[]
+ */
+function extrachill_events_checkout_offer_types( array $offer ): array {
+	if ( isset( $offer['ticket_types'] ) && is_array( $offer['ticket_types'] ) ) {
+		return array_values( $offer['ticket_types'] );
+	}
+	return array(
+		array(
+			'id'               => 'general',
+			'name'             => __( 'General admission', 'extrachill-events' ),
+			'price_minor'      => (int) $offer['price_minor'],
+			'unit_price_minor' => (int) $offer['price_minor'],
+			'remaining'        => $offer['remaining'],
+			'code_applies'     => false,
+		),
+	);
 }
 
 /** Add to, rather than replace, the external ticket link. */
@@ -120,7 +184,8 @@ function extrachill_events_render_ticket_checkout( $post_id, $ticket_url = '', $
 	if ( 'cancelled' === $state ) {
 		echo '<div class="notice notice-info" role="status">' . esc_html__( 'Checkout was cancelled. You can try again when you are ready.', 'extrachill-events' ) . '</div>';
 	}
-	$offer = extrachill_events_checkout_offer( $post_id );
+	$entered_code = extrachill_events_checkout_entered_code();
+	$offer        = extrachill_events_checkout_offer( $post_id, $entered_code );
 	if ( ! is_array( $offer ) || empty( $offer['enabled'] ) ) {
 		return;
 	}
@@ -133,12 +198,27 @@ function extrachill_events_render_ticket_checkout( $post_id, $ticket_url = '', $
 	}
 	// Keep the owner offer's remaining and sale_open unchanged for fulfilment.
 	$available = $offer['remaining'];
+	$offered   = extrachill_events_checkout_offer_types( $offer );
+	$capped    = null !== $available || array_filter( $offered, static fn( $type ) => null !== $type['remaining'] );
+	$holds     = $capped ? extrachill_events_checkout_holds( (int) $post_id ) : array(
+		'held'    => 0,
+		'by_type' => array(),
+	);
 	if ( null !== $available && $available > 0 ) {
-		$available = max( 0, (int) $available - extrachill_events_checkout_held_quantity( (int) $post_id ) );
+		$available = max( 0, (int) $available - $holds['held'] );
 		if ( 0 === $available ) {
 			echo '<p class="notice notice-info">' . esc_html__( 'All remaining tickets are being held in checkout. Check back in a few minutes.', 'extrachill-events' ) . '</p>';
 			return;
 		}
+	}
+	// Each type's own count, less its holds and never above the show's.
+	$ticket_types = array();
+	foreach ( $offered as $type ) {
+		if ( null !== $type['remaining'] ) {
+			$type['remaining'] = max( 0, (int) $type['remaining'] - (int) ( $holds['by_type'][ $type['id'] ] ?? 0 ) );
+			$type['remaining'] = null === $available ? $type['remaining'] : min( $type['remaining'], (int) $available );
+		}
+		$ticket_types[] = $type;
 	}
 	$maximum = null === $available ? 10 : min( 10, (int) $available );
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/ticket-checkout.php';

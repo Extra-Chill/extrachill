@@ -204,20 +204,20 @@ The [seller shop manager](shop-manager.md) doc explains how the manager uses the
 ### `extrachill/start-ticket-checkout`
 
 - **Purpose:** Start a seller-settled Stripe Checkout session for event tickets.
-- **Input:** `event` (integer, required, minimum 1), `quantity` (integer, required, 1–10), `name` (string, required, 1–200 characters), `email` (string, required, email format), `terms_accepted` (boolean; must be true or the ability returns the `terms_required` error).
+- **Input:** `event` (integer, required, minimum 1), `quantity` (integer, required, 1–10), `name` (string, required, 1–200 characters), `email` (string, required, email format), `terms_accepted` (boolean; must be true or the ability returns the `terms_required` error), `ticket_type` (string, optional when the show sells one type, max 40), `code` (string, optional, max 32, case-insensitive).
 - **Output:** `{ checkout_url, session_id }`.
 - **Permission:** `__return_true`. Admission (Turnstile and rate limiting) is enforced by the API route, not by the ability.
 - **Exposure:** `show_in_rest` **false**, so the core ability REST runner can't reach it. Route `POST /extrachill/v1/events/tickets/checkout` runs it locally ([ticket checkout route](../../extrachill-api/docs/routes/events/ticket-checkout.md)).
-- **Side effects:** Reads the offer from the Events ability `extrachill/get-event-ticket-offer` and requires an open sale, enough remaining inventory and a seller who can receive payments. Creates a pending WooCommerce ticket order with the amounts and Terms consent. Creates a Stripe Checkout Session on the seller's connected account with an application fee; the session expires after 30 minutes. Stores the session ID as the order reference. If Stripe fails, the order is deleted.
+- **Side effects:** Reads the offer from the Events ability `extrachill/get-event-ticket-offer` (with the code) and requires an open sale, a buyable chosen type, enough remaining inventory for the show and the type after holds, a code that applies to the type and has uses left (`ticket_code_invalid`, `ticket_code_not_applicable`, `ticket_code_used_up`, `ticket_code_free`, `ticket_type_unavailable`), and a seller who can receive payments. Charges the type's discounted `unit_price_minor`; fees use the discounted subtotal. The order stores the type, code and discount. Creates a pending WooCommerce ticket order with the amounts and Terms consent. Creates a Stripe Checkout Session on the seller's connected account with an application fee; the session expires after 30 minutes. Stores the session ID as the order reference. If Stripe fails, the order is deleted.
 
 ### `extrachill/get-event-ticket-holds`
 
 - **Purpose:** Report how many tickets for an event are held in open ticket checkouts.
 - **Input:** `event` (integer, required, minimum 1).
-- **Output:** `{ held }` (integer, minimum 0). Count only, no order or buyer details.
+- **Output:** `{ held, by_type }`: `held` (integer, minimum 0) and `by_type`, held tickets per ticket type ID (orders with no type count as `general`). Counts only, no order or buyer details.
 - **Permission:** `__return_true`.
 - **Exposure:** `show_in_rest` true, read-only and idempotent. The Events event page reads it across sites through `/wp-abilities/v1` and caches the count for 60 seconds, so "N remaining" and the quantity limit leave out held tickets. Checkout start still enforces holds on its own.
-- **Side effects:** None. Counts pending ticket orders whose hold hasn't expired (`extrachill_shop_held_ticket_quantity()`).
+- **Side effects:** None. Counts pending ticket orders whose hold hasn't expired (`extrachill_shop_held_ticket_quantities()`).
 
 ### `extrachill/refund-ticket-order`
 

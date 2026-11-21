@@ -40,7 +40,8 @@ function wp_get_ability( $name ) {
 	check( 'extrachill/get-event-ticket-offer' === $name, 'Public offer ability used' );
 	return new class {
 		public function execute( $input ) {
-			check( array( 'event' => 42 ) === $input, 'Event reference supplied' );
+			check( 42 === $input['event'], 'Event reference supplied' );
+			$GLOBALS['offer_input'] = $input;
 			return $GLOBALS['offer'];
 		}
 	};
@@ -48,6 +49,8 @@ function wp_get_ability( $name ) {
 function get_current_user_id() { return $GLOBALS['current_user_id'] ?? 0; }
 function get_queried_object_id() { return 42; }
 function extrachill_events_user_can_manage_event( $user_id, $event_id ) { return 42 === $event_id && in_array( $user_id, $GLOBALS['managers'] ?? array(), true ); }
+function checked( $a, $b = true ) { echo $a === $b ? ' checked="checked"' : ''; }
+function disabled( $a, $b = true ) { echo $a === $b ? ' disabled="disabled"' : ''; }
 function check( $condition, $message ) {
 	if ( ! $condition ) {
 		throw new RuntimeException( $message );
@@ -133,6 +136,41 @@ check( extrachill_events_is_ad_free_page(), 'Managers see no ads on events they 
 $GLOBALS['singular'] = false;
 check( ! extrachill_events_is_ad_free_page(), 'Manager exemption only applies to event pages' );
 $GLOBALS['current_user_id'] = 0;
+$GLOBALS['singular'] = true;
+
+// Ticket types and codes (extrachill#1716).
+$_GET                    = array( 'ticket_code' => ' friends ' );
+$GLOBALS['transients']   = array();
+$GLOBALS['holds_result'] = array( 'held' => 2, 'by_type' => array( 'vip' => 2 ) );
+$GLOBALS['offer']        = array(
+	'enabled'      => true,
+	'sale_open'    => true,
+	'price_minor'  => 1500,
+	'currency'     => 'usd',
+	'remaining'    => 20,
+	'ticket_types' => array(
+		array( 'id' => 'ga', 'name' => 'GA', 'price_minor' => 1500, 'unit_price_minor' => 1200, 'remaining' => null, 'code_applies' => true ),
+		array( 'id' => 'vip', 'name' => 'VIP', 'price_minor' => 4000, 'unit_price_minor' => 4000, 'remaining' => 2, 'code_applies' => false ),
+	),
+	'code'         => array( 'code' => 'FRIENDS', 'percent_off' => 20, 'amount_off_minor' => 0, 'max_uses' => 0, 'ticket_types' => array() ),
+	'code_invalid' => false,
+);
+$html = render_checkout();
+check( 'FRIENDS' === $GLOBALS['offer_input']['code'], 'Entered code is trimmed, upper-cased and sent to the offer' );
+check( str_contains( $html, 'Code FRIENDS applied.' ), 'Applied code is confirmed' );
+check( str_contains( $html, 'name="code" value="FRIENDS"' ), 'Checkout form carries the code' );
+check( str_contains( $html, 'GA · USD 12.00' ) && str_contains( $html, '(was USD 15.00)' ), 'Discounted type shows its old price' );
+check( str_contains( $html, 'VIP · USD 40.00' ) && str_contains( $html, 'Sold out' ), 'Type fully held in checkout shows sold out' );
+check( 1 === preg_match( '/value="vip" required\s+disabled="disabled"/', $html ), 'Sold-out type cannot be picked' );
+check( 1 === preg_match( '/value="ga" required\s+checked="checked"/', $html ), 'First open type is picked by default' );
+check( str_contains( $html, 'max="10"' ), 'Show-wide limit still caps quantity' );
+$GLOBALS['offer']['code']         = null;
+$GLOBALS['offer']['code_invalid'] = true;
+check( str_contains( render_checkout(), 'That code does not work for this show.' ), 'Unknown code is reported' );
+$_GET = array();
+unset( $GLOBALS['offer_input']['code'] );
+render_checkout();
+check( ! isset( $GLOBALS['offer_input']['code'] ), 'No code means none is sent' );
 echo "Ticket checkout rendering passed.\n";
 
 eval( 'namespace ExtraChillEvents\\Abilities; class TicketAbilities { public static function settings( $id ) { return $GLOBALS["ticket_settings"]; } }' );
