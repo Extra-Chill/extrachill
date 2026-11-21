@@ -34,6 +34,7 @@ def run_route(event, component="", version="", repository=""):
             D_COMPONENT=component,
             D_VERSION=version,
             D_REPOSITORY=repository,
+            TOOLCHAIN_COMPONENT=WORKFLOW["env"]["TOOLCHAIN_COMPONENT"],
             GITHUB_OUTPUT=str(output),
             GITHUB_STEP_SUMMARY=str(summary),
         )
@@ -95,6 +96,32 @@ class DispatchRouteTest(unittest.TestCase):
             proc, out, _ = run_route(event, "wp-native-shell", "0.4.0")
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(out.get("deploy"), "true", event)
+
+    def test_toolchain_release_runs_a_poll_tick(self):
+        # #1727: a wp-coding-agents release applies within minutes, not on cron.
+        self.assertEqual(WORKFLOW["env"]["TOOLCHAIN_COMPONENT"], "wp-coding-agents")
+        self.assertFalse((ROOT / "deploy/homeboy/components/wp-coding-agents.json").exists())
+        proc, out, summary = run_route("repository_dispatch", "wp-coding-agents", "3.11.0", "Extra-Chill/wp-coding-agents")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(out.get("deploy"), "true")
+        self.assertIn("running a poll tick", proc.stdout)
+        self.assertNotIn("Dispatch ignored", summary)
+
+    def test_plan_turns_toolchain_dispatch_into_schedule_tick(self):
+        plan = next(s for s in WORKFLOW["jobs"]["deploy"]["steps"] if s.get("id") == "plan")["run"]
+        script = plan.split('if [ -n "${component}" ]; then', 1)[0] + 'echo "component=[${component}] version=[${version}] dry_run=[${dry_run}]"\n'
+        for component, expect in (("wp-coding-agents", "component=[] version=[]"), ("data-machine", "component=[data-machine] version=[1.2.3]")):
+            with tempfile.TemporaryDirectory() as tmp:
+                env = dict(os.environ, EVENT="repository_dispatch", D_COMPONENT=component, D_VERSION="1.2.3",
+                           AUTOMATION="enabled", TOOLCHAIN_COMPONENT=WORKFLOW["env"]["TOOLCHAIN_COMPONENT"],
+                           GITHUB_OUTPUT=str(Path(tmp) / "o"))
+                proc = subprocess.run(["bash", "-c", script], cwd=ROOT, env=env, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertIn(expect, proc.stdout, component)
+
+    def test_upgrade_step_runs_on_every_deploy_run(self):
+        step = next(s for s in WORKFLOW["jobs"]["deploy"]["steps"] if s.get("id") == "coding_agents")
+        self.assertNotIn("if", step)
 
     def test_plan_still_rejects_unregistered_components(self):
         plan = next(s for s in WORKFLOW["jobs"]["deploy"]["steps"] if s.get("id") == "plan")["run"]
