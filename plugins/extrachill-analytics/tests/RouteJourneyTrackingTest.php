@@ -89,7 +89,7 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 		$script  = $this->read_source( 'assets/js/view-tracking.js' );
 		$ability = $this->read_source( 'inc/core/abilities/track-page-view.php' );
 
-		$this->assertStringContainsString( "rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' )", $assets );
+		$this->assertStringContainsString( "extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' )", $assets );
 		$this->assertStringContainsString( 'JSON.stringify( { input } )', $script );
 		$this->assertStringContainsString( 'source_path: config.sourcePath', $script );
 		$this->assertStringContainsString( 'route_family: config.routeFamily', $script );
