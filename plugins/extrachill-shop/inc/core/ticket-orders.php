@@ -72,7 +72,7 @@ const EXTRACHILL_SHOP_TICKET_EVENT_META = '_extrachill_ticket_event';
 /** Order meta: the payment split in minor units. */
 const EXTRACHILL_SHOP_TICKET_AMOUNTS_META = '_extrachill_ticket_amounts';
 
-/** Order meta: a refund was started (passes revoked) and has not succeeded yet. */
+/** Order meta: refund started but not yet succeeded (`seller_refund` or `sold_out`). */
 const EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META = '_extrachill_ticket_refund_pending';
 
 /** Order meta: why the order was refunded. */

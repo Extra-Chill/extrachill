@@ -633,6 +633,47 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'extrachill.events.tickets', $call['args']['service_assertion']['service_id'] );
 		$this->assertSame( 'cs_ticket', $call['args']['body']['input']['idempotency_key'] );
 	}
+	/** @dataProvider held_pass_statuses */
+	public function test_sold_out_duplicate_with_existing_passes_never_refunds( $status ): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$GLOBALS['ticket_passes'] = array( array( 'code' => 'pass', 'status' => $status ) );
+		try {
+			$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+			$this->assertSame( 'completed', $this->order()->get_status() );
+			$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+			$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+		} finally { unset( $GLOBALS['ticket_passes'] ); }
+	}
+	public function held_pass_statuses(): array {
+		return array( array( 'active' ), array( 'redeemed' ) );
+	}
+	public function test_sold_out_status_lookup_failure_retries_without_refund(): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$callback = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static function ( $site, $method, $route ) use ( $callback ) {
+			if ( str_contains( $route, 'get-ticket-order-status' ) ) {
+				return new WP_Error( 'events_unavailable', 'Retry later.' );
+			}
+			return $callback( $site, $method, $route );
+		};
+		$this->assertSame( 'events_unavailable', extrachill_shop_route_webhook_event( $this->event() )->get_error_code() );
+		$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+	}
+	public function test_sold_out_failed_refund_retry_does_not_issue_again(): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$GLOBALS['ticket_refund_fail'] = true;
+		$this->assertSame( 'ticket_refund_failed', extrachill_shop_route_webhook_event( $this->event() )->get_error_code() );
+		$this->assertSame( 'sold_out', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) );
+		$GLOBALS['ticket_refund_fail'] = false;
+		$GLOBALS['ticket_issue_status'] = 'issued';
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$this->assertSame( 'refunded', $this->order()->get_status() );
+		$this->assertSame( 0, $this->order()->paid );
+	}
 	public function test_sold_out_auto_refund_and_replay(): void {
 		$this->checkout();
 		$GLOBALS['ticket_issue_status'] = 'sold_out';
