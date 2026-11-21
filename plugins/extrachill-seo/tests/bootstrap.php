@@ -256,6 +256,12 @@ if ( ! function_exists( 'has_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'current_time' ) ) {
+	function current_time( $type ) {
+		return $GLOBALS['ec_seo_test_current_time'] ?? '2026-01-01 00:00:00';
+	}
+}
+
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		return true;
@@ -632,6 +638,7 @@ require_once __DIR__ . '/../inc/core/meta-tags.php';
 require_once __DIR__ . '/../inc/core/canonical.php';
 require_once __DIR__ . '/../inc/core/app-banner.php';
 require_once __DIR__ . '/../inc/core/sparse-terms.php';
+require_once __DIR__ . '/../inc/core/recurring-events.php';
 require_once __DIR__ . '/../inc/core/open-graph.php';
 require_once __DIR__ . '/../inc/schema/schema-output.php';
 require_once __DIR__ . '/../inc/schema/schema-webpage.php';
