@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 /** Public inventory count; order and buyer details stay private. */
 function extrachill_shop_get_event_ticket_holds( array $input ): array {
-	return array( 'held' => extrachill_shop_held_ticket_quantity( (int) $input['event'] ) );
+	return extrachill_shop_held_ticket_quantities( (int) $input['event'] );
 }
 
 add_action( 'wp_abilities_api_init', 'extrachill_shop_register_ticket_abilities' );
@@ -27,9 +27,17 @@ function extrachill_shop_register_ticket_abilities() {
 			'type'       => 'object',
 			'required'   => array( 'held' ),
 			'properties' => array(
-				'held' => array(
+				'held'    => array(
 					'type'    => 'integer',
 					'minimum' => 0,
+				),
+				// Held tickets per ticket type ID.
+				'by_type' => array(
+					'type'                 => 'object',
+					'additionalProperties' => array(
+						'type'    => 'integer',
+						'minimum' => 0,
+					),
 				),
 			),
 		),
@@ -75,6 +83,16 @@ function extrachill_shop_register_ticket_abilities() {
 				'terms_accepted'     => array(
 					'type'        => 'boolean',
 					'description' => 'The buyer agreed to the Terms of Service. Must be true.',
+				),
+				'ticket_type'        => array(
+					'type'        => 'string',
+					'maxLength'   => 40,
+					'description' => 'Ticket type ID. Optional when the show sells one type.',
+				),
+				'code'               => array(
+					'type'        => 'string',
+					'maxLength'   => 32,
+					'description' => 'Discount or access code the buyer entered.',
 				),
 			),
 			'additionalProperties' => false,

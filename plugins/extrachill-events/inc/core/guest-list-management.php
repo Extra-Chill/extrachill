@@ -64,9 +64,14 @@ function extrachill_events_save_guest_list_management(): void {
 		// Unchecked box = off: the checkbox always renders with this form.
 		'allotments_enabled' => ! empty( $_POST['allotments_enabled'] ),
 	);
-	$input['tickets_enabled']    = ! empty( $_POST['tickets_enabled'] );
-	$input['ticket_price_minor'] = isset( $_POST['ticket_price'] ) ? (int) round( (float) sanitize_text_field( wp_unslash( $_POST['ticket_price'] ) ) * 100 ) : 0;
-	$input['ticket_quantity']    = isset( $_POST['ticket_quantity'] ) ? (int) $_POST['ticket_quantity'] : 0;
+	$input['tickets_enabled'] = ! empty( $_POST['tickets_enabled'] );
+	$input['ticket_quantity'] = isset( $_POST['ticket_quantity'] ) ? (int) $_POST['ticket_quantity'] : 0;
+	$input['ticket_types']    = extrachill_events_guest_list_posted_ticket_types( isset( $_POST['ticket_types'] ) ? wp_unslash( $_POST['ticket_types'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized in the parser; the ability validates.
+	$input['ticket_codes']    = extrachill_events_guest_list_posted_ticket_codes( isset( $_POST['ticket_codes'] ) ? wp_unslash( $_POST['ticket_codes'] ) : array() ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Each field is sanitized in the parser; the ability validates.
+	if ( ! $input['ticket_types'] ) {
+		// No types left: there is nothing to sell.
+		$input['ticket_price_minor'] = 0;
+	}
 	if ( ! empty( $_POST['ticket_seller'] ) && is_string( $_POST['ticket_seller'] ) ) {
 		$seller_parts           = explode( ':', sanitize_text_field( wp_unslash( $_POST['ticket_seller'] ) ), 2 );
 		$input['ticket_seller'] = array(
@@ -104,6 +109,82 @@ function extrachill_events_save_guest_list_management(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_settings', 'extrachill_events_save_guest_list_management' );
+
+/**
+ * Dollars typed into the host form, in cents. Blank is null.
+ *
+ * @param mixed $value Posted value.
+ * @return int|null
+ */
+function extrachill_events_guest_list_posted_minor( $value ): ?int {
+	$value = is_scalar( $value ) ? trim( sanitize_text_field( (string) $value ) ) : '';
+	return '' === $value ? null : (int) round( (float) $value * 100 );
+}
+
+/**
+ * Ticket type rows from the host form. Fully blank rows are spare rows.
+ *
+ * @param mixed $rows Posted `ticket_types` rows.
+ * @return array[] Types for the set-event-perk ability.
+ */
+function extrachill_events_guest_list_posted_ticket_types( $rows ): array {
+	$types = array();
+	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$name  = sanitize_text_field( (string) ( $row['name'] ?? '' ) );
+		$price = extrachill_events_guest_list_posted_minor( $row['price'] ?? '' );
+		if ( '' === trim( $name ) && null === $price ) {
+			continue;
+		}
+		$type = array(
+			'name'        => $name,
+			'price_minor' => (int) $price,
+			'quantity'    => max( 0, (int) ( $row['quantity'] ?? 0 ) ),
+			'hidden'      => ! empty( $row['hidden'] ),
+		);
+		$id   = sanitize_key( (string) ( $row['id'] ?? '' ) );
+		if ( '' !== $id ) {
+			$type['id'] = $id;
+		}
+		$types[] = $type;
+	}
+	return $types;
+}
+
+/**
+ * Code rows from the host form. Rows without a code are spare rows.
+ *
+ * Each row picks a kind: `percent` or `amount` off, or `access` (no discount,
+ * only unlocks the hidden types it is limited to).
+ *
+ * @param mixed $rows Posted `ticket_codes` rows.
+ * @return array[] Codes for the set-event-perk ability.
+ */
+function extrachill_events_guest_list_posted_ticket_codes( $rows ): array {
+	$codes = array();
+	foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+		if ( ! is_array( $row ) ) {
+			continue;
+		}
+		$text = sanitize_text_field( (string) ( $row['code'] ?? '' ) );
+		if ( '' === trim( $text ) ) {
+			continue;
+		}
+		$kind    = sanitize_key( (string) ( $row['kind'] ?? 'percent' ) );
+		$value   = is_scalar( $row['value'] ?? '' ) ? trim( sanitize_text_field( (string) ( $row['value'] ?? '' ) ) ) : '';
+		$code    = array(
+			'code'             => $text,
+			'percent_off'      => 'percent' === $kind ? (int) round( (float) $value ) : 0,
+			'amount_off_minor' => 'amount' === $kind ? (int) extrachill_events_guest_list_posted_minor( $value ) : 0,
+			'max_uses'         => max( 0, (int) ( $row['max_uses'] ?? 0 ) ),
+			'ticket_types'     => array_values( array_filter( array_map( 'sanitize_key', array_map( 'strval', is_array( $row['types'] ?? null ) ? $row['types'] : array() ) ) ) ),
+		);
+		$codes[] = $code;
+	}
+	return $codes;
+}
 
 /** Largest pass image a host may upload from the panel, in bytes. */
 const EXTRACHILL_EVENTS_PASS_IMAGE_MAX_BYTES = 10 * MB_IN_BYTES;

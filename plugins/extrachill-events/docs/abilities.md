@@ -342,7 +342,7 @@ Registration: [`TicketSalesAbilities.php`](../inc/Abilities/TicketSalesAbilities
 
 - **Purpose:** Ticketed shows and orders for a venue or promoter seller, with refund eligibility. Requires finance authority on the seller.
 - **Input:** `type` (string, required); `id` (integer, required).
-- **Output:** `object {events: array<object {event_id: integer, title: string, url: string, manage_url: string, start: string, timing: string, tickets_enabled: boolean, price_minor: integer, currency: string, quantity: integer, sold: integer, checked_in: integer, refunded: integer, orders: array<object {order_reference: string, name: string, quantity: integer, checked_in: integer, bought_at: string, status: string, refundable: boolean}>}>}`.
+- **Output:** `object {events: array<object {event_id: integer, title: string, url: string, manage_url: string, start: string, timing: string, tickets_enabled: boolean, price_minor: integer, currency: string, quantity: integer, sold: integer, checked_in: integer, refunded: integer, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, sold: integer}>, orders: array<object {order_reference: string, name: string, ticket_type: string, quantity: integer, checked_in: integer, bought_at: string, status: string, refundable: boolean}>}>}`.
 - **Permission:** Logged-in user with `can_manage_finances` for the seller; cancellation first validates the event and resolves its configured seller.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 
@@ -619,15 +619,15 @@ Registration: [`EventPerkAbilities.php`](../inc/Abilities/EventPerkAbilities.php
 
 - **Purpose:** Get an event's RSVP perk configuration.
 - **Input:** `event` (string, required).
-- **Output:** `object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, post_id: integer, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, claimed: integer, checked_in: integer, spots_left: integer | null, full: boolean, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}`.
+- **Output:** Readers who can't manage the event get `ticket_codes` empty and no `hidden` types. `object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, hidden: boolean}>, ticket_codes: array<object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>}>, post_id: integer, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, claimed: integer, checked_in: integer, spots_left: integer | null, full: boolean, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}`.
 - **Permission:** Always allowed by the callback (no authentication check).
 - **Exposure:** `show_in_rest: true`; `wp extrachill events guest-list` adapter.
 
 ### `extrachill/set-event-perk`
 
 - **Purpose:** Enable or disable an RSVP perk on an event, set its attendee-facing description, and choose how guests get on the list (mode). Empty or omitted fields keep their current value.
-- **Input:** `tickets_enabled` (boolean, optional); `ticket_price_minor` (integer, optional); `ticket_currency` (string, optional); `ticket_quantity` (integer, optional); `ticket_seller` (object {type: string, id: integer}, optional); `event` (string, required); `enabled` (boolean, optional); `text` (string, optional); `clear_text` (boolean, optional, default false); `mode` (string, optional); `password` (string, optional); `clear_password` (boolean, optional, default false); `capacity` (integer, optional); `image_id` (integer, optional); `allotments_enabled` (boolean, optional).
-- **Output:** `object {success: boolean, event: object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, post_id: integer, title: string, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}}`.
+- **Input:** `tickets_enabled` (boolean, optional); `ticket_price_minor` (integer, optional); `ticket_currency` (string, optional); `ticket_quantity` (integer, optional); `ticket_seller` (object {type: string, id: integer}, optional); `ticket_types` (array, optional: up to 10 types; an omitted `id` is made from the name); `ticket_codes` (array, optional: up to 50 codes, 3–32 letters, digits or dashes); `event` (string, required); `enabled` (boolean, optional); `text` (string, optional); `clear_text` (boolean, optional, default false); `mode` (string, optional); `password` (string, optional); `clear_password` (boolean, optional, default false); `capacity` (integer, optional); `image_id` (integer, optional); `allotments_enabled` (boolean, optional).
+- **Output:** `object {success: boolean, event: object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, hidden: boolean}>, ticket_codes: array<object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>}>, post_id: integer, title: string, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}}`.
 - **Permission:** Resolves the event, then checks `extrachill_events_user_can_manage_event` for the current user. Returns 404 for a missing event, 503 if the authority helper is unavailable, or 403 on denial.
 - **Exposure:** `show_in_rest: true`; `wp extrachill events guest-list` adapter.
 - **Side effects:** Writes event perk, guest-list and ticket settings; hashes passwords and may update artwork/capacity.
@@ -1011,15 +1011,15 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 ### `extrachill/get-event-ticket-offer`
 
 - **Purpose:** get-event-ticket-offer See [existing guide](paid-tickets.md).
-- **Input:** `event` (string | integer, required).
-- **Output:** `object {event_id: integer, title: string, url: string, enabled: boolean, price_minor: integer, currency: string, remaining: integer | null, sale_open: boolean, seller: object {type: string, id: integer}}`.
+- **Input:** `event` (string | integer, required); `code` (string, optional, case-insensitive).
+- **Output:** `object {event_id: integer, title: string, url: string, enabled: boolean, price_minor: integer, currency: string, remaining: integer | null, sale_open: boolean, seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, unit_price_minor: integer, remaining: integer | null, code_applies: boolean}>, code: object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>} | null, code_invalid: boolean}`. `ticket_types` lists buyer-visible types (hidden types only when `code` unlocks them) with `unit_price_minor` after the code. A legacy single-price offer reads as one `general` type. `price_minor` is the cheapest public type. `sale_open` also needs a buyable type. Codes themselves are never listed.
 - **Permission:** Always allowed by the callback (no authentication check).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 
 ### `extrachill/issue-ticket-passes`
 
 - **Purpose:** issue-ticket-passes See [existing guide](paid-tickets.md).
-- **Input:** `event` (string | integer, required); `quantity` (integer, required); `name` (string, required); `email` (string, required); `idempotency_key` (string, required); `order_reference` (string, required); `payment_reference` (string, required).
+- **Input:** `event` (string | integer, required); `quantity` (integer, required); `name` (string, required); `email` (string, required); `idempotency_key` (string, required); `order_reference` (string, required); `payment_reference` (string, required); `ticket_type` (string, optional, default `general`). The type's own quantity is enforced with show capacity; a type removed after payment still issues.
 - **Output:** `object {status: string, passes: array<object {code: string, url: string}>, emails_failed: integer}`.
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.

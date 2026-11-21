@@ -70,8 +70,60 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<fieldset>
 			<legend><?php esc_html_e( 'Paid tickets (tax included; seller responsible for tax)', 'extrachill-events' ); ?></legend>
 			<label><input type="checkbox" name="tickets_enabled" value="1" <?php checked( $ticket_settings['tickets_enabled'] ); ?>> <?php esc_html_e( 'Enable tickets', 'extrachill-events' ); ?></label>
-			<label><?php esc_html_e( 'Price per ticket ($, tax included)', 'extrachill-events' ); ?> <input type="number" name="ticket_price" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( $ticket_settings['ticket_price_minor'] ? number_format( $ticket_settings['ticket_price_minor'] / 100, 2, '.', '' ) : '' ); ?>"></label>
-			<label><?php esc_html_e( 'Quantity (0 uses guest list capacity)', 'extrachill-events' ); ?> <input type="number" name="ticket_quantity" min="0" step="1" value="<?php echo esc_attr( $ticket_settings['ticket_quantity'] ); ?>"></label>
+			<label><?php esc_html_e( 'Total tickets for the show (0 uses guest list capacity)', 'extrachill-events' ); ?> <input type="number" name="ticket_quantity" min="0" step="1" value="<?php echo esc_attr( $ticket_settings['ticket_quantity'] ); ?>"></label>
+			<?php
+			$ticket_types = \ExtraChillEvents\Abilities\TicketTypes::effective( $ticket_settings );
+			$type_rows    = array_merge( $ticket_types, array_fill( 0, max( 1, min( 3, \ExtraChillEvents\Abilities\TicketTypes::MAX_TYPES - count( $ticket_types ) ) ), null ) );
+			$code_rows    = array_merge( (array) $ticket_settings['ticket_codes'], array_fill( 0, 2, null ) );
+			$money        = static fn( $minor ) => $minor ? number_format( $minor / 100, 2, '.', '' ) : '';
+			?>
+			<fieldset>
+				<legend><?php esc_html_e( 'Ticket types', 'extrachill-events' ); ?></legend>
+				<p><?php esc_html_e( 'Sell one or more types, like early bird, general admission or VIP. Leave a row blank to skip it. A type limited to code holders only shows to buyers who enter a code for it.', 'extrachill-events' ); ?></p>
+				<?php foreach ( $type_rows as $i => $ticket_type ) : ?>
+					<div class="ec-form-stack">
+						<?php if ( $ticket_type ) : ?>
+							<input type="hidden" name="ticket_types[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr( $ticket_type['id'] ); ?>">
+						<?php endif; ?>
+						<label><?php esc_html_e( 'Name', 'extrachill-events' ); ?> <input type="text" name="ticket_types[<?php echo (int) $i; ?>][name]" maxlength="60" value="<?php echo esc_attr( $ticket_type['name'] ?? '' ); ?>"></label>
+						<label><?php esc_html_e( 'Price ($, tax included)', 'extrachill-events' ); ?> <input type="number" name="ticket_types[<?php echo (int) $i; ?>][price]" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( $money( (int) ( $ticket_type['price_minor'] ?? 0 ) ) ); ?>"></label>
+						<label><?php esc_html_e( 'Quantity (0 for no separate limit)', 'extrachill-events' ); ?> <input type="number" name="ticket_types[<?php echo (int) $i; ?>][quantity]" min="0" step="1" value="<?php echo esc_attr( (string) (int) ( $ticket_type['quantity'] ?? 0 ) ); ?>"></label>
+						<label><input type="checkbox" name="ticket_types[<?php echo (int) $i; ?>][hidden]" value="1" <?php checked( ! empty( $ticket_type['hidden'] ) ); ?>> <?php esc_html_e( 'Only with a code', 'extrachill-events' ); ?></label>
+					</div>
+				<?php endforeach; ?>
+			</fieldset>
+			<fieldset>
+				<legend><?php esc_html_e( 'Codes', 'extrachill-events' ); ?></legend>
+				<p><?php esc_html_e( 'A discount code takes a percent or an amount off each ticket. An access code takes nothing off and unlocks the code-only types it is limited to. Leave the code blank to skip a row.', 'extrachill-events' ); ?></p>
+				<?php foreach ( $code_rows as $i => $code ) : ?>
+					<?php
+					$kind = 'percent';
+					if ( $code && $code['amount_off_minor'] > 0 ) {
+						$kind = 'amount';
+					} elseif ( $code && 0 === $code['percent_off'] ) {
+						$kind = 'access';
+					}
+					?>
+					<div class="ec-form-stack">
+						<label><?php esc_html_e( 'Code', 'extrachill-events' ); ?> <input type="text" name="ticket_codes[<?php echo (int) $i; ?>][code]" maxlength="32" value="<?php echo esc_attr( $code['code'] ?? '' ); ?>"></label>
+						<label><?php esc_html_e( 'Kind', 'extrachill-events' ); ?>
+							<select name="ticket_codes[<?php echo (int) $i; ?>][kind]">
+								<option value="percent" <?php selected( $kind, 'percent' ); ?>><?php esc_html_e( 'Percent off', 'extrachill-events' ); ?></option>
+								<option value="amount" <?php selected( $kind, 'amount' ); ?>><?php esc_html_e( 'Dollars off each ticket', 'extrachill-events' ); ?></option>
+								<option value="access" <?php selected( $kind, 'access' ); ?>><?php esc_html_e( 'Access only (no discount)', 'extrachill-events' ); ?></option>
+							</select>
+						</label>
+						<label><?php esc_html_e( 'Amount', 'extrachill-events' ); ?> <input type="number" name="ticket_codes[<?php echo (int) $i; ?>][value]" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( 'amount' === $kind ? $money( (int) $code['amount_off_minor'] ) : ( 'percent' === $kind && $code ? (string) $code['percent_off'] : '' ) ); ?>"></label>
+						<label><?php esc_html_e( 'Ticket limit (0 for none)', 'extrachill-events' ); ?> <input type="number" name="ticket_codes[<?php echo (int) $i; ?>][max_uses]" min="0" step="1" value="<?php echo esc_attr( (string) (int) ( $code['max_uses'] ?? 0 ) ); ?>"></label>
+						<?php if ( $ticket_types ) : ?>
+							<p><?php esc_html_e( 'Works on (none checked means every type not limited to code holders):', 'extrachill-events' ); ?></p>
+							<?php foreach ( $ticket_types as $ticket_type ) : ?>
+								<label><input type="checkbox" name="ticket_codes[<?php echo (int) $i; ?>][types][]" value="<?php echo esc_attr( $ticket_type['id'] ); ?>" <?php checked( in_array( $ticket_type['id'], (array) ( $code['ticket_types'] ?? array() ), true ) ); ?>> <?php echo esc_html( $ticket_type['name'] ); ?></label>
+							<?php endforeach; ?>
+						<?php endif; ?>
+					</div>
+				<?php endforeach; ?>
+			</fieldset>
 			<label><?php esc_html_e( 'Seller', 'extrachill-events' ); ?>
 			<select name="ticket_seller">
 				<option value=""><?php esc_html_e( 'Choose a seller', 'extrachill-events' ); ?></option>

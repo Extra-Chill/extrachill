@@ -117,6 +117,16 @@ final class TicketWpdb {
 		'checked_in' => 0,
 	); }
 	public function get_results( $sql, $format ) {
+		if ( strpos( $sql, 'GROUP BY ticket_type' ) !== false ) {
+			$counts = array();
+			foreach ( $this->rows as $row ) {
+				if ( in_array( $row['status'], array( 'active', 'redeemed' ), true ) ) {
+					$type            = $row['ticket_type'] ?? null;
+					$counts[ (string) $type ] = array( 'ticket_type' => $type, 'sold' => ( $counts[ (string) $type ]['sold'] ?? 0 ) + 1 );
+				}
+			}
+			return array_values( $counts );
+		}
 		if ( strpos( $sql, 'idempotency_key' ) !== false && ( ! $this->key_locked || ! $this->capacity_locked ) ) {
 			throw new \RuntimeException( 'Replay lookup must hold both locks.' );
 		}
@@ -146,6 +156,10 @@ final class TicketWpdb {
 		}
 		return $count;
 	}
+}
+
+if ( ! function_exists( 'remove_accents' ) ) {
+	function remove_accents( $text ) { return $text; }
 }
 
 final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
@@ -606,5 +620,189 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->revoke( 'dispute' );
 		$this->assertSame( array( 'restored' => 0 ), $this->restore( '' ) );
 		$this->assertSame( array( 'redeemed', 'active' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
+	}
+
+	/** Offer settings for event 10 with two public types, a hidden one and codes. */
+	private function tiered( array $extra = array() ): void {
+		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer'] = $extra + array(
+			'tickets_enabled'    => true,
+			'ticket_price_minor' => 1000,
+			'ticket_quantity'    => 0,
+			'ticket_seller'      => array(
+				'type' => 'venue',
+				'id'   => 2,
+			),
+			'ticket_types'       => array(
+				array( 'id' => 'early-bird', 'name' => 'Early bird', 'price_minor' => 1000, 'quantity' => 1, 'hidden' => false ),
+				array( 'id' => 'ga', 'name' => 'GA', 'price_minor' => 1500, 'quantity' => 0, 'hidden' => false ),
+				array( 'id' => 'industry', 'name' => 'Industry', 'price_minor' => 500, 'quantity' => 0, 'hidden' => true ),
+			),
+			'ticket_codes'       => array(
+				array( 'code' => 'FRIENDS', 'percent_off' => 20, 'amount_off_minor' => 0, 'max_uses' => 5, 'ticket_types' => array() ),
+				array( 'code' => 'FIVEOFF', 'percent_off' => 0, 'amount_off_minor' => 500, 'max_uses' => 0, 'ticket_types' => array( 'ga' ) ),
+				array( 'code' => 'INDUSTRY', 'percent_off' => 0, 'amount_off_minor' => 0, 'max_uses' => 0, 'ticket_types' => array( 'industry' ) ),
+			),
+		);
+	}
+
+	public function test_legacy_offer_reads_as_one_default_type(): void {
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array(
+			array(
+				'id'               => 'general',
+				'name'             => 'General admission',
+				'price_minor'      => 1500,
+				'unit_price_minor' => 1500,
+				'remaining'        => 3,
+				'code_applies'     => false,
+			),
+		), $offer['ticket_types'] );
+		$this->assertNull( $offer['code'] );
+		$this->assertFalse( $offer['code_invalid'] );
+	}
+
+	public function test_offer_lists_public_types_and_hides_code_only_types(): void {
+		$this->tiered();
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $offer['ticket_types'], 'id' ) );
+		$this->assertSame( array( 1, 3 ), array_column( $offer['ticket_types'], 'remaining' ), 'A type cap is capped again by show capacity.' );
+		$this->assertTrue( $offer['sale_open'] );
+		$this->assertArrayNotHasKey( 'ticket_codes', $offer, 'The public offer never lists codes.' );
+	}
+
+	public function test_codes_discount_and_unlock(): void {
+		$this->tiered();
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10, 'code' => ' friends ' ) );
+		$this->assertSame( 'FRIENDS', $offer['code']['code'] );
+		$this->assertSame( array( 800, 1200 ), array_column( $offer['ticket_types'], 'unit_price_minor' ), '20% off every public type.' );
+
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10, 'code' => 'FIVEOFF' ) );
+		$this->assertSame( array( 1000, 1000 ), array_column( $offer['ticket_types'], 'unit_price_minor' ), '$5 off GA only.' );
+		$this->assertSame( array( false, true ), array_column( $offer['ticket_types'], 'code_applies' ) );
+
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10, 'code' => 'industry' ) );
+		$this->assertSame( array( 'early-bird', 'ga', 'industry' ), array_column( $offer['ticket_types'], 'id' ), 'An access code unlocks its hidden type.' );
+		$this->assertSame( 500, $offer['ticket_types'][2]['unit_price_minor'] );
+
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10, 'code' => 'NOPE' ) );
+		$this->assertTrue( $offer['code_invalid'] );
+		$this->assertNull( $offer['code'] );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $offer['ticket_types'], 'id' ) );
+	}
+
+	public function test_type_sells_out_on_its_own_cap(): void {
+		$this->tiered();
+		$this->assertCount( 1, RsvpPassesTable::issue_tickets( 10, 1, 3, 0, 'Guest', 'k1', 'cs_1', 'pi_1', 'early-bird', 1 ) );
+		$this->assertSame( 'early-bird', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$this->assertNull( RsvpPassesTable::issue_tickets( 10, 1, 3, 0, 'Guest', 'k2', 'cs_2', 'pi_2', 'early-bird', 1 ), 'Early bird is gone.' );
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array( 0, 2 ), array_column( $offer['ticket_types'], 'remaining' ) );
+		$this->assertTrue( $offer['sale_open'], 'GA is still on sale.' );
+		$this->assertSame( array( 'early-bird' => 1 ), RsvpPassesTable::paid_ticket_counts_by_type( 10 ) );
+	}
+
+	public function test_untyped_passes_count_as_the_default_type(): void {
+		$this->issue( 1 );
+		$this->assertSame( 'general', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$GLOBALS['wpdb']->rows[0]['ticket_type'] = null;
+		$this->assertSame( array( 'general' => 1 ), RsvpPassesTable::paid_ticket_counts_by_type( 10 ) );
+	}
+
+	public function test_issue_ability_records_the_paid_type(): void {
+		$this->tiered();
+		$this->service_context();
+		$input                     = array(
+			'event'             => 10,
+			'quantity'          => 1,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'cs_t',
+			'order_reference'   => 'cs_t',
+			'payment_reference' => 'pi_t',
+			'ticket_type'       => 'early-bird',
+		);
+		$this->assertSame( 'issued', ( new TicketAbilities() )->issue( $input )['status'] );
+		$this->assertSame( 'early-bird', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$input['idempotency_key'] = $input['order_reference'] = 'cs_u';
+		$this->assertSame( 'sold_out', ( new TicketAbilities() )->issue( $input )['status'], 'The type cap holds at fulfilment.' );
+	}
+
+	public function test_types_validate_and_set_the_from_price(): void {
+		$settings = TicketAbilities::validate_settings( 10, array(
+			'ticket_types' => array(
+				array( 'name' => 'VIP', 'price_minor' => 4000 ),
+				array( 'name' => 'GA', 'price_minor' => 2000, 'quantity' => 100 ),
+				array( 'name' => 'Comp-ish', 'price_minor' => 100, 'hidden' => true ),
+				array( 'name' => 'GA', 'price_minor' => 2500 ),
+			),
+		) );
+		$this->assertSame( array( 'vip', 'ga', 'comp-ish', 'ga-2' ), array_column( $settings['ticket_types'], 'id' ) );
+		$this->assertSame( 2000, $settings['ticket_price_minor'], 'The from price ignores hidden types.' );
+		$this->assertSame( array(), $settings['ticket_codes'] );
+		$this->assertSame( array(), $GLOBALS['shop_calls'], 'Already on sale: no Shop check.' );
+
+		foreach ( array(
+			array( array( 'name' => '', 'price_minor' => 100 ) ),
+			array( array( 'name' => 'Free', 'price_minor' => 0 ) ),
+			array( array( 'id' => 'a', 'name' => 'A', 'price_minor' => 100 ), array( 'id' => 'a', 'name' => 'B', 'price_minor' => 100 ) ),
+			array_fill( 0, 11, array( 'name' => 'X', 'price_minor' => 100 ) ),
+		) as $types ) {
+			$this->assertSame( 'invalid_ticket_types', TicketAbilities::validate_settings( 10, array( 'ticket_types' => $types ) )->get_error_code() );
+		}
+	}
+
+	public function test_codes_validate_against_the_types(): void {
+		$this->tiered();
+		$settings = TicketAbilities::validate_settings( 10, array(
+			'ticket_codes' => array(
+				array( 'code' => 'half-off', 'percent_off' => 50 ),
+				array( 'code' => 'VIPONLY', 'ticket_types' => array( 'industry', 'industry' ) ),
+			),
+		) );
+		$this->assertSame( array( 'HALF-OFF', 'VIPONLY' ), array_column( $settings['ticket_codes'], 'code' ) );
+		$this->assertSame( array( 'industry' ), $settings['ticket_codes'][1]['ticket_types'] );
+
+		foreach ( array(
+			array( array( 'code' => 'ab' ) ),
+			array( array( 'code' => 'BOTH', 'percent_off' => 10, 'amount_off_minor' => 100 ) ),
+			array( array( 'code' => 'FREE', 'percent_off' => 100 ) ),
+			array( array( 'code' => 'DUP' ), array( 'code' => 'dup' ) ),
+			array( array( 'code' => 'GHOST', 'ticket_types' => array( 'nope' ) ) ),
+		) as $codes ) {
+			$this->assertSame( 'invalid_ticket_codes', TicketAbilities::validate_settings( 10, array( 'ticket_codes' => $codes ) )->get_error_code() );
+		}
+	}
+
+	public function test_removing_a_type_a_code_names_is_refused(): void {
+		$this->tiered();
+		$error = TicketAbilities::validate_settings( 10, array(
+			'ticket_types' => array( array( 'id' => 'early-bird', 'name' => 'Early bird', 'price_minor' => 1000 ) ),
+		) );
+		$this->assertSame( 'invalid_ticket_codes', $error->get_error_code(), 'FIVEOFF must not widen to every type.' );
+	}
+
+	public function test_enabled_offer_needs_a_type_or_a_price(): void {
+		$this->assertSame( 'invalid_ticket_offer', TicketAbilities::validate_settings( 10, array(
+			'ticket_types'       => array(),
+			'ticket_price_minor' => 0,
+		) )->get_error_code() );
+		$this->tiered( array( 'ticket_price_minor' => 0 ) );
+		$this->assertTrue( TicketAbilities::validate_settings( 10, array( 'ticket_quantity' => 5 ) )['tickets_enabled'] );
+	}
+
+	public function test_public_settings_hide_codes_and_code_only_types(): void {
+		$this->tiered();
+		$public = TicketAbilities::public_settings( TicketAbilities::settings( 10 ) );
+		$this->assertSame( array(), $public['ticket_codes'] );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $public['ticket_types'], 'id' ) );
+		$this->assertSame( 1000, $public['ticket_price_minor'] );
+	}
+
+	public function test_unit_price_rounds_and_never_goes_negative(): void {
+		$type = array( 'id' => 'ga', 'price_minor' => 999, 'hidden' => false );
+		$this->assertSame( 669, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array( 'percent_off' => 33 ) ) );
+		$this->assertSame( 0, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array( 'amount_off_minor' => 5000 ) ) );
+		$this->assertSame( 999, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, null ) );
+		$this->assertSame( 999, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array( 'percent_off' => 50, 'ticket_types' => array( 'vip' ) ) ), 'A code scoped elsewhere leaves the price.' );
 	}
 }

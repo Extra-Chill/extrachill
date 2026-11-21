@@ -710,7 +710,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( (int) $pass['id'], $sam['member_id'], 'member_id is the pass ID.' );
 		$this->assertSame( 'active', $sam['status'] );
 		$this->assertSame( 'removed', extrachill_events_owner_list_member_summary( array( 'status' => 'revoked' ) + $pass )['status'], 'A revoked pass still reads `removed` in the ability contract.' );
-		$this->assertSame( '9', RsvpPassesTable::SCHEMA_VERSION );
+		$this->assertSame( '10', RsvpPassesTable::SCHEMA_VERSION );
 	}
 
 	/** The scan view, fed the one code lookup the verify page does. */

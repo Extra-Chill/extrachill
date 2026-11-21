@@ -754,12 +754,13 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( $ability['meta']['show_in_rest'] );
 		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
 		$this->assertSame( array( 'event' ), $ability['input_schema']['required'] );
-		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$none = array( 'held' => 0, 'by_type' => array() );
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
 		$this->checkout();
-		$this->assertSame( array( 'held' => 2 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
-		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 202 ) ) );
+		$this->assertSame( array( 'held' => 2, 'by_type' => array( 'general' => 2 ) ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 202 ) ) );
 		$this->order()->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, time() - 1 );
-		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
 	}
 
 	public function test_open_checkouts_hold_their_tickets(): void {
@@ -832,6 +833,107 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'tickets_held', $this->checkout()->get_error_code() );
 		$this->assertNull( $GLOBALS['ticket_session_request'], 'The losing checkout never reaches Stripe.' );
 		$this->assertSame( 1, extrachill_shop_held_ticket_quantity( 101 ), 'Only the other checkout still holds.' );
+	}
+
+	/** A two-type offer as Events returns it, read with $code. */
+	private function tiered_offer( ?array $code = null, bool $invalid = false ): void {
+		$GLOBALS['ticket_offer']['ticket_types'] = array(
+			array( 'id' => 'ga', 'name' => 'GA', 'price_minor' => 1000, 'unit_price_minor' => $code ? 800 : 1000, 'remaining' => null, 'code_applies' => (bool) $code ),
+			array( 'id' => 'vip', 'name' => 'VIP', 'price_minor' => 3000, 'unit_price_minor' => 3000, 'remaining' => 2, 'code_applies' => false ),
+		);
+		$GLOBALS['ticket_offer']['code']         = $code;
+		$GLOBALS['ticket_offer']['code_invalid'] = $invalid;
+	}
+
+	public function test_checkout_charges_the_chosen_type(): void {
+		$this->tiered_offer();
+		$this->assertSame( 'ticket_type_unavailable', $this->checkout()->get_error_code(), 'Two types: the buyer must pick.' );
+		$this->assertSame( 'ticket_type_unavailable', $this->checkout( array( 'ticket_type' => 'nope' ) )->get_error_code() );
+		$this->assertSame( 'cs_ticket', $this->checkout( array( 'ticket_type' => 'vip' ) )['session_id'] );
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 3000, $params['line_items'][0]['price_data']['unit_amount'] );
+		$this->assertSame( 'Lo-Fi show — VIP', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'vip', $params['metadata']['ticket_type'] );
+		$this->assertArrayNotHasKey( 'ticket_code', $params['metadata'] );
+		$order = $this->order();
+		$this->assertSame( 'vip', $order->get_meta( EXTRACHILL_SHOP_TICKET_TYPE_META ) );
+		$this->assertSame( 'Event tickets: Lo-Fi show (VIP)', $order->get_items( 'line_item' )[0]->get_name() );
+		$this->assertSame( 6000, extrachill_shop_ticket_order_amounts( $order )['subtotal_minor'] );
+		$this->assertSame( array( 'held' => 2, 'by_type' => array( 'vip' => 2 ) ), extrachill_shop_held_ticket_quantities( 101 ) );
+
+		// Fulfilment issues the passes as VIP.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$issue = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'issue-ticket-passes' ) ) );
+		$this->assertSame( 'vip', $issue[0]['args']['body']['input']['ticket_type'] );
+	}
+
+	public function test_type_holds_are_counted_per_type(): void {
+		$this->tiered_offer();
+		$GLOBALS['stripe_session_ids'] = array( 'cs_one', 'cs_two' );
+		$this->checkout( array( 'ticket_type' => 'vip', 'quantity' => 1 ) );
+		$this->assertSame( 'tickets_held', $this->checkout( array( 'ticket_type' => 'vip', 'quantity' => 2 ) )->get_error_code(), 'One of two VIP is held.' );
+		$this->assertSame( 'cs_two', $this->checkout( array( 'ticket_type' => 'ga', 'quantity' => 2 ) )['session_id'], 'GA is unaffected.' );
+		$this->assertSame( 'ticket_sold_out', $this->checkout( array( 'ticket_type' => 'vip', 'quantity' => 3 ) )->get_error_code() );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_code_discounts_the_charge_and_the_fees(): void {
+		$this->tiered_offer( array( 'code' => 'FRIENDS', 'percent_off' => 20, 'amount_off_minor' => 0, 'max_uses' => 3, 'ticket_types' => array( 'ga' ) ) );
+		$this->assertSame( 'ticket_code_not_applicable', $this->checkout( array( 'ticket_type' => 'vip', 'code' => 'friends' ) )->get_error_code() );
+		$this->assertSame( 'cs_ticket', $this->checkout( array( 'ticket_type' => 'ga', 'code' => ' friends ' ) )['session_id'] );
+		$offer_call = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'get-event-ticket-offer' ) ) );
+		$this->assertSame( 'FRIENDS', end( $offer_call )['args']['query']['input']['code'], 'The code is read upper-cased from Events.' );
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 800, $params['line_items'][0]['price_data']['unit_amount'] );
+		$this->assertSame( 'Lo-Fi show — GA (code FRIENDS)', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'FRIENDS', $params['metadata']['ticket_code'] );
+		$order   = $this->order();
+		$amounts = extrachill_shop_ticket_order_amounts( $order );
+		$this->assertSame( 1600, $amounts['subtotal_minor'] );
+		// $2 platform fee plus processing on $16 instead of $20 (2.97 undiscounted).
+		$this->assertSame( 285, $amounts['service_fee_minor'], 'Fees follow the paid subtotal.' );
+		$this->assertSame( 1885, $amounts['total_minor'] );
+		$line = $order->get_items( 'line_item' )[0];
+		$this->assertSame( 20.0, $line->get_subtotal(), 'List price before the code.' );
+		$this->assertSame( 16.0, $line->get_total() );
+		$this->assertSame( 4.0, $order->get_discount_total() );
+		$this->assertSame( 'FRIENDS', $order->get_meta( EXTRACHILL_SHOP_TICKET_CODE_META ) );
+		$this->assertSame( '400', $order->get_meta( EXTRACHILL_SHOP_TICKET_DISCOUNT_META ) );
+		$this->assertSame( 2, extrachill_shop_ticket_code_uses( 101, 'FRIENDS' ) );
+	}
+
+	public function test_code_use_limit_counts_paid_and_open_checkouts(): void {
+		$this->tiered_offer( array( 'code' => 'FRIENDS', 'percent_off' => 20, 'amount_off_minor' => 0, 'max_uses' => 3, 'ticket_types' => array() ) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_one', 'cs_two' );
+		$this->checkout( array( 'ticket_type' => 'ga', 'code' => 'FRIENDS' ) );
+		$this->mark_paid( 'cs_one', 'pi_one' );
+		$this->assertSame( 'ticket_code_used_up', $this->checkout( array( 'ticket_type' => 'ga', 'code' => 'FRIENDS' ) )->get_error_code() );
+		$this->assertSame( 'cs_two', $this->checkout( array( 'ticket_type' => 'ga', 'code' => 'FRIENDS', 'quantity' => 1 ) )['session_id'] );
+		$this->assertSame( 3, extrachill_shop_ticket_code_uses( 101, 'FRIENDS' ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_bad_and_free_codes_are_refused_before_stripe(): void {
+		$this->tiered_offer( null, true );
+		$this->assertSame( 'ticket_code_invalid', $this->checkout( array( 'ticket_type' => 'ga', 'code' => 'NOPE' ) )->get_error_code() );
+		$this->tiered_offer( array( 'code' => 'COMP', 'percent_off' => 0, 'amount_off_minor' => 5000, 'max_uses' => 0, 'ticket_types' => array() ) );
+		$GLOBALS['ticket_offer']['ticket_types'][0]['unit_price_minor'] = 0;
+		$this->assertSame( 'ticket_code_free', $this->checkout( array( 'ticket_type' => 'ga', 'code' => 'COMP' ) )->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'] );
+		$this->assertSame( array(), array_filter( $GLOBALS['test_orders'], static fn( $o ) => $o instanceof TicketTestOrder ) );
+	}
+
+	public function test_single_price_show_needs_no_type_and_keeps_its_names(): void {
+		$GLOBALS['ticket_offer']['ticket_types'] = array(
+			array( 'id' => 'general', 'name' => 'General admission', 'price_minor' => 1000, 'unit_price_minor' => 1000, 'remaining' => null, 'code_applies' => false ),
+		);
+		$this->checkout();
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 'Lo-Fi show', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'general', $params['metadata']['ticket_type'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$issue = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'issue-ticket-passes' ) ) );
+		$this->assertArrayNotHasKey( 'ticket_type', $issue[0]['args']['body']['input'], 'Single-price shows send what they always did.' );
 	}
 
 	public function test_unlimited_shows_need_no_hold_count(): void {

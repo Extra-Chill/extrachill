@@ -11,6 +11,8 @@ use ExtraChillEvents\Core\RsvpPassesTable;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/TicketTypes.php';
+
 /**
  * Ticket offer settings plus the paid-pass abilities consumed by the Shop.
  */
@@ -61,6 +63,10 @@ class TicketAbilities {
 				'required'             => array( 'type', 'id' ),
 				'additionalProperties' => false,
 			),
+			// Ticket types (tiers). Empty sells one type at ticket_price_minor.
+			'ticket_types'       => TicketTypes::types_schema(),
+			// Discount and access codes.
+			'ticket_codes'       => TicketTypes::codes_schema(),
 		);
 	}
 
@@ -105,6 +111,23 @@ class TicketAbilities {
 	}
 
 	/**
+	 * Ticket settings without what only the event's managers may see.
+	 *
+	 * Codes are secrets and code-only types are unlisted, so a public read
+	 * gets neither.
+	 *
+	 * @param array $settings Ticket settings.
+	 * @return array
+	 */
+	public static function public_settings( array $settings ): array {
+		$settings['ticket_codes'] = array();
+		$settings['ticket_types'] = array_values(
+			array_filter( (array) ( $settings['ticket_types'] ?? array() ), static fn( $type ) => empty( $type['hidden'] ) )
+		);
+		return $settings;
+	}
+
+	/**
 	 * Stored ticket offer with defaults applied.
 	 *
 	 * @param int $id Event post ID.
@@ -121,6 +144,8 @@ class TicketAbilities {
 				'type' => 'venue',
 				'id'   => 0,
 			),
+			'ticket_types'       => array(),
+			'ticket_codes'       => array(),
 		);
 
 		return array_merge( $defaults, is_array( $stored ) ? $stored : array() );
@@ -151,11 +176,34 @@ class TicketAbilities {
 			}
 		}
 
+		if ( array_key_exists( 'ticket_types', $input ) ) {
+			$types = TicketTypes::validate_types( $input['ticket_types'] );
+			if ( is_wp_error( $types ) ) {
+				return $types;
+			}
+			$settings['ticket_types'] = $types;
+		}
+		// With types, the single price follows the cheapest public type, so
+		// "from" prices and the structured-data offer stay right.
+		if ( $settings['ticket_types'] ) {
+			$public                         = array_filter( $settings['ticket_types'], static fn( $type ) => empty( $type['hidden'] ) );
+			$settings['ticket_price_minor'] = (int) min( array_column( $public ? $public : $settings['ticket_types'], 'price_minor' ) );
+		}
+		// Codes are checked again whenever types change: a code must never
+		// widen to every type because the one it named was removed.
+		if ( array_key_exists( 'ticket_codes', $input ) || array_key_exists( 'ticket_types', $input ) ) {
+			$codes = TicketTypes::validate_codes( $settings['ticket_codes'], TicketTypes::effective( $settings ) );
+			if ( is_wp_error( $codes ) ) {
+				return $codes;
+			}
+			$settings['ticket_codes'] = $codes;
+		}
+
 		$malformed     = $settings['ticket_price_minor'] < 0
 			|| $settings['ticket_quantity'] < 0
 			|| ! preg_match( '/^[a-z]{3}$/', (string) $settings['ticket_currency'] );
 		$enabled_unset = $settings['tickets_enabled']
-			&& ( $settings['ticket_price_minor'] <= 0 || empty( $settings['ticket_seller']['id'] ) );
+			&& ( ! TicketTypes::effective( $settings ) || empty( $settings['ticket_seller']['id'] ) );
 
 		if ( $malformed || $enabled_unset ) {
 			return new \WP_Error( 'invalid_ticket_offer', 'Enabled tickets require a positive price and a seller.', array( 'status' => 400 ) );
@@ -235,11 +283,21 @@ class TicketAbilities {
 			'maxLength' => 191,
 		);
 		$event     = array( 'event' => array( 'type' => array( 'string', 'integer' ) ) );
+		$type_id   = array(
+			'type'    => 'string',
+			'pattern' => TicketTypes::TYPE_ID_PATTERN,
+		);
 
 		$this->register_ability(
 			'get-event-ticket-offer',
 			'offer',
-			$event,
+			$event + array(
+				// A discount or access code the buyer entered. Unlocks hidden types and prices them.
+				'code' => array(
+					'type'      => 'string',
+					'maxLength' => 32,
+				),
+			),
 			array( 'event' ),
 			$this->offer_output(),
 			true
@@ -272,6 +330,8 @@ class TicketAbilities {
 				),
 				'venue_show_updates' => array( 'type' => 'boolean' ),
 				'seller'             => self::fields()['ticket_seller'],
+				// The type the buyer paid for. Omitted means the default type.
+				'ticket_type'        => $type_id,
 			),
 			array( 'event', 'quantity', 'name', 'email', 'idempotency_key', 'order_reference', 'payment_reference' ),
 			array(
@@ -434,9 +494,42 @@ class TicketAbilities {
 			'enabled'     => array( 'type' => 'boolean' ),
 			'price_minor' => array( 'type' => 'integer' ),
 			'currency'    => array( 'type' => 'string' ),
-			'remaining'   => array( 'type' => array( 'integer', 'null' ) ),
-			'sale_open'   => array( 'type' => 'boolean' ),
-			'seller'      => $seller,
+			'remaining'    => array( 'type' => array( 'integer', 'null' ) ),
+			'sale_open'    => array( 'type' => 'boolean' ),
+			'seller'       => $seller,
+			// Types the buyer can pick: public ones plus any the code unlocks.
+			'ticket_types' => array(
+				'type'  => 'array',
+				'items' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'id'               => array( 'type' => 'string' ),
+						'name'             => array( 'type' => 'string' ),
+						'price_minor'      => array( 'type' => 'integer' ),
+						// Price with the entered code applied.
+						'unit_price_minor' => array( 'type' => 'integer' ),
+						'remaining'        => array( 'type' => array( 'integer', 'null' ) ),
+						'code_applies'     => array( 'type' => 'boolean' ),
+					),
+					'required'   => array( 'id', 'name', 'price_minor', 'unit_price_minor', 'remaining', 'code_applies' ),
+				),
+			),
+			// The entered code, or null when none was entered or it did not match.
+			// Never lists the show's other codes.
+			'code'         => array(
+				'type'       => array( 'object', 'null' ),
+				'properties' => array(
+					'code'             => array( 'type' => 'string' ),
+					'percent_off'      => array( 'type' => 'integer' ),
+					'amount_off_minor' => array( 'type' => 'integer' ),
+					'max_uses'         => array( 'type' => 'integer' ),
+					'ticket_types'     => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'string' ),
+					),
+				),
+			),
+			'code_invalid' => array( 'type' => 'boolean' ),
 		);
 	}
 
@@ -542,17 +635,61 @@ class TicketAbilities {
 		// Sales stay open through an ongoing show for walk-ups.
 		$not_over = function_exists( 'datamachine_get_event_timing' ) && 'past' !== datamachine_get_event_timing( (int) $post->ID );
 
+		$entered = TicketTypes::normalize_code( $input['code'] ?? '' );
+		$code    = TicketTypes::find_code( $settings, $entered );
+		$types   = self::offer_types( $post->ID, $settings, $code, $remaining );
+		$buyable = array_filter( $types, static fn( $type ) => null === $type['remaining'] || $type['remaining'] > 0 );
+
 		return array(
-			'event_id'    => (int) $post->ID,
-			'title'       => $post->post_title,
-			'url'         => get_permalink( $post->ID ),
-			'enabled'     => (bool) $settings['tickets_enabled'],
-			'price_minor' => (int) $settings['ticket_price_minor'],
-			'currency'    => $settings['ticket_currency'],
-			'remaining'   => $remaining,
-			'sale_open'   => $settings['tickets_enabled'] && $not_over && ( null === $remaining || $remaining > 0 ),
-			'seller'      => $settings['ticket_seller'],
+			'event_id'     => (int) $post->ID,
+			'title'        => $post->post_title,
+			'url'          => get_permalink( $post->ID ),
+			'enabled'      => (bool) $settings['tickets_enabled'],
+			'price_minor'  => (int) $settings['ticket_price_minor'],
+			'currency'     => $settings['ticket_currency'],
+			'remaining'    => $remaining,
+			'sale_open'    => $settings['tickets_enabled'] && $not_over && ( null === $remaining || $remaining > 0 ) && ! empty( $buyable ),
+			'seller'       => $settings['ticket_seller'],
+			'ticket_types' => $types,
+			'code'         => $code,
+			'code_invalid' => '' !== $entered && null === $code,
 		);
+	}
+
+	/**
+	 * Buyer-facing types with their own remaining counts.
+	 *
+	 * A type's remaining is the smaller of its own quantity left and the
+	 * show's remaining. Null means neither is capped.
+	 *
+	 * @param int        $event_id  Event post ID.
+	 * @param array      $settings  Ticket settings.
+	 * @param array|null $code      Matched code, or null.
+	 * @param int|null   $remaining Show-wide remaining.
+	 * @return array[]
+	 */
+	private static function offer_types( int $event_id, array $settings, ?array $code, ?int $remaining ): array {
+		$visible = TicketTypes::visible( $settings, $code );
+		$sold    = array_filter( array_column( $visible, 'quantity' ) ) ? RsvpPassesTable::paid_ticket_counts_by_type( $event_id ) : array();
+		$out     = array();
+		foreach ( $visible as $type ) {
+			$left = null;
+			if ( $type['quantity'] > 0 ) {
+				$left = max( 0, $type['quantity'] - (int) ( $sold[ $type['id'] ] ?? 0 ) );
+			}
+			if ( null !== $remaining ) {
+				$left = null === $left ? $remaining : min( $left, $remaining );
+			}
+			$out[] = array(
+				'id'               => $type['id'],
+				'name'             => $type['name'],
+				'price_minor'      => (int) $type['price_minor'],
+				'unit_price_minor' => TicketTypes::unit_price( $type, $code ),
+				'remaining'        => $left,
+				'code_applies'     => $code ? TicketTypes::code_applies( $code, $type ) : false,
+			);
+		}
+		return $out;
 	}
 
 	/**
@@ -574,7 +711,11 @@ class TicketAbilities {
 
 		// sale_open gates checkout start, not fulfilment of an already paid session.
 		// Capacity and replay detection belong to the serialized table operation.
+		// A paid type that was since removed still issues, without its own cap.
 		$settings = self::settings( $offer['event_id'] );
+		$type_id  = (string) ( $input['ticket_type'] ?? '' );
+		$type_id  = '' === $type_id ? RsvpPassesTable::DEFAULT_TICKET_TYPE : $type_id;
+		$type     = TicketTypes::find( $settings, $type_id );
 		$rows     = RsvpPassesTable::issue_tickets(
 			$offer['event_id'],
 			$input['quantity'],
@@ -583,7 +724,9 @@ class TicketAbilities {
 			sanitize_text_field( $input['name'] ),
 			$input['idempotency_key'],
 			$input['order_reference'],
-			$input['payment_reference']
+			$input['payment_reference'],
+			$type_id,
+			$type ? (int) $type['quantity'] : 0
 		);
 		if ( is_wp_error( $rows ) ) {
 			return $rows;

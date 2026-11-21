@@ -462,6 +462,14 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 
 	$checkins = null;
 	$rows     = array();
+	// Ticket type names for paid passes, so the door sees "Ticket (VIP)".
+	$type_names = array();
+	if ( class_exists( \ExtraChillEvents\Abilities\TicketAbilities::class ) ) {
+		$ticket_types = \ExtraChillEvents\Abilities\TicketTypes::effective( \ExtraChillEvents\Abilities\TicketAbilities::settings( $event_id ) );
+		if ( count( $ticket_types ) > 1 ) {
+			$type_names = array_column( $ticket_types, 'name', 'id' );
+		}
+	}
 	foreach ( $passes as $pass ) {
 		if ( RsvpPassesTable::is_owner_pass( $pass ) ) {
 			$checkins = null === $checkins ? RsvpPassesTable::list_checkins_for_event( $event_id ) : $checkins;
@@ -474,7 +482,7 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? extrachill_events_door_list_import_source( $pass );
 		$rows[]      = array(
 			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
-			'label'       => ( ! empty( $pass['order_reference'] ) ? __( 'Ticket · ', 'extrachill-events' ) : '' ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
+			'label'       => extrachill_events_door_ticket_prefix( $pass, $type_names ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
 			'guest_name'  => $guest_name,
 			'source'      => $source,
 			'added_by'    => $added_by ? (string) $added_by->display_name : '',
@@ -487,6 +495,26 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 	}
 
 	return $rows;
+}
+
+/**
+ * Door label prefix for a paid pass: "Ticket · ", or "Ticket (VIP) · " when
+ * the show sells more than one type.
+ *
+ * @param array    $pass       Pass row.
+ * @param string[] $type_names Type ID => name, empty for single-type shows.
+ * @return string
+ */
+function extrachill_events_door_ticket_prefix( array $pass, array $type_names ): string {
+	if ( empty( $pass['order_reference'] ) ) {
+		return '';
+	}
+	$type = \ExtraChillEvents\Core\RsvpPassesTable::ticket_type_of( $pass );
+	if ( isset( $type_names[ $type ] ) ) {
+		/* translators: %s: ticket type name. */
+		return sprintf( __( 'Ticket (%s) · ', 'extrachill-events' ), $type_names[ $type ] );
+	}
+	return __( 'Ticket · ', 'extrachill-events' );
 }
 
 /**

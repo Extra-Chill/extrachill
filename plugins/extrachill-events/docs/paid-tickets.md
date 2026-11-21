@@ -13,11 +13,22 @@ Events owns offers and passes; Shop owns checkout, fee calculation, refunds, and
 
 Offer settings are exposed by set/get-event-perk and the host panel. Changing the seller requires both event-management authority and the existing commerce seller finance check. Quantity zero uses perk capacity; a positive quantity additionally caps paid passes. Active and redeemed passes consume capacity; revoked passes do not.
 
+## Ticket types and codes
+
+The offer meta can carry `ticket_types` (up to 10: `id`, `name`, `price_minor`, `quantity`, `hidden`) and `ticket_codes` (up to 50: `code`, `percent_off` 0–99 or `amount_off_minor`, `max_uses`, `ticket_types`). Shared rules live in [`TicketTypes.php`](../inc/Abilities/TicketTypes.php).
+
+- **Legacy offers need no migration.** An offer with no types reads as one `general` "General admission" type at `ticket_price_minor`. Passes and orders with no type count as `general`.
+- **`ticket_price_minor` follows the cheapest public type** whenever types are saved, so schema.org offers and "from" prices stay right.
+- **Type quantity caps one type**; show quantity (or perk capacity) still caps everything. Fulfilment enforces both under the capacity lock (`RsvpPassesTable::issue_tickets()` with `ticket_type` and the type quantity). A type removed after payment still issues, capped only by the show.
+- **Hidden types** are only listed by the offer when the entered code applies to them. `get-event-perk` strips codes and hidden types for anyone who can't manage the event.
+- **Codes** are upper-cased and matched in constant time. A code with neither discount is an access code. Empty `ticket_types` means every public type. Codes are revalidated whenever types change, so removing a type a code names is refused instead of widening the code. A code can't bring a price to zero at checkout; free entry goes through the guest list.
+- **Code use limits** are enforced by Shop, which counts paid and holding orders that used the code.
+
 ## Deployment
 
 Configure `EXTRACHILL_EVENTS_TICKET_SERVICE_ASSERTION_KEYS` (key ID to secret map), or the `extrachill_events_ticket_service_assertion_keys` filter. Network target grants are restricted to POST on the exact service ability run routes (issue, status, revoke, restore, sales record, seller notification, pass email resend), service ID `extrachill.events.tickets`, and scope `extrachill/events:tickets`. Shop must register matching source grants and use Network-signed assertions. Normal users, including administrators, cannot invoke fulfillment directly.
 
-Schema version 9 adds the nullable `revoke_reason` column. Schema version 7 adds nullable payment references and indexes through the existing dbDelta installer. The schema version is independent of release versions. Paid issuance uses the existing event-capacity named lock plus a key-specific lock and an InnoDB transaction. Refund revocation locks order rows so a concurrent check-in cannot slip between the redeemed guard and revocation.
+Schema version 10 adds the nullable `ticket_type` column. Schema version 9 adds the nullable `revoke_reason` column. Schema version 7 adds nullable payment references and indexes through the existing dbDelta installer. The schema version is independent of release versions. Paid issuance uses the existing event-capacity named lock plus a key-specific lock and an InnoDB transaction. Refund revocation locks order rows so a concurrent check-in cannot slip between the redeemed guard and revocation.
 
 ## Tests
 

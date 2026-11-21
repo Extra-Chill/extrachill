@@ -159,6 +159,19 @@ every field.
   `_extrachill_fee_payer`, `_extrachill_terms_accepted_at` /
   `_extrachill_terms_version`, `_extrachill_checkout_sessions`, and
   `_extrachill_payment_intent` once paid.
+- **Ticket types and codes (#1716):** `_extrachill_ticket_type` is the type ID
+  bought (absent on older orders, which read as `general`).
+  `_extrachill_ticket_code` and `_extrachill_ticket_discount_minor` record a
+  discount or access code. With a code, the line subtotal is the list price and
+  the line total is what the buyer paid, and the order's discount total is the
+  difference. The line name and `ticket_type` item meta name the type unless it
+  is a single-price show's only type. Session metadata adds `ticket_type` and
+  `ticket_code`. Fees are computed on the discounted subtotal.
+- **Holds per type:** `extrachill_shop_held_ticket_quantities()` returns the
+  show total and `by_type`. Checkout checks both against the show's and the
+  type's remaining, before and after saving its own order. A capped code is
+  checked the same way with `extrachill_shop_ticket_code_uses()`, which counts
+  paid (processing, completed, on-hold) and holding orders.
 - **Order reference:** the Checkout Session ID, stored as
   `_extrachill_ticket_reference`. Events keys passes, sales and
   `get-ticket-order-status` by it, so nothing changed there. The Session's

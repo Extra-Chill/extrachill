@@ -7,7 +7,9 @@ per-client public-write limiter (`ticket-checkout`, default 5/minute; filter
 `extrachill_api_ticket_checkout_rate_limit`). Missing security support fails closed.
 
 Body: `{event: integer, quantity: integer (1–10), name: string, email: string,
-turnstile_response: string}`.
+turnstile_response: string, ticket_type?: string (max 40), code?: string (max 32)}`.
+`ticket_type` is required when the show sells more than one type. A bad, used-up
+or inapplicable code returns 400 or 409 rather than charging full price.
 
 Returns `{checkout_url, session_id}`. Redirect the buyer to `checkout_url`.
 Sale closed, insufficient inventory, and seller payments unavailable return 409.
