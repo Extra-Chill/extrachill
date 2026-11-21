@@ -31,6 +31,12 @@
  * - `_extrachill_ticket_refund_pending` Set between revoking passes and the
  *                                   refund succeeding.
  * - `_extrachill_ticket_refund_reason` Why the order was refunded.
+ * - `_extrachill_ticket_pass_email_pending` `1` while pass emails Events
+ *                                   could not queue wait for a retry,
+ *                                   `exhausted` when retries ran out.
+ * - `_extrachill_ticket_pass_email_attempts` Failed pass email retries.
+ * - `_extrachill_ticket_reconciled` Session the reconciliation job
+ *                                   fulfilled or closed (webhook missed).
  * - `_extrachill_dispute`, `_extrachill_dispute_prior_status`,
  *   `_extrachill_dispute_outcome`   Bank disputes, as merch.
  *
@@ -77,6 +83,12 @@ const EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META = '_extrachill_ticket_refund_pe
 
 /** Order meta: why the order was refunded. */
 const EXTRACHILL_SHOP_TICKET_REFUND_REASON_META = '_extrachill_ticket_refund_reason';
+
+/** Order meta: `1` while pass emails Events could not queue wait for a retry; `exhausted` once retries ran out. */
+const EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META = '_extrachill_ticket_pass_email_pending';
+
+/** Order meta: failed pass email retries so far. */
+const EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META = '_extrachill_ticket_pass_email_attempts';
 
 /** Order meta: show title and URL at checkout. */
 const EXTRACHILL_SHOP_TICKET_EVENT_TITLE_META = '_extrachill_ticket_event_title';

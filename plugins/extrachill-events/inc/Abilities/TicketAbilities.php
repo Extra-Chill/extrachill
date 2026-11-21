@@ -275,11 +275,11 @@ class TicketAbilities {
 			),
 			array( 'event', 'quantity', 'name', 'email', 'idempotency_key', 'order_reference', 'payment_reference' ),
 			array(
-				'status' => array(
+				'status'        => array(
 					'type' => 'string',
 					'enum' => array( 'issued', 'sold_out' ),
 				),
-				'passes' => array(
+				'passes'        => array(
 					'type'  => 'array',
 					'items' => array(
 						'type'       => 'object',
@@ -290,6 +290,27 @@ class TicketAbilities {
 						'required'   => array( 'code', 'url' ),
 					),
 				),
+				// Pass emails that could not be queued on this call. Shop
+				// retries them with resend-ticket-pass-emails.
+				'emails_failed' => array( 'type' => 'integer' ),
+			),
+			false
+		);
+
+		$this->register_ability(
+			'resend-ticket-pass-emails',
+			'resend',
+			array(
+				'order_reference' => $reference,
+				'email'           => array(
+					'type'   => 'string',
+					'format' => 'email',
+				),
+			),
+			array( 'order_reference', 'email' ),
+			array(
+				'emailed' => array( 'type' => 'integer' ),
+				'failed'  => array( 'type' => 'integer' ),
 			),
 			false
 		);
@@ -432,6 +453,7 @@ class TicketAbilities {
 	private function register_ability( string $name, string $callback, array $input, array $required, array $output, bool $is_public ): void {
 		// abilities-docs: extrachill/get-event-ticket-offer, extrachill/issue-ticket-passes, extrachill/get-ticket-order-status.
 		// abilities-docs: extrachill/revoke-ticket-passes, extrachill/restore-ticket-passes, extrachill/notify-commerce-seller.
+		// abilities-docs: extrachill/resend-ticket-pass-emails.
 		wp_register_ability(
 			'extrachill/' . $name,
 			array(
@@ -455,7 +477,8 @@ class TicketAbilities {
 					'show_in_rest' => true,
 					'annotations'  => array(
 						'readonly'    => in_array( $callback, array( 'offer', 'order_status' ), true ),
-						'idempotent'  => true,
+						// A resend emails the buyer again every time it runs.
+						'idempotent'  => 'resend' !== $callback,
 						'destructive' => 'revoke' === $callback,
 					),
 				),
@@ -552,8 +575,9 @@ class TicketAbilities {
 		$existing = RsvpPassesTable::ticket_rows( $input['idempotency_key'], true );
 		if ( ! $existing && ! $offer['sale_open'] ) {
 			return array(
-				'status' => 'sold_out',
-				'passes' => array(),
+				'status'        => 'sold_out',
+				'passes'        => array(),
+				'emails_failed' => 0,
 			);
 		}
 
@@ -577,19 +601,58 @@ class TicketAbilities {
 			extrachill_events_ticket_subscribe_venue( (array) ( $input['seller'] ?? array() ), (int) ( $input['buyer_user_id'] ?? 0 ), true, $input['email'] );
 		}
 		$passes = array();
+		$failed = 0;
 		foreach ( (array) $rows as $row ) {
 			$passes[] = array(
 				'code' => $row['code'],
 				'url'  => extrachill_events_guest_list_pass_link( $offer['event_id'], $row['code'], $row['guest_name'] ),
 			);
-			if ( ! $existing ) {
-				extrachill_events_send_guest_list_pass_email( $offer['event_id'], $input['email'], $row['code'], $row['guest_name'] );
+			// A replay never emails again; Shop retries failed emails explicitly.
+			if ( ! $existing && ! extrachill_events_send_guest_list_pass_email( $offer['event_id'], $input['email'], $row['code'], $row['guest_name'] ) ) {
+				++$failed;
 			}
 		}
 
 		return array(
-			'status' => null === $rows ? 'sold_out' : 'issued',
-			'passes' => $passes,
+			'status'        => null === $rows ? 'sold_out' : 'issued',
+			'passes'        => $passes,
+			'emails_failed' => $failed,
+		);
+	}
+
+	/**
+	 * Email an order's active passes to the buyer again.
+	 *
+	 * Shop calls it when issuance reported pass emails that could not be
+	 * queued. Revoked and checked-in passes are skipped, so a refunded order
+	 * emails nothing. Every call sends again: Shop stops once nothing fails.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error `{ emailed, failed }`.
+	 */
+	public function resend( array $input ) {
+		$allowed = $this->authorize();
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$emailed = 0;
+		$failed  = 0;
+		foreach ( RsvpPassesTable::ticket_rows( (string) $input['order_reference'] ) as $row ) {
+			if ( 'active' !== ( $row['status'] ?? '' ) ) {
+				continue;
+			}
+			$sent = extrachill_events_send_guest_list_pass_email( (int) $row['event_id'], (string) $input['email'], (string) $row['code'], (string) ( $row['guest_name'] ?? '' ) );
+			if ( $sent ) {
+				++$emailed;
+			} else {
+				++$failed;
+			}
+		}
+
+		return array(
+			'emailed' => $emailed,
+			'failed'  => $failed,
 		);
 	}
 
