@@ -1020,10 +1020,10 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 
 - **Purpose:** issue-ticket-passes See [existing guide](paid-tickets.md).
 - **Input:** `event` (string | integer, required); `quantity` (integer, required); `name` (string, required); `email` (string, required); `idempotency_key` (string, required); `order_reference` (string, required); `payment_reference` (string, required).
-- **Output:** `object {status: string, passes: array<object {code: string, url: string}>}`.
+- **Output:** `object {status: string, passes: array<object {code: string, url: string}>, emails_failed: integer}`.
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
-- **Side effects:** Issues idempotent ticket pass rows and emails newly issued passes.
+- **Side effects:** Issues idempotent ticket pass rows and emails newly issued passes; `emails_failed` counts emails that could not be queued.
 
 ### `extrachill/get-ticket-order-status`
 
@@ -1059,6 +1059,15 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 - **Side effects:** Emails seller owners the supplied commerce notification.
+
+### `extrachill/resend-ticket-pass-emails`
+
+- **Purpose:** resend-ticket-pass-emails See [existing guide](paid-tickets.md).
+- **Input:** `order_reference` (string, required); `email` (string, required).
+- **Output:** `object {emailed: integer, failed: integer}`.
+- **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Emails the order's active passes to the buyer again (not idempotent).
 
 ## Managed Event
 

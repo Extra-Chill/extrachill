@@ -211,7 +211,8 @@ stored account) or by PaymentIntent and account. None of them scan.
   grants must allow service `extrachill.events.tickets`, scope
   `extrachill/events:tickets`, and the exact POST routes for issue-ticket-passes,
   get-ticket-order-status, revoke-ticket-passes, restore-ticket-passes,
-  record-checkout-ticket-sales, and notify-commerce-seller. These are separate from
+  record-checkout-ticket-sales, notify-commerce-seller, and
+  resend-ticket-pass-emails. These are separate from
   priority-boost keys. Without Events and its matching grants, issuance fails
   and webhook delivery must be retried.
 - Pilot seller: Lo-Fi Brewing. Ensure its canonical venue binding points to a
@@ -225,6 +226,35 @@ Sold-out payments are refunded on the stored account with application fees
 returned; the reason is stored in `_extrachill_ticket_refund_reason`. Stripe refund
 requests use a stable per-session idempotency key. Webhook failures return errors
 for Stripe retries; the order is marked paid only after Events confirms issuance.
+
+## Reconciliation: missed webhooks and undelivered pass emails
+
+`inc/core/ticket-reconciliation.php` schedules a recurring Action Scheduler
+job (`extrachill_shop_reconcile_ticket_orders`, group
+`extrachill-shop-tickets`, every 15 minutes) that runs two passes of up to 50
+orders each:
+
+- **Missed payment webhooks.** Ticket orders still `pending` more than 10
+  minutes and less than 7 days after checkout (Stripe retries a webhook for 3
+  days) are checked against their Checkout Session on the stored connected
+  account. A paid Session goes through `extrachill_shop_fulfil_ticket_session()`,
+  the same idempotent path the webhook uses (store the PaymentIntent, record
+  the sale, issue passes keyed by the Session ID, complete the order; refund a
+  sold-out show). An expired Session cancels the order. An open Session, or a
+  delayed payment still in flight, is left for its webhook. A Stripe or Events
+  failure leaves the order `pending` for the next run. A reconciled order gets
+  `_extrachill_ticket_reconciled` (the Session ID) and an order note; a webhook
+  that arrives later is a no-op.
+- **Undelivered pass emails.** `issue-ticket-passes` reports `emails_failed`,
+  the pass emails Events could not queue. The order is still issued (the
+  passes exist and show under My Account → Tickets) and is flagged with
+  `_extrachill_ticket_pass_email_pending` = `1`. The job calls Events'
+  `resend-ticket-pass-emails` with the order reference and billing email;
+  Events emails each active pass again (revoked and checked-in passes are
+  skipped). When nothing fails the flag is cleared with an order note. Each
+  failure counts in `_extrachill_ticket_pass_email_attempts`; after 8 the flag
+  becomes `exhausted` and an order note asks an operator to send the passes.
+  A won dispute whose restore emailed passes clears the flag too.
 
 ## Refund ordering deviation
 
