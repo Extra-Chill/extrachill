@@ -508,7 +508,7 @@ function extrachill_events_confirm_guest_digest( array $params ) {
 
 	$user_id    = $verified['user_id'];
 	$term       = $verified['term'];
-	$definition = extrachill_events_digest_scope( (string) ( $verified['scope'] ?? 'location' ) );
+	$definition = extrachill_events_digest_scope( $verified['scope'] );
 
 	extrachill_events_digest_subscription_context(
 		array(
@@ -672,7 +672,7 @@ function extrachill_events_guest_digest_confirm_page( array $params, bool $is_po
 	}
 
 	$term     = $verified['term'];
-	$is_venue = 'venue' === ( $verified['scope'] ?? 'location' );
+	$is_venue = 'venue' === $verified['scope'];
 	if ( ! $is_post ) {
 		return array(
 			'title'       => $is_venue

@@ -58,8 +58,7 @@ function extrachill_events_get_event_venue_term( int $post_id ): ?WP_Term {
 	if ( ! is_array( $terms ) || 1 !== count( $terms ) ) {
 		return null;
 	}
-	$term = reset( $terms );
-	return $term instanceof WP_Term ? $term : null;
+	return reset( $terms );
 }
 
 /**

@@ -164,7 +164,7 @@ function extrachill_events_digest_scope_terms( string $scope ) {
 	$definition = extrachill_events_digest_scope( $scope );
 	if ( 'venue' === $definition['scope'] ) {
 		$slugs = extrachill_users_entity_subscription_slugs( $definition['producer'], $definition['entity'], $definition['taxonomy'] );
-		if ( is_wp_error( $slugs ) || ! is_array( $slugs ) ) {
+		if ( is_wp_error( $slugs ) ) {
 			return new WP_Error( 'venue_query_failed', 'Venue subscriptions could not be read.' );
 		}
 		$terms = array();
@@ -183,15 +183,15 @@ function extrachill_events_digest_scope_terms( string $scope ) {
 			'hide_empty' => false,
 		)
 	);
-	if ( is_wp_error( $terms ) || ! is_array( $terms ) ) {
+	if ( is_wp_error( $terms ) ) {
 		return new WP_Error( 'location_query_failed', 'Locations could not be read.' );
 	}
 
 	return array_values(
 		array_filter(
 			$terms,
-			static function ( $term ): bool {
-				return $term instanceof WP_Term && count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) >= 2;
+			static function ( WP_Term $term ): bool {
+				return count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) >= 2;
 			}
 		)
 	);
