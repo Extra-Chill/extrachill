@@ -40,7 +40,10 @@ class VenueShowUpdatesSystemTaskTest extends TestCase {
 
 		$task->executeTask( 51, array( 'dry_run' => false ) );
 		$this->assertEmpty( $GLOBALS['ec_test_digest_params'] );
-		$this->assertSame( array( 'skipped' => true, 'reason' => 'Weekly venue show updates disabled.' ), $GLOBALS['ec_test_systemtask_calls'][0]['data'] );
+		$this->assertSame( array(
+		'skipped' => true,
+		'reason' => 'Weekly venue show updates disabled.'
+		), $GLOBALS['ec_test_systemtask_calls'][0]['data'] );
 
 		$task->executeTask( 52, array( 'dry_run' => true ) );
 		$this->assertCount( 1, $GLOBALS['ec_test_digest_params'] );
