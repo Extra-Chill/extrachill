@@ -41,7 +41,7 @@ function extrachill_events_guest_list_pass_link( $id, $code, $name = '' ) { retu
 function extrachill_events_send_guest_list_pass_email( $id, $email, $code, $name = '', $subject = '' ) {
 	$GLOBALS['ticket_emails'][]     = $code;
 	$GLOBALS['ticket_email_args'][] = array( $email, $code, $subject );
-	return true;
+	return empty( $GLOBALS['ticket_email_fail'] );
 }
 function datamachine_get_event_timing( int $id ): string { return $GLOBALS['ticket_timing'][ $id ] ?? 'past'; }
 function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['ticket_meta'][ $id ][ $key ] ?? ''; }
@@ -172,6 +172,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['ticket_claims']     = array();
 		$GLOBALS['ticket_emails']     = array();
 		$GLOBALS['ticket_email_args'] = array();
+		$GLOBALS['ticket_email_fail'] = false;
 		$GLOBALS['dispute_mail']      = array();
 		$GLOBALS['wpdb']              = new TicketWpdb();
 		$GLOBALS['ticket_timing']     = array( 10 => 'upcoming' );
@@ -393,6 +394,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$first     = $abilities->issue( $input );
 		$this->assertSame( 'issued', $first['status'] );
 		$this->assertCount( 2, $first['passes'] );
+		$this->assertSame( 0, $first['emails_failed'] );
 		$this->assertSame( $first, $abilities->issue( $input ) );
 		$this->assertCount( 2, $GLOBALS['ticket_emails'] );
 		$status = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
@@ -404,10 +406,21 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( $status['any_redeemed'] );
 		$this->assertFalse( $status['refundable'] );
 		$input['idempotency_key'] = 'second';
-		$this->assertSame( array(
-			'status' => 'sold_out',
-			'passes' => array(),
-		), $abilities->issue( $input ) );
+		$this->assertSame( array( 'status' => 'sold_out', 'passes' => array(), 'emails_failed' => 0 ), $abilities->issue( $input ) );
+	}
+	public function test_failed_pass_emails_are_reported_and_resent_for_active_passes_only(): void {
+		$this->service_context();
+		$abilities = new TicketAbilities();
+		$input = array( 'event' => 10, 'quantity' => 2, 'name' => 'Guest', 'email' => 'guest@example.com', 'idempotency_key' => 'key', 'order_reference' => 'cs_123', 'payment_reference' => 'pi_123' );
+		$GLOBALS['ticket_email_fail'] = true;
+		$this->assertSame( 2, $abilities->issue( $input )['emails_failed'] );
+		$this->assertSame( 0, $abilities->issue( $input )['emails_failed'], 'A replay sends nothing, so nothing fails.' );
+		$this->assertSame( array( 'emailed' => 0, 'failed' => 2 ), $abilities->resend( array( 'order_reference' => 'cs_123', 'email' => 'guest@example.com' ) ) );
+		$GLOBALS['ticket_email_fail'] = false;
+		$GLOBALS['ticket_emails']     = array();
+		$GLOBALS['wpdb']->rows[1]['status'] = 'revoked';
+		$this->assertSame( array( 'emailed' => 1, 'failed' => 0 ), $abilities->resend( array( 'order_reference' => 'cs_123', 'email' => 'guest@example.com' ) ) );
+		$this->assertSame( array( $GLOBALS['wpdb']->rows[0]['code'] ), $GLOBALS['ticket_emails'] );
 	}
 	public function test_concurrent_duplicate_waiting_for_last_tickets_sends_no_second_email(): void {
 		$this->service_context();
@@ -447,7 +460,7 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_service_grant_covers_every_ticket_route_and_nothing_else(): void {
 		$this->service_context();
-		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'restore-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) as $ability ) {
+		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'restore-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller', 'resend-ticket-pass-emails' ) as $ability ) {
 			$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/' . $ability . '/run';
 			$this->assertTrue( extrachill_events_ticket_has_service_authority(), $ability );
 		}

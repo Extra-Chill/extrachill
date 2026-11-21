@@ -401,8 +401,14 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 		return extrachill_shop_ticket_sold_out_refund( $order ); }
 	if ( 'issued' !== ( $result['status'] ?? '' ) ) {
 		return new WP_Error( 'ticket_fulfilment_failed', 'Unexpected ticket response.', array( 'status' => 502 ) ); }
+	// Pass emails Events could not queue are retried by the reconciliation job.
+	if ( (int) ( $result['emails_failed'] ?? 0 ) > 0 ) {
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META, '1' );
+		$order->add_order_note( sprintf( '%d pass email(s) could not be sent to the buyer; they will be retried.', (int) $result['emails_failed'] ) );
+	}
 	// Nothing to ship, so WooCommerce moves it straight to `completed`.
 	$order->payment_complete( $intent );
+	$order->save();
 	return true;
 }
 
@@ -621,7 +627,12 @@ function extrachill_shop_ticket_dispute_closed( $dispute, $account ) {
 			if ( is_wp_error( $result ) ) {
 				return $result; }
 			$restored = (int) ( $result['restored'] ?? 0 );
-			$next     = in_array( $prior, array( 'processing', 'completed' ), true ) ? $prior : 'completed';
+			if ( $restored > 0 ) {
+				// Events just emailed the restored passes to the buyer.
+				$order->delete_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META );
+				$order->delete_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META );
+			}
+			$next = in_array( $prior, array( 'processing', 'completed' ), true ) ? $prior : 'completed';
 		}
 		$note = sprintf( 'The dispute was settled in the seller\'s favor (Stripe dispute %1$s, %2$s). ', $dispute_id, $status )
 			. ( $restored > 0 ? sprintf( '%d pass(es) cancelled by the dispute work again and were emailed to the buyer.', $restored ) : 'No passes needed restoring.' )

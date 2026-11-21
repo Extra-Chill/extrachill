@@ -19,6 +19,24 @@ require_once dirname( __DIR__ ) . '/inc/core/seller-order-notifications.php';
 require_once __DIR__ . '/fixtures/ticket-wc-orders.php';
 require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
+require_once dirname( __DIR__ ) . '/inc/core/ticket-reconciliation.php';
+
+if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+	function as_has_scheduled_action( $hook, $args = null, $group = '' ) {
+		foreach ( $GLOBALS['test_recurring_actions'] ?? array() as $action ) {
+			if ( $hook === $action[2] && $group === $action[4] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+	function as_schedule_recurring_action( $timestamp, $interval, $hook, $args = array(), $group = '' ) {
+		$GLOBALS['test_recurring_actions'][] = array( $timestamp, $interval, $hook, $args, $group );
+		return count( $GLOBALS['test_recurring_actions'] );
+	}
+}
 
 final class TicketTest extends \PHPUnit\Framework\TestCase {
 	protected function tearDown(): void {
@@ -72,6 +90,15 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			),
 		);
 		$GLOBALS['ticket_issue_status']    = 'issued';
+		$GLOBALS['ticket_emails_failed']   = 0;
+		$GLOBALS['ticket_resend']          = array(
+			'emailed' => 2,
+			'failed'  => 0,
+		);
+		$GLOBALS['stripe_session_data']      = array();
+		$GLOBALS['stripe_session_status']    = array();
+		$GLOBALS['stripe_session_retrieved'] = array();
+		$GLOBALS['stripe_session_retrieve_fail'] = false;
 		$GLOBALS['ticket_redeemed']        = false;
 		$GLOBALS['test_owner_callback']    = static function ( $site, $method, $route ) {
 			if ( str_contains( $route, 'get-event-ticket-offer' ) ) {
@@ -84,9 +111,12 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				); }
 			if ( str_contains( $route, 'issue-ticket-passes' ) ) {
 				return array(
-					'status' => $GLOBALS['ticket_issue_status'],
-					'passes' => array(),
+					'status'        => $GLOBALS['ticket_issue_status'],
+					'passes'        => array(),
+					'emails_failed' => $GLOBALS['ticket_emails_failed'],
 				); }
+			if ( str_contains( $route, 'resend-ticket-pass-emails' ) ) {
+				return $GLOBALS['ticket_resend']; }
 			if ( str_contains( $route, 'get-ticket-order-status' ) ) {
 				return array(
 					'event_id'     => 101,
@@ -810,7 +840,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		add_filter( 'extrachill_shop_ticket_service_assertion_active_key_id', static function () { return 'test';
 		} );
 		$grants = extrachill_shop_register_ticket_source_grants( array() );
-		$this->assertCount( 6, $grants );
+		$this->assertCount( 7, $grants );
 		foreach ( $grants as $grant ) {
 			$this->assertSame( 'POST', $grant['method'] );
 			$this->assertSame( 'events.extrachill.com', $grant['target_host'] );
@@ -1172,5 +1202,181 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$ability = $GLOBALS['test_abilities']['extrachill/list-my-ticket-orders'];
 		$this->assertSame( 'is_user_logged_in', $ability['permission_callback'] );
 		$this->assertSame( 'boolean', $GLOBALS['test_abilities']['extrachill/start-ticket-checkout']['input_schema']['properties']['terms_accepted']['type'] );
+	}
+	/** Age the order past the webhook grace period and stub its Session in Stripe. */
+	private function missed_webhook( string $payment_status, string $status = 'complete' ): TicketTestOrder {
+		$order          = $this->order();
+		$order->created = time() - 3600;
+		$GLOBALS['stripe_session_status']['cs_ticket'] = $status;
+		$GLOBALS['stripe_session_data']['cs_ticket']   = array(
+			'payment_status' => $payment_status,
+			'payment_intent' => 'pi_ticket',
+			'customer_email' => 'buyer@example.com',
+			'metadata'       => (object) array(
+				'kind'     => 'extrachill_ticket',
+				'name'     => 'Buyer',
+				'order_id' => (string) $order->get_id(),
+			),
+		);
+		return $order;
+	}
+	private function owner_calls( string $ability ): array {
+		return array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], $ability ) ) );
+	}
+	public function test_reconciliation_fulfils_a_paid_order_whose_webhook_never_arrived(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$this->assertSame( array( 'fulfilled' => 1, 'closed' => 0, 'open' => 0, 'failed' => 0 ), extrachill_shop_reconcile_pending_ticket_orders() );
+		$order = $this->order();
+		$this->assertSame( 'completed', $order->get_status() );
+		$this->assertSame( 'pi_ticket', $order->get_meta( '_extrachill_payment_intent' ) );
+		$this->assertSame( 'cs_ticket', $order->get_meta( EXTRACHILL_SHOP_TICKET_RECONCILED_META ) );
+		$this->assertStringContainsString( 'never completed fulfilment', end( $order->notes ) );
+		// The Session is read on the seller's account, as the webhook would carry it.
+		$this->assertSame( array( 'cs_ticket', array( 'stripe_account' => 'acct_venue' ) ), $GLOBALS['stripe_session_retrieved'][0] );
+		$issue = $this->owner_calls( 'issue-ticket-passes' );
+		$this->assertCount( 1, $issue );
+		$this->assertSame( 'cs_ticket', $issue[0]['args']['body']['input']['idempotency_key'] );
+		$this->assertSame( 'buyer@example.com', $issue[0]['args']['body']['input']['email'] );
+		// A late webhook after reconciliation is a no-op.
+		$count = count( $GLOBALS['test_owner_calls'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$this->assertCount( $count, $GLOBALS['test_owner_calls'] );
+		$this->assertSame( 1, $this->order()->paid );
+		// Completed orders drop out of the next run.
+		$this->assertSame( 0, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+	}
+	public function test_reconciliation_leaves_recent_and_open_sessions_alone(): void {
+		$this->checkout();
+		// Inside the grace period the webhook still has time; Stripe is not asked.
+		$this->assertSame( array( 'fulfilled' => 0, 'closed' => 0, 'open' => 0, 'failed' => 0 ), extrachill_shop_reconcile_pending_ticket_orders() );
+		$this->assertSame( array(), $GLOBALS['stripe_session_retrieved'] );
+		$this->missed_webhook( 'unpaid', 'open' );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['open'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$this->assertSame( array(), $this->owner_calls( 'issue-ticket-passes' ) );
+		// Too old to reconcile: left for an operator.
+		$this->assertSame( 0, extrachill_shop_reconcile_pending_ticket_orders( time() + 30 * 86400 )['open'] );
+		$this->assertQueryArgs();
+	}
+	private function assertQueryArgs(): void {
+		$query = $GLOBALS['ticket_order_queries'][0];
+		$this->assertSame( array( 'wc-pending' ), $query['status'] );
+		$this->assertSame( EXTRACHILL_SHOP_TICKET_RECONCILE_BATCH, $query['limit'] );
+		$this->assertMatchesRegularExpression( '/^\d+\.\.\.\d+$/', $query['date_created'] );
+		$this->assertContains( array( 'key' => EXTRACHILL_SHOP_ORDER_KIND_META, 'value' => EXTRACHILL_SHOP_TICKET_KIND ), $query['meta_query'] );
+	}
+	public function test_reconciliation_cancels_an_order_whose_session_expired_unpaid(): void {
+		$this->checkout();
+		$this->missed_webhook( 'unpaid', 'expired' );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['closed'] );
+		$this->assertSame( 'cancelled', $this->order()->get_status() );
+		$this->assertSame( 'expired', extrachill_shop_ticket_order_state( $this->order() ) );
+		$this->assertSame( array(), $this->owner_calls( 'issue-ticket-passes' ) );
+	}
+	public function test_reconciliation_failures_are_retried_on_the_next_run(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$GLOBALS['stripe_session_retrieve_fail'] = true;
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['failed'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$GLOBALS['stripe_session_retrieve_fail'] = false;
+		// Events is down: the order stays pending with the payment stored.
+		$callback                       = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static fn( $site, $method, $route, $args ) => str_contains( $route, 'issue-ticket-passes' ) ? new WP_Error( 'owner_unavailable', 'Down.' ) : $callback( $site, $method, $route, $args );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['failed'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$this->assertSame( 'pi_ticket', $this->order()->get_meta( '_extrachill_payment_intent' ) );
+		$GLOBALS['test_owner_callback'] = $callback;
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+		$this->assertSame( 'completed', $this->order()->get_status() );
+	}
+	public function test_reconciliation_of_a_sold_out_show_refunds_instead_of_issuing(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
+		$this->assertSame( 'refunded', $this->order()->get_status() );
+	}
+	public function test_undelivered_pass_emails_are_flagged_and_retried_until_sent(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 2;
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$order = $this->order();
+		$this->assertSame( 'completed', $order->get_status(), 'The passes exist, so the order is issued.' );
+		$this->assertSame( '1', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$GLOBALS['ticket_resend'] = array( 'emailed' => 0, 'failed' => 2 );
+		$this->assertSame( array( 'sent' => 0, 'failed' => 1, 'exhausted' => 0 ), extrachill_shop_retry_ticket_pass_emails() );
+		$this->assertSame( '1', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		$GLOBALS['ticket_resend'] = array( 'emailed' => 2, 'failed' => 0 );
+		$this->assertSame( array( 'sent' => 1, 'failed' => 0, 'exhausted' => 0 ), extrachill_shop_retry_ticket_pass_emails() );
+		$resend = $this->owner_calls( 'resend-ticket-pass-emails' );
+		$this->assertCount( 2, $resend );
+		$this->assertSame( array( 'order_reference' => 'cs_ticket', 'email' => 'buyer@example.com' ), $resend[1]['args']['body']['input'] );
+		$this->assertSame( 'extrachill.events.tickets', $resend[1]['args']['service_assertion']['service_id'] );
+		$order = $this->order();
+		$this->assertSame( '', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertSame( '', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		$this->assertStringContainsString( 'Re-sent 2 pass email(s)', end( $order->notes ) );
+		// Nothing left to retry.
+		$this->assertSame( array( 'sent' => 0, 'failed' => 0, 'exhausted' => 0 ), extrachill_shop_retry_ticket_pass_emails() );
+		$this->assertCount( 2, $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_delivered_pass_emails_are_not_retried(): void {
+		$this->checkout();
+		extrachill_shop_route_webhook_event( $this->event() );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		extrachill_shop_run_ticket_reconciliation();
+		$this->assertSame( array(), $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_pass_email_retries_are_bounded(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 1;
+		extrachill_shop_route_webhook_event( $this->event() );
+		$callback                       = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static fn( $site, $method, $route, $args ) => str_contains( $route, 'resend-ticket-pass-emails' ) ? new WP_Error( 'owner_unavailable', 'Down.' ) : $callback( $site, $method, $route, $args );
+		for ( $i = 1; $i < EXTRACHILL_SHOP_TICKET_PASS_EMAIL_MAX_ATTEMPTS; $i++ ) {
+			$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['failed'] );
+		}
+		$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['exhausted'] );
+		$order = $this->order();
+		$this->assertSame( 'exhausted', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertStringContainsString( 'manually', end( $order->notes ) );
+		$this->assertSame( array( 'sent' => 0, 'failed' => 0, 'exhausted' => 0 ), extrachill_shop_retry_ticket_pass_emails(), 'An exhausted order is not retried again.' );
+		$this->assertCount( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_MAX_ATTEMPTS, $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_refunded_orders_stop_pass_email_retries(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 2;
+		extrachill_shop_route_webhook_event( $this->event() );
+		// Refunded orders are not queried; a refund_pending order has no active passes left.
+		$order         = $this->order();
+		$order->status = 'refunded';
+		$this->assertSame( array( 'sent' => 0, 'failed' => 0, 'exhausted' => 0 ), extrachill_shop_retry_ticket_pass_emails() );
+		$order->status            = 'completed';
+		$GLOBALS['ticket_resend'] = array( 'emailed' => 0, 'failed' => 0 );
+		$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['sent'] );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertStringContainsString( 'No active passes', end( $this->order()->notes ) );
+	}
+	public function test_won_dispute_restore_emails_clear_a_pending_pass_email_retry(): void {
+		$this->disputed_order();
+		$order = $this->order();
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META, '1' );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META, '3' );
+		$GLOBALS['ticket_restore'] = array( 'restored' => 2 );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) ) );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		unset( $GLOBALS['ticket_restore'] );
+	}
+	public function test_reconciliation_is_scheduled_once_with_action_scheduler(): void {
+		$GLOBALS['test_recurring_actions'] = array();
+		$this->assertTrue( extrachill_shop_schedule_ticket_reconciliation() );
+		$this->assertTrue( extrachill_shop_schedule_ticket_reconciliation() );
+		$this->assertCount( 1, $GLOBALS['test_recurring_actions'] );
+		$this->assertSame( array( EXTRACHILL_SHOP_TICKET_RECONCILE_INTERVAL, EXTRACHILL_SHOP_TICKET_RECONCILE_HOOK, array(), EXTRACHILL_SHOP_TICKET_RECONCILE_GROUP ), array_slice( $GLOBALS['test_recurring_actions'][0], 1 ) );
+		unset( $GLOBALS['test_recurring_actions'] );
 	}
 }
