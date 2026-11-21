@@ -66,7 +66,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		'offer'     => $offer,
 		'quantity'  => $input['quantity'],
 		'amounts'   => $amounts,
-		'terms'     => $terms,
+		'terms'     => $terms + array( 'venue_show_updates' => true === ( $input['venue_show_updates'] ?? false ) ? 'yes' : 'no' ),
 	) );
 	if ( is_wp_error( $order ) ) {
 		return new WP_Error( 'ticket_checkout_failed', 'Ticket checkout failed.', array( 'status' => 502 ) ); }
@@ -317,13 +317,16 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 		return $result;
 	}
 	$result = extrachill_shop_execute_ticket_owner_ability( 'issue-ticket-passes', array(
-		'event'             => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
-		'quantity'          => extrachill_shop_ticket_order_quantity( $order ),
-		'name'              => (string) ( $session->metadata->name ?? trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ),
-		'email'             => $session->customer_details->email ?? $session->customer_email ?? $order->get_billing_email(),
-		'idempotency_key'   => $session_id,
-		'order_reference'   => $session_id,
-		'payment_reference' => $intent,
+		'event'              => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
+		'quantity'           => extrachill_shop_ticket_order_quantity( $order ),
+		'name'               => (string) ( $session->metadata->name ?? trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ),
+		'email'              => $session->customer_details->email ?? $session->customer_email ?? $order->get_billing_email(),
+		'idempotency_key'    => $session_id,
+		'order_reference'    => $session_id,
+		'payment_reference'  => $intent,
+		'buyer_user_id'      => (int) $order->get_customer_id(),
+		'venue_show_updates' => 'yes' === $order->get_meta( '_extrachill_venue_show_updates' ),
+		'seller'             => extrachill_shop_get_order_seller( $order ),
 	) );
 	if ( is_wp_error( $result ) ) {
 		return $result; }

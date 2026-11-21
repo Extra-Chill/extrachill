@@ -23,6 +23,7 @@
 				name: fields.get( 'name' ),
 				email: fields.get( 'email' ),
 				terms_accepted: true,
+				venue_show_updates: !! fields.get( 'venue_show_updates' ),
 				turnstile_response: fields.get( 'cf-turnstile-response' ) || '',
 			} );
 			// Logged-in buyers send their account cookie and REST nonce so the

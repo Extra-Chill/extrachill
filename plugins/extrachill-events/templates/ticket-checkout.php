@@ -26,6 +26,10 @@ if ( in_array( strtolower( $currency ), array( 'bhd', 'jod', 'kwd', 'omr', 'tnd'
 		<p><label><?php esc_html_e( 'Quantity', 'extrachill-events' ); ?> <input name="quantity" type="number" min="1" max="<?php echo esc_attr( (string) $maximum ); ?>" value="1" required></label></p>
 		<p><label><?php esc_html_e( 'Name', 'extrachill-events' ); ?> <input name="name" type="text" autocomplete="name" maxlength="100" required></label></p>
 		<p><label><?php esc_html_e( 'Email', 'extrachill-events' ); ?> <input name="email" type="email" autocomplete="email" required></label></p>
+		<?php $venue = 'venue' === ( $offer['seller']['type'] ?? '' ) ? get_term( (int) $offer['seller']['id'], 'venue' ) : null; ?>
+		<?php if ( $venue instanceof WP_Term ) : ?>
+			<label class="ec-checkbox-row"><input name="venue_show_updates" type="checkbox" value="1"><span><?php /* translators: %s: venue name. */ echo esc_html( sprintf( __( 'Get %s show updates', 'extrachill-events' ), $venue->name ) ); ?></span></label>
+		<?php endif; ?>
 		<label class="ec-checkbox-row">
 			<input name="terms_accepted" type="checkbox" value="1" required>
 			<span>
