@@ -288,6 +288,34 @@ function extrachill_shop_ticket_refund_payment( $order, $reason ) {
 }
 
 /**
+ * Defend against a stale sold-out response when this order already holds passes.
+ * Status lookup failures must retry, never trigger a speculative refund.
+ *
+ * @param WC_Order $order Ticket order.
+ * @return true|WP_Error
+ */
+function extrachill_shop_ticket_sold_out_refund( $order ) {
+	$status = extrachill_shop_execute_ticket_owner_ability( 'get-ticket-order-status', array(
+		'order_reference' => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFERENCE_META ),
+	) );
+	if ( is_wp_error( $status ) ) {
+		return $status;
+	}
+	if ( ! is_array( $status ) || ! isset( $status['passes'] ) || ! is_array( $status['passes'] ) ) {
+		return new WP_Error( 'ticket_status_unavailable', 'Please retry ticket fulfilment.', array( 'status' => 502 ) );
+	}
+	foreach ( $status['passes'] as $pass ) {
+		if ( in_array( $pass['status'] ?? '', array( 'active', 'redeemed' ), true ) ) {
+			$order->payment_complete( (string) $order->get_meta( '_extrachill_payment_intent' ) );
+			return true;
+		}
+	}
+	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META, 'sold_out' );
+	$order->save();
+	return extrachill_shop_ticket_refund_payment( $order, 'sold_out' );
+}
+
+/**
  * Issue the passes for a paid ticket Session.
  *
  * The PaymentIntent is stored first (it is how refunds and disputes find the
@@ -316,6 +344,9 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
+	if ( 'sold_out' === $order->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) ) {
+		return extrachill_shop_ticket_refund_payment( $order, 'sold_out' );
+	}
 	$result = extrachill_shop_execute_ticket_owner_ability( 'issue-ticket-passes', array(
 		'event'              => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
 		'quantity'           => extrachill_shop_ticket_order_quantity( $order ),
@@ -331,7 +362,7 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	if ( is_wp_error( $result ) ) {
 		return $result; }
 	if ( 'sold_out' === ( $result['status'] ?? '' ) ) {
-		return extrachill_shop_ticket_refund_payment( $order, 'sold_out' ); }
+		return extrachill_shop_ticket_sold_out_refund( $order ); }
 	if ( 'issued' !== ( $result['status'] ?? '' ) ) {
 		return new WP_Error( 'ticket_fulfilment_failed', 'Unexpected ticket response.', array( 'status' => 502 ) ); }
 	// Nothing to ship, so WooCommerce moves it straight to `completed`.

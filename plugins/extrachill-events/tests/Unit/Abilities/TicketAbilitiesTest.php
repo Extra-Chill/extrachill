@@ -83,32 +83,51 @@ final class TicketWpdb {
 	public $prefix      = 'wp_';
 	public $rows        = array();
 	public $fail_insert = false;
-	private $snapshot   = array();
+	public $before_key_lock;
+	public $key_locked = false;
+	public $capacity_locked = false;
+	public $in_transaction = false;
+	private $snapshot = array();
 	public function prepare( $sql, ...$args ) {
 		foreach ( $args as $arg ) {
 			$sql = preg_replace( '/%[ds]/', is_int( $arg ) ? (string) $arg : "'" . addslashes( $arg ) . "'", $sql, 1 ); }
 		return $sql;
 	}
 	public function get_var( $sql ) {
-		if ( strpos( $sql, 'GET_LOCK' ) !== false || strpos( $sql, 'RELEASE_LOCK' ) !== false ) {
-			return 1; }
-		return count( array_filter( $this->rows, static function ( $row ) { return in_array( $row['status'], array( 'active', 'redeemed' ), true );
-		} ) );
+		if ( strpos( $sql, 'GET_LOCK' ) !== false ) {
+			if ( strpos( $sql, 'ec_ticket_' ) !== false ) {
+				if ( $this->before_key_lock ) {
+					$callback = $this->before_key_lock;
+					$this->before_key_lock = null;
+					$callback(); // Another delivery commits before this waiter acquires the key lock.
+				}
+				$this->key_locked = true;
+			} else { $this->capacity_locked = true; }
+			return 1;
+		}
+		if ( strpos( $sql, 'RELEASE_LOCK' ) !== false ) {
+			if ( strpos( $sql, 'ec_ticket_' ) !== false ) { $this->key_locked = false; }
+			else { $this->capacity_locked = false; }
+			return 1;
+		}
+		return count( array_filter( $this->rows, static function ( $row ) { return in_array( $row['status'], array( 'active', 'redeemed' ), true ); } ) );
 	}
 	public function get_row( $sql, $format ) { return array(
 		'claimed'    => $this->get_var( $sql ),
 		'checked_in' => 0,
 	); }
 	public function get_results( $sql, $format ) {
+		if ( strpos( $sql, 'idempotency_key' ) !== false && ( ! $this->key_locked || ! $this->capacity_locked ) ) {
+			throw new \RuntimeException( 'Replay lookup must hold both locks.' );
+		}
 		preg_match( "/WHERE (idempotency_key|order_reference) = '([^']+)'/", $sql, $match );
 		return array_values( array_filter( $this->rows, static function ( $row ) use ( $match ) { return $row[ $match[1] ] === $match[2];
 		} ) );
 	}
 	public function query( $sql ) {
-		if ( 'START TRANSACTION' === $sql ) {
-			$this->snapshot = $this->rows; }
-		if ( 'ROLLBACK' === $sql ) {
-			$this->rows = $this->snapshot; }
+		if ( 'START TRANSACTION' === $sql ) { $this->snapshot = $this->rows; $this->in_transaction = true; }
+		if ( 'ROLLBACK' === $sql ) { $this->rows = $this->snapshot; }
+		if ( in_array( $sql, array( 'COMMIT', 'ROLLBACK' ), true ) ) { $this->in_transaction = false; }
 		return 1;
 	}
 	public function insert( $table, $data ) {
@@ -285,7 +304,10 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_replay_and_conflicting_key(): void {
 		$first = $this->issue();
-		$this->assertSame( $first, $this->issue() );
+		$this->assertFalse( $first[0]['pre_existing'] );
+		$replay = $this->issue();
+		$this->assertTrue( $replay[0]['pre_existing'] );
+		$this->assertSame( array_column( $first, 'code' ), array_column( $replay, 'code' ) );
 		$this->assertCount( 2, $GLOBALS['wpdb']->rows );
 		$this->assertSame( 'ticket_idempotency_conflict', $this->issue( 1 )->get_error_code() );
 	}
@@ -386,6 +408,36 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 			'status' => 'sold_out',
 			'passes' => array(),
 		), $abilities->issue( $input ) );
+	}
+	public function test_concurrent_duplicate_waiting_for_last_tickets_sends_no_second_email(): void {
+		$this->service_context();
+		$abilities = new TicketAbilities();
+		$input = array( 'event' => 10, 'quantity' => 3, 'name' => 'Guest', 'email' => 'guest@example.com', 'idempotency_key' => 'key', 'order_reference' => 'cs_123', 'payment_reference' => 'pi_123' );
+		$first = null;
+		$GLOBALS['wpdb']->before_key_lock = function () use ( $abilities, $input, &$first ) {
+			$first = $abilities->issue( $input );
+		};
+		$waiting = $abilities->issue( $input );
+		$this->assertSame( 'issued', $waiting['status'] );
+		$this->assertSame( $first, $waiting );
+		$this->assertCount( 3, $GLOBALS['wpdb']->rows );
+		$this->assertCount( 3, $GLOBALS['ticket_emails'] );
+		$this->assertSame( $first, $abilities->issue( $input ) );
+		$this->assertCount( 3, $GLOBALS['ticket_emails'] );
+		$this->assertFalse( $GLOBALS['wpdb']->key_locked );
+		$this->assertFalse( $GLOBALS['wpdb']->capacity_locked );
+		$this->assertFalse( $GLOBALS['wpdb']->in_transaction );
+	}
+	public function test_paid_fulfilment_after_event_end_and_disabling_sales(): void {
+		$this->service_context();
+		$GLOBALS['ticket_timing'][10] = 'past';
+		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer']['tickets_enabled'] = false;
+		$abilities = new TicketAbilities();
+		$this->assertFalse( $abilities->offer( array( 'event' => 10 ) )['sale_open'] );
+		$input = array( 'event' => 10, 'quantity' => 2, 'name' => 'Guest', 'email' => 'guest@example.com', 'idempotency_key' => 'key', 'order_reference' => 'cs_123', 'payment_reference' => 'pi_123' );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertCount( 2, $GLOBALS['ticket_emails'] );
 	}
 	public function test_verified_claims_require_exact_service_and_scope(): void {
 		$this->service_context();

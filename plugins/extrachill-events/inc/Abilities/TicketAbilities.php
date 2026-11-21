@@ -549,14 +549,8 @@ class TicketAbilities {
 			return $offer;
 		}
 
-		$existing = RsvpPassesTable::ticket_rows( $input['idempotency_key'], true );
-		if ( ! $existing && ! $offer['sale_open'] ) {
-			return array(
-				'status' => 'sold_out',
-				'passes' => array(),
-			);
-		}
-
+		// sale_open gates checkout start, not fulfilment of an already paid session.
+		// Capacity and replay detection belong to the serialized table operation.
 		$settings = self::settings( $offer['event_id'] );
 		$rows     = RsvpPassesTable::issue_tickets(
 			$offer['event_id'],
@@ -582,7 +576,7 @@ class TicketAbilities {
 				'code' => $row['code'],
 				'url'  => extrachill_events_guest_list_pass_link( $offer['event_id'], $row['code'], $row['guest_name'] ),
 			);
-			if ( ! $existing ) {
+			if ( ! $row['pre_existing'] ) {
 				extrachill_events_send_guest_list_pass_email( $offer['event_id'], $input['email'], $row['code'], $row['guest_name'] );
 			}
 		}
