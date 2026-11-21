@@ -85,6 +85,7 @@ final class AbilitiesProvider {
 				'GuestListPartyAbilities',
 				'OwnerGuestListAbilities',
 				'LocalSceneDigestGuestAbilities',
+				'VenueShowUpdatesAbilities',
 				'CityAbilities',
 				'VenueDiscoveryAbilities',
 				'VenueQualificationAbilities',

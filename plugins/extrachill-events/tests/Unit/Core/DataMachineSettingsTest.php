@@ -17,6 +17,7 @@ class DataMachineSettingsTest extends TestCase {
 			array(
 				'dme_qualify_digest_enabled'             => false,
 				'extrachill_local_scene_digest_enabled' => true,
+				'extrachill_venue_show_updates_enabled' => true,
 				'unrelated'                              => true,
 			)
 		);
@@ -24,8 +25,9 @@ class DataMachineSettingsTest extends TestCase {
 		$this->assertSame( 'value', $result['settings']['existing'] );
 		$this->assertFalse( $result['settings']['dme_qualify_digest_enabled'] );
 		$this->assertTrue( $result['settings']['extrachill_local_scene_digest_enabled'] );
+		$this->assertTrue( $result['settings']['extrachill_venue_show_updates_enabled'] );
 		$this->assertSame(
-			array( 'existing', 'dme_qualify_digest_enabled', 'extrachill_local_scene_digest_enabled' ),
+			array( 'existing', 'dme_qualify_digest_enabled', 'extrachill_local_scene_digest_enabled', 'extrachill_venue_show_updates_enabled' ),
 			$result['handled_keys']
 		);
 		$this->assertArrayNotHasKey( 'unrelated', $result['settings'] );

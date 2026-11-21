@@ -8,7 +8,7 @@ Paths are relative to `/wp-json/extrachill/v1`; both use Events affinity.
 
 **Permission:** `extrachill_api_local_scene_digest_guest_permission`: verifies Turnstile first, then shared per-client public-write admission (default 5 per minute, filterable). Missing security helper returns `guest_digest_security_unavailable` (503). No login required.
 
-**Parameters:** required `location_slug` and `email` strings; optional `referrer` string, `utm` object, `turnstile_response` string. The handler sanitizes slug/email/referrer and forwards only scalar `utm_*` keys. The Turnstile token is transport-only.
+**Parameters:** required `location_slug` and `email` strings; optional `scope` (`location` default, or `venue`), `referrer` string, `utm` object, `turnstile_response` string. With `scope: venue`, `location_slug` carries a venue term slug and the request asks for that venue's weekly show updates (extrachill#1724); `scope` is forwarded only when it is exactly `venue`. The handler sanitizes slug/email/referrer and forwards only scalar `utm_*` keys. The Turnstile token is transport-only.
 
 **Owner:** Events ability `extrachill/guest-subscribe-local-scene-digest` resolves accounts, confirmation emails and subscriptions.
 

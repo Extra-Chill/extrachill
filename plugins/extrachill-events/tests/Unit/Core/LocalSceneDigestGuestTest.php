@@ -386,6 +386,50 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( array(), $GLOBALS['guest_digest_test']['user_meta'] );
 	}
 
+	private function add_venue(): void {
+		$GLOBALS['guest_digest_test']['terms']['lofi-brewing'] = new WP_Term( (object) array( 'term_id' => 300, 'name' => 'Lofi Brewing', 'slug' => 'lofi-brewing', 'taxonomy' => 'venue' ) );
+	}
+
+	public function test_venue_guest_signup_is_double_opt_in_and_subscribes_only_the_venue(): void {
+		$this->add_venue();
+
+		$result = extrachill_events_guest_subscribe_local_scene_digest( 'lofi-brewing', 'new@example.com', array(), 'venue' );
+
+		$this->assertSame( array( 'status' => 'check_inbox' ), $result );
+		$this->assertSame( 'venue_show_updates', $this->resolve->calls[0]['registration_source'] );
+		$mail = $GLOBALS['guest_digest_test']['mail'][0];
+		$this->assertSame( 'Confirm to get Lofi Brewing show updates', $mail['subject'] );
+		$this->assertStringContainsString( 'when Lofi Brewing has shows coming up', $mail['context']['body_html'] );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'], 'Nothing is subscribed before the inbox owner confirms.' );
+		$this->assertSame( array(), extrachill_events_get_guest_digest_requests( 42 ), 'Venue requests stay out of the city request ledger.' );
+
+		$params = $this->confirm_params();
+		$page   = extrachill_events_guest_digest_confirm_page( $params, false );
+		$this->assertSame( 'Get Lofi Brewing show updates?', $page['title'] );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'], 'GET never subscribes.' );
+
+		$done = extrachill_events_guest_digest_confirm_page( $params, true );
+		$this->assertStringContainsString( 'Upcoming shows at Lofi Brewing', $done['message'] );
+		$this->assertSame( array( '42|venue_show_updates|venue|lofi-brewing' ), array_keys( $GLOBALS['guest_digest_test']['subscriptions'] ) );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['scenes'], 'Following a venue never sets the Local Scene.' );
+		$this->assertSame( array(), $this->track->events, 'City digest analytics are not emitted for venue consent.' );
+	}
+
+	public function test_venue_and_city_signups_throttle_independently_and_reject_unknown_venues(): void {
+		$this->add_venue();
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		extrachill_events_guest_subscribe_local_scene_digest( 'lofi-brewing', 'new@example.com', array(), 'venue' );
+		$this->assertCount( 2, $GLOBALS['guest_digest_test']['mail'] );
+
+		$this->assertSame( 'venue_not_found', extrachill_events_guest_subscribe_local_scene_digest( 'nowhere', 'new@example.com', array(), 'venue' )->get_error_code() );
+
+		// A city confirm token cannot be replayed as venue consent, and vice versa.
+		$forged = array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 42, 'slug' => 'charleston', 'scope' => 'venue' ), 3600 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $forged ) );
+		$unknown = array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 42, 'slug' => 'lofi-brewing', 'scope' => 'artist' ), 3600 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $unknown ) );
+	}
+
 	private function add_city( string $slug, int $term_id ): void {
 		$GLOBALS['guest_digest_test']['terms'][ $slug ]     = new WP_Term( (object) array( 'term_id' => $term_id, 'name' => ucfirst( $slug ), 'slug' => $slug, 'taxonomy' => 'location' ) );
 		$GLOBALS['guest_digest_test']['ancestors'][ $term_id ] = array( 22, 1 );

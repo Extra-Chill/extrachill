@@ -224,6 +224,17 @@ if ( ! function_exists( 'extrachill_users_get_local_scene' ) ) {
 		return $GLOBALS['local_scene_scenes'][ $user_id ] ?? null;
 	}
 }
+if ( ! function_exists( 'extrachill_users_entity_subscription_slugs' ) ) {
+	function extrachill_users_entity_subscription_slugs( $producer, $type, $taxonomy ) {
+		$GLOBALS['local_scene_slug_resolutions'][] = compact( 'producer', 'type', 'taxonomy' );
+		return $GLOBALS['local_scene_subscribed_slugs'] ?? array();
+	}
+}
+if ( ! function_exists( 'get_term_by' ) ) {
+	function get_term_by( $field, $value, $taxonomy ) {
+		return $GLOBALS['local_scene_terms_by_slug'][ $taxonomy ][ $value ] ?? false;
+	}
+}
 if ( ! function_exists( 'extrachill_users_unsubscribe_from_entity' ) ) {
 	function extrachill_users_unsubscribe_from_entity( $user, $type, $taxonomy, $slug ) {
 		$GLOBALS['local_scene_unsubscribes'][] = compact( 'user', 'type', 'taxonomy', 'slug' );
@@ -275,6 +286,9 @@ class LocalSceneDigestTest extends TestCase {
 		$GLOBALS['local_scene_scenes']          = array();
 		$GLOBALS['local_scene_recipient_resolutions'] = array();
 		$GLOBALS['local_scene_query_params']    = array();
+		$GLOBALS['local_scene_slug_resolutions'] = array();
+		$GLOBALS['local_scene_subscribed_slugs'] = array();
+		$GLOBALS['local_scene_terms_by_slug']    = array();
 		$GLOBALS['test_term_ancestors'] = array( 2, 1 );
 	}
 
@@ -286,6 +300,115 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array( 'entity_type' => 'location', 'taxonomy' => 'location' ), 'email' ) );
 		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array( 'entity_type' => 'artist', 'taxonomy' => 'artist' ), 'email' ) );
 		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, 'other', $entity, 'email' ) );
+	}
+
+	public function test_venue_scope_has_its_own_consent_identity_and_producer(): void {
+		$entities = extrachill_events_local_scene_digest_subscription_entities( array() );
+		$this->assertSame( 'location', $entities['local_scene_digest'] );
+		$this->assertSame( 'venue', $entities['venue_show_updates'] );
+
+		$venue_entity = array( 'entity_type' => 'venue_show_updates', 'taxonomy' => 'venue' );
+		$city_entity  = array( 'entity_type' => 'local_scene_digest', 'taxonomy' => 'location' );
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'email' ) );
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'notification' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $city_entity, 'email' ), 'The venue producer cannot read city audiences.' );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, $venue_entity, 'email' ), 'The city producer cannot read venue audiences.' );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, array( 'entity_type' => 'venue_show_updates', 'taxonomy' => 'location' ), 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'sms' ) );
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( true, 'someone-else', $venue_entity, 'email' ), 'Other producers pass through untouched.' );
+		$this->assertSame( 'location', extrachill_events_normalize_digest_scope( 'bogus' ) );
+		$this->assertSame( 'venue', extrachill_events_normalize_digest_scope( 'venue' ) );
+	}
+
+	public function test_venue_candidates_keep_only_single_venue_events_at_that_venue(): void {
+		$venue    = $this->term( 300, 'lofi-brewing', 'Lofi Brewing' );
+		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		foreach ( array( 1, 2, 3 ) as $id ) {
+			$GLOBALS['local_scene_posts'][]           = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Show ' . $id ) );
+			$GLOBALS['local_scene_terms'][ $id ]      = array( 'location' => array( 44, 45 ), 'venue' => array( $venue ), 'artist' => array( $id ) );
+			$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		}
+		$GLOBALS['local_scene_terms'][2]['venue'] = array( $this->term( 301, 'elsewhere', 'Elsewhere' ) );
+		$GLOBALS['local_scene_terms'][3]['venue'][] = $this->term( 302, 'co-host', 'Co Host' );
+
+		$result = extrachill_events_local_scene_digest_candidates( $venue, 7, $evidence, 'venue' );
+
+		$this->assertSame( array( 1 ), array_column( $result, 'post_id' ), 'Venue scope ignores the city gate but requires exactly this venue.' );
+		$this->assertSame( array( 'venue' => array( 300 ) ), $GLOBALS['local_scene_query_params'][0]['tax_filters'] );
+	}
+
+	public function test_venue_run_walks_only_subscribed_venues_and_sends_this_week_at_venue(): void {
+		$venue = $this->term( 300, 'lofi-brewing', 'Lofi Brewing' );
+		$GLOBALS['local_scene_terms_by_slug']['venue'] = array( 'lofi-brewing' => $venue );
+		$GLOBALS['local_scene_subscribed_slugs']       = array( 'lofi-brewing', 'gone-venue' );
+		$tomorrow                                      = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		$GLOBALS['local_scene_posts'][]                = new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Lofi Night' ) );
+		$GLOBALS['local_scene_terms'][8]               = array( 'location' => array( 44 ), 'venue' => array( $venue ), 'artist' => array( 8 ) );
+		$GLOBALS['local_scene_event_data'][8]          = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		$GLOBALS['local_scene_recipients']             = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+
+		$result = extrachill_events_run_venue_show_updates();
+
+		$this->assertSame( array( array( 'producer' => EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, 'type' => 'venue_show_updates', 'taxonomy' => 'venue' ) ), $GLOBALS['local_scene_slug_resolutions'] );
+		$this->assertSame( 1, $result['counts']['venues_scanned'], 'Deleted venues are skipped; the taxonomy is never scanned.' );
+		$this->assertSame( 1, $result['counts']['venues_with_events'] );
+		$this->assertSame( 1, $result['counts']['emails_queued'] );
+		$this->assertSame( array( 'venue_show_updates', 'venue_show_updates' ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'type' ) );
+		$this->assertSame( array( EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'producer' ) );
+
+		$payload = $GLOBALS['local_scene_notifications'][0]['payload'];
+		$this->assertSame( 'venue_weekly_digest', $payload['type'] );
+		$this->assertSame( EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $payload['producer'] );
+		$this->assertSame( 'This week at Lofi Brewing', $payload['title'] );
+		$this->assertStringEndsWith( ':lofi-brewing', $payload['idempotency_key'] );
+
+		$email = $GLOBALS['local_scene_emails'][0];
+		$this->assertSame( 'This week at Lofi Brewing', $email['subject'] );
+		$this->assertStringContainsString( 'on at Lofi Brewing this week', $email['context']['body_html'] );
+		$this->assertStringContainsString( 'utm_source=venue_show_updates', $email['context']['body_html'] );
+		$this->assertStringContainsString( 'Unsubscribe from Lofi Brewing show updates', $email['context']['body_html'] );
+		$this->assertStringNotContainsString( 'lofi-brewing', json_encode( $result ) );
+	}
+
+	public function test_venue_run_sends_nothing_without_subscribers_or_shows(): void {
+		$GLOBALS['local_scene_subscribed_slugs'] = array();
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertSame( 0, $result['counts']['venues_scanned'] );
+		$this->assertEmpty( $GLOBALS['local_scene_query_params'] );
+
+		$GLOBALS['local_scene_terms_by_slug']['venue'] = array( 'quiet' => $this->term( 310, 'quiet', 'Quiet' ) );
+		$GLOBALS['local_scene_subscribed_slugs']       = array( 'quiet' );
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertSame( 1, $result['counts']['venues_scanned'] );
+		$this->assertSame( 0, $result['counts']['venues_with_events'] );
+		$this->assertEmpty( $GLOBALS['local_scene_recipient_resolutions'] );
+		$this->assertEmpty( $GLOBALS['local_scene_emails'] );
+
+		$GLOBALS['local_scene_subscribed_slugs'] = new WP_Error( 'entity_subscriptions_read_failed' );
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertTrue( $result['retryable_failure'] );
+		$this->assertSame( array( 'venue_query_failed' => 1 ), $result['failures'] );
+	}
+
+	public function test_venue_unsubscribe_token_removes_only_venue_consent(): void {
+		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'lofi-brewing', null, 'venue' ), PHP_URL_QUERY ), $params );
+		$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
+		$this->assertSame( 'venue', $verified['scope'] );
+
+		$confirm = extrachill_events_local_scene_digest_unsubscribe_page( $params, false );
+		$this->assertSame( 'confirm', $confirm['status'] );
+		$this->assertStringContainsString( 'venue', $confirm['title'] );
+		$this->assertStringContainsString( 'Unsubscribe from this venue', $confirm['action_html'] );
+		$this->assertEmpty( $GLOBALS['local_scene_unsubscribes'] );
+
+		$done = extrachill_events_local_scene_digest_unsubscribe_page( $params, true );
+		$this->assertSame( 'unsubscribed', $done['status'] );
+		$this->assertSame( array( 'user' => 7, 'type' => 'venue_show_updates', 'taxonomy' => 'venue', 'slug' => 'lofi-brewing' ), $GLOBALS['local_scene_unsubscribes'][0] );
+
+		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'austin' ), PHP_URL_QUERY ), $city );
+		$this->assertSame( 'location', extrachill_events_verify_local_scene_digest_unsubscribe( $city )['scope'] );
+		$forged = array( 'token' => extrachill_sign( 'events.digest_unsubscribe', array( 'user_id' => 7, 'slug' => 'austin', 'scope' => 'artist' ), 3600 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $forged ), 'Unknown scopes never fall back to a city unsubscribe.' );
 	}
 
 	public function test_candidates_enforce_venue_local_window_city_status_and_datetime_gates(): void {

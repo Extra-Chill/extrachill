@@ -1284,6 +1284,15 @@ Registration: [`VenueMembershipAbilities.php`](../inc/Abilities/VenueMembershipA
 - **Permission:** `ec_manage_venue_members`.
 - **Exposure:** `show_in_rest: true`; venue-settings block.
 
+### `extrachill/venue-export-show-updates-subscribers`
+
+- **Purpose:** Export the fans who opted in to one venue's weekly show updates (extrachill#1724), so the venue keeps its email audience.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** `subscribers[]` (`email`, `display_name`, `unsubscribe_url`), `venue_name`, `export_date`, `total`.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`. Registered in [`VenueShowUpdatesAbilities.php`](../inc/Abilities/VenueShowUpdatesAbilities.php).
+- **Side effects:** None. Only subscribers who still allow notification email are returned.
+
 ## Venue Onboarding
 
 Registration: [`VenueOnboardingAbilities.php`](../inc/Abilities/VenueOnboardingAbilities.php). Claims and invitations run through the shared `TeamOnboardingService` from Extra Chill Users, with the venue `VenueOnboardingAdapter`. All are `show_in_rest: true`; the output schema is a loose object or array holding the public claim or invitation record.
