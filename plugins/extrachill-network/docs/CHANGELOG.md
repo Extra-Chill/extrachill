@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.45.2] - 2026-11-21
+
+### Fixed
+- add paging and filters to taxonomy post counts
+
 ## [2.45.1] - 2026-11-20
 
 ### Fixed
