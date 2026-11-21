@@ -13,6 +13,9 @@
     "tests/signed-token-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/taxonomy-count-pagination-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/taxonomy-count-errors-smoke.php": {
       "environment": "standalone-php"
     },
