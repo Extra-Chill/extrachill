@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.59.0] - 2026-11-21
+
+### Added
+- venue show-updates opt-in at ticket checkout + consent-filtered Eventbrite list import
+
 ## [0.58.0] - 2026-11-21
 
 ### Added
