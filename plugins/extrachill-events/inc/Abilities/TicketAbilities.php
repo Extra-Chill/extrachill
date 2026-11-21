@@ -566,7 +566,9 @@ class TicketAbilities {
 			return $rows;
 		}
 
-		if ( ! $existing && null !== $rows && true === ( $input['venue_show_updates'] ?? false ) ) {
+		// Only the delivery that created the passes subscribes, so replays never re-subscribe.
+		$created = null !== $rows && ! empty( $rows ) && empty( $rows[0]['pre_existing'] );
+		if ( $created && true === ( $input['venue_show_updates'] ?? false ) ) {
 			require_once dirname( __DIR__ ) . '/core/ticket-checkout.php';
 			extrachill_events_ticket_subscribe_venue( (array) ( $input['seller'] ?? array() ), (int) ( $input['buyer_user_id'] ?? 0 ), true, $input['email'] );
 		}
