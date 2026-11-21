@@ -45,7 +45,7 @@ Run `.github/workflows/docs-agent.yml` with a `component` choice. `dry_run` defa
 
 See [../docs/docs-agent-runner.md](../docs/docs-agent-runner.md) for run settings, reading results, and review.
 
-To add a component, add its `runner` configuration to `platform-map.yml` and its name to the dispatch choices. Preserve the component's stable docs branch and constrain writable paths to its docs directory. Test locally from the monorepo root:
+To add a component, add its `runner` configuration to `platform-map.yml` and its name to the dispatch choices; the component then joins the nightly scheduled run (see `docs/docs-agent-runner.md`). Preserve the component's stable docs branch and constrain writable paths to its docs directory. Test locally from the monorepo root:
 
 ```sh
 python3 -m pip install PyYAML==6.0.3

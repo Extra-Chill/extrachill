@@ -3,6 +3,7 @@
 # runner is optional: only configured components appear in docs-agent.yml.
 # Keep prompts, bootstrap contracts, writable paths and lane settings here.
 # max_turns is optional (default 40); raise it only with run evidence.
+# Every runner block joins the nightly scheduled maintenance matrix.
 # Legacy OWNER/REPO identities are derived by the PHP loader for existing pages.
 plugins:
 
@@ -19,14 +20,14 @@ plugins:
     docs_subpath: "docs/user"
     runner:
       audience: "user"
-      run_kind: "bootstrap"
+      run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-artist-platform-user-docs"
       writable_paths: "plugins/extrachill-artist-platform/docs/user/**"
       context_repositories: []
-      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-artist-platform/docs/user/*.md", "min": 9}], "forbidden_phrases": ["following users"]}
+      source_delta: [{"id": "artist-platform-product-surface", "source_refs": ["plugins/extrachill-artist-platform/inc/**", "plugins/extrachill-artist-platform/src/**", "plugins/extrachill-artist-platform/assets/**"], "requires_documentation_change": false}]
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-artist-platform/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
-      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-artist-platform/ and write only under plugins/extrachill-artist-platform/docs/user/. Read source only under plugins/extrachill-artist-platform/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-artist-platform/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for musicians, artist managers and small label staff running artist profiles, link pages, merch stores and rosters. Extra Chill has no follow feature or follower graph; never describe following users. Cover what the published Artist Platform help already covers so nothing is lost: getting started, managing link pages, advanced link page features, link page analytics, managing your roster, and artist access. Keep and improve the existing docs/user/artist-preferences.md. Ground every article in current product behavior from the source under plugins/extrachill-artist-platform/."
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-artist-platform/ and write only under plugins/extrachill-artist-platform/docs/user/. Read source only under plugins/extrachill-artist-platform/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-artist-platform/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for musicians, artist managers and small label staff running artist profiles, link pages, merch stores and rosters. Extra Chill has no follow feature or follower graph; never describe following users. Keep the existing docs/user articles and their filenames so their pages update in place; update them where the product has changed rather than rewriting them, and keep accurate content and concrete values. The existing articles back the published Artist Platform help: getting started, artist profiles, link pages and their advanced features and analytics, shows, merch stores, rosters, artist access, and artist preferences. Ground every article in current product behavior from the source under plugins/extrachill-artist-platform/."
       model: "gpt-6-luna"
 
   plugins/extrachill-community:
@@ -36,14 +37,14 @@ plugins:
     docs_subpath: "docs/user"
     runner:
       audience: "user"
-      run_kind: "bootstrap"
+      run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-community-user-docs"
       writable_paths: "plugins/extrachill-community/docs/user/**"
       context_repositories: []
-      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-community/docs/user/*.md", "min": 5}], "forbidden_phrases": ["following users"]}
+      source_delta: [{"id": "community-product-surface", "source_refs": ["plugins/extrachill-community/inc/**", "plugins/extrachill-community/src/**", "plugins/extrachill-community/bbpress/**", "plugins/extrachill-community/page-templates/**"], "requires_documentation_change": false}]
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-community/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
-      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-community/ and write only under plugins/extrachill-community/docs/user/. Read source only under plugins/extrachill-community/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-community/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for forum members, music fans and contributors using the discussion boards, profiles, upvoting, ranks and notifications. Extra Chill has no follow feature or follower graph; never describe following users. Cover what the published Community help already covers so nothing is lost: getting started, using the forums, sharing music, setting up your profile, upvoting, community ranks, and notifications. Ground every article in current product behavior from the source under plugins/extrachill-community/."
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-community/ and write only under plugins/extrachill-community/docs/user/. Read source only under plugins/extrachill-community/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-community/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for forum members, music fans and contributors using the discussion boards, profiles, upvoting, ranks and notifications. Extra Chill has no follow feature or follower graph; never describe following users. Keep the existing docs/user articles and their filenames so their pages update in place; update them where the product has changed rather than rewriting them, and keep accurate content and concrete values. The existing articles back the published Community help: getting started, using the forums, sharing music, setting up your profile, upvoting, community ranks, notifications, and troubleshooting. Ground every article in current product behavior from the source under plugins/extrachill-community/."
       model: "gpt-6-luna"
 
   plugins/extrachill-events:
@@ -113,15 +114,15 @@ plugins:
     docs_subpath: "docs/user"
     runner:
       audience: "user"
-      run_kind: "bootstrap"
+      run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-blog-user-docs"
       max_turns: 80
       writable_paths: "plugins/extrachill-blog/docs/user/**"
       context_repositories: []
-      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-blog/docs/user/*.md", "min": 2}], "forbidden_phrases": ["following users"]}
+      source_delta: [{"id": "blog-product-surface", "source_refs": ["plugins/extrachill-blog/inc/**", "plugins/extrachill-blog/assets/**"], "requires_documentation_change": false}]
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-blog/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
-      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-blog/ and write only under plugins/extrachill-blog/docs/user/. Read source only under plugins/extrachill-blog/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for readers of the Extra Chill blog and contributors pitching stories or commenting on articles. Cover: finding and reading articles, commenting, and how musicians and contributors can pitch or submit stories, including Artist Dispatch if it is available to them. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-blog/ and write only under plugins/extrachill-blog/docs/user/. Read source only under plugins/extrachill-blog/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-blog/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for readers of the Extra Chill blog and contributors pitching stories or commenting on articles. Keep the existing docs/user articles and their filenames so their pages update in place; update them where the product has changed rather than rewriting them, and keep accurate content and concrete values. The existing articles cover: finding and reading articles, commenting, FAQs, and how musicians and contributors can pitch or submit stories, including Artist Dispatch if it is available to them. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
       model: "gpt-6-luna"
 
   plugins/extrachill-users:
@@ -131,15 +132,15 @@ plugins:
     docs_subpath: "docs/user"
     runner:
       audience: "user"
-      run_kind: "bootstrap"
+      run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-users-user-docs"
       max_turns: 80
       writable_paths: "plugins/extrachill-users/docs/user/**"
       context_repositories: []
-      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-users/docs/user/*.md", "min": 5}], "forbidden_phrases": ["following users"]}
+      source_delta: [{"id": "users-product-surface", "source_refs": ["plugins/extrachill-users/inc/**", "plugins/extrachill-users/blocks/**", "plugins/extrachill-users/templates/**", "plugins/extrachill-users/assets/**"], "requires_documentation_change": false}]
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-users/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
-      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-users/ and write only under plugins/extrachill-users/docs/user/. Read source only under plugins/extrachill-users/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for anyone with an Extra Chill account: signing up, signing in, setting up a profile and avatar, managing notifications and email digests, badges and ranks, and lifetime membership. Cover: creating an account and signing in (including signing in with Google and what to do when sign-in is blocked or a password is forgotten), the first-time setup steps, your profile and avatar, badges and ranks, notification and digest settings, and what lifetime membership includes. One account works across every Extra Chill site; explain that plainly. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-users/ and write only under plugins/extrachill-users/docs/user/. Read source only under plugins/extrachill-users/ (plus the writing rules file below); never list or read the repository root, other plugins, or vendor, build or test directories. Start from the existing articles in plugins/extrachill-users/docs/user/ and write each article as soon as you have grounded it, one topic at a time. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for anyone with an Extra Chill account: signing up, signing in, setting up a profile and avatar, managing notifications and email digests, badges and ranks, and lifetime membership. Keep the existing docs/user articles and their filenames so their pages update in place; update them where the product has changed rather than rewriting them, and keep accurate content and concrete values. The existing articles cover: creating an account and signing in (including signing in with Google and what to do when sign-in is blocked or a password is forgotten), the first-time setup steps, your profile and avatar, badges and ranks, notification and digest settings, and what lifetime membership includes. One account works across every Extra Chill site; explain that plainly. Do not mention following people or followers at all, not even to say the feature does not exist. Ground all help in current product behavior; document only what a person can actually see and do, never admin-only or internal behavior."
       model: "gpt-6-luna"
 
   plugins/extrachill-contact:
