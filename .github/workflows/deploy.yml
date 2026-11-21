@@ -68,6 +68,14 @@ on:
 permissions:
   contents: read
 
+# The agent toolchain is not a Homeboy component: the "Upgrade wp-coding-agents
+# and pinned Roadie" step applies it (deploy/wp-coding-agents/upgrade.sh). Its
+# release dispatches component-released like any plugin, and that dispatch runs
+# exactly a schedule tick, so a toolchain release lands within minutes instead
+# of waiting on GitHub's best-effort cron (#243, #1727).
+env:
+  TOOLCHAIN_COMPONENT: wp-coding-agents
+
 # Deploys queue; they never race each other on the same server.
 concurrency:
   group: deploy-main
@@ -111,6 +119,11 @@ jobs:
         run: |
           set -euo pipefail
           deploy="true"
+          if [ "${EVENT}" = "repository_dispatch" ] && [ "${D_COMPONENT:-}" = "${TOOLCHAIN_COMPONENT}" ]; then
+            echo "::notice::Toolchain release ${D_COMPONENT} ${D_VERSION:-} from ${D_REPOSITORY:-unknown repository}: running a poll tick."
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
           # A malformed id is left for Plan to reject loudly; only a
           # well-formed id is looked up, so it is safe to use in a path.
           if [ "${EVENT}" = "repository_dispatch" ] \
@@ -191,6 +204,9 @@ jobs:
             repository_dispatch)
               component="${D_COMPONENT}"; version="${D_VERSION}"; dry_run="${unattended_dry_run}"
               [ -n "${component}" ] && [ -n "${version}" ] || { echo "::error::dispatch payload needs component and version"; exit 1; }
+              # A toolchain release is a schedule tick: poll outdated
+              # components, then the upgrade step applies the toolchain.
+              if [ "${component}" = "${TOOLCHAIN_COMPONENT}" ]; then component=""; version=""; fi
               ;;
             workflow_dispatch)
               component="${M_COMPONENT}"; version="${M_VERSION}"; dry_run="${M_DRY_RUN}"
