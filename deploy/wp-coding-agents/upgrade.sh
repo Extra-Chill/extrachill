@@ -11,6 +11,30 @@ report() {
 }
 fail() { report "$*"; echo "::error::$*"; exit 1; }
 
+# Homeboy ships pinned with wp-coding-agents (wp-coding-agents#888). Sets
+# homeboy_note to the installed build beside the pin. Informational only:
+# Homeboy defers its daemon swap while cooks hold leases and the next upgrade
+# converges it, so a mismatch warns, and a release without the pin file (or an
+# unreadable host value) never fails the deploy.
+homeboy_note=''
+homeboy_report() {
+  local pinned running
+  pinned="$(remote 'cat /opt/wp-coding-agents/services/homeboy-version 2>/dev/null || true' 2>/dev/null || true)"
+  pinned="${pinned#v}"
+  [ -n "$pinned" ] || return 0
+  [[ "$pinned" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || pinned=unknown
+  running="$(remote '/usr/local/lib/wp-coding-agents/bin/homeboy --version 2>/dev/null | head -1' 2>/dev/null || true)"
+  running="${running#homeboy }"
+  running="${running%%+*}"
+  [[ "$running" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || running=unknown
+  homeboy_note=", Homeboy ${running}"
+  if [ "$running" != "$pinned" ]; then
+    homeboy_note+=", Homeboy pending ${pinned}"
+    echo "::warning::Homeboy is ${running} on the host; this release pins ${pinned}. The next upgrade converges it."
+  fi
+  return 0
+}
+
 # Keep credentials isolated from Homeboy and remove them even on failure.
 ssh_dir="$(mktemp -d)"
 trap 'rm -rf "$ssh_dir"' EXIT
@@ -82,7 +106,8 @@ for ((attempt=0; attempt<60; attempt++)); do
     dpkg --compare-versions "$actual" ge "$latest" || fail "upgrade ended but VERSION is still $actual"
     roadie="$(remote 'cat /opt/wp-coding-agents/bridges/roadie/roadie-version')"
     [[ "$roadie" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'invalid Roadie version after upgrade'
-    report "upgraded to ${actual} (Roadie ${roadie})"
+    homeboy_report
+    report "upgraded to ${actual} (Roadie ${roadie}${homeboy_note})"
     exit 0
   fi
 done
