@@ -662,16 +662,97 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	public function test_failed_refund_can_be_retried(): void {
 		$this->checkout();
 		extrachill_shop_route_webhook_event( $this->event() );
-		$GLOBALS['ticket_refund_fail'] = true;
+		$GLOBALS['ticket_refund_fail']         = true;
+		$GLOBALS['stripe_refund_attempt_keys'] = array();
 		$this->assertSame( 'ticket_refund_failed', extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) )->get_error_code() );
 		$this->assertSame( 'refund_pending', extrachill_shop_ticket_order_state( $this->order() ) );
 		$this->assertSame( array(), $this->order()->refunds, 'Nothing is recorded until the refund succeeds.' );
 		$GLOBALS['ticket_refund_fail'] = false;
 		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) ) );
-		$this->assertSame( 'ticket-refund-cs_ticket', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		// Stripe would replay the refusal under the first key; the retry gets its own.
+		$this->assertSame( array( 'ticket-refund-cs_ticket-1', 'ticket-refund-cs_ticket-2' ), $GLOBALS['stripe_refund_attempt_keys'] );
+		$this->assertSame( 'ticket-refund-cs_ticket-2', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		$this->assertSame( '2', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_ATTEMPTS_META ) );
 		$this->assertSame( 'refunded', extrachill_shop_ticket_order_state( $this->order() ) );
 		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) );
 	}
+	public function test_open_checkouts_hold_their_tickets(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 3;
+		$GLOBALS['stripe_session_ids']        = array( 'cs_one', 'cs_two' );
+		$this->assertSame( 'cs_one', $this->checkout()['session_id'] );
+		$order = $this->order( 'cs_one' );
+		$hold  = (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META );
+		// The hold ends when Stripe closes the Session.
+		$this->assertSame( $GLOBALS['ticket_session_request'][0]['expires_at'], $hold );
+		$this->assertEqualsWithDelta( time() + EXTRACHILL_SHOP_TICKET_HOLD_SECONDS, $hold, 5 );
+		$this->assertSame( 2, extrachill_shop_held_ticket_quantity( 101 ) );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101, $order->get_id() ) );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 202 ), 'Holds are per show.' );
+
+		// Events still reports 3 left, but two of them are held.
+		$sessions = count( $GLOBALS['stripe_sessions_created'] ?? array() );
+		$error    = $this->checkout();
+		$this->assertSame( 'tickets_held', $error->get_error_code() );
+		$this->assertSame( 409, $error->get_error_data()['status'] );
+		$this->assertCount( $sessions, $GLOBALS['stripe_sessions_created'] ?? array(), 'No Session for a held-out checkout.' );
+		$this->assertCount( 1, array_filter( $GLOBALS['test_orders'], static fn( $o ) => $o instanceof TicketTestOrder ), 'No order left behind.' );
+		// The one ticket not held can still be bought.
+		$this->assertSame( 'cs_two', $this->checkout( array( 'quantity' => 1 ) )['session_id'] );
+		$this->assertSame( 3, extrachill_shop_held_ticket_quantity( 101 ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_holds_end_with_the_session_and_last_while_paid_but_unissued(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 2;
+		$GLOBALS['stripe_session_ids']        = array( 'cs_one', 'cs_two', 'cs_three' );
+		$this->checkout();
+		$this->assertSame( 'tickets_held', $this->checkout()->get_error_code() );
+		$order = $this->order( 'cs_one' );
+		// Paid, fulfilment pending: the hold outlives the Session until passes are issued.
+		$order->update_meta_data( '_extrachill_payment_intent', 'pi_one' );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() - 1 ) );
+		$this->assertSame( 2, extrachill_shop_held_ticket_quantity( 101 ) );
+		// Unpaid and past its expiry: released even before the expired webhook.
+		$order->delete_meta_data( '_extrachill_payment_intent' );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101 ) );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() + 600 ) );
+		// An expired (cancelled) or issued order holds nothing.
+		foreach ( array( 'cancelled', 'failed', 'completed', 'refunded' ) as $status ) {
+			$order->status = $status;
+			$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101 ), $status );
+		}
+		$order->status = 'cancelled';
+		$this->assertSame( 'cs_two', $this->checkout()['session_id'] );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_racing_checkouts_never_oversell_the_last_tickets(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 2;
+		// Another checkout saved its hold after this one's first count.
+		$GLOBALS['test_wc_get_orders_callback'] = static function ( array $args ) {
+			static $racer = false;
+			if ( ! $racer && isset( $args['status'] ) && array( 'wc-pending' ) === $args['status'] && ! empty( $GLOBALS['test_orders'] ) ) {
+				$racer = true;
+				$other = wc_create_order( array( 'status' => 'pending' ) );
+				$item  = new WC_Order_Item_Product();
+				$item->set_quantity( 1 );
+				$other->add_item( $item );
+				$other->update_meta_data( EXTRACHILL_SHOP_ORDER_KIND_META, EXTRACHILL_SHOP_TICKET_KIND );
+				$other->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_META, '101' );
+				$other->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() + 600 ) );
+			}
+			return ticket_test_wc_get_orders( $args );
+		};
+		$this->assertSame( 'tickets_held', $this->checkout()->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'], 'The losing checkout never reaches Stripe.' );
+		$this->assertSame( 1, extrachill_shop_held_ticket_quantity( 101 ), 'Only the other checkout still holds.' );
+	}
+
+	public function test_unlimited_shows_need_no_hold_count(): void {
+		$this->checkout();
+		$this->assertSame( array(), array_filter( $GLOBALS['ticket_order_queries'], static fn( $args ) => array( 'wc-pending' ) === ( $args['status'] ?? null ) ) );
+	}
+
 	public function test_wrong_account_and_unpaid_sessions_do_not_issue(): void {
 		$this->checkout();
 		$event          = $this->event();

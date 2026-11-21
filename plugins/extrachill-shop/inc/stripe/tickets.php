@@ -29,6 +29,9 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'ticket_sale_closed', 'Ticket sales are closed.', array( 'status' => 409 ) ); }
 	if ( null !== $offer['remaining'] && $offer['remaining'] < $input['quantity'] ) {
 		return new WP_Error( 'ticket_sold_out', 'Not enough tickets remain.', array( 'status' => 409 ) ); }
+	// Tickets in other open checkouts are held for them (see the hold check below).
+	if ( null !== $offer['remaining'] && $offer['remaining'] - extrachill_shop_held_ticket_quantity( (int) $offer['event_id'] ) < $input['quantity'] ) {
+		return extrachill_shop_tickets_held_error(); }
 	$seller = extrachill_shop_validate_seller_ref( $offer['seller'] );
 	if ( is_wp_error( $seller ) ) {
 		return $seller; }
@@ -56,20 +59,29 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		// Who the application fee assumed pays processing: `account` or `platform`.
 		'processing_payer'      => extrachill_commerce_processing_payer( $fee_payer ),
 	);
-	$order   = extrachill_shop_create_ticket_order( array(
-		'buyer'     => $buyer,
-		'name'      => sanitize_text_field( $input['name'] ),
-		'email'     => $input['email'],
-		'seller'    => $seller,
-		'account'   => $account,
-		'fee_payer' => $fee_payer,
-		'offer'     => $offer,
-		'quantity'  => $input['quantity'],
-		'amounts'   => $amounts,
-		'terms'     => $terms + array( 'venue_show_updates' => true === ( $input['venue_show_updates'] ?? false ) ? 'yes' : 'no' ),
+
+	$expires_at = time() + EXTRACHILL_SHOP_TICKET_HOLD_SECONDS;
+	$order      = extrachill_shop_create_ticket_order( array(
+		'buyer'      => $buyer,
+		'name'       => sanitize_text_field( $input['name'] ),
+		'email'      => $input['email'],
+		'seller'     => $seller,
+		'account'    => $account,
+		'fee_payer'  => $fee_payer,
+		'offer'      => $offer,
+		'quantity'   => $input['quantity'],
+		'amounts'    => $amounts,
+		'terms'      => $terms + array( 'venue_show_updates' => true === ( $input['venue_show_updates'] ?? false ) ? 'yes' : 'no' ),
+		'hold_until' => $expires_at,
 	) );
 	if ( is_wp_error( $order ) ) {
 		return new WP_Error( 'ticket_checkout_failed', 'Ticket checkout failed.', array( 'status' => 502 ) ); }
+	// The order now holds its tickets. Re-count every hold, this one included:
+	// two checkouts racing for the last tickets both see each other's holds
+	// once both are saved, so at worst both step back; neither oversells.
+	if ( null !== $offer['remaining'] && extrachill_shop_held_ticket_quantity( (int) $offer['event_id'] ) > $offer['remaining'] ) {
+		$order->delete( true );
+		return extrachill_shop_tickets_held_error(); }
 
 	$metadata = array(
 		'event_id'    => (string) $offer['event_id'],
@@ -114,7 +126,8 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			),
 			'success_url'         => add_query_arg( 'tickets', 'success', $offer['url'] ) . '&session_id={CHECKOUT_SESSION_ID}',
 			'cancel_url'          => add_query_arg( 'tickets', 'cancelled', $offer['url'] ),
-			'expires_at'          => time() + 1800,
+			// Stripe closes the Session when the hold ends.
+			'expires_at'          => $expires_at,
 		), array( 'stripe_account' => $account ) );
 	} catch ( \Exception $e ) {
 		// Nobody ever saw this order; it would only clutter the order list.
@@ -127,6 +140,22 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	return array(
 		'checkout_url' => $session->url,
 		'session_id'   => $session->id,
+	);
+}
+
+/**
+ * Error for a checkout whose tickets are all held by other open checkouts.
+ *
+ * @return WP_Error
+ */
+function extrachill_shop_tickets_held_error(): WP_Error {
+	return new WP_Error(
+		'tickets_held',
+		'The remaining tickets are held in other checkouts. Try again in a few minutes.',
+		array(
+			'status'      => 409,
+			'retry_after' => EXTRACHILL_SHOP_TICKET_HOLD_SECONDS,
+		)
 	);
 }
 
@@ -252,6 +281,13 @@ function extrachill_shop_record_ticket_refund( $order, string $refund_id, int $m
  */
 function extrachill_shop_ticket_refund_payment( $order, $reason ) {
 	$reference = (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFERENCE_META );
+	// A new idempotency key per attempt. Stripe keeps a refused request's
+	// result under its key for 24 hours, so a retry under the same key would
+	// replay the refusal instead of trying again. A full refund cannot be
+	// issued twice: Stripe refuses a second refund of a refunded charge.
+	$attempt = (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_ATTEMPTS_META ) + 1;
+	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_REFUND_ATTEMPTS_META, (string) $attempt );
+	$order->save();
 	try {
 		$refund = \Stripe\Refund::create( array(
 			'payment_intent'         => (string) $order->get_meta( '_extrachill_payment_intent' ),
@@ -264,7 +300,7 @@ function extrachill_shop_ticket_refund_payment( $order, $reason ) {
 			),
 		), array(
 			'stripe_account'  => (string) $order->get_meta( '_extrachill_stripe_account' ),
-			'idempotency_key' => 'ticket-refund-' . $reference,
+			'idempotency_key' => 'ticket-refund-' . $reference . '-' . $attempt,
 		) );
 	} catch ( \Exception $e ) {
 		return new WP_Error( 'ticket_refund_failed', 'Ticket refund failed.', array( 'status' => 502 ) ); }
