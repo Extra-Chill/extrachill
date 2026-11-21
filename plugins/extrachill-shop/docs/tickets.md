@@ -218,12 +218,28 @@ stored account) or by PaymentIntent and account. None of them scan.
   charges-enabled connected account. Exercise test-mode checkout and webhook
   delivery before enabling a paid offer.
 
+**Inventory holds.** Events counts only issued passes against capacity, so
+Shop holds the tickets of every unfinished checkout. A pending ticket order
+holds its quantity until `_extrachill_ticket_hold_until` (the Session's
+`expires_at`, 30 minutes), and for as long as it is paid but not yet issued.
+Checkout refuses with `tickets_held` (409) when Events' `remaining` minus the
+held tickets can't cover the request. After the order is saved, the holds are
+counted again with it included; if they exceed `remaining`, the order is
+deleted before any Session exists. Two checkouts racing for the last tickets
+then see each other's holds, so at worst both step back and neither oversells.
+Shows without a capacity (`remaining` null) skip the hold count.
+
 The ticket order binds the seller and connected account before the Session
 exists. If Stripe refuses the Session, the pending order is deleted. Events
 issuance uses the session ID as both idempotency key and order reference.
 Sold-out payments are refunded on the stored account with application fees
-returned; the reason is stored in `_extrachill_ticket_refund_reason`. Stripe refund
-requests use a stable per-session idempotency key. Webhook failures return errors
+returned; the reason is stored in `_extrachill_ticket_refund_reason`. Each Stripe
+refund attempt gets its own idempotency key (`ticket-refund-<session>-<attempt>`,
+counted in `_extrachill_ticket_refund_attempts`): Stripe keeps a refused request's
+result under its key for 24 hours, so a retry under the old key would only replay
+the refusal. A full refund can't be issued twice either way; Stripe refuses a
+second refund of a refunded charge. Merch refunds do the same with
+`_extrachill_refund_attempts`. Webhook failures return errors
 for Stripe retries; the order is marked paid only after Events confirms issuance.
 
 ## Refund ordering deviation

@@ -32,6 +32,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/** Order meta: payment refunds tried on a merch order, so each try gets its own idempotency key. */
+const EXTRACHILL_SHOP_REFUND_ATTEMPTS_META = '_extrachill_refund_attempts';
+
 /** Order meta: card processing (minor units) included in the application fee at checkout. */
 const EXTRACHILL_SHOP_PROCESSING_FEE_META = '_extrachill_processing_fee_minor';
 
@@ -160,10 +163,15 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 			'reason'   => (string) $reason,
 		),
 	);
-	// The total refunded already includes this refund. WooCommerce deletes the
-	// refund row when this call fails, so a retry reproduces the same key, and
-	// a later refund of the same amount gets a different one.
-	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( (float) $order->get_total_refunded() * 100 ) );
+	// A new key per attempt. Stripe keeps a refused request's result under its
+	// key for 24 hours, so a retry under the same key would replay the refusal
+	// instead of trying again. The SDK's own network retries reuse the key of
+	// the attempt they belong to.
+	$attempt = (int) $order->get_meta( EXTRACHILL_SHOP_REFUND_ATTEMPTS_META ) + 1;
+	$order->update_meta_data( EXTRACHILL_SHOP_REFUND_ATTEMPTS_META, (string) $attempt );
+	$order->save();
+	// The total refunded already includes this refund.
+	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( (float) $order->get_total_refunded() * 100 ) . '-' . $attempt );
 	$account = (string) $order->get_meta( '_extrachill_stripe_account' );
 	if ( '' !== $account ) {
 		// Seller order: the charge lives on the connected account. The

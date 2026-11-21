@@ -27,6 +27,10 @@
  *                                   subtotal, service fee, total, application
  *                                   fee, currency, processing payer.
  * - `_extrachill_fee_payer`         Stripe `controller.fees.payer` at checkout.
+ * - `_extrachill_ticket_hold_until`  Unix time the checkout's inventory hold
+ *                                   ends (the Checkout Session's expiry).
+ * - `_extrachill_ticket_refund_attempts` Payment refunds tried, so each try
+ *                                   gets its own Stripe idempotency key.
  * - `_extrachill_terms_accepted_at`, `_extrachill_terms_version`.
  * - `_extrachill_ticket_refund_pending` Set between revoking passes and the
  *                                   refund succeeding.
@@ -74,6 +78,15 @@ const EXTRACHILL_SHOP_TICKET_AMOUNTS_META = '_extrachill_ticket_amounts';
 
 /** Order meta: refund started but not yet succeeded (`seller_refund` or `sold_out`). */
 const EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META = '_extrachill_ticket_refund_pending';
+
+/** Order meta: Unix time the checkout's ticket hold ends. */
+const EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META = '_extrachill_ticket_hold_until';
+
+/** How long a ticket checkout holds its tickets: the Checkout Session lifetime (Stripe's minimum). */
+const EXTRACHILL_SHOP_TICKET_HOLD_SECONDS = 1800;
+
+/** Order meta: payment refunds tried on the order. */
+const EXTRACHILL_SHOP_TICKET_REFUND_ATTEMPTS_META = '_extrachill_ticket_refund_attempts';
 
 /** Order meta: why the order was refunded. */
 const EXTRACHILL_SHOP_TICKET_REFUND_REASON_META = '_extrachill_ticket_refund_reason';
@@ -250,6 +263,55 @@ function extrachill_shop_get_event_ticket_orders( int $event_id ): array {
 }
 
 /**
+ * Tickets held by unfinished checkouts for one show.
+ *
+ * Events counts only issued passes against capacity, so tickets in an open
+ * Checkout Session are held here: a pending ticket order holds its quantity
+ * until its Session expires, and for as long as it is paid but not yet
+ * issued (its PaymentIntent is stored before the passes are). Expired,
+ * failed, issued and refunded orders hold nothing.
+ *
+ * @param int $event_id         Event post ID.
+ * @param int $exclude_order_id Order not to count (0 for none).
+ * @param int $now              Current Unix time (0 for now).
+ * @return int
+ */
+function extrachill_shop_held_ticket_quantity( int $event_id, int $exclude_order_id = 0, int $now = 0 ): int {
+	if ( $event_id < 1 || ! function_exists( 'wc_get_orders' ) ) {
+		return 0;
+	}
+	$now = $now > 0 ? $now : time();
+	/** @var WC_Order[] $orders Not paginated. */
+	$orders = wc_get_orders(
+		extrachill_shop_ticket_order_query(
+			array(
+				'limit'  => -1,
+				'status' => array( 'wc-pending' ),
+			),
+			array(
+				array(
+					'key'   => EXTRACHILL_SHOP_TICKET_EVENT_META,
+					'value' => (string) $event_id,
+				),
+			)
+		)
+	);
+
+	$held = 0;
+	foreach ( $orders as $order ) {
+		if ( $exclude_order_id > 0 && (int) $order->get_id() === $exclude_order_id ) {
+			continue;
+		}
+		$paid   = '' !== (string) $order->get_meta( '_extrachill_payment_intent' );
+		$active = (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META ) > $now;
+		if ( $paid || $active ) {
+			$held += extrachill_shop_ticket_order_quantity( $order );
+		}
+	}
+	return $held;
+}
+
+/**
  * The ticket order a PaymentIntent paid on a connected account.
  *
  * @param string $intent  PaymentIntent ID.
@@ -330,6 +392,7 @@ function extrachill_shop_ticket_order_quantity( $order ): int {
  *     @type int    $quantity  Tickets.
  *     @type array  $amounts   Payment split (extrachill_shop_ticket_order_amounts()).
  *     @type array  $terms     terms_accepted_at, terms_version.
+ *     @type int    $hold_until Unix time the inventory hold ends.
  * }
  * @return WC_Order|WP_Error
  */
@@ -386,6 +449,7 @@ function extrachill_shop_create_ticket_order( array $sale ) {
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_META, (string) $event_id );
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_TITLE_META, (string) $offer['title'] );
 	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_URL_META, (string) $offer['url'] );
+	$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) (int) ( $sale['hold_until'] ?? 0 ) );
 	foreach ( $sale['terms'] as $key => $value ) {
 		$order->update_meta_data( '_extrachill_' . $key, (string) $value );
 	}
