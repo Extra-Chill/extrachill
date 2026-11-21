@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.58.0] - 2026-11-21
+
+### Added
+- venue show-updates subscriptions + weekly venue digest
+
 ## [0.57.1] - 2026-11-17
 
 ### Fixed
