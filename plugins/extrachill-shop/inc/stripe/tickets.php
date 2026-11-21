@@ -17,7 +17,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	if ( true !== ( $input['terms_accepted'] ?? null ) ) {
 		return extrachill_shop_ticket_terms_required_error();
 	}
-	$terms = array(
+	$terms       = array(
 		'terms_accepted_at' => gmdate( 'Y-m-d\TH:i:s\Z' ),
 		'terms_version'     => extrachill_shop_legal_document( 'terms', 'version' ),
 	);
@@ -532,7 +532,7 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	if ( 'sold_out' === $order->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) ) {
 		return extrachill_shop_ticket_refund_payment( $order, 'sold_out' );
 	}
-	$issue = array(
+	$issue  = array(
 		'event'              => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_EVENT_META ),
 		'quantity'           => extrachill_shop_ticket_order_quantity( $order ),
 		'name'               => (string) ( $session->metadata->name ?? trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ) ),

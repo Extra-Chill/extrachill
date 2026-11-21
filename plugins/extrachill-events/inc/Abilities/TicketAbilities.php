@@ -488,12 +488,12 @@ class TicketAbilities {
 		$seller['properties']['id']['minimum'] = 0;
 
 		return array(
-			'event_id'    => array( 'type' => 'integer' ),
-			'title'       => array( 'type' => 'string' ),
-			'url'         => array( 'type' => 'string' ),
-			'enabled'     => array( 'type' => 'boolean' ),
-			'price_minor' => array( 'type' => 'integer' ),
-			'currency'    => array( 'type' => 'string' ),
+			'event_id'     => array( 'type' => 'integer' ),
+			'title'        => array( 'type' => 'string' ),
+			'url'          => array( 'type' => 'string' ),
+			'enabled'      => array( 'type' => 'boolean' ),
+			'price_minor'  => array( 'type' => 'integer' ),
+			'currency'     => array( 'type' => 'string' ),
 			'remaining'    => array( 'type' => array( 'integer', 'null' ) ),
 			'sale_open'    => array( 'type' => 'boolean' ),
 			'seller'       => $seller,

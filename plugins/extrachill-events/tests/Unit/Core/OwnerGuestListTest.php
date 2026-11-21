@@ -62,9 +62,9 @@ require_once dirname( __DIR__, 3 ) . '/inc/Abilities/OwnerGuestListAbilities.php
 final class OwnerGuestListFakeWpdb {
 
 	public $base_prefix = 'wp_';
-	public $prefix     = 'wp_7_';
-	public $last_error = '';
-	public $insert_id  = 0;
+	public $prefix      = 'wp_7_';
+	public $last_error  = '';
+	public $insert_id   = 0;
 
 	/** @var array<string, array<int, array<string, mixed>>> Rows by table name. */
 	public $tables = array();
@@ -156,7 +156,7 @@ final class OwnerGuestListFakeWpdb {
 	public function update( $table, $data, $where ) {
 
 		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
-		$count = 0;
+		$count                        = 0;
 		foreach ( $this->rows( $table ) as $index => $row ) {
 			foreach ( $where as $key => $value ) {
 				if ( (string) ( $row[ $key ] ?? '' ) !== (string) $value ) {
@@ -200,7 +200,7 @@ final class OwnerGuestListFakeWpdb {
 
 	public function get_col( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		$column           = preg_match( '/SELECT (\w+) FROM/', $query, $m ) ? $m[1] : '';
 		return array_column( $this->matching( $query ), $column );
@@ -309,7 +309,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
 
-				'time_format'                           => 'g:i a',
+				'time_format' => 'g:i a',
 			),
 			'caps'           => array( self::ADMIN_ID => array( 'manage_network_options' ) ),
 			'editable_posts' => array(),

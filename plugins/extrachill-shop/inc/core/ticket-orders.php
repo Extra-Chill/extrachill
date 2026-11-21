@@ -113,11 +113,11 @@ const EXTRACHILL_SHOP_TICKET_TYPE_META = '_extrachill_ticket_type';
 const EXTRACHILL_SHOP_DEFAULT_TICKET_TYPE = 'general';
 
 /** Order meta: the discount or access code used, upper-cased. */
-const EXTRACHILL_SHOP_TICKET_CODE_META  = '_extrachill_ticket_code';
+const EXTRACHILL_SHOP_TICKET_CODE_META = '_extrachill_ticket_code';
 
 /** Order meta: money the code took off the whole order, in minor units. */
-const EXTRACHILL_SHOP_TICKET_DISCOUNT_META = '_extrachill_ticket_discount_minor';
-const EXTRACHILL_SHOP_TICKET_EVENT_URL_META   = '_extrachill_ticket_event_url';
+const EXTRACHILL_SHOP_TICKET_DISCOUNT_META  = '_extrachill_ticket_discount_minor';
+const EXTRACHILL_SHOP_TICKET_EVENT_URL_META = '_extrachill_ticket_event_url';
 
 /**
  * WooCommerce emails a ticket order never sends. Events emails the passes,
@@ -550,7 +550,7 @@ function extrachill_shop_create_ticket_order( array $sale ) {
 	$list     = $ticket ? (int) $ticket['price_minor'] * (int) $sale['quantity'] : (int) $amounts['subtotal_minor'];
 	$discount = max( 0, $list - (int) $amounts['subtotal_minor'] );
 
-	$item = new WC_Order_Item_Product();
+	$item  = new WC_Order_Item_Product();
 	$named = $ticket && ! empty( $ticket['named'] );
 	$item->set_name( 'Event tickets: ' . (string) $offer['title'] . ( $named ? ' (' . (string) $ticket['name'] . ')' : '' ) );
 	$item->set_quantity( (int) $sale['quantity'] );

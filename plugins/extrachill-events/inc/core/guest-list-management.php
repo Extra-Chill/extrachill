@@ -57,7 +57,7 @@ function extrachill_events_save_guest_list_management(): void {
 		wp_die( esc_html__( 'Guest list settings are unavailable.', 'extrachill-events' ), '', array( 'response' => 503 ) );
 	}
 
-	$input                       = array(
+	$input                    = array(
 		'event'              => (string) $event_id,
 		'enabled'            => true,
 		'capacity'           => isset( $_POST['capacity'] ) ? absint( $_POST['capacity'] ) : 0,

@@ -347,7 +347,7 @@ final class TicketTypes {
 		$base = trim( substr( (string) preg_replace( '/[^a-z0-9]+/', '-', strtolower( remove_accents( $name ) ) ), 0, 36 ), '-' );
 		$base = '' === $base ? 'tickets' : $base;
 		$id   = $base;
-		$n = 2;
+		$n    = 2;
 		while ( in_array( $id, $taken, true ) ) {
 			$id = $base . '-' . $n;
 			++$n;

@@ -96,11 +96,11 @@ class TicketSalesAbilities {
 										'items' => array(
 											'type'       => 'object',
 											'properties' => array(
-												'id'          => array( 'type' => 'string' ),
-												'name'        => array( 'type' => 'string' ),
+												'id'       => array( 'type' => 'string' ),
+												'name'     => array( 'type' => 'string' ),
 												'price_minor' => $count,
-												'quantity'    => $count,
-												'sold'        => $count,
+												'quantity' => $count,
+												'sold'     => $count,
 											),
 										),
 									),
