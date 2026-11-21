@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.135.0] - 2026-11-21
+
+### Added
+- email an artist's subscribers when a new show is published for them
+- venue show-updates subscriptions + weekly venue digest
+
 ## [0.134.2] - 2026-11-20
 
 ### Fixed
