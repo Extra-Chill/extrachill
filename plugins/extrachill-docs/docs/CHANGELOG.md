@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.13.2] - 2026-11-21
+
+### Changed
+- nightly network-wide Docs Agent maintenance run
+
 ## [0.13.1] - 2026-11-16
 
 ### Fixed
