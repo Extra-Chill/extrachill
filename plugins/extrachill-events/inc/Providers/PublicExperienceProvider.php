@@ -66,6 +66,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/scene-digest-offer.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/comments.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest-guest.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-show-updates.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/event-management-authority.php';

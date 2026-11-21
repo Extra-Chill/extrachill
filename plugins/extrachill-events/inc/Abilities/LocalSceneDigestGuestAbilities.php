@@ -45,7 +45,12 @@ class LocalSceneDigestGuestAbilities {
 					'properties' => array(
 						'location_slug' => array(
 							'type'        => 'string',
-							'description' => __( 'City location term slug.', 'extrachill-events' ),
+							'description' => __( 'City location term slug, or venue term slug when scope is venue.', 'extrachill-events' ),
+						),
+						'scope'         => array(
+							'type'        => 'string',
+							'enum'        => array( 'location', 'venue' ),
+							'description' => __( 'Digest scope: a city\'s weekly Local Scene picks (location, default) or one venue\'s weekly show updates (venue).', 'extrachill-events' ),
 						),
 						'email'         => array(
 							'type'        => 'string',
@@ -89,7 +94,7 @@ class LocalSceneDigestGuestAbilities {
 			'extrachill/unsubscribe-local-scene-digest',
 			array(
 				'label'               => __( 'Unsubscribe From Local Scene Digest', 'extrachill-events' ),
-				'description'         => __( 'Resolve a signed Local Scene digest unsubscribe link. Without confirm it returns a scanner-safe confirmation page and never changes consent; with confirm it removes only that location\'s digest subscription.', 'extrachill-events' ),
+				'description'         => __( 'Resolve a signed Local Scene digest unsubscribe link. Without confirm it returns a scanner-safe confirmation page and never changes consent; with confirm it removes only that location\'s (or venue\'s) digest subscription.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -189,7 +194,8 @@ class LocalSceneDigestGuestAbilities {
 			array(
 				'referrer' => (string) ( $input['referrer'] ?? '' ),
 				'utm'      => is_array( $input['utm'] ?? null ) ? $input['utm'] : array(),
-			)
+			),
+			'venue' === ( $input['scope'] ?? '' ) ? 'venue' : 'location'
 		);
 	}
 }
