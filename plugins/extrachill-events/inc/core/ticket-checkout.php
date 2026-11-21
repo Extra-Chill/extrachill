@@ -79,6 +79,34 @@ function extrachill_events_checkout_offer( $post_id ) {
 	return $ability ? $ability->execute( array( 'event' => (int) $post_id ) ) : null;
 }
 
+/**
+ * Read advisory checkout holds from Shop's owning runtime.
+ *
+ * Cache failures as zero too: checkout still enforces live inventory on Shop.
+ *
+ * @param int $event_id Event post ID.
+ * @return int Held ticket quantity.
+ */
+function extrachill_events_checkout_held_quantity( int $event_id ): int {
+	$key  = 'extrachill_events_ticket_holds_' . $event_id;
+	$held = get_transient( $key );
+	if ( false !== $held ) {
+		return max( 0, (int) $held );
+	}
+	$result = function_exists( 'ec_cross_site_rest_request_http' ) ? ec_cross_site_rest_request_http(
+		'shop',
+		'GET',
+		'/wp-abilities/v1/abilities/extrachill/get-event-ticket-holds/run',
+		array(
+			'user_id' => 0,
+			'query'   => array( 'input' => array( 'event' => $event_id ) ),
+		)
+	) : null;
+	$held   = is_array( $result ) ? max( 0, (int) ( $result['held'] ?? 0 ) ) : 0;
+	set_transient( $key, $held, 60 );
+	return $held;
+}
+
 /** Add to, rather than replace, the external ticket link. */
 function extrachill_events_render_ticket_checkout( $post_id, $ticket_url = '', $timing = '' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Hook signature; the external link renders separately.
 	if ( ! function_exists( 'ec_is_events_site' ) || ! ec_is_events_site() ) {
@@ -103,7 +131,16 @@ function extrachill_events_render_ticket_checkout( $post_id, $ticket_url = '', $
 		}
 		return;
 	}
-	$maximum = null === $offer['remaining'] ? 10 : min( 10, (int) $offer['remaining'] );
+	// Keep the owner offer's remaining and sale_open unchanged for fulfilment.
+	$available = $offer['remaining'];
+	if ( null !== $available && $available > 0 ) {
+		$available = max( 0, (int) $available - extrachill_events_checkout_held_quantity( (int) $post_id ) );
+		if ( 0 === $available ) {
+			echo '<p class="notice notice-info">' . esc_html__( 'All remaining tickets are being held in checkout. Check back in a few minutes.', 'extrachill-events' ) . '</p>';
+			return;
+		}
+	}
+	$maximum = null === $available ? 10 : min( 10, (int) $available );
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/ticket-checkout.php';
 }
 add_action( 'data_machine_events_action_buttons', 'extrachill_events_render_ticket_checkout', 7, 3 );

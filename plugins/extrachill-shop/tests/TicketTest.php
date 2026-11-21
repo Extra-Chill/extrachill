@@ -747,6 +747,21 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'refunded', extrachill_shop_ticket_order_state( $this->order() ) );
 		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) );
 	}
+	public function test_public_ticket_holds_ability(): void {
+		extrachill_shop_register_ticket_abilities();
+		$ability = $GLOBALS['test_abilities']['extrachill/get-event-ticket-holds'];
+		$this->assertSame( '__return_true', $ability['permission_callback'] );
+		$this->assertTrue( $ability['meta']['show_in_rest'] );
+		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
+		$this->assertSame( array( 'event' ), $ability['input_schema']['required'] );
+		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->checkout();
+		$this->assertSame( array( 'held' => 2 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 202 ) ) );
+		$this->order()->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, time() - 1 );
+		$this->assertSame( array( 'held' => 0 ), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+	}
+
 	public function test_open_checkouts_hold_their_tickets(): void {
 		$GLOBALS['ticket_offer']['remaining'] = 3;
 		$GLOBALS['stripe_session_ids']        = array( 'cs_one', 'cs_two' );

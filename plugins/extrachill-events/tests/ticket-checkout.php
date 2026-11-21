@@ -10,6 +10,16 @@ function get_permalink( $post_id ) {
 	return 'https://events.extrachill.com/event/test-show/';
 }
 function ec_is_events_site() { return true; }
+class WP_Error {}
+function get_transient( $key ) { return $GLOBALS['transients'][ $key ] ?? false; }
+function set_transient( $key, $value, $ttl ) {
+	check( 60 === $ttl, 'Holds cached for 60 seconds' );
+	$GLOBALS['transients'][ $key ] = $value;
+}
+function ec_cross_site_rest_request_http( $site, $method, $route, $args = array() ) {
+	$GLOBALS['owner_calls'][] = array( $site, $method, $route, $args );
+	return $GLOBALS['holds_result'] ?? array( 'held' => 0 );
+}
 function is_singular( $type ) { return $GLOBALS['singular']; }
 function sanitize_text_field( $value ) { return strip_tags( $value ); }
 function wp_unslash( $value ) { return stripslashes( $value ); }
@@ -57,6 +67,29 @@ $html = render_checkout();
 foreach ( array( 'Buy tickets', 'USD 25.00', '3 remaining', 'max="3"', 'name="quantity"', 'name="name"', 'name="email"', 'cf-turnstile', 'class="button-1"', 'class="ec-checkbox-row"', 'name="terms_accepted" type="checkbox" value="1" required', 'I agree to the <a href="https://extrachill.com/terms-of-service/"', 'Terms of Service</a>' ) as $expected ) {
 	check( str_contains( $html, $expected ), 'Open offer: ' . $expected );
 }
+check( array( array( 'shop', 'GET', '/wp-abilities/v1/abilities/extrachill/get-event-ticket-holds/run', array( 'user_id' => 0, 'query' => array( 'input' => array( 'event' => 42 ) ) ) ) ) === $GLOBALS['owner_calls'], 'Holds read from Shop owner runtime' );
+render_checkout();
+check( 1 === count( $GLOBALS['owner_calls'] ), 'Zero holds cached too' );
+$GLOBALS['transients'] = array();
+$GLOBALS['holds_result'] = array( 'held' => 2 );
+$html = render_checkout();
+check( str_contains( $html, '1 remaining' ) && str_contains( $html, 'max="1"' ), 'Partial holds reduce display and quantity max' );
+check( 3 === $GLOBALS['offer']['remaining'] && $GLOBALS['offer']['sale_open'], 'Committed offer contract unchanged' );
+$GLOBALS['transients'] = array();
+$GLOBALS['holds_result'] = array( 'held' => 3 );
+$html = render_checkout();
+check( str_contains( $html, '<p class="notice notice-info">All remaining tickets are being held in checkout. Check back in a few minutes.</p>' ), 'Fully held notice uses theme classes' );
+check( ! str_contains( $html, '<form' ) && ! str_contains( $html, 'Sold out' ), 'Fully held is not sold out and has no form' );
+$GLOBALS['transients'] = array();
+$GLOBALS['holds_result'] = array( 'held' => 8 );
+check( ! str_contains( render_checkout(), '<form' ), 'Excess holds clamp availability to zero' );
+$GLOBALS['transients'] = array();
+// Match the Shop bootstrap transport stub: errors pass through unchanged.
+$GLOBALS['holds_result'] = new WP_Error();
+$html = render_checkout();
+check( str_contains( $html, '3 remaining' ) && str_contains( $html, 'max="3"' ), 'Cross-site error falls back to zero holds' );
+$GLOBALS['holds_result'] = array( 'held' => 0 );
+$calls = count( $GLOBALS['owner_calls'] );
 check( ! extrachill_events_is_ad_free_page(), 'Ordinary ticket page is not ad-free' );
 $GLOBALS['offer']['remaining'] = null;
 check( str_contains( render_checkout(), 'max="10"' ), 'Unlimited capacity respects checkout limit' );
@@ -69,6 +102,7 @@ $GLOBALS['offer']['enabled'] = false;
 check( '' === render_checkout(), 'Disabled offer is hidden' );
 $GLOBALS['offer'] = null;
 check( '' === render_checkout(), 'Missing ability result is hidden' );
+check( $calls === count( $GLOBALS['owner_calls'] ), 'Unlimited, closed, sold-out, disabled and missing offers skip holds transport' );
 $_GET = array( 'tickets' => 'success', 'session_id' => 'cs_test_example' );
 check( str_contains( render_checkout(), 'Your tickets are on the way' ), 'Success confirmation independent of offer availability' );
 check( str_contains( render_checkout(), 'passes arrive by email' ), 'Email delivery note' );
@@ -122,6 +156,8 @@ $expected = array(
 	'availability' => 'https://schema.org/InStock',
 	'validFrom' => $external['validFrom'],
 );
+$GLOBALS['holds_result'] = array( 'held' => 3 );
+$GLOBALS['transients'] = array();
 check( $expected === extrachill_events_ticket_offer_schema( $external, 42, array() ), 'First-party offer replaces scraped URL, price and currency, preserving validFrom' );
 $GLOBALS['offer']['remaining'] = 0;
 $schema = extrachill_events_ticket_offer_schema( array(), 42, array() );
