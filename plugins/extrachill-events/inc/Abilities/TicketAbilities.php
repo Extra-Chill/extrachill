@@ -186,8 +186,11 @@ class TicketAbilities {
 		// With types, the single price follows the cheapest public type, so
 		// "from" prices and the structured-data offer stay right.
 		if ( $settings['ticket_types'] ) {
-			$public                         = array_filter( $settings['ticket_types'], static fn( $type ) => empty( $type['hidden'] ) );
-			$settings['ticket_price_minor'] = (int) min( array_column( $public ? $public : $settings['ticket_types'], 'price_minor' ) );
+			$public = array_filter( $settings['ticket_types'], static fn( $type ) => empty( $type['hidden'] ) );
+			$prices = array_map( 'intval', array_column( $public ? $public : $settings['ticket_types'], 'price_minor' ) );
+			if ( $prices ) {
+				$settings['ticket_price_minor'] = min( $prices );
+			}
 		}
 		// Codes are checked again whenever types change: a code must never
 		// widen to every type because the one it named was removed.
@@ -637,7 +640,7 @@ class TicketAbilities {
 
 		$entered = TicketTypes::normalize_code( $input['code'] ?? '' );
 		$code    = TicketTypes::find_code( $settings, $entered );
-		$types   = self::offer_types( $post->ID, $settings, $code, $remaining );
+		$types   = self::offer_types( $post->ID, $settings, $code, null === $remaining ? null : (int) $remaining );
 		$buyable = array_filter( $types, static fn( $type ) => null === $type['remaining'] || $type['remaining'] > 0 );
 
 		return array(
