@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.76.0] - 2026-11-21
+
+### Added
+- venue show-updates subscriptions + weekly venue digest
+
 ## [0.75.1] - 2026-11-18
 
 ### Fixed
