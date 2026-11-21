@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int  $event_id Event post ID.
  * @param bool $settings Whether to include the password/capacity form (read by the template).
  */
-function extrachill_events_render_guest_list_management( int $event_id, bool $settings = false ): void {
+function extrachill_events_render_guest_list_management( int $event_id, bool $settings = false ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- $settings is read by the included template.
 	if ( 'data_machine_events' !== get_post_type( $event_id ) || ! extrachill_events_user_can_manage_event( get_current_user_id(), $event_id ) ) {
 		return;
 	}
