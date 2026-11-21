@@ -210,6 +210,15 @@ The [seller shop manager](shop-manager.md) doc explains how the manager uses the
 - **Exposure:** `show_in_rest` **false**, so the core ability REST runner can't reach it. Route `POST /extrachill/v1/events/tickets/checkout` runs it locally ([ticket checkout route](../../extrachill-api/docs/routes/events/ticket-checkout.md)).
 - **Side effects:** Reads the offer from the Events ability `extrachill/get-event-ticket-offer` and requires an open sale, enough remaining inventory and a seller who can receive payments. Creates a pending WooCommerce ticket order with the amounts and Terms consent. Creates a Stripe Checkout Session on the seller's connected account with an application fee; the session expires after 30 minutes. Stores the session ID as the order reference. If Stripe fails, the order is deleted.
 
+### `extrachill/get-event-ticket-holds`
+
+- **Purpose:** Report how many tickets for an event are held in open ticket checkouts.
+- **Input:** `event` (integer, required, minimum 1).
+- **Output:** `{ held }` (integer, minimum 0). Count only, no order or buyer details.
+- **Permission:** `__return_true`.
+- **Exposure:** `show_in_rest` true, read-only and idempotent. The Events event page reads it across sites through `/wp-abilities/v1` and caches the count for 60 seconds, so "N remaining" and the quantity limit leave out held tickets. Checkout start still enforces holds on its own.
+- **Side effects:** None. Counts pending ticket orders whose hold hasn't expired (`extrachill_shop_held_ticket_quantity()`).
+
 ### `extrachill/refund-ticket-order`
 
 - **Purpose:** Refund one ticket order that has no checked-in pass.

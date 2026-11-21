@@ -1,8 +1,48 @@
 <?php
 /** Ticket abilities. Public checkout is admitted only by the protected API adapter. */
 defined( 'ABSPATH' ) || exit;
+/** Public inventory count; order and buyer details stay private. */
+function extrachill_shop_get_event_ticket_holds( array $input ): array {
+	return array( 'held' => extrachill_shop_held_ticket_quantity( (int) $input['event'] ) );
+}
+
 add_action( 'wp_abilities_api_init', 'extrachill_shop_register_ticket_abilities' );
 function extrachill_shop_register_ticket_abilities() {
+	wp_register_ability( 'extrachill/get-event-ticket-holds', array(
+		'label'               => 'Get event ticket holds',
+		'description'         => 'Read the quantity of tickets held in checkout for an event.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'required'             => array( 'event' ),
+			'properties'           => array(
+				'event' => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+			),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'required'   => array( 'held' ),
+			'properties' => array(
+				'held' => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+			),
+		),
+		'permission_callback' => '__return_true',
+		'execute_callback'    => 'extrachill_shop_get_event_ticket_holds',
+		'meta'                => array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'   => true,
+				'idempotent' => true,
+			),
+		),
+	) );
 	wp_register_ability( 'extrachill/start-ticket-checkout', array(
 		'label'               => 'Start ticket checkout',
 		'description'         => 'Start seller-settled Stripe ticket checkout.',

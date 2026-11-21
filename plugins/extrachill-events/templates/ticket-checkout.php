@@ -7,6 +7,7 @@
  * @var int   $post_id Event post ID.
  * @var array $offer   Public ticket offer.
  * @var int   $maximum Largest quantity a buyer may pick.
+ * @var int|null $available Remaining inventory less advisory checkout holds.
  */
 defined( 'ABSPATH' ) || exit;
 $currency = strtoupper( $offer['currency'] );
@@ -18,8 +19,8 @@ if ( in_array( strtolower( $currency ), array( 'bhd', 'jod', 'kwd', 'omr', 'tnd'
 <details>
 	<summary class="button-1"><?php esc_html_e( 'Buy tickets', 'extrachill-events' ); ?></summary>
 	<p><?php echo esc_html( $currency . ' ' . number_format_i18n( $offer['price_minor'] / pow( 10, $decimals ), $decimals ) ); ?>
-	<?php if ( null !== $offer['remaining'] ) : ?>
-		— <?php /* translators: %s: number of tickets left. */ echo esc_html( sprintf( __( '%s remaining', 'extrachill-events' ), number_format_i18n( $offer['remaining'] ) ) ); ?>
+	<?php if ( null !== $available ) : ?>
+		— <?php /* translators: %s: number of tickets left. */ echo esc_html( sprintf( __( '%s remaining', 'extrachill-events' ), number_format_i18n( $available ) ) ); ?>
 	<?php endif; ?>
 	</p>
 	<form data-ticket-checkout data-event="<?php echo esc_attr( (string) $post_id ); ?>">
