@@ -22,13 +22,26 @@ final class BeaconAuthenticationTest extends Extrachill_Analytics_TestCase {
 			extrachill_analytics_enqueue_outbound_tracking();
 			$view = wp_scripts()->get_data( 'extrachill-view-tracking', 'before' );
 			$this->assertNotEmpty( $view );
-			$config = json_decode( substr( $view[0], strlen( 'window.ecViewTracking = ' ), -1 ), true );
+			$prefix = 'window.ecViewTracking = ';
+			$inline = current( array_filter( (array) $view, static fn( $script ) => is_string( $script ) && 0 === strpos( $script, $prefix ) ) );
+			$this->assertIsString( $inline );
+			$config = json_decode( substr( $inline, strlen( $prefix ), -1 ), true );
+			$this->assertIsArray( $config );
 			$outbound = wp_scripts()->get_data( 'extrachill-outbound-tracking', 'data' );
 			$click = json_decode( substr( $outbound, strlen( 'var ecOutboundTracking = ' ), -1 ), true );
-			foreach ( array( $config['endpoint'], $click['endpoint'], $click['networkEndpoint'], $click['ctaEndpoint'], $click['formEndpoint'] ) as $url ) {
+			$this->assertIsArray( $click );
+			$urls = array(
+				'view.endpoint'            => $config['endpoint'] ?? null,
+				'outbound.endpoint'        => $click['endpoint'] ?? null,
+				'outbound.networkEndpoint' => $click['networkEndpoint'] ?? null,
+				'outbound.ctaEndpoint'     => $click['ctaEndpoint'] ?? null,
+				'outbound.formEndpoint'    => $click['formEndpoint'] ?? null,
+			);
+			foreach ( $urls as $name => $url ) {
+				$this->assertIsString( $url, $name . ' missing; keys: ' . implode( ',', array_keys( 'view.endpoint' === $name ? $config : $click ) ) );
 				parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $args );
 				if ( $user_id ) {
-					$this->assertArrayHasKey( '_wpnonce', $args, $url );
+					$this->assertArrayHasKey( '_wpnonce', $args, $name . ': ' . $url );
 					$this->assertNotFalse( wp_verify_nonce( $args['_wpnonce'], 'wp_rest' ), 'Nonce did not verify for ' . $url );
 				} else {
 					$this->assertArrayNotHasKey( '_wpnonce', $args );
