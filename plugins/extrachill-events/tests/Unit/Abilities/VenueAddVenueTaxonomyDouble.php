@@ -12,7 +12,8 @@ namespace DataMachineEvents\Core;
 if ( ! class_exists( Venue_Taxonomy::class ) ) {
 	class Venue_Taxonomy {
 		public static function find_or_create_venue( $venue_name, $venue_data = array(), array $log_context = array() ) {
-			$GLOBALS['venue_add_test']['find_or_create_calls'][] = array( $venue_name, $venue_data );
+			$GLOBALS['venue_add_test']['find_or_create_calls'][]     = array( $venue_name, $venue_data );
+			$GLOBALS['venue_add_test']['find_or_create_log_context'] = $log_context;
 
 			$terms  = $GLOBALS['venue_add_test']['terms']['venue'] ?? array();
 			$cities = $GLOBALS['venue_add_test']['venue_cities'] ?? array();
