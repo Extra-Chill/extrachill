@@ -14,6 +14,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/giveaway-entries-source.php';
+
+/**
+ * Entry sources: Instagram comments, or provided entries (payment rows).
+ */
+const EC_STUDIO_GIVEAWAY_SOURCES = array( 'instagram', 'entries' );
+
 /**
  * Giveaway entry modes.
  *
@@ -151,11 +158,60 @@ function ec_studio_register_run_giveaway_ability(): void {
 			'extrachill/run-giveaway',
 			array(
 				'label'               => __( 'Run Giveaway', 'extrachill-studio' ),
-				'description'         => __( 'Pick random winners from Instagram post comments and optionally announce them. By default every qualifying comment is one entry (entry_mode per_comment); use per_user for one entry per person.', 'extrachill-studio' ),
+				'description'         => __( 'Pick random winners (crypto-secure random_int). source "instagram" (default): draw from Instagram post comments and optionally announce; every qualifying comment is one entry (entry_mode per_comment) or use per_user. source "entries": a paid raffle from payment rows ({name, amount, note}) or a Venmo statement CSV (venmo_csv); every price_per_entry is one ticket, money is split evenly across the lots named in the note, donation/empty/under-minimum payments get 0 tickets, unreadable notes come back in unclear. mode "preview" tallies tickets per lot with ranges; mode "draw" also picks one winner per lot.', 'extrachill-studio' ),
 				'category'            => 'extrachill',
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
+						'source'       => array(
+							'type'        => 'string',
+							'enum'        => EC_STUDIO_GIVEAWAY_SOURCES,
+							'description' => __( 'Where entries come from. instagram (default) needs media_input. entries needs entries and/or venmo_csv.', 'extrachill-studio' ),
+							'default'     => 'instagram',
+						),
+						'entries'      => array(
+							'type'        => 'array',
+							'description' => __( 'source=entries: payment rows. note names the lots, e.g. "Lot A + Lot B".', 'extrachill-studio' ),
+							'items'       => array(
+								'type'       => 'object',
+								'properties' => array(
+									'name'   => array( 'type' => 'string' ),
+									'amount' => array( 'type' => array( 'number', 'string' ) ),
+									'note'   => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'venmo_csv'    => array(
+							'type'        => 'string',
+							'description' => __( 'source=entries: raw Venmo statement CSV (columns From, Amount (total), Note, Datetime). Outgoing and non-payment rows are skipped.', 'extrachill-studio' ),
+						),
+						'mode'         => array(
+							'type'        => 'string',
+							'enum'        => array( 'preview', 'draw' ),
+							'description' => __( 'source=entries: preview tallies only; draw also picks one winner per lot.', 'extrachill-studio' ),
+							'default'     => 'preview',
+						),
+						'rules'        => array(
+							'type'        => 'object',
+							'description' => __( 'source=entries raffle rules. Defaults: price_per_entry 1, minimum 10, lots [A,B,C], donation_keywords [donation], lot_aliases {}, distinct_winners false (one person may win several lots).', 'extrachill-studio' ),
+							'properties'  => array(
+								'price_per_entry'   => array( 'type' => 'number' ),
+								'minimum'           => array( 'type' => 'number' ),
+								'lots'              => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+								'donation_keywords' => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+								'lot_aliases'       => array(
+									'type'        => 'object',
+									'description' => __( 'Prize names per lot, e.g. {"B": ["fade to black"]}. A note mentioning the phrase enters that lot.', 'extrachill-studio' ),
+								),
+								'distinct_winners'  => array( 'type' => 'boolean' ),
+							),
+						),
 						'media_input'  => array(
 							'type'        => 'string',
 							'description' => __( 'Instagram post URL, shortcode, or numeric media ID.', 'extrachill-studio' ),
@@ -195,7 +251,6 @@ function ec_studio_register_run_giveaway_ability(): void {
 							'default'     => 'Congratulations @{username}, you won the giveaway! Check your DMs for details.',
 						),
 					),
-					'required'   => array( 'media_input' ),
 				),
 				'output_schema'       => array(
 					'type'       => 'object',
@@ -230,6 +285,14 @@ function ec_studio_register_run_giveaway_ability(): void {
  * @return array|\WP_Error Result.
  */
 function ec_studio_execute_run_giveaway( array $input ) {
+	if ( 'entries' === ( $input['source'] ?? 'instagram' ) ) {
+		return ec_studio_run_giveaway_from_entries( $input );
+	}
+
+	if ( empty( $input['media_input'] ) ) {
+		return new \WP_Error( 'missing_media_input', 'media_input is required for source "instagram". Use source "entries" for payment-list raffles.', array( 'status' => 400 ) );
+	}
+
 	$media_input  = $input['media_input'] ?? '';
 	$require_tag  = $input['require_tag'] ?? true;
 	$min_tags     = max( 1, absint( $input['min_tags'] ?? 1 ) );
