@@ -74,6 +74,61 @@ class RsvpPassAbilities {
 		);
 
 		wp_register_ability(
+			'extrachill/get-event-door-list',
+			array(
+				'label'               => __( 'Get Event Door List', 'extrachill-events' ),
+				'description'         => __( 'Get the web door screen check-in rows, including tickets, guests and standing owner lists.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array( 'event_id' => array( 'type' => 'integer' ) ),
+					'required'   => array( 'event_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'rows'       => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'pass_id'       => array( 'type' => 'integer' ),
+									'kind'          => array(
+										'type' => 'string',
+										'enum' => array( 'attendee', 'guest', 'owner_list' ),
+									),
+									'label'         => array( 'type' => 'string' ),
+									'guest_name'    => array( 'type' => 'string' ),
+									'display_name'  => array( 'type' => 'string' ),
+									'source'        => array( 'type' => 'string' ),
+									'source_kind'   => array( 'type' => 'string' ),
+									'ticket_type'   => array( 'type' => 'string' ),
+									'status'        => array( 'type' => 'string' ),
+									'checked_in'    => array( 'type' => 'boolean' ),
+									'checked_in_at' => array( 'type' => 'string' ),
+									'code'          => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'total'      => array( 'type' => 'integer' ),
+						'checked_in' => array( 'type' => 'integer' ),
+					),
+					'required'   => array( 'rows', 'total', 'checked_in' ),
+				),
+				'execute_callback'    => array( $this, 'get_event_door_list' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
 			'extrachill/list-event-door-attendees',
 			array(
 				'label'               => __( 'List Event Door Attendees', 'extrachill-events' ),
@@ -606,6 +661,23 @@ class RsvpPassAbilities {
 			'code'      => (string) $pass['code'],
 			'perk_text' => function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '',
 			'status'    => (string) $pass['status'],
+		);
+	}
+
+	/**
+	 * Return exactly the check-in rows used by the web door screen.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array
+	 */
+	public function get_event_door_list( array $input ): array {
+		$door_list = extrachill_events_get_door_list_rows( (int) $input['event_id'] );
+		$rows      = extrachill_events_guest_list_door_rows( $door_list['door_rows'] );
+
+		return array(
+			'rows'       => $rows,
+			'total'      => count( $rows ),
+			'checked_in' => count( array_filter( $rows, static fn( array $row ): bool => $row['checked_in'] ) ),
 		);
 	}
 

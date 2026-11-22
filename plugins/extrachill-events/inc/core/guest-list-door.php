@@ -127,9 +127,15 @@ function extrachill_events_guest_list_door_rows( array $door_rows ): array {
 		if ( ! in_array( $status, array( 'active', 'redeemed' ), true ) ) {
 			continue;
 		}
-		$row['checked_in'] = 'redeemed' === $status;
-		$row['name']       = 'attendee' === ( $row['kind'] ?? '' ) ? (string) ( $row['display_name'] ?? '' ) : (string) ( $row['label'] ?? $row['guest_name'] ?? '' );
-		$rows[]            = $row;
+		$row['status']        = $status;
+		$row['label']         = (string) ( $row['label'] ?? $row['display_name'] ?? '' );
+		$row['source']        = (string) ( $row['source'] ?? '' );
+		$row['source_kind']   = (string) ( $row['source_kind'] ?? 'attendee' );
+		$row['ticket_type']   = (string) ( $row['ticket_type'] ?? '' );
+		$row['checked_in_at'] = (string) ( $row['checked_in_at'] ?? '' );
+		$row['checked_in']    = 'redeemed' === $status;
+		$row['name']          = 'attendee' === ( $row['kind'] ?? '' ) ? (string) ( $row['display_name'] ?? '' ) : $row['label'];
+		$rows[]               = $row;
 	}
 
 	return $rows;

@@ -124,6 +124,15 @@ Registration: [`RsvpPassAbilities.php`](../inc/Abilities/RsvpPassAbilities.php).
 - **Exposure:** `show_in_rest: false`; [API: guest-list-pass](../../extrachill-api/docs/routes/events/guest-list-pass.md).
 - **Side effects:** Verifies the guest-list password, issues a pass without an account and optionally emails a copy.
 
+### `extrachill/get-event-door-list`
+
+- **Purpose:** Read the same sorted, check-in-ready rows as the web door screen. Includes RSVP passes, paid tickets, host names, band names, Eventbrite imports and venue/promoter standing lists. Accounts marked Going without a pass are excluded, just as on the web check-in list.
+- **Input:** `event_id` (integer, required).
+- **Output:** `object {rows: array<object>, total: integer, checked_in: integer}`. Rows contain `pass_id`, `kind` (`attendee`, `guest`, `owner_list`), `label`, `display_name` or `guest_name`, `source`, `source_kind`, `ticket_type`, `status`, `checked_in`, `checked_in_at` (raw timestamp, empty before check-in), and `code`.
+- **Permission:** Valid event post and `extrachill_events_user_can_manage_event(get_current_user_id(), event_id)`, including venue/promoter door staff granted team access via `extrachill/grant-door-access`; otherwise 404/403. Same gate as the web door screen.
+- **Exposure:** `show_in_rest: true`; readonly, idempotent, non-destructive.
+- **Check-in:** Send the row's `code` and `event_id` to `extrachill/redeem-event-pass`.
+
 ### `extrachill/list-event-door-attendees`
 
 - **Purpose:** List every attendee of any event the caller manages, including private ones. Host/organizer only. Includes RSVP pass redemption state when the event has a perk enabled.
@@ -139,7 +148,7 @@ Registration: [`RsvpPassAbilities.php`](../inc/Abilities/RsvpPassAbilities.php).
 - **Output:** `object {already_redeemed: boolean, redeemed_at: string, redeemed_by_user_id: integer}`.
 - **Permission:** Valid event post and `extrachill_events_user_can_manage_event(get_current_user_id(), event_id)`; otherwise 404/403.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
-- **Side effects:** Records atomic pass redemption; repeated redemption returns the existing record.
+- **Side effects:** Records atomic pass redemption for attendee and guest rows (including tickets, band/host names and imports). Standing owner-list codes route to `extrachill_events_owner_list_check_in()` for an atomic per-event check-in without consuming the standing pass. A double tap returns `already_redeemed: true` with the original `redeemed_at` and actor. This existing code-based path serves every door row; no separate check-in ability is needed.
 
 ### `extrachill/remove-guest-list-name`
 

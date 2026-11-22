@@ -108,6 +108,8 @@ function extrachill_events_get_door_list_rows( int $event_id ): array {
 		$pass             = $passes[ $attendee_user_id ] ?? null;
 		$rows[]           = array(
 			'user_id'       => $attendee_user_id,
+			'pass_id'       => $pass ? (int) $pass['id'] : 0,
+			'code'          => $pass ? (string) $pass['code'] : '',
 			'display_name'  => (string) $attendee['display_name'],
 			'marked_at'     => ! empty( $attendee['marked_at'] )
 				? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (string) $attendee['marked_at'] )
@@ -140,7 +142,7 @@ function extrachill_events_get_door_list_rows( int $event_id ): array {
 		$door_rows[] = array( 'kind' => 'attendee' ) + $row;
 	}
 	foreach ( $guest_rows as $guest_row ) {
-		$door_rows[] = array( 'kind' => 'guest' ) + $guest_row;
+		$door_rows[] = array( 'kind' => ! empty( $guest_row['owner_list'] ) ? 'owner_list' : 'guest' ) + $guest_row;
 	}
 	$door_rows = function_exists( 'extrachill_events_sort_guest_rows' ) ? extrachill_events_sort_guest_rows( $door_rows ) : $door_rows;
 
