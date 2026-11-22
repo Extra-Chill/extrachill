@@ -223,7 +223,16 @@ class VenueAddAbilities {
 		}
 
 		// Step 1: Create or find venue taxonomy term.
-		$venue_term_id = $venue_term_id > 0 ? $venue_term_id : $this->ensureVenueTerm( $name );
+		$venue_term_id = $venue_term_id > 0 ? $venue_term_id : $this->ensureVenueTerm(
+			$name,
+			array(
+				'address' => $address,
+				'city'    => $city,
+				'state'   => $state,
+				'zip'     => $zip,
+				'website' => $website,
+			)
+		);
 		if ( ! $venue_term_id ) {
 			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}
@@ -601,22 +610,36 @@ class VenueAddAbilities {
 	}
 
 	/**
-	 * Ensure a venue taxonomy term exists.
+	 * Find or create the canonical venue term.
+	 *
+	 * Delegates to DME's canonical venue dedup, which matches on name plus
+	 * address/city evidence, so adding a venue reuses an existing same-name,
+	 * same-place term instead of minting a near-duplicate. A bare name lookup
+	 * would attach the wrong term when two venues share a name. DME is a hard
+	 * dependency (Requires Plugins), so there is no name-only fallback: an
+	 * unavailable resolver or an ambiguous match yields null and the caller
+	 * reports venue_term_failed.
+	 *
+	 * @param string $name       Venue name.
+	 * @param array  $venue_data Venue evidence: address, city, state, zip, website.
+	 * @return int|null Term ID, or null when no single venue could be resolved.
 	 */
-	private function ensureVenueTerm( string $name ): ?int {
-		$existing = get_term_by( 'name', $name, 'venue' );
-		if ( $existing ) {
-			return (int) $existing->term_id;
+	private function ensureVenueTerm( string $name, array $venue_data = array() ): ?int {
+		if ( ! class_exists( \DataMachineEvents\Core\Venue_Taxonomy::class ) ) {
+			return null;
 		}
 
-		$result = wp_insert_term( $name, 'venue' );
-		if ( is_wp_error( $result ) ) {
-			// Term may have been created with different casing.
-			$existing = get_term_by( 'slug', sanitize_title( $name ), 'venue' );
-			return $existing ? (int) $existing->term_id : null;
-		}
+		$venue_data = array_filter(
+			array_map( 'strval', $venue_data ),
+			static function ( $value ) {
+				return '' !== $value;
+			}
+		);
 
-		return (int) $result['term_id'];
+		$result  = \DataMachineEvents\Core\Venue_Taxonomy::find_or_create_venue( $name, $venue_data );
+		$term_id = (int) ( $result['term_id'] ?? 0 );
+
+		return $term_id > 0 ? $term_id : null;
 	}
 
 	/**
