@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.60.0] - 2026-11-22
+
+### Added
+- ticket types and discount/access codes
+
 ## [0.59.0] - 2026-11-21
 
 ### Added
