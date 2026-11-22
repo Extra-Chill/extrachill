@@ -346,6 +346,25 @@ Registration: [`TicketSalesAbilities.php`](../inc/Abilities/TicketSalesAbilities
 - **Permission:** Logged-in user with `can_manage_finances` for the seller; cancellation first validates the event and resolves its configured seller.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 
+## Show Ticket Report
+
+Registration: [`ShowTicketReportAbilities.php`](../inc/Abilities/ShowTicketReportAbilities.php).
+
+### `extrachill/get-show-ticket-report`
+
+- **Purpose:** Sales report for one show (extrachill#1746): tickets sold, gross, fees, refunds and net, a breakdown by ticket type and by code, and the check-in rate. Shown in **Host tools** on the host's `/guest-list` screen.
+- **Input:** `event_id` (integer, required, minimum 1). No other properties.
+- **Output:** `object {event_id: integer, tickets_enabled: boolean, currency: string, sold: integer, refunded: integer, checked_in: integer, check_in_rate: integer, money_available: boolean, gross_minor: integer, fees_minor: integer, refunds_minor: integer, net_minor: integer, ticket_types: array<object {id: string, name: string, sold: integer, quantity: integer, revenue_minor: integer}>, codes: array<object {code: string, uses: integer, max_uses: integer, discount_minor: integer}>}`.
+  - `sold` counts live paid passes (active or checked in) via `RsvpPassesTable::paid_ticket_counts_by_type()`, the same count capacity uses; `refunded` counts revoked paid passes; `check_in_rate` is checked-in paid passes over `sold`, as a whole percent.
+  - Money comes from Shop's `extrachill/get-event-ticket-order-report`, read as the current user. `gross_minor` is what buyers paid, `refunds_minor` what went back, `fees_minor` Extra Chill's application fee on orders that kept it, and `net_minor = gross - refunds - fees`. A type's `revenue_minor` and a code's `uses` / `discount_minor` count orders that weren't refunded.
+  - A show with no ticket types reads as one `general` type at the single price. Types and codes since removed still report by ID.
+  - When Shop refuses (the user can't manage the seller) or is unreachable, `money_available` is false and the money fields are 0.
+- **Permission:** Logged-in user who manages the event (`extrachill_events_user_can_manage_event()`), the same rule as the door list; the event must be a `data_machine_events` post.
+- **Exposure:** `show_in_rest: true`, read-only and idempotent. Rendered by `templates/show-ticket-report.php` through `extrachill_events_door_ticket_report()`; API/CLI: none.
+- **Side effects:** None.
+
+The same file holds the door list CSV export helpers. `admin-post.php?action=ec_door_list_csv&event_id=N` (nonce `ec_door_list_csv_{N}`, see `inc/core/door-list-export.php`) downloads everyone on the door list with Name, Email, Source, Ticket type, Code, Order reference and Checked in, using the door list's authorization. Ticket buyer emails and codes fill in from the Shop order report when the user can manage the seller. Cells that start like a spreadsheet formula get a leading `'`. The host screen's **Buy tickets** QR (`action=ec_buy_tickets_qr`) links to the event page and renders only while `extrachill/get-event-ticket-offer` reports `sale_open`.
+
 ## Venue Discovery
 
 Registration: [`VenueDiscoveryAbilities.php`](../inc/Abilities/VenueDiscoveryAbilities.php).

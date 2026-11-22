@@ -79,6 +79,7 @@ final class AbilitiesProvider {
 				'PriorityEventAbilities',
 				'TicketAbilities',
 				'TicketSalesAbilities',
+				'ShowTicketReportAbilities',
 				'EventPerkAbilities',
 				'ManagedEventAbilities',
 				'RsvpPassAbilities',

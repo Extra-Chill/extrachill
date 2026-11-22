@@ -24,8 +24,9 @@ Plus-ones, like "Jake +1", sit right under the person they came with. Each name 
 
 Under the list:
 
+- **Buy tickets**, when the show sells tickets. See [Sell Tickets at the Door](#sell-tickets-at-the-door).
 - **Add names**: paste names or upload a CSV or TXT file, one name per line.
-- **Host tools**, folded up so they stay out of the way at the door. Tap to open them: guest list settings, the counts (such as "12 of 60 checked in. 37 spots left."), the share link and QR code, band invites and requests, and your venue or promoter list. See [Hosting a Guest List](hosting-a-guest-list.md).
+- **Host tools**, folded up so they stay out of the way at the door. Tap to open them: the sales report and door list download, guest list settings, the counts (such as "12 of 60 checked in. 37 spots left."), the share link and QR code, band invites and requests, and your venue or promoter list. See [Hosting a Guest List](hosting-a-guest-list.md).
 
 ## Find a Name
 
@@ -44,6 +45,23 @@ If you see "This pass could not be verified," you're either logged out or logged
 ## Check In by Name
 
 Tap the green **Check in** next to a guest's name on the check-in list. The name gets a ✅ and the button turns into **Checked in**.
+
+## Sell Tickets at the Door
+
+When the show sells tickets, the check-in screen shows a **Buy tickets** QR code. Walk-ups scan it with their phone camera and buy on the show's page, and their pass shows up on your check-in list. Check them in like any ticket buyer.
+
+The code shows only while tickets are on sale. Online sales stay open through the show, so it disappears when the show sells out or ends. Tap **Download Buy tickets QR** to print it for the door.
+
+## Download the Door List
+
+Open **Host tools** and select **Download door list (CSV)** to save everyone on the door list as a spreadsheet. Each name has:
+
+- **Name** and **Email**
+- **Source**: Ticket, Guest list, Eventbrite, the band that added them, or your venue or promoter list
+- **Ticket type**, **Code**, and **Order reference** for ticket buyers
+- **Checked in**: when they checked in, blank if they haven't yet
+
+Only your team can download it. Emails and codes for ticket buyers fill in for people who can manage the seller's payouts.
 
 ## When Someone Isn't on the List
 

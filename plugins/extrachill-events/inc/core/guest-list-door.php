@@ -231,6 +231,11 @@ function extrachill_events_render_guest_list_door( int $event_id ): void {
 	$pass_image_alt  = '' !== $pass_image_url ? extrachill_events_get_pass_image_alt( $event_id ) : '';
 	$host_tools_html = extrachill_events_guest_list_host_tools_html( $event_id );
 	$host_tools_open = extrachill_events_guest_list_host_tools_open( $event_id );
+	// Sales report, door list CSV and the Buy tickets QR (extrachill#1746).
+	$buy_tickets_url   = function_exists( 'extrachill_events_door_buy_tickets_url' ) ? extrachill_events_door_buy_tickets_url( $event_id ) : '';
+	$buy_tickets_qr    = '' !== $buy_tickets_url ? extrachill_events_buy_tickets_qr_url( $event_id ) : '';
+	$ticket_report     = function_exists( 'extrachill_events_door_ticket_report' ) ? extrachill_events_door_ticket_report( $event_id ) : null;
+	$door_list_csv_url = function_exists( 'extrachill_events_door_list_csv_url' ) ? extrachill_events_door_list_csv_url( $event_id ) : '';
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counts after the add redirect.
 	$added_summary = isset( $_GET['ec_names_added'] ) ? sanitize_text_field( wp_unslash( $_GET['ec_names_added'] ) ) : '';
