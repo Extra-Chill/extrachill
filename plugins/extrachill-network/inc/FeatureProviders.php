@@ -53,6 +53,8 @@ function extrachill_network_boot_ads_provider() {
 	if ( function_exists( 'wp_register_ability' ) ) {
 		require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/Abilities/AdPolicyAbility.php';
 		new \ExtraChillNetwork\Abilities\AdPolicyAbility();
+		require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/Abilities/PostAdFreeAbility.php';
+		new \ExtraChillNetwork\Abilities\PostAdFreeAbility();
 	}
 }
 
