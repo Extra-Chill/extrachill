@@ -65,8 +65,6 @@ function extrachill_block_ads_on_ad_free_posts( $should_block_ads, $context = ar
 		return true;
 	}
 
-	$context = is_array( $context ) ? $context : array();
-
 	// Post IDs are blog-local; only judge posts on the current blog.
 	if ( isset( $context['blog_id'] ) && get_current_blog_id() !== (int) $context['blog_id'] ) {
 		return false;
