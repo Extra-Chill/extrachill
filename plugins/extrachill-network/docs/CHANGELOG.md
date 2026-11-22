@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.46.0] - 2026-11-22
+
+### Added
+- per-post ad-free flag honored by the ad policy
+
 ## [2.45.2] - 2026-11-21
 
 ### Fixed
