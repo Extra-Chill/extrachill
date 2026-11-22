@@ -335,7 +335,7 @@ function extrachill_shop_ticket_order_report_row( $order ): array {
 	$amounts  = extrachill_shop_ticket_order_amounts( $order );
 	$state    = extrachill_shop_ticket_order_state( $order );
 	$refunded = 'refunded' === $state;
-	$partial  = method_exists( $order, 'get_total_refunded' ) ? (int) round( (float) $order->get_total_refunded() * 100 ) : 0;
+	$partial  = (int) round( (float) $order->get_total_refunded() * 100 );
 	return array(
 		'order_reference'   => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFERENCE_META ),
 		'name'              => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
