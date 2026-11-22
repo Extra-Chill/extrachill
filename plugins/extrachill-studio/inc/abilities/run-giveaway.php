@@ -293,7 +293,7 @@ function ec_studio_execute_run_giveaway( array $input ) {
 		return new \WP_Error( 'missing_media_input', 'media_input is required for source "instagram". Use source "entries" for payment-list raffles.', array( 'status' => 400 ) );
 	}
 
-	$media_input  = $input['media_input'] ?? '';
+	$media_input  = (string) $input['media_input'];
 	$require_tag  = $input['require_tag'] ?? true;
 	$min_tags     = max( 1, absint( $input['min_tags'] ?? 1 ) );
 	$entry_mode   = ec_studio_normalize_giveaway_entry_mode( $input['entry_mode'] ?? null );

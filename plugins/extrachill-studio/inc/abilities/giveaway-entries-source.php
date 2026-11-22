@@ -43,20 +43,20 @@ function ec_studio_normalize_raffle_rules( array $rules ): array {
 		$out['minimum'] = (float) $rules['minimum'];
 	}
 	if ( ! empty( $rules['lots'] ) && is_array( $rules['lots'] ) ) {
-		$lots = array_values( array_unique( array_filter( array_map( static fn( $l ) => trim( (string) $l ), $rules['lots'] ), 'strlen' ) ) );
+		$lots = array_values( array_unique( array_filter( array_map( static fn( $l ) => trim( (string) $l ), $rules['lots'] ), static fn( $s ) => '' !== $s ) ) );
 		if ( $lots ) {
 			$out['lots'] = $lots;
 		}
 	}
 	if ( isset( $rules['donation_keywords'] ) && is_array( $rules['donation_keywords'] ) ) {
-		$out['donation_keywords'] = array_values( array_filter( array_map( static fn( $k ) => strtolower( trim( (string) $k ) ), $rules['donation_keywords'] ), 'strlen' ) );
+		$out['donation_keywords'] = array_values( array_filter( array_map( static fn( $k ) => strtolower( trim( (string) $k ) ), $rules['donation_keywords'] ), static fn( $s ) => '' !== $s ) );
 	}
 	if ( isset( $rules['lot_aliases'] ) && is_array( $rules['lot_aliases'] ) ) {
 		foreach ( $rules['lot_aliases'] as $lot => $phrases ) {
 			if ( ! in_array( (string) $lot, $out['lots'], true ) ) {
 				continue;
 			}
-			$phrases = array_values( array_filter( array_map( static fn( $p ) => strtolower( trim( (string) $p ) ), (array) $phrases ), 'strlen' ) );
+			$phrases = array_values( array_filter( array_map( static fn( $p ) => strtolower( trim( (string) $p ) ), (array) $phrases ), static fn( $s ) => '' !== $s ) );
 			if ( $phrases ) {
 				$out['lot_aliases'][ (string) $lot ] = $phrases;
 			}
