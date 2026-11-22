@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.139.1] - 2026-11-22
+
+### Fixed
+- pass canonical venue_term_id to event upsert and use find_or_create_venue
+
 ## [0.139.0] - 2026-11-22
 
 ### Added
