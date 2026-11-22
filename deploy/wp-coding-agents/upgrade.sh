@@ -3,7 +3,7 @@
 set -euo pipefail
 
 report() {
-  local line="wp-coding-agents ${installed} → ${latest}: $*"
+  local line="wp-coding-agents ${installed} → ${latest}${report_separator:-: }$*"
   line="${line//$'\n'/; }"
   line="${line//$'\r'/}"
   printf 'report=%s\n' "$line" >> "$GITHUB_OUTPUT"
@@ -107,7 +107,7 @@ for ((attempt=0; attempt<60; attempt++)); do
     roadie="$(remote 'cat /opt/wp-coding-agents/bridges/roadie/roadie-version')"
     [[ "$roadie" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail 'invalid Roadie version after upgrade'
     homeboy_report
-    report "upgraded to ${actual} (Roadie ${roadie}${homeboy_note})"
+    report_separator=' ' report "(Roadie ${roadie}${homeboy_note})"
     exit 0
   fi
 done

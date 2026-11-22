@@ -70,13 +70,13 @@ esac
     def test_success(self):
         result, output, commands = self.run_case('upgrade', homeboy='absent')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('upgraded to 3.7.18 (Roadie 0.85.0)', output)
+        self.assertIn('wp-coding-agents 3.7.17 → 3.7.18 (Roadie 0.85.0)', output)
         self.assertIn('sudo -n /usr/local/sbin/wp-coding-agents-upgrade start', commands)
 
     def test_reports_pinned_homeboy(self):
         result, output, _ = self.run_case('upgrade')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('upgraded to 3.7.18 (Roadie 0.85.0, Homeboy 0.482.7)', output)
+        self.assertIn('wp-coding-agents 3.7.17 → 3.7.18 (Roadie 0.85.0, Homeboy 0.482.7)', output)
         self.assertNotIn('::warning::', result.stdout)
 
     def test_homeboy_behind_pin_warns_without_failing(self):
@@ -88,7 +88,7 @@ esac
     def test_release_without_homeboy_pin_reports_roadie_only(self):
         result, output, commands = self.run_case('upgrade', homeboy='absent')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('upgraded to 3.7.18 (Roadie 0.85.0)\n', output)
+        self.assertIn('wp-coding-agents 3.7.17 → 3.7.18 (Roadie 0.85.0)\n', output)
         self.assertNotIn('bin/homeboy', commands)
 
     def test_unreadable_homeboy_pin_is_unknown_not_fatal(self):
@@ -107,7 +107,7 @@ esac
         for case in ('failed', 'stale', 'ssh_fail'):
             result, output, _ = self.run_case(case)
             self.assertNotEqual(result.returncode, 0)
-            self.assertNotIn('upgraded to', output)
+            self.assertNotIn('(Roadie', output)
 
 
 if __name__ == '__main__':
