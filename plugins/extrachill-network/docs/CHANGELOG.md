@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.47.1] - 2026-11-22
+
+### Fixed
+- resolve set-post-ad-free policy for a logged-out visitor
+
 ## [2.47.0] - 2026-11-22
 
 ### Added
