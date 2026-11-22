@@ -100,6 +100,15 @@
 			form.reset();
 			resetTurnstile( form );
 			setStatus( statusEl, successMessage, false );
+			// Link the docs URL without rendering configurable messages as HTML.
+			const docsUrl = 'https://docs.extrachill.com/selling-event-tickets/';
+			if ( statusEl && successMessage.includes( docsUrl ) ) {
+				const [ before, ...after ] = successMessage.split( docsUrl );
+				const link = document.createElement( 'a' );
+				link.href = docsUrl;
+				link.textContent = docsUrl;
+				statusEl.replaceChildren( before, link, after.join( docsUrl ) );
+			}
 		} catch ( error ) {
 			setStatus(
 				statusEl,
