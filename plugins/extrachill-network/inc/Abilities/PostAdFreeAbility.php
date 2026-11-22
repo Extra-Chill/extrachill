@@ -87,7 +87,7 @@ class PostAdFreeAbility {
 	}
 
 	/**
-	 * Set the flag and report the resulting policy for the post.
+	 * Set the flag and report the resulting policy for a logged-out visitor.
 	 *
 	 * @param array<string, mixed> $input Ability input.
 	 * @return array<string, mixed>|\WP_Error
@@ -107,13 +107,22 @@ class PostAdFreeAbility {
 			delete_post_meta( $post_id, EXTRACHILL_AD_FREE_META_KEY );
 		}
 
-		$policy = extrachill_get_ad_policy(
-			array(
-				'post_id'     => $post_id,
-				'post_type'   => (string) $post->post_type,
-				'is_singular' => true,
-			)
-		);
+		// Report what every visitor gets, not what the caller gets: viewer
+		// benefits (a lifetime member calling this) would otherwise mask the
+		// post-level answer. Resolve as a logged-out visitor, then restore.
+		$caller_id = get_current_user_id();
+		wp_set_current_user( 0 );
+		try {
+			$policy = extrachill_get_ad_policy(
+				array(
+					'post_id'     => $post_id,
+					'post_type'   => (string) $post->post_type,
+					'is_singular' => true,
+				)
+			);
+		} finally {
+			wp_set_current_user( $caller_id );
+		}
 
 		return array(
 			'post_id'   => $post_id,

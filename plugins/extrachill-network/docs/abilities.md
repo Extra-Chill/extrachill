@@ -170,7 +170,7 @@ Source: [`core/stories.php`](../inc/core/stories.php). Network owns the shared i
 
 - **Purpose:** Turn ads off (or back on) for one post on the current site, for every visitor, by setting the `_extrachill_ad_free` post meta honored by the ad policy. Works for any post type. Source: [`PostAdFreeAbility.php`](../inc/Abilities/PostAdFreeAbility.php).
 - **Input:** Required `post_id` (integer, current site); optional `ad_free` (boolean, default `true`). No other keys.
-- **Output:** Required `post_id` (integer), `ad_free`, `serve_ads` (booleans); `reason` (string, the resulting policy reason).
+- **Output:** Required `post_id` (integer), `ad_free`, `serve_ads` (booleans); `reason` (string). `serve_ads`/`reason` are resolved for a logged-out visitor, so the caller's own benefits (e.g. lifetime membership) never mask the post-level answer.
 - **Permission:** `edit_post` on the target post.
 - **Exposure:** `show_in_rest: true`; extrachill-api route: none found; `wp extrachill` command: none found.
 
