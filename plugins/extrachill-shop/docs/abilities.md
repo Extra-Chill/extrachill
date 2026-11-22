@@ -1,6 +1,6 @@
 # Extra Chill Shop abilities
 
-Extra Chill Shop registers 29 abilities, all in the `extrachill-shop` category ("Shop operations: orders, products, shipping, Stripe Connect, and taxonomy counts"). They cover seller products and images, seller orders and refunds, shipping addresses and Shippo labels, Stripe Connect onboarding, seller-settled event tickets, shop manager seller selection, a public product taxonomy count, and operator-only tools for running the shop. Every file registers on `wp_abilities_api_init`; `inc/abilities/register.php` loads them and registers the category.
+Extra Chill Shop registers 30 abilities, all in the `extrachill-shop` category ("Shop operations: orders, products, shipping, Stripe Connect, and taxonomy counts"). They cover seller products and images, seller orders and refunds, shipping addresses and Shippo labels, Stripe Connect onboarding, seller-settled event tickets, shop manager seller selection, a public product taxonomy count, and operator-only tools for running the shop. Every file registers on `wp_abilities_api_init`; `inc/abilities/register.php` loads them and registers the category.
 
 The abilities are the domain layer. `extrachill-api` routes, `wp extrachill shop` commands, the shop manager block (through core `/wp-abilities/v1/abilities/<name>/run`) and other network sites execute them.
 
@@ -236,6 +236,15 @@ The [seller shop manager](shop-manager.md) doc explains how the manager uses the
 - **Permission:** `extrachill_shop_event_ticket_refund_permission`: reads the show's ticket offer from Events and requires the user to manage the offer's seller.
 - **Exposure:** `show_in_rest` true. Called cross-site through `/wp-abilities/v1` by the Events ability `extrachill/cancel-show-ticket-sales` (`plugins/extrachill-events/inc/Abilities/TicketSalesAbilities.php`). No `extrachill/v1` route or CLI command was found.
 - **Side effects:** Runs `extrachill/refund-ticket-order` logic for each order, with the same Stripe refunds and pass revocation. Refunded orders drop out of the query, so a re-run only processes what is left.
+
+### `extrachill/get-event-ticket-order-report`
+
+- **Purpose:** Every paid ticket order for one show, for its sales report and door list export (extrachill#1746). Orders that took money are included: paid, completed, on hold (disputed) and refunded. Unpaid, expired and failed checkouts are left out.
+- **Input:** `event_id` (integer, required, minimum 1). No other properties.
+- **Output:** `{ orders }`, oldest first. Each order: `order_reference`, `name`, `email`, `ticket_type` (`''` on orders from before ticket types), `code` (`''` for none), `quantity`, `subtotal_minor` (tickets after any code discount), `service_fee_minor`, `discount_minor`, `total_minor` (what the buyer paid), `fees_minor` (Extra Chill's application fee; 0 on a refunded order, whose fee came back to the seller), `refunded_minor` (the whole total on a refunded order, else any partial refund), `currency` and `state`.
+- **Permission:** `extrachill_shop_event_ticket_refund_permission`: reads the show's ticket offer from Events and requires the user to manage the offer's seller. Buyer emails and money stay with seller managers.
+- **Exposure:** `show_in_rest` true, read-only and idempotent. Called cross-site through `/wp-abilities/v1` as the current user by the Events ability `extrachill/get-show-ticket-report` and the door list CSV export (`plugins/extrachill-events/inc/Abilities/ShowTicketReportAbilities.php`). No `extrachill/v1` route or CLI command.
+- **Side effects:** None.
 
 ### `extrachill/list-my-ticket-orders`
 
