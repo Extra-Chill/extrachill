@@ -48,6 +48,7 @@ function extrachill_network_boot_ads_provider() {
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/ad-policy.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/integrations/ad-delivery.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/integrations/member-ad-benefit.php';
+	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/integrations/post-ad-free.php';
 
 	if ( function_exists( 'wp_register_ability' ) ) {
 		require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/Abilities/AdPolicyAbility.php';
