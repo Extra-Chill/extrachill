@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.47.0] - 2026-11-22
+
+### Added
+- extrachill/set-post-ad-free ability
+
 ## [2.46.0] - 2026-11-22
 
 ### Added
