@@ -94,6 +94,7 @@ if ( ! function_exists( 'get_terms' ) ) {
 require_once dirname( __DIR__, 3 ) . '/inc/Core/TeamAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowLocationGuard.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueAddAbilities.php';
+require_once __DIR__ . '/VenueAddVenueTaxonomyDouble.php';
 
 /** In-memory Data Machine pipelines/flows tables. */
 final class VenueAddTestWpdb {
@@ -380,6 +381,70 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$this->assertSame( '10', $config['upsert']['handler_configs']['upsert_event']['taxonomy_location_selection'] );
 		$this->assertSame( 'https://hedhi.test/events', $config['import']['handler_configs']['universal_web_scraper']['source_url'] );
 		$this->assertSame( 'Charleston', $config['import']['handler_configs']['universal_web_scraper']['venue_city'] );
+	}
+
+	public function test_add_without_term_reuses_same_name_same_city_venue_via_find_or_create(): void {
+		// A same-name venue in another city must not be picked up by name alone.
+		$GLOBALS['venue_add_test']['terms']['venue']      = array(
+			76 => new WP_Term( 76, 'Hed Hi Studio', 'hed-hi-studio-portland', 'venue' ),
+			77 => new WP_Term( 77, 'Hed Hi Studio', 'hed-hi-studio', 'venue' ),
+		);
+		$GLOBALS['venue_add_test']['venue_cities']        = array(
+			76 => 'Portland',
+			77 => 'Charleston',
+		);
+		$create_flow                         = new VenueAddTestCreateFlow();
+		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $create_flow ) {
+			return 'datamachine/create-flow' === $name ? $create_flow : null;
+		};
+
+		$result = $this->abilities->executeAddVenue(
+			array(
+				'location' => 'Charleston',
+				'name'     => 'Hed Hi Studio',
+				'address'  => '1 Hed Hi Way',
+				'zip'      => '29401',
+				'url'      => 'https://hedhi.test/events',
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertSame(
+			array(
+				array(
+					'Hed Hi Studio',
+					array(
+						'address' => '1 Hed Hi Way',
+						'city'    => 'Charleston',
+						'zip'     => '29401',
+					),
+				),
+			),
+			$GLOBALS['venue_add_test']['find_or_create_calls']
+		);
+		$this->assertCount( 2, $GLOBALS['venue_add_test']['terms']['venue'], 'No near-duplicate venue term is minted.' );
+		$config = json_decode( $this->wpdb->flows[ $result['flow_id'] ]['flow_config'], true );
+		$this->assertSame( 77, $config['import']['handler_configs']['universal_web_scraper']['venue'] );
+		$this->assertSame( '77', $config['upsert']['handler_configs']['upsert_event']['taxonomy_venue_selection'] );
+	}
+
+	public function test_add_with_canonical_term_skips_find_or_create(): void {
+		$create_flow                         = new VenueAddTestCreateFlow();
+		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $create_flow ) {
+			return 'datamachine/create-flow' === $name ? $create_flow : null;
+		};
+
+		$result = $this->abilities->executeAddVenue(
+			array(
+				'location'      => 'Charleston',
+				'name'          => 'Hed Hi Studio',
+				'venue_term_id' => 77,
+				'url'           => 'https://hedhi.test/events',
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$this->assertArrayNotHasKey( 'find_or_create_calls', $GLOBALS['venue_add_test'] );
 	}
 
 	public function test_pipeline_id_still_works_without_location(): void {
