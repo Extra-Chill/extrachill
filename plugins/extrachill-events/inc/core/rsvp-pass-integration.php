@@ -107,15 +107,16 @@ function extrachill_events_get_door_list_rows( int $event_id ): array {
 		$attendee_user_id = (int) $attendee['user_id'];
 		$pass             = $passes[ $attendee_user_id ] ?? null;
 		$rows[]           = array(
-			'user_id'      => $attendee_user_id,
-			'display_name' => (string) $attendee['display_name'],
-			'marked_at'    => ! empty( $attendee['marked_at'] )
+			'user_id'       => $attendee_user_id,
+			'display_name'  => (string) $attendee['display_name'],
+			'marked_at'     => ! empty( $attendee['marked_at'] )
 				? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (string) $attendee['marked_at'] )
 				: '',
-			'pass_status'  => $pass ? (string) $pass['status'] : '',
-			'redeemed_at'  => ( $pass && ! empty( $pass['redeemed_at'] ) )
+			'pass_status'   => $pass ? (string) $pass['status'] : '',
+			'redeemed_at'   => ( $pass && ! empty( $pass['redeemed_at'] ) )
 				? mysql2date( get_option( 'time_format' ) . ' ' . get_option( 'date_format' ), (string) $pass['redeemed_at'] )
 				: '',
+			'checked_in_at' => $pass ? (string) ( $pass['redeemed_at'] ?? '' ) : '',
 		);
 	}
 

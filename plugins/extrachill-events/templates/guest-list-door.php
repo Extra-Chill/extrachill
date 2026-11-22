@@ -30,6 +30,10 @@
  * @var string     $host_tools_html extrachill_events_guest_list_host_tools_html() result.
  * @var bool       $host_tools_open Whether the host tools section starts open.
  * @var int[]|null $added_counts    [ added, already listed, not added ] after an add, else null.
+ * @var string     $buy_tickets_url   Event ticket page while the sale is open, else ''.
+ * @var string     $buy_tickets_qr    Buy tickets QR image URL, '' while the sale is closed.
+ * @var array|null $ticket_report     Sales report (extrachill/get-show-ticket-report), or null.
+ * @var string     $door_list_csv_url Nonced door list CSV download, or ''.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -110,6 +114,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</ul>
 	<?php endif; ?>
 
+	<?php if ( '' !== $buy_tickets_qr ) : ?>
+		<section id="ec-door-buy-tickets" class="ec-surface-card ec-card-padding">
+			<h2><?php esc_html_e( 'Buy tickets', 'extrachill-events' ); ?></h2>
+			<p><?php esc_html_e( 'Walk-ups can scan this to buy on their phone. Sales stay open through the show.', 'extrachill-events' ); ?></p>
+			<img src="<?php echo esc_url( $buy_tickets_qr ); ?>" width="250" height="250" alt="<?php esc_attr_e( 'Buy tickets QR code', 'extrachill-events' ); ?>">
+			<p><a href="<?php echo esc_url( $buy_tickets_url ); ?>"><?php esc_html_e( 'Open the ticket page', 'extrachill-events' ); ?></a></p>
+			<p><a class="button-2 button-small" href="<?php echo esc_url( add_query_arg( 'download', '1', $buy_tickets_qr ) ); ?>"><?php esc_html_e( 'Download Buy tickets QR', 'extrachill-events' ); ?></a></p>
+		</section>
+	<?php endif; ?>
+
 	<?php if ( $has_guest_list ) : ?>
 		<form class="ec-form-stack" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="ec_guest_list_bulk_add">
@@ -129,7 +143,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div>
 
 <details id="ec-host-tools" class="ec-narrow-column" <?php echo $host_tools_open ? 'open' : ''; ?>>
-	<summary><?php esc_html_e( 'Host tools: guest list settings, share link and QR, owner\'s lists', 'extrachill-events' ); ?></summary>
+	<summary><?php esc_html_e( 'Host tools: sales report, door list download, guest list settings, share link and QR, owner\'s lists', 'extrachill-events' ); ?></summary>
 	<?php if ( $going_rows ) : ?>
 		<section class="ec-surface-card ec-card-padding">
 			<h3><?php esc_html_e( 'Going, no pass', 'extrachill-events' ); ?></h3>
@@ -146,5 +160,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</ul>
 		</section>
 	<?php endif; ?>
+	<?php
+	if ( '' !== $door_list_csv_url ) {
+		include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/show-ticket-report.php';
+	}
+	?>
 	<?php echo $host_tools_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the guest list and owner's list templates. ?>
 </details>

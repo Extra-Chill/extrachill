@@ -287,6 +287,86 @@ function extrachill_shop_get_event_ticket_orders( int $event_id ): array {
 }
 
 /**
+ * Every paid ticket order for one show, refunded and disputed ones included.
+ *
+ * The sales report (extrachill#1746) reads money from these: an order that
+ * was ever paid counts toward gross, and a refunded one toward refunds.
+ * Unpaid, expired and failed checkouts never took money and are left out.
+ *
+ * @param int $event_id Event post ID.
+ * @return WC_Order[]
+ */
+function extrachill_shop_get_event_paid_ticket_orders( int $event_id ): array {
+	if ( $event_id < 1 || ! function_exists( 'wc_get_orders' ) ) {
+		return array();
+	}
+	/** @var WC_Order[] $orders Not paginated. */
+	$orders = wc_get_orders(
+		extrachill_shop_ticket_order_query(
+			array(
+				'limit'   => -1,
+				'status'  => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
+				'orderby' => 'date',
+				'order'   => 'ASC',
+			),
+			array(
+				array(
+					'key'   => EXTRACHILL_SHOP_TICKET_EVENT_META,
+					'value' => (string) $event_id,
+				),
+			)
+		)
+	);
+	return $orders;
+}
+
+/**
+ * One paid ticket order as a sales report row: who bought, what, with which
+ * code, and the money split in minor units.
+ *
+ * `refunded_minor` is the whole total for a refunded order, otherwise any
+ * partial refund the seller made from their payout dashboard. A refunded
+ * order also returns Extra Chill's application fee, so its fee is 0.
+ *
+ * @param WC_Order $order Paid ticket order.
+ * @return array{order_reference: string, name: string, email: string, ticket_type: string, code: string, quantity: int, subtotal_minor: int, service_fee_minor: int, discount_minor: int, total_minor: int, fees_minor: int, refunded_minor: int, currency: string, state: string}
+ */
+function extrachill_shop_ticket_order_report_row( $order ): array {
+	$amounts  = extrachill_shop_ticket_order_amounts( $order );
+	$state    = extrachill_shop_ticket_order_state( $order );
+	$refunded = 'refunded' === $state;
+	$partial  = (int) round( (float) $order->get_total_refunded() * 100 );
+	return array(
+		'order_reference'   => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_REFERENCE_META ),
+		'name'              => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+		'email'             => (string) $order->get_billing_email(),
+		'ticket_type'       => extrachill_shop_ticket_order_type( $order ),
+		'code'              => (string) $order->get_meta( EXTRACHILL_SHOP_TICKET_CODE_META ),
+		'quantity'          => extrachill_shop_ticket_order_quantity( $order ),
+		'subtotal_minor'    => $amounts['subtotal_minor'],
+		'service_fee_minor' => $amounts['service_fee_minor'],
+		'discount_minor'    => (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_DISCOUNT_META ),
+		'total_minor'       => $amounts['total_minor'],
+		'fees_minor'        => $refunded ? 0 : $amounts['application_fee_minor'],
+		'refunded_minor'    => $refunded ? $amounts['total_minor'] : min( $partial, $amounts['total_minor'] ),
+		'currency'          => $amounts['currency'],
+		'state'             => $state,
+	);
+}
+
+/**
+ * Sales report rows for a show's paid ticket orders.
+ *
+ * @param array $input `{ event_id }`.
+ * @return array{orders: array[]}
+ */
+function extrachill_shop_get_event_ticket_order_report( array $input ): array {
+	return array(
+		'orders' => array_map( 'extrachill_shop_ticket_order_report_row', extrachill_shop_get_event_paid_ticket_orders( (int) ( $input['event_id'] ?? 0 ) ) ),
+	);
+}
+
+/**
  * Tickets held by unfinished checkouts for one show.
  *
  * Events counts only issued passes against capacity, so tickets in an open

@@ -982,6 +982,41 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 2, extrachill_shop_ticket_code_uses( 101, 'FRIENDS' ) );
 	}
 
+	public function test_sales_report_lists_paid_orders_with_code_type_and_money(): void {
+		$this->tiered_offer( array(
+			'code'             => 'FRIENDS',
+			'percent_off'      => 20,
+			'amount_off_minor' => 0,
+			'max_uses'         => 0,
+			'ticket_types'     => array( 'ga' ),
+		) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_code', 'cs_gone', 'cs_open' );
+		$this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'FRIENDS',
+			'name'        => 'Ada Lovelace',
+		) );
+		$this->tiered_offer();
+		$this->checkout( array( 'ticket_type' => 'ga' ) );
+		$this->checkout( array( 'ticket_type' => 'ga' ) );
+		$this->mark_paid( 'cs_code', 'pi_code' );
+		$this->mark_paid( 'cs_gone', 'pi_gone' );
+		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_gone' ) ) );
+
+		$rows = array_column( extrachill_shop_get_event_ticket_order_report( array( 'event_id' => 101 ) )['orders'], null, 'order_reference' );
+		$this->assertSame( array( 'cs_code', 'cs_gone' ), array_keys( $rows ), 'Open checkouts never took money.' );
+		$code = $rows['cs_code'];
+		$this->assertSame( array( 'ga', 'FRIENDS', 2, 1600, 400, 1885, 'issued', 0 ), array( $code['ticket_type'], $code['code'], $code['quantity'], $code['subtotal_minor'], $code['discount_minor'], $code['total_minor'], $code['state'], $code['refunded_minor'] ) );
+		$this->assertSame( 'buyer@example.com', $code['email'] );
+		$this->assertGreaterThan( 0, $code['fees_minor'] );
+		$gone = $rows['cs_gone'];
+		$this->assertSame( 'refunded', $gone['state'] );
+		$this->assertSame( $gone['total_minor'], $gone['refunded_minor'] );
+		$this->assertSame( 0, $gone['fees_minor'], 'A refund returns the application fee.' );
+		$this->assertSame( '', $gone['code'] );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
 	public function test_code_use_limit_counts_paid_and_open_checkouts(): void {
 		$this->tiered_offer( array(
 			'code'             => 'FRIENDS',

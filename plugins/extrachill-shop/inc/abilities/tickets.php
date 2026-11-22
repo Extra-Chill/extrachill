@@ -158,6 +158,59 @@ function extrachill_shop_register_ticket_abilities() {
 		'execute_callback'    => 'extrachill_shop_refund_event_ticket_orders',
 		'meta'                => array( 'show_in_rest' => true ),
 	) );
+	wp_register_ability( 'extrachill/get-event-ticket-order-report', array(
+		'label'               => 'Get a show\'s ticket order report',
+		'description'         => 'Every paid ticket order for a show with its buyer, ticket type, code and money split, for the sales report. Requires managing the show\'s seller.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'required'             => array( 'event_id' ),
+			'properties'           => array(
+				'event_id' => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+			),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'required'   => array( 'orders' ),
+			'properties' => array(
+				'orders' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'order_reference'   => array( 'type' => 'string' ),
+							'name'              => array( 'type' => 'string' ),
+							'email'             => array( 'type' => 'string' ),
+							'ticket_type'       => array( 'type' => 'string' ),
+							'code'              => array( 'type' => 'string' ),
+							'quantity'          => array( 'type' => 'integer' ),
+							'subtotal_minor'    => array( 'type' => 'integer' ),
+							'service_fee_minor' => array( 'type' => 'integer' ),
+							'discount_minor'    => array( 'type' => 'integer' ),
+							'total_minor'       => array( 'type' => 'integer' ),
+							'fees_minor'        => array( 'type' => 'integer' ),
+							'refunded_minor'    => array( 'type' => 'integer' ),
+							'currency'          => array( 'type' => 'string' ),
+							'state'             => array( 'type' => 'string' ),
+						),
+					),
+				),
+			),
+		),
+		'permission_callback' => 'extrachill_shop_event_ticket_refund_permission',
+		'execute_callback'    => 'extrachill_shop_get_event_ticket_order_report',
+		'meta'                => array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'   => true,
+				'idempotent' => true,
+			),
+		),
+	) );
 	wp_register_ability( 'extrachill/list-my-ticket-orders', array(
 		'label'               => 'List my ticket orders',
 		'description'         => 'List the current user\'s ticket orders and their passes.',

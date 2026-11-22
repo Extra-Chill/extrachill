@@ -64,6 +64,20 @@ Owners can see ticket sales in their venue or promoter workspace on the Events C
 
 Ticket payments and payouts also show in your payout dashboard.
 
+### Sales Report for One Show
+
+For the numbers on one show, open the show's page, select **Guest Check-In**, then open **Host tools**. The **Sales report** shows:
+
+- **Tickets sold** and **Refunded**.
+- **Checked in**: how many ticket holders came through the door, out of the tickets sold, like "Checked in: 45 of 60 tickets (75%)."
+- **Gross** (what buyers paid, service fees included), **Refunds**, **Extra Chill fees**, and **Net** (what's left for you).
+- **By ticket type**: tickets sold, the type's limit, and the revenue from each type.
+- **By code**: tickets bought with each code, its ticket limit, and the discount it gave.
+
+Anyone on the venue's or promoter's team can see the ticket counts. The money and codes show only to people who can manage the seller's payouts.
+
+To get everyone on the door list in a spreadsheet, select **Download door list (CSV)** in the same place. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door).
+
 ## Refund Tickets
 
 - **One order:** select **Refund** next to it. You can refund any order until someone on it checks in at the door. After that, it can't be refunded through Extra Chill.

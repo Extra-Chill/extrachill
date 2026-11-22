@@ -479,22 +479,47 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 		$added_by_id = (int) ( $pass['issued_by_user_id'] ?? 0 );
 		$added_by    = $added_by_id ? get_userdata( $added_by_id ) : false;
 		$guest_name  = (string) ( $pass['guest_name'] ?? '' );
-		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? extrachill_events_door_list_import_source( $pass );
+		$party_name  = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? null;
+		$source      = $party_name ?? extrachill_events_door_list_import_source( $pass );
 		$rows[]      = array(
-			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
-			'label'       => extrachill_events_door_ticket_prefix( $pass, $type_names ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
-			'guest_name'  => $guest_name,
-			'source'      => $source,
-			'added_by'    => $added_by ? (string) $added_by->display_name : '',
-			'code'        => (string) $pass['code'],
-			'status'      => (string) $pass['status'],
-			'redeemed_at' => ! empty( $pass['redeemed_at'] )
+			'pass_id'         => (int) ( $pass['id'] ?? 0 ),
+			'label'           => extrachill_events_door_ticket_prefix( $pass, $type_names ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
+			'guest_name'      => $guest_name,
+			'source'          => $source,
+			'added_by'        => $added_by ? (string) $added_by->display_name : '',
+			'code'            => (string) $pass['code'],
+			'status'          => (string) $pass['status'],
+			'redeemed_at'     => ! empty( $pass['redeemed_at'] )
 				? mysql2date( (string) get_option( 'time_format' ), get_date_from_gmt( (string) $pass['redeemed_at'] ) )
 				: '',
+			// Read by the door list CSV export (extrachill#1746).
+			'source_kind'     => extrachill_events_door_list_source_kind( $pass, null !== $party_name ),
+			'email'           => (string) ( $pass['email'] ?? '' ),
+			'order_reference' => (string) ( $pass['order_reference'] ?? '' ),
+			'ticket_type'     => (string) ( $pass['ticket_type'] ?? '' ),
+			'checked_in_at'   => (string) ( $pass['redeemed_at'] ?? '' ),
 		);
 	}
 
 	return $rows;
+}
+
+/**
+ * Which kind of door source a guest pass is: a paid `ticket`, an
+ * `eventbrite` import, a `band` guest, or a host's `guest_list` name.
+ *
+ * @param array $pass      Pass row.
+ * @param bool  $has_party Whether an invited band or management added it.
+ * @return string
+ */
+function extrachill_events_door_list_source_kind( array $pass, bool $has_party ): string {
+	if ( ! empty( $pass['order_reference'] ) ) {
+		return 'ticket';
+	}
+	if ( function_exists( 'extrachill_events_pass_is_eventbrite_import' ) && extrachill_events_pass_is_eventbrite_import( $pass ) ) {
+		return 'eventbrite';
+	}
+	return $has_party ? 'band' : 'guest_list';
 }
 
 /**

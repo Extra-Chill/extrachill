@@ -573,7 +573,19 @@ function extrachill_events_serve_guest_list_qr(): void {
 		status_header( 403 );
 		exit;
 	}
-	$url    = extrachill_events_guest_list_url( $event_id );
+	extrachill_events_output_qr_png( extrachill_events_guest_list_url( $event_id ), 'guest-list-' . $event_id . '.png' );
+}
+add_action( 'admin_post_ec_guest_list_qr', 'extrachill_events_serve_guest_list_qr' );
+
+/**
+ * Send a QR code PNG for a URL the caller already authorized, then exit.
+ * `?download` makes it an attachment named $filename. Shared by the guest
+ * list share QR and the Buy tickets door QR (extrachill#1746).
+ *
+ * @param string $url      URL the QR opens.
+ * @param string $filename Download file name.
+ */
+function extrachill_events_output_qr_png( string $url, string $filename ): void {
 	$grant  = extrachill_events_rsvp_pass_qr_permission_grant( $url );
 	$result = null;
 	if ( function_exists( 'wp_has_ability' ) && wp_has_ability( 'extrachill/generate-qr-code' ) ) {
@@ -596,9 +608,8 @@ function extrachill_events_serve_guest_list_qr(): void {
 	nocache_headers();
 	header( 'Content-Type: image/png' );
 	if ( isset( $_GET['download'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		header( 'Content-Disposition: attachment; filename="guest-list-' . $event_id . '.png"' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 	}
 	echo base64_decode( (string) $result['image'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Binary image from the existing QR ability.
 	exit;
 }
-add_action( 'admin_post_ec_guest_list_qr', 'extrachill_events_serve_guest_list_qr' );
