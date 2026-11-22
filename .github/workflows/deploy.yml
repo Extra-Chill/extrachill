@@ -799,6 +799,10 @@ jobs:
             title="Nothing deployed - ${skipped} component(s) misconfigured"
             colour=16098851
             body="Scope: ${SCOPE}. Homeboy did not attempt these because their deploy configuration is incomplete, so they stay behind until it is corrected."
+          elif [ "${JOB_STATUS}" = "success" ] && [ "${deployed}" -eq 0 ] && [ "${skipped}" -eq 0 ] && [ -n "${CODING_AGENTS_REPORT:-}" ]; then
+            title="Agent toolchain upgraded - extrachill.com"
+            colour=3066993
+            body=""
           else
             title="Deployed to extrachill.com"
             colour=3066993
@@ -806,7 +810,7 @@ jobs:
           fi
 
           if [ -n "${CODING_AGENTS_REPORT:-}" ]; then
-            body="${body}"$'\n'"${CODING_AGENTS_REPORT}"
+            body="${body:+${body}$'\n'}${CODING_AGENTS_REPORT}"
           fi
 
           if [ -n "${lines}" ]; then
