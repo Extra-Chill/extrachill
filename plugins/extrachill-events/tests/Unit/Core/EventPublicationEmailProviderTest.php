@@ -49,6 +49,11 @@ if ( ! function_exists( 'home_url' ) ) {
 if ( ! function_exists( 'network_site_url' ) ) {
 	function network_site_url( $path = '' ) { return 'https://network.example/' . ltrim( (string) $path, '/' ); }
 }
+if ( ! function_exists( 'ec_get_site_url' ) ) {
+	// Double of the extrachill-network site-URL contract (blog-ids.php), a
+	// required network dependency the provider calls unguarded (#481).
+	function ec_get_site_url( $site ) { return 'https://' . $site . '.example'; }
+}
 if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $value ) { return rtrim( (string) $value, '/\\' ) . '/'; }
 }

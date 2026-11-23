@@ -8,22 +8,24 @@
 // phpcs:disable -- Test doubles and WordPress stubs.
 
 namespace {
+	// Every double is guarded: the default suite also loads the real
+	// inc/core/local-scene-digest.php (extrachill_events_digest_scope) and
+	// other suites' WordPress stubs, so an unguarded redeclare is fatal.
 	foreach ( array(
-		'extrachill_events_perk_enabled' => static fn( $id ) => ! empty( $GLOBALS['eb_perk'] ),
-		'extrachill_cache_purge_post'    => static function ( $id ) { $GLOBALS['eb_purged'][] = $id; },
+		'extrachill_events_perk_enabled'                     => static fn( $id ) => ! empty( $GLOBALS['eb_perk'] ),
+		'extrachill_cache_purge_post'                        => static function ( $id ) { $GLOBALS['eb_purged'][] = $id; },
+		'wp_get_post_terms'                                  => static fn( $id, $taxonomy ) => array( (object) array( 'slug' => 'lofi' ) ),
+		'is_email'                                           => static fn( $email ) => filter_var( $email, FILTER_VALIDATE_EMAIL ),
+		'get_user_by'                                        => static fn( $field, $email ) => 'already@example.com' === $email ? (object) array( 'ID' => 8 ) : false,
+		'extrachill_events_digest_scope'                     => static fn( $scope ) => array( 'entity' => 'venue_show_updates', 'taxonomy' => 'venue' ),
+		'extrachill_users_entity_subscription_status'        => static fn( ...$args ) => array( 'subscribed' => true ),
+		'extrachill_events_guest_subscribe_local_scene_digest' => static function ( ...$args ) { $GLOBALS['eb_requests'][] = $args; return array( 'status' => 'check_inbox' ); },
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['eb_impl'][ $name ] = $impl;
 			eval( "function {$name}( ...\$a ) { return ( \$GLOBALS['eb_impl']['{$name}'] )( ...\$a ); }" );
 		}
 	}
-
-	function wp_get_post_terms( $id, $taxonomy ) { return array( (object) array( 'slug' => 'lofi' ) ); }
-	function is_email( $email ) { return filter_var( $email, FILTER_VALIDATE_EMAIL ); }
-	function get_user_by( $field, $email ) { return 'already@example.com' === $email ? (object) array( 'ID' => 8 ) : false; }
-	function extrachill_events_digest_scope( $scope ) { return array( 'entity' => 'venue_show_updates', 'taxonomy' => 'venue' ); }
-	function extrachill_users_entity_subscription_status( ...$args ) { return array( 'subscribed' => true ); }
-	function extrachill_events_guest_subscribe_local_scene_digest( ...$args ) { $GLOBALS['eb_requests'][] = $args; return array( 'status' => 'check_inbox' ); }
 
 	/** Pass-table fake: answers the existing-key lookup and records inserts. */
 	final class EventbriteImportWpdb {

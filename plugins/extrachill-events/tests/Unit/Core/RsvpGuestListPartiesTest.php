@@ -622,7 +622,10 @@ final class RsvpGuestListPartiesTest extends PHPUnit\Framework\TestCase {
 		$rows   = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
 
 		// The host screen shows each guest's labelled name, source included.
-		$this->assertStringContainsString( "(string) ( \$row['label'] ?? \$row['guest_name'] ?? '' )", $rows );
+		// Guest rows always carry `label`; attendee rows fall back to their
+		// account display name (extrachill#1757 normalized the door row shape).
+		$this->assertStringContainsString( "\$row['label']         = (string) ( \$row['label'] ?? \$row['display_name'] ?? '' );", $rows );
+		$this->assertStringContainsString( "(string) ( \$row['display_name'] ?? '' ) : \$row['label'];", $rows );
 		$this->assertStringContainsString( "esc_html( (string) \$door_row['name'] )", $source );
 		$this->assertStringContainsString( 'Added by %s', $source );
 	}
