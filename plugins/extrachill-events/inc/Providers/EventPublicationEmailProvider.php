@@ -138,7 +138,12 @@ final class EventPublicationEmailProvider {
 		if ( ! function_exists( 'ec_commerce_fee_settings' ) ) {
 			return '';
 		}
-		$fees = ec_commerce_fee_settings( array( 'kind' => 'extrachill_ticket', 'event_id' => $event_id ) );
+		$fees = ec_commerce_fee_settings(
+			array(
+				'kind'     => 'extrachill_ticket',
+				'event_id' => $event_id,
+			)
+		);
 		if ( ! isset( $fees['ticket_percent'], $fees['ticket_buyer_fee_per_ticket_minor'], $fees['ticket_buyer_fee_flat_minor'], $fees['ticket_buyer_fee_percent'] )
 			|| 0.0 !== (float) $fees['ticket_percent'] || 0.0 !== (float) $fees['ticket_buyer_fee_flat_minor']
 			|| 0.0 !== (float) $fees['ticket_buyer_fee_percent'] ) {
