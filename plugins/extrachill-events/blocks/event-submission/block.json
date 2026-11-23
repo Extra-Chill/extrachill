@@ -24,7 +24,7 @@
 		},
 		"successMessage": {
 			"type": "string",
-			"default": "Thanks! We'll review your submission and reach out if we need anything else."
+			"default": "Thanks! We'll review your submission and reach out if we need anything else. Sell tickets for your show on Extra Chill: https://docs.extrachill.com/selling-event-tickets/"
 		},
 		"buttonLabel": {
 			"type": "string",

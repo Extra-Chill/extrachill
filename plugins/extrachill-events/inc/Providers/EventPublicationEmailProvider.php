@@ -75,6 +75,7 @@ final class EventPublicationEmailProvider {
 		$body .= self::list_link( self::site_url( 'artist' ), __( 'Create or claim your artist profile', 'extrachill-events' ) );
 		$body .= self::list_link( self::site_url( 'events' ), __( 'Connect your venue’s public calendar to import future shows automatically', 'extrachill-events' ) );
 		$body .= self::list_link( self::site_url( 'events' ), __( 'Submit your next show', 'extrachill-events' ) );
+		$body .= self::ticket_item( $post->ID, $user_id );
 		$body .= self::list_link( self::site_url( 'community' ), __( 'Join the Extra Chill community', 'extrachill-events' ) );
 		$body .= '</ul>';
 
@@ -99,6 +100,59 @@ final class EventPublicationEmailProvider {
 				'recipient_name' => $name,
 				'body_html'      => $body,
 			)
+		);
+	}
+
+	/** Offer ticketing only when it does not replace an existing paid destination. */
+	private static function ticket_item( int $event_id, int $user_id ): string {
+		$offer      = get_post_meta( $event_id, '_extrachill_ticket_offer', true );
+		$ticket_url = (string) get_post_meta( $event_id, '_datamachine_ticket_url', true );
+		if ( ( is_array( $offer ) && ! empty( $offer['tickets_enabled'] ) )
+			|| ( function_exists( 'data_machine_events_is_gated_ticket_url' ) && data_machine_events_is_gated_ticket_url( $ticket_url ) ) ) {
+			return '';
+		}
+
+		$url = rtrim( self::site_url( 'docs' ), '/' ) . '/selling-event-tickets/';
+		if ( $user_id > 0 && function_exists( 'extrachill_events_user_can_manage_event' )
+			&& function_exists( 'extrachill_events_guest_list_host_tools_url' )
+			&& extrachill_events_user_can_manage_event( $user_id, $event_id ) ) {
+			$url = extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-management' );
+		}
+		$url = add_query_arg(
+			array(
+				'utm_source'   => 'extrachill_events',
+				'utm_medium'   => 'email',
+				'utm_campaign' => 'submission_email_tickets',
+				'placement'    => 'submission_email_tickets',
+			),
+			$url
+		);
+
+		$item = self::list_link( $url, __( 'Sell tickets for this show on Extra Chill', 'extrachill-events' ) );
+		$fee  = self::ticket_fee_copy( $event_id );
+		return '' === $fee ? $item : str_replace( '</li>', ' — ' . esc_html( $fee ) . '</li>', $item );
+	}
+
+	/** Only describe the simple per-ticket schedule when the settings support it. */
+	private static function ticket_fee_copy( int $event_id ): string {
+		if ( ! function_exists( 'ec_commerce_fee_settings' ) ) {
+			return '';
+		}
+		$fees = ec_commerce_fee_settings(
+			array(
+				'kind'     => 'extrachill_ticket',
+				'event_id' => $event_id,
+			)
+		);
+		if ( ! isset( $fees['ticket_percent'], $fees['ticket_buyer_fee_per_ticket_minor'], $fees['ticket_buyer_fee_flat_minor'], $fees['ticket_buyer_fee_percent'] )
+			|| 0.0 !== (float) $fees['ticket_percent'] || 0.0 !== (float) $fees['ticket_buyer_fee_flat_minor']
+			|| 0.0 !== (float) $fees['ticket_buyer_fee_percent'] ) {
+			return '';
+		}
+		return sprintf(
+			/* translators: %s: service fee in US dollars per ticket. */
+			__( 'No platform fee for you, buyers pay a $%s service fee per ticket', 'extrachill-events' ),
+			0 === (int) $fees['ticket_buyer_fee_per_ticket_minor'] % 100 ? (string) ( (int) $fees['ticket_buyer_fee_per_ticket_minor'] / 100 ) : number_format( (int) $fees['ticket_buyer_fee_per_ticket_minor'] / 100, 2, '.', '' )
 		);
 	}
 

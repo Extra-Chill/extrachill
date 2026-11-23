@@ -20,38 +20,8 @@ if ( ! class_exists( 'WP_User' ) ) {
 	}
 }
 
-if ( ! function_exists( 'get_post_meta' ) ) {
-	function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['event_mail_post_meta'][ $id ][ $key ] ?? ''; }
-	function get_user_meta( $id, $key, $single = false ) { return $GLOBALS['event_mail_user_meta'][ $id ][ $key ] ?? ''; }
-	function get_userdata( $id ) { return $GLOBALS['event_mail_users'][ $id ] ?? false; }
-	function get_the_title( $post ) { return $GLOBALS['event_mail_titles'][ $post->ID ] ?? ''; }
-	function get_permalink( $post ) { return 'https://events.example/event/' . $post->ID . '/'; }
-	function get_password_reset_key( $user ) { return 'one-time-key'; }
-}
-
-if ( ! function_exists( 'ec_users_build_account_claim_url' ) ) {
-	// Double of the extrachill-users claim-link helper (extrachill-users#451).
-	function ec_users_build_account_claim_url( $user ) { return 'https://community.example/reset-password/?action=reset&key=one-time-key&login=' . rawurlencode( $user->user_login ); }
-}
-
-if ( ! function_exists( 'esc_html__' ) ) {
-	function esc_html__( $text, $domain = 'default' ) { return htmlspecialchars( (string) $text, ENT_QUOTES ); }
-}
-if ( ! function_exists( 'esc_html' ) ) {
-	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES ); }
-}
-if ( ! function_exists( 'esc_url' ) ) {
-	function esc_url( $url ) { return (string) $url; }
-}
-if ( ! function_exists( 'home_url' ) ) {
-	function home_url( $path = '' ) { return 'https://events.example' . $path; }
-}
-if ( ! function_exists( 'network_site_url' ) ) {
-	function network_site_url( $path = '' ) { return 'https://network.example/' . ltrim( (string) $path, '/' ); }
-}
-if ( ! function_exists( 'trailingslashit' ) ) {
-	function trailingslashit( $value ) { return rtrim( (string) $value, '/\\' ) . '/'; }
-}
+require_once __DIR__ . '/Stubs/event-publication-wp-functions.php';
+require_once __DIR__ . '/Stubs/event-publication-ticket-functions.php';
 
 require_once __DIR__ . '/Stubs/submission-notification-spy.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Providers/EventPublicationEmailProvider.php';
@@ -63,6 +33,13 @@ final class EventPublicationEmailProviderTest extends TestCase {
 		$GLOBALS['event_mail_user_meta'] = array();
 		$GLOBALS['event_mail_users'] = array();
 		$GLOBALS['event_mail_titles'] = array();
+		$GLOBALS['event_mail_managers'] = array();
+		$GLOBALS['event_mail_fees'] = array(
+			'ticket_percent' => 0,
+			'ticket_buyer_fee_per_ticket_minor' => 100,
+			'ticket_buyer_fee_flat_minor' => 0,
+			'ticket_buyer_fee_percent' => 0,
+		);
 		\DataMachineEvents\Core\SubmissionNotification::$calls = array();
 	}
 
@@ -129,6 +106,54 @@ final class EventPublicationEmailProviderTest extends TestCase {
 		$this->assertStringContainsString( 'Set or reset your password to log in and manage your events', $unclaimed_context['body_html'] );
 		$this->assertStringContainsString( 'Set my password', $unclaimed_context['body_html'] );
 		$this->assertStringNotContainsString( 'already existed', $unclaimed_context['body_html'] );
+	}
+
+	public function test_ticket_offer_links_to_recipient_host_tools_with_campaign_and_configured_fee(): void {
+		$GLOBALS['event_mail_post_meta'][601] = array( '_datamachine_submitted_by' => 12 );
+		$GLOBALS['event_mail_managers'][12][601] = true;
+		$GLOBALS['event_mail_fees']['ticket_buyer_fee_per_ticket_minor'] = 150;
+		$context = EventPublicationEmailProvider::context( array(), $this->event_post( 601 ), 'alex@example.test', 'default' );
+		$this->assertStringContainsString( 'Sell tickets for this show on Extra Chill', $context['body_html'] );
+		$this->assertStringContainsString( '/601/guest-list/?ec_host_tools=1', $context['body_html'] );
+		$this->assertStringContainsString( '#ec-guest-list-management', $context['body_html'] );
+		$this->assertStringContainsString( 'utm_campaign=submission_email_tickets', $context['body_html'] );
+		$this->assertStringContainsString( 'No platform fee for you, buyers pay a $1.50 service fee', $context['body_html'] );
+		$this->assertSame( array( 'kind' => 'extrachill_ticket', 'event_id' => 601 ), $GLOBALS['event_mail_fee_context'] );
+	}
+
+	public function test_ticket_offer_falls_back_to_docs_without_management_permission(): void {
+		$GLOBALS['event_mail_post_meta'][602] = array( '_datamachine_submitter_email' => 'guest@example.test' );
+		$context = EventPublicationEmailProvider::context( array(), $this->event_post( 602 ), 'guest@example.test', 'default' );
+		$this->assertStringContainsString( 'https://docs.example/selling-event-tickets/?', $context['body_html'] );
+		$this->assertStringContainsString( 'placement=submission_email_tickets', $context['body_html'] );
+	}
+
+	public function test_ticket_offer_is_omitted_when_tickets_are_enabled(): void {
+		$GLOBALS['event_mail_post_meta'][603] = array(
+			'_datamachine_submitted_by' => 12,
+			'_extrachill_ticket_offer' => array( 'tickets_enabled' => true ),
+		);
+		$context = EventPublicationEmailProvider::context( array(), $this->event_post( 603 ), 'alex@example.test', 'default' );
+		$this->assertStringNotContainsString( 'Sell tickets for this show', $context['body_html'] );
+	}
+
+	public function test_affiliate_destinations_suppress_offer_but_non_affiliates_do_not(): void {
+		foreach ( array( 'www.ticketmaster.com', 'www.ticketweb.com', 'dice.fm' ) as $host ) {
+			$GLOBALS['event_mail_post_meta'][604] = array(
+				'_datamachine_submitted_by' => 12,
+				'_datamachine_ticket_url' => 'https://' . $host . '/show',
+			);
+			$context = EventPublicationEmailProvider::context( array(), $this->event_post( 604 ), 'alex@example.test', 'default' );
+			$this->assertSame( 'dice.fm' === $host, str_contains( $context['body_html'], 'Sell tickets for this show' ) );
+		}
+	}
+
+	public function test_nonstandard_fee_schedule_omits_fee_promise_not_ticket_offer(): void {
+		$GLOBALS['event_mail_post_meta'][605] = array( '_datamachine_submitted_by' => 12 );
+		$GLOBALS['event_mail_fees']['ticket_percent'] = 5;
+		$context = EventPublicationEmailProvider::context( array(), $this->event_post( 605 ), 'alex@example.test', 'default' );
+		$this->assertStringContainsString( 'Sell tickets for this show', $context['body_html'] );
+		$this->assertStringNotContainsString( 'No platform fee', $context['body_html'] );
 	}
 
 	public function test_posts_without_submitter_metadata_are_left_untouched(): void {
