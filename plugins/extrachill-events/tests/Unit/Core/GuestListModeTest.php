@@ -118,7 +118,14 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 }
 
 if ( ! function_exists( 'user_can' ) ) {
+	// Same shape as EventManagementAuthorityTest's stub. In qualify-v2-unit this
+	// file sorts before OwnerGuestListTest, so this stub must also model the
+	// term-scoped promoter capability that owner guest lists check.
 	function user_can( $user_id, $capability, ...$args ) {
+		if ( 'ec_access_promoter' === $capability ) {
+			return class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' )
+				&& is_array( ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->get_active_membership( (int) ( $args[0] ?? 0 ), (int) $user_id ) );
+		}
 		if ( 'edit_post' === $capability ) {
 			$post_id = $args[0] ?? 0;
 			return in_array( (int) $post_id, $GLOBALS['event_management_test']['editable_posts'][ $user_id ] ?? array(), true );
