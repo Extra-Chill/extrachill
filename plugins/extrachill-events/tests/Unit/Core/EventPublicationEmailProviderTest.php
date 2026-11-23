@@ -117,7 +117,7 @@ final class EventPublicationEmailProviderTest extends TestCase {
 		$this->assertStringContainsString( '/601/guest-list/?ec_host_tools=1', $context['body_html'] );
 		$this->assertStringContainsString( '#ec-guest-list-management', $context['body_html'] );
 		$this->assertStringContainsString( 'utm_campaign=submission_email_tickets', $context['body_html'] );
-		$this->assertStringContainsString( 'No platform fee for you, buyers pay a $1.5 service fee', $context['body_html'] );
+		$this->assertStringContainsString( 'No platform fee for you, buyers pay a $1.50 service fee', $context['body_html'] );
 		$this->assertSame( array( 'kind' => 'extrachill_ticket', 'event_id' => 601 ), $GLOBALS['event_mail_fee_context'] );
 	}
 

@@ -152,7 +152,7 @@ final class EventPublicationEmailProvider {
 		return sprintf(
 			/* translators: %s: service fee in US dollars per ticket. */
 			__( 'No platform fee for you, buyers pay a $%s service fee per ticket', 'extrachill-events' ),
-			rtrim( rtrim( number_format( (float) $fees['ticket_buyer_fee_per_ticket_minor'] / 100, 2, '.', '' ), '0' ), '.' )
+			0 === (int) $fees['ticket_buyer_fee_per_ticket_minor'] % 100 ? (string) ( (int) $fees['ticket_buyer_fee_per_ticket_minor'] / 100 ) : number_format( (int) $fees['ticket_buyer_fee_per_ticket_minor'] / 100, 2, '.', '' )
 		);
 	}
 
