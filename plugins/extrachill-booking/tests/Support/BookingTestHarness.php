@@ -325,6 +325,10 @@ if ( ! function_exists( 'get_post' ) ) {
 		if ( ! empty( $GLOBALS['ec_artist_test']['throw_get_post'] ) ) {
 			throw new RuntimeException( 'post read failed' );
 		}
+		if ( ! isset( $GLOBALS['ec_artist_test'] ) ) {
+			// Shared process with a harness that seeds posts elsewhere (extrachill-events tests/Support/post-fixtures.php).
+			return function_exists( 'ec_events_test_fixture_post' ) ? ec_events_test_fixture_post( $post_id ) : null;
+		}
 		$state = $GLOBALS['ec_artist_test'];
 		return $state['posts'][ $state['blog_id'] ][ $post_id ] ?? null;
 	}

@@ -143,7 +143,10 @@ final class PriorityPromoterTest extends TestCase {
 		$this->assertStringContainsString( "p.post_status = 'publish'", $query );
 		$this->assertStringContainsString( "tt.taxonomy = 'promoter'", $query );
 		$this->assertStringContainsString( 'tt.term_id = ' . self::HOUSE, $query );
-		$this->assertStringContainsString( 'ed.start_datetime >=', $query );
+		// data-machine#4003 collapsed the upcoming predicate to a single
+		// effective_end placeholder (UpcomingFilter::upcoming_sql()).
+		$this->assertStringContainsString( 'ed.effective_end >=', $query );
+		$this->assertStringNotContainsString( '%s', $query, 'Every UpcomingFilter placeholder is bound.' );
 	}
 
 	public function test_remarking_existing_priority_promoter_skips_backfill(): void {
