@@ -291,9 +291,10 @@ function extrachill_analytics_revenue_ledger_read_status( $set = null ) {
  * Read Extra Chill revenue snapshots from the ledger via datamachine/revenue-query.
  *
  * One coverage query discovers every Extra Chill snapshot account; each
- * snapshot is then read on its own (rows + exact ledger totals), so the
- * query ability's per-call row cap applies per snapshot, never per history.
- * A snapshot whose matched rows exceed the cap is reported as truncated.
+ * snapshot is then read on its own (rows + exact ledger totals), paging by
+ * `offset` past the query ability's per-call row cap until every matched row
+ * is read. A snapshot whose rows still fall short of matched_rows (for
+ * example, a provider that ignores `offset`) is reported as truncated.
  *
  * @param int|null $blog_id Snapshot blog, or null for every Extra Chill blog.
  * @param array    $args    Optional period_start / period_end window (Y-m-d).
@@ -339,23 +340,13 @@ function extrachill_analytics_revenue_ledger_snapshots( $blog_id = null, array $
 			$input['end_date']   = (string) $entry['last_date'];
 		}
 
-		$result = extrachill_analytics_revenue_ledger_execute( EXTRACHILL_ANALYTICS_REVENUE_LEDGER_QUERY_ABILITY, $input );
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		$page = extrachill_analytics_revenue_ledger_read_snapshot_rows( $input, $parsed['blog_id'], $parsed['import_batch'] );
+		if ( is_wp_error( $page ) ) {
+			return $page;
 		}
-
-		$rows = array();
-		foreach ( isset( $result['rows'] ) && is_array( $result['rows'] ) ? $result['rows'] : array() as $row ) {
-			if ( is_array( $row ) ) {
-				$rows[] = extrachill_analytics_revenue_ledger_record_from_row( $row, $parsed['blog_id'], $parsed['import_batch'] );
-			}
-		}
-
-		$revenue = 0.0;
-		foreach ( isset( $result['totals'] ) && is_array( $result['totals'] ) ? $result['totals'] : array() as $total ) {
-			$revenue += isset( $total['amount'] ) ? (float) $total['amount'] : 0.0;
-		}
-		$matched = isset( $result['counts']['matched_rows'] ) ? (int) $result['counts']['matched_rows'] : count( $rows );
+		$rows    = $page['rows'];
+		$revenue = $page['revenue'];
+		$matched = $page['matched_rows'];
 
 		$snapshots[] = array(
 			'account'       => $account,
@@ -371,6 +362,85 @@ function extrachill_analytics_revenue_ledger_snapshots( $blog_id = null, array $
 	}
 
 	return $snapshots;
+}
+
+/**
+ * Read every row of one ledger snapshot, paging revenue-query by offset.
+ *
+ * Pages with `offset` (datamachine/revenue-query input) until the returned
+ * rows reach `counts.matched_rows`. Stops defensively when a page returns no
+ * rows or when the page count exceeds ceil(matched / limit) + 1, so a query
+ * ability that ignores `offset` cannot loop forever; in that case the caller
+ * sees fewer rows than matched and flags the snapshot truncated. A later page
+ * that does not echo the requested `counts.offset` is discarded (offset is
+ * unsupported), and rows with an id already read are never duplicated.
+ *
+ * @param array  $input   Base revenue-query input (include_rows + limit set).
+ * @param int    $blog_id Snapshot blog.
+ * @param string $batch   Snapshot batch.
+ * @return array{rows:array<int,\stdClass>,matched_rows:int,revenue:float}|WP_Error
+ */
+function extrachill_analytics_revenue_ledger_read_snapshot_rows( array $input, $blog_id, $batch ) {
+	$limit     = max( 1, (int) $input['limit'] );
+	$rows      = array();
+	$seen_ids  = array();
+	$matched   = null;
+	$revenue   = 0.0;
+	$offset    = 0;
+	$pages     = 0;
+	$max_pages = 1;
+
+	do {
+		$result = extrachill_analytics_revenue_ledger_execute(
+			EXTRACHILL_ANALYTICS_REVENUE_LEDGER_QUERY_ABILITY,
+			array_merge( $input, array( 'offset' => $offset ) )
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		++$pages;
+
+		// A provider without offset support never echoes counts.offset: its
+		// "next page" would be the first page again, so stop and stay truncated.
+		if ( $offset > 0 && ( ! isset( $result['counts']['offset'] ) || (int) $result['counts']['offset'] !== $offset ) ) {
+			break;
+		}
+
+		$page_rows = isset( $result['rows'] ) && is_array( $result['rows'] ) ? $result['rows'] : array();
+		$added     = 0;
+		foreach ( $page_rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			if ( ! empty( $row['id'] ) ) {
+				$id = (int) $row['id'];
+				if ( isset( $seen_ids[ $id ] ) ) {
+					continue;
+				}
+				$seen_ids[ $id ] = true;
+			}
+			$rows[] = extrachill_analytics_revenue_ledger_record_from_row( $row, $blog_id, $batch );
+			++$added;
+		}
+
+		if ( null === $matched ) {
+			foreach ( isset( $result['totals'] ) && is_array( $result['totals'] ) ? $result['totals'] : array() as $total ) {
+				$revenue += isset( $total['amount'] ) ? (float) $total['amount'] : 0.0;
+			}
+			$matched   = isset( $result['counts']['matched_rows'] ) ? (int) $result['counts']['matched_rows'] : count( $rows );
+			$max_pages = (int) ceil( $matched / $limit ) + 1;
+		}
+
+		$page_count = count( $page_rows );
+		$read_count = count( $rows );
+		$offset    += $page_count;
+	} while ( $page_count > 0 && $added > 0 && $read_count < $matched && $pages < $max_pages );
+
+	return array(
+		'rows'         => $rows,
+		'matched_rows' => (int) $matched,
+		'revenue'      => $revenue,
+	);
 }
 
 /**

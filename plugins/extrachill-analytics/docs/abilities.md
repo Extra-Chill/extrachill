@@ -239,7 +239,7 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 
 ## Revenue and delivery
 
-Revenue storage belongs to the Data Machine Business revenue ledger. Every revenue read below goes through `datamachine/revenue-query`: one coverage query finds the Extra Chill snapshot accounts, then each snapshot is read on its own. Every write goes through `datamachine/revenue-ingest`. Extra Chill adds its own layer on top of those reads: slug/URL to post resolution, residual vs forward format, and the outbound_click joins. The query ability returns at most 1000 rows per call. A snapshot with more matched rows than that is reported as truncated: the ARC lists it under `source.truncated_snapshots`, and the diagnostics totals reconciliation flags it.
+Revenue storage belongs to the Data Machine Business revenue ledger. Every revenue read below goes through `datamachine/revenue-query`: one coverage query finds the Extra Chill snapshot accounts, then each snapshot is read on its own. Every write goes through `datamachine/revenue-ingest`. Extra Chill adds its own layer on top of those reads: slug/URL to post resolution, residual vs forward format, and the outbound_click joins. The query ability returns at most 1000 rows per call, so each snapshot is paged with `offset` until the returned rows reach `counts.matched_rows`. Paging stops defensively on an empty page, a repeated page, or more than ceil(matched / limit) + 1 pages. A snapshot whose rows still fall short of its matched rows (for example, a provider without `offset` support) is reported as truncated: the ARC lists it under `source.truncated_snapshots`, and the diagnostics totals reconciliation flags it.
 
 ### `extrachill/get-content-revenue`
 
