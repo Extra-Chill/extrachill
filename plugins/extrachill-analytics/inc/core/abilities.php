@@ -20,6 +20,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_patterns
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_drill_404_category_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_list_404_events_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_purge_404_events_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_cleanup_link_page_tables_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_ips_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_view_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_cta_click_ability' );
