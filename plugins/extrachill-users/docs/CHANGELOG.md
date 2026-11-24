@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.77.0] - 2026-11-24
+
+### Added
+- make Remember me a 30-day rolling login renewed in place
+
 ## [0.76.0] - 2026-11-21
 
 ### Added
