@@ -68,6 +68,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-404-patte
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/drill-404-category.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/list-404-events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/purge-404-events.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/cleanup-link-page-tables.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-404-top-ips.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-attack-summary.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-search-gaps.php';

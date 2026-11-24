@@ -56,6 +56,7 @@ class CommandRegistry {
 			'extrachill analytics content-flags'          => Commands\Analytics\ContentFlagsCommand::class,
 			'extrachill analytics gsc-opportunities'      => Commands\Analytics\GscOpportunitiesCommand::class,
 			'extrachill analytics revenue'                => Commands\Analytics\RevenueCommand::class,
+			'extrachill analytics link-page-tables'       => Commands\Analytics\LinkPageTablesCommand::class,
 
 			// Events commands.
 			'extrachill events'                           => Commands\Events\LocationCommand::class,
