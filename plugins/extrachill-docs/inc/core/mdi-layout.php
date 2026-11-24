@@ -8,7 +8,7 @@ const EXTRACHILL_DOCS_MDI_LAYOUT = 'extrachill-plugin-docs';
 function extrachill_docs_mdi_source( string $identity ): ?array {
 	foreach ( extrachill_docs_load_platform_map() as $entry ) {
 		$prefix = $entry['repo'] . '/' . trim( ! empty( $entry['docs_subpath'] ) ? $entry['docs_subpath'] : 'docs/user', '/' ) . '/';
-		if ( str_starts_with( $identity, $prefix ) && preg_match( '/^[a-z0-9-]+\.md$/', substr( $identity, strlen( $prefix ) ) ) ) {
+		if ( str_starts_with( $identity, $prefix ) && extrachill_docs_is_publishable_doc_filename( substr( $identity, strlen( $prefix ) ) ) ) {
 			return $entry;
 		}
 	}

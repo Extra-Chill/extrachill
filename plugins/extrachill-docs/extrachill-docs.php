@@ -70,6 +70,10 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/publish-plugin-docs.php
 // inc/core/sync-cleanup.php.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sync-cleanup.php';
 
+// One-shot removal of stray MDI posts imported from unpublishable docs files
+// (e.g. docs/user/README.md). See inc/core/stray-doc-posts-cleanup.php.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/stray-doc-posts-cleanup.php';
+
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/migrate-source-keys.php';
 
 register_activation_hook( __FILE__, 'extrachill_docs_activate' );
