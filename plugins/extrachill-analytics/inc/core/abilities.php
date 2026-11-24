@@ -47,6 +47,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_reve
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_pages_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_diagnostics_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_ingest_revenue_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_revenue_ledger_migration_abilities' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bot_filter_impact_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_delivery_coverage_ability' );
 
