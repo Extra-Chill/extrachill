@@ -213,6 +213,14 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Permission:** `is_user_logged_in`; execution validates the stored link page, resolves its owning artist, and requires `ec_can_manage_artist` for that artist.
 - **Exposure:** `show_in_rest`: true. API: `/analytics/link-page`. CLI: none found.
 
+### `extrachill/cleanup-link-page-tables`
+
+- **Purpose:** Drops empty Link Page daily analytics tables (`extrch_link_page_daily_views`, `extrch_link_page_daily_link_clicks`) left on non-storage blogs. Only the Link Page storage blog keeps these tables.
+- **Input:** `dry_run` (boolean, optional): If true, only report what would be dropped. [default true].
+- **Output:** `object`: Per-table report with would_drop/dropped/refused counts. A table that still has rows is refused, never dropped.
+- **Permission:** `manage_network_options`, or WP-CLI.
+- **Exposure:** `show_in_rest`: false. API: none. CLI: `wp extrachill analytics link-page-tables`.
+
 ### `extrachill/get-experiment-summary`
 
 - **Purpose:** Report bounded assignment, exposure, outcome, lift, confidence, identity, privacy, and version coverage for one code-registered experiment. See [experiment summary](experiment-summary.md).
