@@ -5,7 +5,9 @@
  * Mirrors the contracts of datamachine/revenue-ingest (replace every row of
  * (source, account, kind) contained in [start_date, end_date]; rows must lie
  * inside the window; dry_run writes nothing) and datamachine/revenue-query
- * (contained-row totals, coverage per source/account, rows capped by limit).
+ * (contained-row totals, coverage per source/account, rows paged by
+ * limit + offset with counts.matched_rows / returned_rows / offset).
+ * Set $ignore_offset to emulate a provider without offset support.
  * Installed through the `extrachill_analytics_revenue_ledger_ability` filter.
  *
  * @package ExtraChill\Analytics
@@ -31,6 +33,21 @@ final class Fake_Revenue_Ledger {
 	 * @var array<int, array>
 	 */
 	public $calls = array();
+
+	/**
+	 * When true, query() ignores `offset` and omits counts.offset (pre-offset provider).
+	 *
+	 * @var bool
+	 */
+	public $ignore_offset = false;
+
+	/**
+	 * With $ignore_offset, still echo the requested offset in counts.offset
+	 * (a provider that claims offset support but always returns page one).
+	 *
+	 * @var bool
+	 */
+	public $echo_ignored_offset = false;
 
 	/**
 	 * Next id.
@@ -208,17 +225,25 @@ final class Fake_Revenue_Ledger {
 		unset( $total );
 
 		$limit  = max( 1, min( 1000, (int) ( $input['limit'] ?? 100 ) ) );
+		$offset = $this->ignore_offset ? 0 : max( 0, (int) ( $input['offset'] ?? 0 ) );
+		$page   = ! empty( $input['include_rows'] ) ? array_slice( $contained, $offset, $limit ) : array();
+		$counts = array(
+			'matched_rows'  => count( $contained ),
+			'returned_rows' => count( $page ),
+		);
+		if ( ! $this->ignore_offset ) {
+			$counts['offset'] = $offset;
+		} elseif ( $this->echo_ignored_offset ) {
+			$counts['offset'] = max( 0, (int) ( $input['offset'] ?? 0 ) );
+		}
 		$result = array(
 			'success'  => true,
 			'totals'   => array_values( $totals ),
 			'coverage' => array_values( $coverage ),
-			'counts'   => array(
-				'matched_rows'  => count( $contained ),
-				'returned_rows' => ! empty( $input['include_rows'] ) ? min( $limit, count( $contained ) ) : 0,
-			),
+			'counts'   => $counts,
 		);
 		if ( ! empty( $input['include_rows'] ) ) {
-			$result['rows'] = array_slice( $contained, 0, $limit );
+			$result['rows'] = $page;
 		}
 		return $result;
 	}

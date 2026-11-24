@@ -374,6 +374,125 @@ final class RevenueLedgerMigrationTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * A period with more than 1000 rows is read in full by paging offset.
+	 */
+	public function test_snapshot_read_pages_past_query_row_limit(): void {
+		$legacy = $this->large_period_fixture( 2345 );
+		extrachill_analytics_revenue_migrate_legacy( array( 'execute' => true ), $legacy );
+		$this->assertCount( 2345, $this->ledger->rows );
+		$this->ledger->calls = array();
+
+		$snapshots = extrachill_analytics_revenue_ledger_snapshots( 1 );
+
+		$this->assertCount( 1, $snapshots );
+		$this->assertSame( 2345, $snapshots[0]['matched_rows'] );
+		$this->assertSame( 2345, $snapshots[0]['returned_rows'] );
+		$this->assertCount( 2345, $snapshots[0]['rows'] );
+		$this->assertFalse( $snapshots[0]['truncated'] );
+		$this->assertCount( 2345, array_unique( wp_list_pluck( $snapshots[0]['rows'], 'slug' ) ) );
+
+		$offsets = array();
+		foreach ( $this->ledger->calls as $call ) {
+			if ( ! empty( $call[1]['include_rows'] ) ) {
+				$offsets[] = $call[1]['offset'];
+			}
+		}
+		$this->assertSame( array( 0, 1000, 2000 ), $offsets );
+	}
+
+	/**
+	 * The ARC total for a >1000-row period equals the full sum, not the first page.
+	 */
+	public function test_arc_totals_equal_full_sum_past_row_limit(): void {
+		$legacy = $this->large_period_fixture( 1537 );
+		extrachill_analytics_revenue_migrate_legacy( array( 'execute' => true ), $legacy );
+
+		$expected_revenue = 0.0;
+		$expected_views   = 0;
+		foreach ( $legacy as $row ) {
+			$expected_revenue += (float) $row['revenue'];
+			$expected_views   += (int) $row['views'];
+		}
+
+		$response = extrachill_analytics_revenue_timeseries_response( 1, false );
+
+		$this->assertSame( array( '2026-10' ), wp_list_pluck( $response['series'], 'period' ) );
+		$this->assertSame( 1537, $response['series'][0]['pages'] );
+		$this->assertSame( $expected_views, $response['series'][0]['views'] );
+		$this->assertEqualsWithDelta( $expected_revenue, $response['series'][0]['revenue'], 0.01 );
+		$this->assertEqualsWithDelta( $expected_revenue, $response['totals']['revenue'], 0.01 );
+		$this->assertSame( array(), $response['source']['truncated_snapshots'] );
+	}
+
+	/**
+	 * Migrate parity matches for a period with more than 1000 rows.
+	 */
+	public function test_migrate_parity_matches_past_row_limit(): void {
+		$legacy = $this->large_period_fixture( 1537 );
+
+		$result = extrachill_analytics_revenue_migrate_legacy( array( 'execute' => true ), $legacy );
+
+		$this->assertTrue( $result['parity']['holds'] );
+		$this->assertSame( 1, $result['parity']['matched'] );
+		$this->assertSame( 0, $result['parity']['mismatched'] );
+		$this->assertSame( 'match', $result['parity']['periods'][0]['status'] );
+		$this->assertSame( 1537, $result['parity']['periods'][0]['ledger_rows'] );
+		$this->assertSame( $result['before'], $result['after'] );
+
+		$again = extrachill_analytics_revenue_migrate_legacy( array(), $legacy );
+		$this->assertTrue( $again['parity']['holds'] );
+		$this->assertSame( array( 'already_migrated' ), wp_list_pluck( $again['snapshots'], 'status' ) );
+	}
+
+	/**
+	 * A provider that ignores offset terminates and the snapshot stays truncated.
+	 */
+	public function test_offset_ignoring_provider_terminates_and_flags_truncated(): void {
+		extrachill_analytics_revenue_migrate_legacy( array( 'execute' => true ), $this->large_period_fixture( 2345 ) );
+
+		foreach ( array( false, true ) as $echo ) {
+			$this->ledger->ignore_offset       = true;
+			$this->ledger->echo_ignored_offset = $echo;
+			$this->ledger->calls               = array();
+
+			$snapshots = extrachill_analytics_revenue_ledger_snapshots( 1 );
+
+			$this->assertCount( 1, $snapshots );
+			$this->assertSame( 2345, $snapshots[0]['matched_rows'] );
+			$this->assertSame( 1000, $snapshots[0]['returned_rows'] );
+			$this->assertTrue( $snapshots[0]['truncated'] );
+			// Coverage query + at most ceil(2345 / 1000) + 1 row pages.
+			$this->assertLessThanOrEqual( 5, count( $this->ledger->calls ) );
+
+			$response = extrachill_analytics_revenue_timeseries_response( 1, false );
+			$this->assertSame( array( 'extrachill:blog-1:mediavine-revenue-2026-10' ), $response['source']['truncated_snapshots'] );
+		}
+	}
+
+	/**
+	 * Legacy fixture: one 2026-10 snapshot with $count distinct URL rows.
+	 *
+	 * @param int $count Rows.
+	 * @return array<int, array>
+	 */
+	private function large_period_fixture( int $count ): array {
+		$rows = array();
+		for ( $i = 1; $i <= $count; $i++ ) {
+			$rows[] = array_merge(
+				$this->legacy_row( 'post-' . $i, round( 0.01 + ( $i % 97 ) * 0.0317, 4 ), 10 + ( $i % 13 ) ),
+				array(
+					'id'           => $i,
+					'period_label' => '2026-10',
+					'period_start' => '2026-10-01',
+					'period_end'   => '2026-10-31',
+					'import_batch' => 'mediavine-revenue-2026-10',
+				)
+			);
+		}
+		return $rows;
+	}
+
+	/**
 	 * Legacy fixture: two May rows (one resolved, one unresolved) and one April row.
 	 *
 	 * @return array<int, array>
