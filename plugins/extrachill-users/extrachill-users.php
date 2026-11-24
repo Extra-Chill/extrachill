@@ -153,6 +153,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/core-signup.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/logout.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/session-renewal.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/password-reset.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/browser-handoff-handler.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/class-redirect-handler.php';
