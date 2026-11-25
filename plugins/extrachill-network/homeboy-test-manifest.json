@@ -1,6 +1,9 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/og-card-background-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/qr-code-public-access-smoke.php": {
       "environment": "standalone-php"
     },
