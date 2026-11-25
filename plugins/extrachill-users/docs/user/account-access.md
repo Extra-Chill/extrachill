@@ -4,11 +4,11 @@ An Extra Chill account gives you one sign-in for every Extra Chill site. You do 
 
 ## Create your account
 
-1. Choose **Register** on an Extra Chill site.
+1. Choose **Register** on an Extra Chill site. You can create an account with an email address and password, or choose **Sign up with Google** if that option appears.
 2. Enter an email address you can access and create a password of at least 8 characters. Enter the password again to confirm it.
 3. Submit the form. Complete first-time setup by choosing a username and any profile choices offered.
 
-You may also see **Sign up with Google** when registering. Choose it to use your Google account. When signing in, the Google option is **Continue with Google**; use the Google account connected to your Extra Chill account.
+You may also see **Sign up with Google** when registering. Choose it to use your Google account. Google sign-in can connect to an existing account with the same email address. If it does not, choose **Log In** with your password to connect your Google account. When signing in, the Google option is **Continue with Google**; use the Google account connected to your Extra Chill account.
 
 ## Sign in
 
