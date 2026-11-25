@@ -25,6 +25,12 @@
     "tests/ability-site-affinity-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/post-ad-free-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/comment-policy-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/ad-policy-smoke.php": {
       "environment": "standalone-php"
     },
