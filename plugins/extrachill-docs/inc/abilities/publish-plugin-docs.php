@@ -106,6 +106,17 @@ function extrachill_docs_plan_plugin_docs( array $platform_map, string $plugins_
 		sort( $files );
 
 		foreach ( $files as $file ) {
+			if ( ! extrachill_docs_is_publishable_doc_filename( basename( $file ) ) ) {
+				// Same rule as the MDI layout: anything it cannot map (e.g.
+				// README.md) is skipped instead of imported as a stray post.
+				$plan[] = array(
+					'repo'   => $repo,
+					'path'   => $repo . '/' . $subpath . '/' . basename( $file ),
+					'file'   => $file,
+					'action' => 'skipped_invalid_filename',
+				);
+				continue;
+			}
 			$plan[] = array(
 				'repo'         => $repo,
 				'path'         => $repo . '/' . $subpath . '/' . basename( $file ),
