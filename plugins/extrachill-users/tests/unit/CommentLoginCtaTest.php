@@ -80,6 +80,21 @@ class Test_Comment_Login_Cta extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 		wp_set_current_user( 0 );
+
+		// The page fixture stands in for a commentable non-post type (e.g.
+		// newsletters); opt it in to the network comment policy.
+		add_filter( 'extrachill_network_commentable_post_types', array( $this, 'allow_page_comments' ) );
+	}
+
+	/**
+	 * Opt the page fixture's post type in to the network comment policy.
+	 *
+	 * @param string[] $types Commentable post type slugs.
+	 * @return string[]
+	 */
+	public function allow_page_comments( $types ) {
+		$types[] = 'page';
+		return $types;
 	}
 
 	/**

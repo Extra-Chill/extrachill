@@ -74,9 +74,9 @@ function extrachill_network_commentable_post_types( $blog_id ) {
 	 * @param string[] $types   Commentable post type slugs.
 	 * @param int      $blog_id Blog ID.
 	 */
-	$types = apply_filters( 'extrachill_network_commentable_post_types', $types, $blog_id );
+	$types = (array) apply_filters( 'extrachill_network_commentable_post_types', $types, $blog_id );
 
-	return is_array( $types ) ? array_values( array_map( 'strval', $types ) ) : array();
+	return array_values( array_map( 'strval', $types ) );
 }
 
 /**
