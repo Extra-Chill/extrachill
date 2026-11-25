@@ -160,10 +160,10 @@ jobs:
 
     steps:
       - name: Checkout Extra Chill Events
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Checkout Data Machine Events
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           repository: Extra-Chill/data-machine-events
           ref: ${{ env.DME_REF }}
@@ -246,10 +246,10 @@ jobs:
 
     steps:
       - name: Checkout Extra Chill Events
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Checkout Data Machine Events
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           repository: Extra-Chill/data-machine-events
           ref: ${{ env.DME_REF }}

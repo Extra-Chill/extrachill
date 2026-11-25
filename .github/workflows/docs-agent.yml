@@ -39,11 +39,11 @@ jobs:
       matrix: ${{ steps.config.outputs.matrix }}
       has_components: ${{ steps.config.outputs.has_components }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Full history so scheduled runs can see the last 24 hours on main.
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install platform map parser
