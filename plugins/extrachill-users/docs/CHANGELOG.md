@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.77.1] - 2026-11-25
+
+### Fixed
+- close comments on attachments and non-commentable sites network-wide
+
 ## [0.77.0] - 2026-11-24
 
 ### Added
