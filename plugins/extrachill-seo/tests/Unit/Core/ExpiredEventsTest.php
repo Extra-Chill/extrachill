@@ -19,6 +19,9 @@ namespace DataMachineEvents\Core {
 
 namespace DataMachineEvents\Blocks\Calendar\Query {
 	class UpcomingFilter {
+		public static function upcoming_where( string $datetime ): string {
+			return "(ed.start_datetime >= '{$datetime}' OR ed.end_datetime >= '{$datetime}')";
+		}
 		// Matches the owning plugin's public SQL contract.
 		public static function past_where( string $datetime ): string {
 			return "(ed.start_datetime < '{$datetime}' AND (ed.end_datetime < '{$datetime}' OR ed.end_datetime IS NULL))";

@@ -103,7 +103,7 @@ namespace ExtraChill\SEO\Tests\Unit\Core {
 			$this->assertStringContainsString( 'ROW_NUMBER() OVER', $where );
 			$this->assertStringContainsString( 'PARTITION BY artists.term_id, venues.term_id', $where );
 			$this->assertStringContainsString( 'occurrence_rank > 4', $where );
-			$this->assertStringContainsString( 'wp_dm_event_dates ed', $where );
+			$this->assertStringContainsString( \DataMachineEvents\Core\EventDatesTable::table_name() . ' ed', $where );
 		}
 	}
 }
