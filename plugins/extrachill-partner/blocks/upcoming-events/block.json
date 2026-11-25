@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill-partner/upcoming-events",
+  "title": "Upcoming Events",
+  "category": "widgets",
+  "icon": "calendar",
+  "textdomain": "extrachill-partner",
+  "editorScript": "extrachill-partner-editor",
+  "style": "extrachill-partner",
+  "render": "file:./render.php",
+  "supports": {
+    "html": false
+  },
+  "attributes": {
+    "limit": {
+      "type": "number",
+      "default": 10
+    }
+  }
+}

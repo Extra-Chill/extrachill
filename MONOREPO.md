@@ -60,6 +60,7 @@ Generated from the network rig's activation matrix, which mirrors production. Ch
 | `extrachill-network` | `plugins/extrachill-network` | all sites (network-activated) |
 | `extrachill-news-wire` | `plugins/extrachill-news-wire` | wire.extrachill.com |
 | `extrachill-newsletter` | `plugins/extrachill-newsletter` | all sites (network-activated) |
+| `extrachill-partner` | `plugins/extrachill-partner` |  |
 | `extrachill-search` | `plugins/extrachill-search` | all sites (network-activated) |
 | `extrachill-seo` | `plugins/extrachill-seo` | all sites (network-activated) |
 | `extrachill-shop` | `plugins/extrachill-shop` | shop.extrachill.com |

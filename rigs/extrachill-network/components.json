@@ -49,6 +49,14 @@
   ],
   "plugins": [
     {
+      "slug": "extrachill-partner",
+      "repo": "Extra-Chill/extrachill",
+      "asset": "extrachill-partner.zip",
+      "source": "github",
+      "activations": [],
+      "note": "Distributable for external partner websites only. Never activate on network sites."
+    },
+    {
       "slug": "extrachill-network",
       "repo": "Extra-Chill/extrachill-network",
       "asset": "extrachill-network.zip",

@@ -1,0 +1,58 @@
+{
+  "venue": {
+    "id": 1524,
+    "name": "Lo-Fi Brewing",
+    "slug": "lo-fi-brewing",
+    "url": "https://events.extrachill.com/venue/lo-fi-brewing/",
+    "booking_embed_url": "https://events.extrachill.com/venue/lo-fi-brewing/"
+  },
+  "events": [
+    {
+      "id": 123,
+      "title": "Lo-Fi Live",
+      "url": "https://events.extrachill.com/events/lo-fi-live/",
+      "start": "2026-12-01T20:00:00-05:00",
+      "end": null,
+      "timezone": "America/New_York",
+      "performers": ["Demo Band"],
+      "price": "$10",
+      "image": "https://events.extrachill.com/demo.jpg",
+      "excerpt": "A demo show.",
+      "status": "EventScheduled",
+      "ticket": { "url": "https://events.extrachill.com/checkout/?event=123", "label": "Get Tickets", "kind": "checkout" },
+      "schema": { "@context": "https://schema.org", "@type": "MusicEvent", "name": "Lo-Fi Live", "startDate": "2026-12-01T20:00:00-05:00" }
+    },
+    {
+      "id": 124,
+      "title": "Holiday Market & Live Music",
+      "url": "https://events.extrachill.com/events/lo-fi-holiday-market/",
+      "start": "2026-12-06T14:00:00-05:00",
+      "end": "2026-12-06T19:00:00-05:00",
+      "timezone": "America/New_York",
+      "performers": ["The Porch Pickers", "Low Tide Trio"],
+      "price": null,
+      "image": null,
+      "excerpt": "Local makers in the taproom with live sets all afternoon.",
+      "status": "EventScheduled",
+      "ticket": { "url": null, "label": "Free", "kind": "none" },
+      "schema": { "@context": "https://schema.org", "@type": "MusicEvent", "name": "Holiday Market & Live Music", "startDate": "2026-12-06T14:00:00-05:00", "isAccessibleForFree": true }
+    },
+    {
+      "id": 125,
+      "title": "Late Night Vinyl",
+      "url": "https://events.extrachill.com/events/lo-fi-late-night-vinyl/",
+      "start": "2026-12-12T21:30:00-05:00",
+      "end": null,
+      "timezone": "America/New_York",
+      "performers": [],
+      "price": "$5",
+      "image": "https://events.extrachill.com/vinyl.jpg",
+      "excerpt": null,
+      "status": "EventScheduled",
+      "ticket": { "url": "https://tickets.example.com/late-night-vinyl", "label": "Buy on Partner", "kind": "external" },
+      "schema": { "@context": "https://schema.org", "@type": "MusicEvent", "name": "Late Night Vinyl", "startDate": "2026-12-12T21:30:00-05:00" }
+    }
+  ],
+  "generated_at": "2026-11-25T12:00:00Z",
+  "cache_ttl": 300
+}
