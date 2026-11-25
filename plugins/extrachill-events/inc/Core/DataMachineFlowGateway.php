@@ -1,16 +1,20 @@
 <?php
 /**
- * Data Machine flow gateway for qualify v2 flow operations.
+ * Data Machine flow gateway for events-domain flow and pipeline operations.
  *
- * Every read and write FlowOps makes against a Data Machine flow goes
+ * Every read and write FlowOps, `extrachill/add-venue` and the event-source
+ * approval abilities make against Data Machine flows and pipelines goes
  * through this class, and this class only talks to Data Machine through its
- * public surface: the flow abilities plus
+ * public surface: the flow/pipeline abilities plus
  * `Flows::update_flow_scheduling_metadata()` for non-authoritative
  * scheduling keys. Nothing here writes Data Machine tables directly.
  *
  * Abilities run as the system: callers are already-authorized entry points
- * (WP-CLI commands, the recheck Action Scheduler callback), so elevation is
- * scoped to the single ability call.
+ * (WP-CLI commands, the recheck Action Scheduler callback, or an events
+ * ability whose own permission callback already passed — the events-domain
+ * ability is the authorization boundary), so elevation is scoped to the
+ * single ability call. Events staff without Data Machine manage caps can
+ * therefore complete add-venue / source approval end to end.
  *
  * @package ExtraChillEvents\Core
  */
@@ -120,9 +124,79 @@ class DataMachineFlowGateway {
 	 * @return bool True when Data Machine accepted the run.
 	 */
 	public function run_flow( int $flow_id ): bool {
-		$result = self::execute( 'datamachine/run-flow', array( 'flow_id' => $flow_id ) );
+		$result = $this->run_flow_result( $flow_id );
 
 		return is_array( $result ) && ! empty( $result['success'] );
+	}
+
+	/**
+	 * Start a flow run now and return Data Machine's raw result.
+	 *
+	 * @param int $flow_id Flow ID.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function run_flow_result( int $flow_id ) {
+		return self::execute( 'datamachine/run-flow', array( 'flow_id' => $flow_id ) );
+	}
+
+	/**
+	 * Whether a Data Machine ability is registered.
+	 *
+	 * @param string $name Ability name.
+	 * @return bool
+	 */
+	public function is_available( string $name ): bool {
+		return function_exists( 'wp_get_ability' ) && (bool) wp_get_ability( $name );
+	}
+
+	/**
+	 * Create a flow on a pipeline.
+	 *
+	 * @param array $input `datamachine/create-flow` input.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function create_flow( array $input ) {
+		return self::execute( 'datamachine/create-flow', $input );
+	}
+
+	/**
+	 * Update one flow step's handler, handler config or user message.
+	 *
+	 * @param array $input `datamachine/update-flow-step` input.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function update_flow_step( array $input ) {
+		return self::execute( 'datamachine/update-flow-step', $input );
+	}
+
+	/**
+	 * Create a pipeline.
+	 *
+	 * @param array $input `datamachine/create-pipeline` input.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function create_pipeline( array $input ) {
+		return self::execute( 'datamachine/create-pipeline', $input );
+	}
+
+	/**
+	 * Read normalized pipeline configuration.
+	 *
+	 * @param array $selector `datamachine/get-pipeline-configuration` input.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function describe_pipeline( array $selector ) {
+		return self::execute( 'datamachine/get-pipeline-configuration', $selector );
+	}
+
+	/**
+	 * Update one pipeline or flow step through the owner contract.
+	 *
+	 * @param array $input `datamachine/update-step-configuration` input.
+	 * @return mixed Ability result, or a WP_Error when unavailable.
+	 */
+	public function update_step_configuration( array $input ) {
+		return self::execute( 'datamachine/update-step-configuration', $input );
 	}
 
 	/**

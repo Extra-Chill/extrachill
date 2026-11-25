@@ -95,6 +95,7 @@ require_once dirname( __DIR__, 3 ) . '/inc/Core/TeamAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowLocationGuard.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/VenueAddAbilities.php';
 require_once __DIR__ . '/VenueAddVenueTaxonomyDouble.php';
+require_once __DIR__ . '/VenueAddPermissionHelperDouble.php';
 
 /** In-memory Data Machine pipelines/flows tables. */
 final class VenueAddTestWpdb {
@@ -181,29 +182,133 @@ final class VenueAddTestWpdb {
 	}
 }
 
-/** Records create-flow calls and inserts a templated flow row. */
-final class VenueAddTestCreateFlow {
-	/** @var array */
+/**
+ * In-memory Data Machine flow abilities (create-flow, get-flows,
+ * update-flow-step) backed by the wpdb double's flow rows.
+ *
+ * Like production, each ability denies a caller without Data Machine
+ * manage rights unless the call runs inside PermissionHelper::run_as_system(),
+ * and update-flow-step rejects handler_config keys the handler does not
+ * declare.
+ */
+final class VenueAddTestDataMachine {
+	/** Fields upsert_event declares (venue/category/post_tag are excluded upstream). */
+	private const UPSERT_EVENT_FIELDS = array( 'post_status', 'include_images', 'post_author', 'taxonomy_location_selection', 'taxonomy_festival_selection', 'taxonomy_artist_selection', 'taxonomy_promoter_selection', 'taxonomy_genre_selection' );
+
+	/** @var array<string,array> */
 	public $calls = array();
 
-	public function execute( $input ) {
-		$this->calls[] = $input;
-		$wpdb          = $GLOBALS['wpdb'];
-		$flow_id       = 900 + count( $this->calls );
+	public function resolver(): callable {
+		return function ( $name ) {
+			if ( ! in_array( $name, array( 'datamachine/create-flow', 'datamachine/get-flows', 'datamachine/update-flow-step' ), true ) ) {
+				return null;
+			}
+			$fake = $this;
+			return new class( $fake, $name ) {
+				private $fake;
+				private $name;
 
-		$wpdb->flows[ $flow_id ] = array(
-			'flow_id'     => $flow_id,
-			'pipeline_id' => (int) $input['pipeline_id'],
-			'flow_config' => wp_json_encode(
-				array(
-					'import' => array( 'step_type' => 'event_import' ),
-					'ai'     => array( 'step_type' => 'ai' ),
-					'upsert' => array( 'step_type' => 'upsert' ),
-				)
-			),
-		);
+				public function __construct( $fake, $name ) {
+					$this->fake = $fake;
+					$this->name = $name;
+				}
 
-		return array( 'flow_id' => $flow_id );
+				public function execute( $input ) {
+					return $this->fake->execute( $this->name, $input );
+				}
+			};
+		};
+	}
+
+	public function execute( string $name, array $input ) {
+		$this->calls[ $name ][] = $input;
+
+		$is_admin = 'administrator' === ( $GLOBALS['venue_add_test']['role'] ?? '' );
+		if ( ! $is_admin && empty( $GLOBALS['venue_add_test']['as_system'] ) ) {
+			return new WP_Error( 'ability_invalid_permissions', sprintf( 'Ability "%s" does not have necessary permission.', $name ) );
+		}
+
+		$wpdb = $GLOBALS['wpdb'];
+		switch ( $name ) {
+			case 'datamachine/create-flow':
+				$flow_id                 = 900 + count( $this->calls[ $name ] );
+				$wpdb->flows[ $flow_id ] = array(
+					'flow_id'     => $flow_id,
+					'pipeline_id' => (int) $input['pipeline_id'],
+					'flow_config' => wp_json_encode(
+						array(
+							'import_' . $flow_id => array( 'step_type' => 'event_import' ),
+							'ai_' . $flow_id     => array( 'step_type' => 'ai' ),
+							'upsert_' . $flow_id => array( 'step_type' => 'upsert' ),
+						)
+					),
+				);
+				return array(
+					'success' => true,
+					'flow_id' => $flow_id,
+				);
+
+			case 'datamachine/get-flows':
+				$row = $wpdb->flows[ (int) $input['flow_id'] ] ?? null;
+				if ( ! $row ) {
+					return array(
+						'success' => true,
+						'flows'   => array(),
+					);
+				}
+				return array(
+					'success' => true,
+					'flows'   => array(
+						array(
+							'flow_id'     => $row['flow_id'],
+							'flow_name'   => '',
+							'flow_config' => json_decode( $row['flow_config'], true ),
+						),
+					),
+				);
+
+			case 'datamachine/update-flow-step':
+				$flow_id = (int) substr( (string) $input['flow_step_id'], strrpos( (string) $input['flow_step_id'], '_' ) + 1 );
+				$config  = json_decode( $wpdb->flows[ $flow_id ]['flow_config'] ?? 'null', true );
+				if ( ! is_array( $config ) || ! isset( $config[ $input['flow_step_id'] ] ) ) {
+					return new WP_Error( 'flow_step_not_found', 'Flow step not found.' );
+				}
+				$step = &$config[ $input['flow_step_id'] ];
+				if ( isset( $input['handler_slug'] ) ) {
+					$slug           = $input['handler_slug'];
+					$handler_config = $input['handler_config'] ?? array();
+					if ( 'upsert_event' === $slug && array_diff( array_keys( $handler_config ), self::UPSERT_EVENT_FIELDS ) ) {
+						return new WP_Error( 'invalid_handler_config', 'Unknown handler_config fields for upsert_event.' );
+					}
+					$step['handler_slugs']            = array( $slug );
+					$step['handler_configs'][ $slug ] = array_merge( $step['handler_configs'][ $slug ] ?? array(), $handler_config );
+					$step['enabled']                  = true;
+				}
+				if ( array_key_exists( 'user_message', $input ) ) {
+					$step['user_message'] = $input['user_message'];
+				}
+				unset( $step );
+				$wpdb->flows[ $flow_id ]['flow_config'] = wp_json_encode( $config );
+				return array(
+					'success'      => true,
+					'flow_step_id' => $input['flow_step_id'],
+				);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Stored flow config keyed by step type.
+	 *
+	 * @param int $flow_id Flow ID.
+	 */
+	public static function steps( int $flow_id ): array {
+		$steps = array();
+		foreach ( (array) json_decode( $GLOBALS['wpdb']->flows[ $flow_id ]['flow_config'], true ) as $step ) {
+			$steps[ $step['step_type'] ] = $step;
+		}
+		return $steps;
 	}
 }
 
@@ -360,10 +465,8 @@ final class VenueAddAbilitiesTest extends TestCase {
 	}
 
 	public function test_location_add_creates_flow_in_resolved_pipeline(): void {
-		$create_flow                         = new VenueAddTestCreateFlow();
-		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $create_flow ) {
-			return 'datamachine/create-flow' === $name ? $create_flow : null;
-		};
+		$data_machine                        = new VenueAddTestDataMachine();
+		$GLOBALS['ec_test_ability_resolver'] = $data_machine->resolver();
 
 		$result = $this->abilities->executeAddVenue(
 			array(
@@ -376,11 +479,12 @@ final class VenueAddAbilitiesTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 5, $result['pipeline_id'] );
-		$this->assertSame( 5, $create_flow->calls[0]['pipeline_id'] );
-		$config = json_decode( $this->wpdb->flows[ $result['flow_id'] ]['flow_config'], true );
+		$this->assertSame( 5, $data_machine->calls['datamachine/create-flow'][0]['pipeline_id'] );
+		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
 		$this->assertSame( '10', $config['upsert']['handler_configs']['upsert_event']['taxonomy_location_selection'] );
-		$this->assertSame( 'https://hedhi.test/events', $config['import']['handler_configs']['universal_web_scraper']['source_url'] );
-		$this->assertSame( 'Charleston', $config['import']['handler_configs']['universal_web_scraper']['venue_city'] );
+		$this->assertSame( 'https://hedhi.test/events', $config['event_import']['handler_configs']['universal_web_scraper']['source_url'] );
+		$this->assertSame( 'Charleston', $config['event_import']['handler_configs']['universal_web_scraper']['venue_city'] );
+		$this->assertSame( array(), $this->wpdb->updates, 'Flow config is written through Data Machine abilities, not $wpdb.' );
 	}
 
 	public function test_add_without_term_reuses_same_name_same_city_venue_via_find_or_create(): void {
@@ -393,10 +497,8 @@ final class VenueAddAbilitiesTest extends TestCase {
 			76 => 'Portland',
 			77 => 'Charleston',
 		);
-		$create_flow                         = new VenueAddTestCreateFlow();
-		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $create_flow ) {
-			return 'datamachine/create-flow' === $name ? $create_flow : null;
-		};
+		$data_machine                        = new VenueAddTestDataMachine();
+		$GLOBALS['ec_test_ability_resolver'] = $data_machine->resolver();
 
 		$result = $this->abilities->executeAddVenue(
 			array(
@@ -423,16 +525,13 @@ final class VenueAddAbilitiesTest extends TestCase {
 			$GLOBALS['venue_add_test']['find_or_create_calls']
 		);
 		$this->assertCount( 2, $GLOBALS['venue_add_test']['terms']['venue'], 'No near-duplicate venue term is minted.' );
-		$config = json_decode( $this->wpdb->flows[ $result['flow_id'] ]['flow_config'], true );
-		$this->assertSame( 77, $config['import']['handler_configs']['universal_web_scraper']['venue'] );
-		$this->assertSame( '77', $config['upsert']['handler_configs']['upsert_event']['taxonomy_venue_selection'] );
+		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
+		$this->assertSame( 77, $config['event_import']['handler_configs']['universal_web_scraper']['venue'] );
 	}
 
 	public function test_add_with_canonical_term_skips_find_or_create(): void {
-		$create_flow                         = new VenueAddTestCreateFlow();
-		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $create_flow ) {
-			return 'datamachine/create-flow' === $name ? $create_flow : null;
-		};
+		$data_machine                        = new VenueAddTestDataMachine();
+		$GLOBALS['ec_test_ability_resolver'] = $data_machine->resolver();
 
 		$result = $this->abilities->executeAddVenue(
 			array(
@@ -445,6 +544,75 @@ final class VenueAddAbilitiesTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertArrayNotHasKey( 'find_or_create_calls', $GLOBALS['venue_add_test'] );
+	}
+
+	public function test_events_staff_without_data_machine_caps_completes_add_venue_end_to_end(): void {
+		$GLOBALS['venue_add_test']['role']   = 'extra_chill_team';
+		$data_machine                        = new VenueAddTestDataMachine();
+		$GLOBALS['ec_test_ability_resolver'] = $data_machine->resolver();
+
+		// Data Machine denies this user when called directly.
+		$this->assertInstanceOf( WP_Error::class, $data_machine->execute( 'datamachine/create-flow', array( 'pipeline_id' => 5 ) ) );
+
+		$this->assertTrue( call_user_func( $this->add_venue_permission() ) );
+		$result = $this->abilities->executeAddVenue(
+			array(
+				'location'      => 'Charleston',
+				'name'          => 'Hed Hi Studio',
+				'venue_term_id' => 77,
+				'url'           => 'https://hedhi.test/events',
+			)
+		);
+
+		$this->assertIsArray( $result );
+		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
+		$this->assertSame( array( 'universal_web_scraper' ), $config['event_import']['handler_slugs'] );
+		$this->assertSame( 77, $config['event_import']['handler_configs']['universal_web_scraper']['venue'] );
+		$this->assertTrue( $config['event_import']['enabled'] );
+		$this->assertSame( array( 'upsert_event' ), $config['upsert']['handler_slugs'] );
+		$this->assertSame( '10', $config['upsert']['handler_configs']['upsert_event']['taxonomy_location_selection'] );
+		$this->assertSame( 'publish', $config['upsert']['handler_configs']['upsert_event']['post_status'] );
+		$this->assertTrue( $config['upsert']['enabled'] );
+		$this->assertSame( '', $config['ai']['user_message'] );
+		$this->assertCount( 3, $data_machine->calls['datamachine/update-flow-step'] );
+		$this->assertSame( array(), $this->wpdb->updates );
+		$this->assertFalse( $GLOBALS['venue_add_test']['as_system'] ?? false, 'Elevation is scoped to each Data Machine call.' );
+	}
+
+	public function test_non_events_staff_is_still_denied_at_add_venue(): void {
+		$permission = $this->add_venue_permission();
+		foreach ( array( 'contributor', 'subscriber', '' ) as $role ) {
+			$GLOBALS['venue_add_test']['role'] = $role;
+			$this->assertFalse( call_user_func( $permission ), $role );
+		}
+	}
+
+	public function test_flow_step_write_failure_is_reported(): void {
+		$data_machine                        = new VenueAddTestDataMachine();
+		$resolver                            = $data_machine->resolver();
+		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) use ( $resolver ) {
+			if ( 'datamachine/update-flow-step' === $name ) {
+				return new class() {
+					public function execute( $input ) {
+						return new WP_Error( 'invalid_handler_config', 'Unknown handler_config fields.' );
+					}
+				};
+			}
+			return $resolver( $name );
+		};
+
+		$result = $this->abilities->executeAddVenue(
+			array(
+				'location'      => 'Charleston',
+				'name'          => 'Hed Hi Studio',
+				'venue_term_id' => 77,
+				'url'           => 'https://hedhi.test/events',
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'flow_step_update_failed', $result->get_error_code() );
+		$this->assertSame( 901, $result->get_error_data()['flow_id'] );
 	}
 
 	public function test_pipeline_id_still_works_without_location(): void {
