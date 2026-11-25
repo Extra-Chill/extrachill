@@ -1,8 +1,13 @@
 <?php
 /**
- * MusicGroup Schema for Artist Profiles
+ * Performer Schema for Artist Profiles
  *
- * Outputs MusicGroup schema for singular artist_profile posts.
+ * Outputs the performer entity for singular artist_profile posts. The type
+ * follows the artist's performer kind, resolved by extrachill-artist-platform
+ * (`schema_type` from ec_get_artist_profile_data(): MusicGroup for music,
+ * PerformingGroup for comedy). The `#musicgroup` @id fragment is stable for
+ * every kind so Link Page ProfilePage references keep resolving. Genre is
+ * only emitted for music acts.
  * Requires extrachill-artist-platform plugin for data functions.
  *
  * @package ExtraChill\SEO
@@ -15,10 +20,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Add MusicGroup schema to graph for artist profiles
+ * Resolve the schema.org type for artist profile data.
+ *
+ * Accepts only the performer types the artist platform resolves to and
+ * falls back to MusicGroup for data from older platform versions.
+ *
+ * @param array $artist_data Artist profile data.
+ * @return string schema.org type.
+ */
+function ec_seo_artist_schema_type( array $artist_data ) {
+	$type = isset( $artist_data['schema_type'] ) ? (string) $artist_data['schema_type'] : '';
+	return in_array( $type, array( 'MusicGroup', 'PerformingGroup', 'Person' ), true ) ? $type : 'MusicGroup';
+}
+
+/**
+ * Add the performer entity to the graph for artist profiles
  *
  * @param array $graph Current schema graph.
- * @return array Graph with the MusicGroup entity appended when applicable.
+ * @return array Graph with the performer entity appended when applicable.
  */
 function ec_seo_emit_artist_schema( $graph ) {
 	if ( ! is_singular( 'artist_profile' ) ) {
@@ -40,7 +59,7 @@ function ec_seo_emit_artist_schema( $graph ) {
 		$permalink = get_permalink( $post->ID );
 
 		$music_group = array(
-			'@type' => 'MusicGroup',
+			'@type' => ec_seo_artist_schema_type( $artist_data ),
 			'@id'   => $permalink . '#musicgroup',
 			'name'  => $artist_data['title'],
 			'url'   => $permalink,
@@ -51,8 +70,9 @@ function ec_seo_emit_artist_schema( $graph ) {
 			$music_group['description'] = wp_strip_all_tags( $artist_data['bio'] );
 		}
 
-		// Add genre if available
-		if ( ! empty( $artist_data['genre'] ) ) {
+		// Genre is a music vocabulary: only music acts publish it.
+		$is_music = 'MusicGroup' === $music_group['@type'];
+		if ( $is_music && ! empty( $artist_data['genre'] ) ) {
 			$music_group['genre'] = $artist_data['genre'];
 		}
 

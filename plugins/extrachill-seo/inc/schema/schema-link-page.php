@@ -4,7 +4,8 @@
  *
  * Outputs ProfilePage schema for singular Link Page posts, whichever post type
  * the serving site uses (see extrachill-link-pages#34).
- * References the associated MusicGroup entity from the artist profile.
+ * References the associated performer entity (`#musicgroup`, stable for
+ * every performer kind) from the artist profile.
  *
  * @package ExtraChill\SEO
  */

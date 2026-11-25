@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Update an existing artist profile. Supports partial updates.
  *
- * @param array $input { artist_id: int, name?: string, bio?: string, local_city?: string, genres?: string[], profile_image_id?: int, header_image_id?: int }.
+ * @param array $input { artist_id: int, name?: string, bio?: string, local_city?: string, genres?: string[], performer_kind?: string, profile_image_id?: int, header_image_id?: int }.
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_update_artist( $input ) {
@@ -22,7 +22,7 @@ function extrachill_artist_platform_ability_update_artist( $input ) {
 	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
 	}
-	$projection_fields  = array( 'name', 'bio', 'genres', 'profile_image_id' );
+	$projection_fields  = array( 'name', 'bio', 'genres', 'performer_kind', 'profile_image_id' );
 	$affects_projection = (bool) array_intersect( $projection_fields, array_keys( $input ) );
 	if ( ! $affects_projection ) {
 		return extrachill_artist_platform_ability_update_artist_under_lock( $input, 0 );
@@ -58,9 +58,12 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
 	}
 	$did_switch = get_current_blog_id() !== (int) $artist_blog_id;
-	// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: switch_to_blog() is stubbed @return true, but the guard is retained.)
-	if ( $did_switch && ( ! switch_to_blog( $artist_blog_id ) || get_current_blog_id() !== (int) $artist_blog_id ) ) {
-		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
+	if ( $did_switch ) {
+		switch_to_blog( $artist_blog_id );
+		// Defensive: confirm the switch actually landed on the artist blog.
+		if ( get_current_blog_id() !== (int) $artist_blog_id ) {
+			return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
+		}
 	}
 
 	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
@@ -110,6 +113,16 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 				restore_current_blog();
 			}
 			return $genre_result;
+		}
+	}
+
+	if ( array_key_exists( 'performer_kind', $input ) ) {
+		$kind_result = ec_artist_set_performer_kind( $artist_id, is_string( $input['performer_kind'] ) ? sanitize_key( $input['performer_kind'] ) : $input['performer_kind'] );
+		if ( is_wp_error( $kind_result ) ) {
+			if ( $did_switch ) {
+				restore_current_blog();
+			}
+			return $kind_result;
 		}
 	}
 

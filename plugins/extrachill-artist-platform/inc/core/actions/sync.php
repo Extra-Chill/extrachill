@@ -101,7 +101,7 @@ function ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id ) {
 	$identity  = array(
 		'display_title'      => $artist ? $artist->post_title : '',
 		'profile_image_id'   => (int) get_post_thumbnail_id( $artist_id ),
-		'schema_entity_type' => 'MusicGroup',
+		'schema_entity_type' => ec_artist_performer_kind_schema_type( ec_artist_get_performer_kind( $artist_id ) ),
 		'schema_entity_url'  => $permalink ? (string) $permalink : '',
 	);
 

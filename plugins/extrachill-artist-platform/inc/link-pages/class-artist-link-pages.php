@@ -14,6 +14,9 @@ defined( 'ABSPATH' ) || exit;
  * engine. The artist supplies identity through a stored snapshot; the page
  * owns its content. The public page renders from that snapshot plus
  * page-owned content without switching to the Artist site per request.
+ *
+ * SCHEMA_TYPE is the default (performer kind `music`); the snapshot's
+ * performer kind overrides it through ec_artist_performer_kind_schema_type().
  */
 final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 
@@ -78,6 +81,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 		$image_alt    = $thumbnail_id ? (string) get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) : '';
 		$social_links = extrachill_artist_platform_social_links()->get( $artist_id );
 		$genres       = function_exists( 'ec_artist_get_genre_labels' ) ? ec_artist_get_genre_labels( $artist_id ) : array();
+		$kind         = ec_artist_get_performer_kind( $artist_id );
 		return array(
 			'id'           => $artist_id,
 			'name'         => (string) $owner->post_title,
@@ -90,6 +94,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 			'source_url'   => get_permalink( $artist_id ),
 			'status'       => (string) $owner->post_status,
 			'genres'       => array_values( $genres ),
+			'performer'    => $kind,
 		);
 	}
 
@@ -117,19 +122,21 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	}
 
 	/**
-	 * Carry visibility and genres in the snapshot.
+	 * Carry visibility, genres and performer kind in the snapshot.
 	 *
 	 * @param array $source Canonical source.
 	 */
 	protected static function snapshot_extras( array $source ): array {
 		return array(
-			'published' => 'publish' === ( $source['status'] ?? '' ),
-			'genres'    => array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $source['genres'] ?? array() ) ) ) ),
+			'published'      => 'publish' === ( $source['status'] ?? '' ),
+			'genres'         => array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $source['genres'] ?? array() ) ) ) ),
+			'performer_kind' => ec_artist_normalize_performer_kind( $source['performer'] ?? '' ),
 		);
 	}
 
 	/**
-	 * Require the artist snapshot fields.
+	 * Require the artist snapshot fields. The performer kind is optional:
+	 * snapshots stored before it existed resolve to the default kind.
 	 *
 	 * @param array $snapshot Stored snapshot.
 	 */
@@ -147,18 +154,23 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	}
 
 	/**
-	 * Add genres to the MusicGroup entity.
+	 * Type the entity from the performer kind and add genres for music acts.
 	 *
 	 * @param array $snapshot Validated snapshot.
 	 */
 	protected static function schema_entity_extras( array $snapshot ): array {
-		return $snapshot['genres'] ? array( 'genre' => $snapshot['genres'] ) : array();
+		$kind   = $snapshot['performer_kind'] ?? '';
+		$extras = array( '@type' => ec_artist_performer_kind_schema_type( $kind ) );
+		if ( $snapshot['genres'] && ec_artist_performer_kind_has_genre( $kind ) ) {
+			$extras['genre'] = $snapshot['genres'];
+		}
+		return $extras;
 	}
 
 	/**
-	 * Reference the MusicGroup node the artist profile page publishes
-	 * (`<profile permalink>#musicgroup`), so the Link Page and the profile
-	 * describe one entity.
+	 * Reference the entity node the artist profile page publishes
+	 * (`<profile permalink>#musicgroup`, stable for every performer kind),
+	 * so the Link Page and the profile describe one entity.
 	 *
 	 * @param array  $snapshot  Validated snapshot.
 	 * @param string $canonical Canonical Link Page URL.
@@ -218,7 +230,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 		);
 	}
 
-	/** Also refresh when the artist profile image changes. */
+	/** Also refresh when the artist profile image or performer kind changes. */
 	public static function register_hooks(): void {
 		parent::register_hooks();
 		if ( self::$thumbnail_hooks_registered ) {
@@ -231,7 +243,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	}
 
 	/**
-	 * Refresh after the artist thumbnail meta changes.
+	 * Refresh after the artist thumbnail or performer kind meta changes.
 	 *
 	 * @param mixed  $meta_id   Meta ID(s).
 	 * @param int    $object_id Post ID.
@@ -239,7 +251,7 @@ final class Artist_Link_Pages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 	 */
 	public static function refresh_after_thumbnail_change( $meta_id, $object_id, $meta_key ): void {
 		unset( $meta_id );
-		if ( '_thumbnail_id' === $meta_key && self::KIND === get_post_type( $object_id ) ) {
+		if ( in_array( $meta_key, array( '_thumbnail_id', \EC_ARTIST_PERFORMER_KIND_META ), true ) && self::KIND === get_post_type( $object_id ) ) {
 			self::refresh_after_profile_update( $object_id );
 		}
 	}
