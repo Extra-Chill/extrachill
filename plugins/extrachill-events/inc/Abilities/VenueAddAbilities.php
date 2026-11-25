@@ -11,6 +11,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use ExtraChillEvents\Core\DataMachineFlowGateway;
 use ExtraChillEvents\Core\FlowLocationGuard;
 use ExtraChillEvents\Core\TeamAuthorization;
 
@@ -19,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once dirname( __DIR__ ) . '/Core/TeamAuthorization.php';
+require_once dirname( __DIR__ ) . '/Core/DataMachineFlowGateway.php';
 
 class VenueAddAbilities {
 
@@ -33,6 +35,14 @@ class VenueAddAbilities {
 	private const DEFAULT_POST_AUTHOR = 32;
 
 	private static bool $registered = false;
+
+	/**
+	 * Data Machine gateway. Runs flow writes as the system once this
+	 * ability's own events-staff permission check has passed.
+	 *
+	 * @var DataMachineFlowGateway|null
+	 */
+	private ?DataMachineFlowGateway $flow_gateway = null;
 
 	public function __construct() {
 		if ( ! self::$registered ) {
@@ -237,13 +247,14 @@ class VenueAddAbilities {
 			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}
 
-		// Step 2: Create the flow.
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+		// Step 2: Create the flow. The gateway runs it as the system: this
+		// ability's permission callback is the authorization boundary.
+		$gateway = $this->flowGateway();
+		if ( ! $gateway->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', 'Data Machine create-flow ability not available.', array( 'status' => 500 ) );
 		}
 
-		$flow_result = $flow_ability->execute(
+		$flow_result = $gateway->create_flow(
 			array(
 				'pipeline_id'       => $pipeline_id,
 				'flow_name'         => $name,
@@ -257,13 +268,13 @@ class VenueAddAbilities {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
 
-		$flow_id = $flow_result['flow_id'] ?? null;
+		$flow_id = is_array( $flow_result ) ? (int) ( $flow_result['flow_id'] ?? 0 ) : 0;
 		if ( ! $flow_id ) {
 			return new \WP_Error( 'flow_no_id', 'Flow was created but no flow_id returned.', array( 'status' => 500 ) );
 		}
 
 		// Step 3: Patch flow steps with handler configs.
-		$this->patchFlowSteps(
+		$patched = $this->patchFlowSteps(
 			$flow_id,
 			$name,
 			$url,
@@ -275,6 +286,16 @@ class VenueAddAbilities {
 			$website,
 			$location_term
 		);
+		if ( is_wp_error( $patched ) ) {
+			$patched->add_data(
+				array(
+					'status'        => 500,
+					'flow_id'       => $flow_id,
+					'venue_term_id' => $venue_term_id,
+				)
+			);
+			return $patched;
+		}
 
 		return array(
 			'message'       => sprintf( 'Venue "%s" added to pipeline "%s".', $name, $pipeline_name ),
@@ -643,28 +664,48 @@ class VenueAddAbilities {
 	}
 
 	/**
-	 * Patch flow steps with venue-specific handler configs.
+	 * Active Data Machine gateway (lazily built so reflection-built test
+	 * instances work).
 	 */
-	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term ): void {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
+	private function flowGateway(): DataMachineFlowGateway {
+		if ( null === $this->flow_gateway ) {
+			$this->flow_gateway = new DataMachineFlowGateway();
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$flow = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
-		);
+		return $this->flow_gateway;
+	}
 
+	/**
+	 * Swap the Data Machine gateway (tests only).
+	 *
+	 * @param DataMachineFlowGateway|null $gateway Gateway instance, or null for the default.
+	 */
+	public function setFlowGateway( ?DataMachineFlowGateway $gateway ): void {
+		$this->flow_gateway = $gateway;
+	}
+
+	/**
+	 * Patch flow steps with venue-specific handler configs.
+	 *
+	 * Reads and writes go through Data Machine's flow abilities
+	 * (`datamachine/get-flows`, `datamachine/update-flow-step`) via the
+	 * gateway; nothing writes the flows table directly.
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term ) {
+		$gateway = $this->flowGateway();
+		$flow    = $gateway->get_flow( $flow_id );
 		if ( ! $flow ) {
-			return;
+			return new \WP_Error( 'flow_not_found', sprintf( 'Flow %d was created but could not be read back for configuration.', $flow_id ) );
 		}
 
-		$config = json_decode( $flow['flow_config'], true );
-		if ( ! is_array( $config ) ) {
-			return;
-		}
+		$config = $flow['flow_config'];
 
 		foreach ( $config as $step_id => &$step ) {
+			if ( ! is_array( $step ) ) {
+				continue;
+			}
 			$step_type = $step['step_type'] ?? '';
 
 			if ( 'event_import' === $step_type ) {
@@ -693,26 +734,24 @@ class VenueAddAbilities {
 
 				$step['handler_slugs']   = array( 'universal_web_scraper' );
 				$step['handler_configs'] = array( 'universal_web_scraper' => $handler_config );
-				$step['enabled']         = true;
 			}
 
 			if ( 'upsert' === $step_type ) {
+				// Only fields upsert_event declares: Data Machine rejects
+				// undeclared keys (venue/category/post_tag selections). The
+				// venue term is carried by the scraper's `venue` config.
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
 						'post_status'                 => 'publish',
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
-						'taxonomy_venue_selection'    => (string) $venue_term_id,
-						'taxonomy_category_selection' => 'skip',
-						'taxonomy_post_tag_selection' => 'skip',
 						'taxonomy_location_selection' => $location_term,
 						'taxonomy_festival_selection' => 'ai_decides',
 						'taxonomy_artist_selection'   => 'ai_decides',
 						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['enabled']         = true;
 			}
 
 			if ( 'ai' === $step_type ) {
@@ -749,11 +788,55 @@ class VenueAddAbilities {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$wpdb->update(
-			$table,
-			array( 'flow_config' => wp_json_encode( $config ) ),
-			array( 'flow_id' => $flow_id )
+		foreach ( $config as $step_id => $step ) {
+			$update = self::flowStepUpdate( (string) $step_id, is_array( $step ) ? $step : array() );
+			if ( null === $update ) {
+				continue;
+			}
+
+			$result = $gateway->update_flow_step( $update );
+			if ( is_wp_error( $result ) ) {
+				return new \WP_Error( 'flow_step_update_failed', sprintf( 'Failed to configure flow step %s: %s', $step_id, $result->get_error_message() ) );
+			}
+			if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+				$error = is_array( $result ) ? (string) ( $result['error'] ?? '' ) : '';
+				return new \WP_Error( 'flow_step_update_failed', sprintf( 'Failed to configure flow step %s.%s', $step_id, '' !== $error ? ' ' . $error : '' ) );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Build the `datamachine/update-flow-step` input for one configured step.
+	 *
+	 * @param string $flow_step_id Flow step ID.
+	 * @param array  $step         Desired step config.
+	 * @return array|null Update input, or null when the step needs no write.
+	 */
+	private static function flowStepUpdate( string $flow_step_id, array $step ): ?array {
+		$step_type = $step['step_type'] ?? '';
+
+		if ( 'ai' === $step_type ) {
+			return array(
+				'flow_step_id' => $flow_step_id,
+				'user_message' => (string) ( $step['user_message'] ?? '' ),
+			);
+		}
+
+		if ( 'event_import' !== $step_type && 'upsert' !== $step_type ) {
+			return null;
+		}
+
+		$slug = (string) ( $step['handler_slugs'][0] ?? '' );
+		if ( '' === $slug ) {
+			return null;
+		}
+
+		return array(
+			'flow_step_id'   => $flow_step_id,
+			'handler_slug'   => $slug,
+			'handler_config' => is_array( $step['handler_configs'][ $slug ] ?? null ) ? $step['handler_configs'][ $slug ] : array(),
 		);
 	}
 }

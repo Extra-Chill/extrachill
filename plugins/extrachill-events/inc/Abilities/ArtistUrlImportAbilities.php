@@ -26,6 +26,7 @@ namespace ExtraChillEvents\Abilities;
 
 use DataMachine\Core\Selection\SelectionMode;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
+use ExtraChillEvents\Core\DataMachineFlowGateway;
 use ExtraChillEvents\Core\QualifyFingerprinter;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\VenueExpansionRunner;
@@ -35,6 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/SubmissionTrustPolicy.php';
+require_once dirname( __DIR__ ) . '/Core/DataMachineFlowGateway.php';
 
 class ArtistUrlImportAbilities {
 	/** Feature-owned producer for submitter moderation notifications. */
@@ -110,6 +112,13 @@ class ArtistUrlImportAbilities {
 	private const DEFAULT_POST_AUTHOR = 32;
 
 	private static bool $registered = false;
+
+	/**
+	 * Data Machine gateway (see flowGateway()).
+	 *
+	 * @var DataMachineFlowGateway|null
+	 */
+	private ?DataMachineFlowGateway $flow_gateway = null;
 
 	/**
 	 * Resolve the system agent context used to own pipelines/flows and to
@@ -1331,8 +1340,7 @@ class ArtistUrlImportAbilities {
 		if ( is_wp_error( $artist_identity ) ) {
 			return $artist_identity;
 		}
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -1416,7 +1424,7 @@ class ArtistUrlImportAbilities {
 			$flow_input['agent_id'] = $flow_agent_id;
 		}
 
-		$flow_result = $flow_ability->execute( $flow_input );
+		$flow_result = $this->flowGateway()->create_flow( $flow_input );
 		if ( is_wp_error( $flow_result ) ) {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
@@ -1493,12 +1501,9 @@ class ArtistUrlImportAbilities {
 		// validation failures (#221). If a future run result ever exposes a
 		// count, use it.
 		$events_imported_immediately = null;
-		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
-		if ( $run_ability ) {
-			$run_result = $run_ability->execute( array( 'flow_id' => $flow_id ) );
-			if ( is_array( $run_result ) && isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
-				$events_imported_immediately = (int) $run_result['events_imported'];
-			}
+		$run_result                  = $this->flowGateway()->run_flow_result( $flow_id );
+		if ( is_array( $run_result ) && isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
+			$events_imported_immediately = (int) $run_result['events_imported'];
 		}
 
 		return array(
@@ -1681,10 +1686,7 @@ class ArtistUrlImportAbilities {
 
 		// A linked flow is already scheduled; only kick off a new one.
 		if ( ! $linked_existing ) {
-			$run_ability = wp_get_ability( 'datamachine/run-flow' );
-			if ( $run_ability ) {
-				$run_ability->execute( array( 'flow_id' => $flow_id ) );
-			}
+			$this->flowGateway()->run_flow( $flow_id );
 		}
 
 		return array(
@@ -1748,8 +1750,7 @@ class ArtistUrlImportAbilities {
 	 * @return int|\WP_Error Flow ID or WP_Error.
 	 */
 	private function createListingFlow( int $pipeline_id, string $source_url, string $source_name, string $interval ) {
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -1798,7 +1799,7 @@ class ArtistUrlImportAbilities {
 			$flow_input['agent_id'] = $flow_agent_id;
 		}
 
-		$flow_result = $flow_ability->execute( $flow_input );
+		$flow_result = $this->flowGateway()->create_flow( $flow_input );
 		if ( is_wp_error( $flow_result ) ) {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
@@ -1885,9 +1886,8 @@ class ArtistUrlImportAbilities {
 			$venue_term_id
 		);
 
-		$run_ability = wp_get_ability( 'datamachine/run-flow' );
-		if ( $run_ability && $flow_id > 0 ) {
-			$run_ability->execute( array( 'flow_id' => $flow_id ) );
+		if ( $flow_id > 0 ) {
+			$this->flowGateway()->run_flow( $flow_id );
 		}
 
 		return array(
@@ -2430,8 +2430,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		// Create the shared pipeline scaffold (event_import → ai → upsert).
-		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
-		if ( ! $pipeline_ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-pipeline' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -2464,9 +2463,12 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$pipeline_result = $pipeline_ability->execute( $pipeline_input );
+		$pipeline_result = $this->flowGateway()->create_pipeline( $pipeline_input );
+		if ( is_wp_error( $pipeline_result ) ) {
+			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared ' . $pipeline_name . ' pipeline: ' . $pipeline_result->get_error_message(), array( 'status' => 500 ) );
+		}
 
-		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
+		if ( ! is_array( $pipeline_result ) || empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
 			$err = $pipeline_result['error'] ?? 'Unknown error';
 			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared ' . $pipeline_name . ' pipeline: ' . $err, array( 'status' => 500 ) );
 		}
@@ -2489,12 +2491,11 @@ class ArtistUrlImportAbilities {
 	 * @return array|\WP_Error
 	 */
 	private function getPipelineConfiguration( array $selector ) {
-		$ability = wp_get_ability( 'datamachine/get-pipeline-configuration' );
-		if ( ! $ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/get-pipeline-configuration' ) ) {
 			return $this->configurationDependencyUnavailable();
 		}
 
-		return $this->normalizeConfigurationResult( $ability->execute( $selector ) );
+		return $this->normalizeConfigurationResult( $this->flowGateway()->describe_pipeline( $selector ) );
 	}
 
 	/**
@@ -2608,12 +2609,25 @@ class ArtistUrlImportAbilities {
 	 * @return array|\WP_Error
 	 */
 	private function updateStepConfiguration( array $input ) {
-		$ability = wp_get_ability( 'datamachine/update-step-configuration' );
-		if ( ! $ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/update-step-configuration' ) ) {
 			return $this->configurationDependencyUnavailable();
 		}
 
-		return $this->normalizeConfigurationResult( $ability->execute( $input ) );
+		return $this->normalizeConfigurationResult( $this->flowGateway()->update_step_configuration( $input ) );
+	}
+
+	/**
+	 * Data Machine gateway. Each call runs as the system: the events
+	 * ability's own permission callback is the authorization boundary, so
+	 * events staff without Data Machine manage caps can finish approval.
+	 * Built lazily so reflection-built test instances work.
+	 */
+	private function flowGateway(): DataMachineFlowGateway {
+		if ( null === $this->flow_gateway ) {
+			$this->flow_gateway = new DataMachineFlowGateway();
+		}
+
+		return $this->flow_gateway;
 	}
 
 	/**

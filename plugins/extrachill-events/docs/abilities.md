@@ -201,7 +201,7 @@ Registration: [`VenueAddAbilities.php`](../inc/Abilities/VenueAddAbilities.php).
 - **Output:** `object {message: string, flow_id: integer, venue_term_id: integer, pipeline_id: integer}`.
 - **Permission:** events staff through `TeamAuthorization::current_user_is_events_staff()`: `access_events_admin` (the events team capability) or `manage_options`. `extrachill/add-city` stays administrator-only.
 - **Exposure:** `show_in_rest: true`; `wp extrachill venues add` adapter (`--pipeline` or `--location`).
-- **Side effects:** Creates or reuses a venue term, creates a Data Machine flow and patches steps unless dry-run.
+- **Side effects:** Creates or reuses a venue term, creates a Data Machine flow and configures its steps (`datamachine/update-flow-step`) unless dry-run. This ability is the authorization boundary: once its permission passes, every Data Machine call runs as the system through `DataMachineFlowGateway`, so events staff without Data Machine caps complete the flow end to end. A failed step write returns `flow_step_update_failed` with the created `flow_id` and `venue_term_id`.
 
 ## Guest List Party
 
