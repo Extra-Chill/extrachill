@@ -28,6 +28,18 @@ function extrachill_events_init_archive_title() {
  */
 function extrachill_events_filter_archive_title( $title, $context ) {
 	unset( $context );
+
+	// Non-music format archives never say "Live Music" (#1816).
+	if ( function_exists( 'is_tax' ) && is_tax( 'event_type' ) && function_exists( 'extrachill_events_event_type_term_title_profile' ) ) {
+		$term = get_queried_object();
+		if ( is_object( $term ) ) {
+			$profile = extrachill_events_event_type_term_title_profile( $term );
+			if ( ! $profile['music'] ) {
+				return $profile['archive_title'];
+			}
+		}
+	}
+
 	$suffix = 'Events Calendar';
 
 	if ( $title === $suffix ) {

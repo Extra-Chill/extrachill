@@ -80,7 +80,16 @@ extrachill_breadcrumbs();
 		$queried_term = get_queried_object();
 		?>
 		<header class="taxonomy-archive-header location-archive-header">
-			<h1 class="page-title">Live Music in <?php single_term_title(); ?></h1>
+			<h1 class="page-title">
+				<?php
+				$location_title_term = function_exists( 'extrachill_events_get_single_event_type_filter' ) ? extrachill_events_get_single_event_type_filter() : null;
+				echo esc_html(
+					function_exists( 'extrachill_events_location_archive_title' )
+						? extrachill_events_location_archive_title( $queried_term->name, $location_title_term )
+						: 'Live Music in ' . $queried_term->name
+				);
+				?>
+			</h1>
 			<?php if ( term_description() ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
@@ -97,6 +106,13 @@ extrachill_breadcrumbs();
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
 			<?php endif; ?>
 			<?php extrachill_events_render_term_calendar_stats( 'artist', (int) $queried_term->term_id ); ?>
+		</header>
+	<?php elseif ( is_tax( 'event_type' ) && function_exists( 'extrachill_events_event_type_term_title_profile' ) ) : ?>
+		<header class="taxonomy-archive-header event-type-archive-header">
+			<h1 class="page-title"><?php echo esc_html( extrachill_events_event_type_term_title_profile( get_queried_object() )['archive_title'] ); ?></h1>
+			<?php if ( term_description() ) : ?>
+				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
+			<?php endif; ?>
 		</header>
 	<?php elseif ( is_tax() ) : ?>
 		<header class="taxonomy-archive-header">

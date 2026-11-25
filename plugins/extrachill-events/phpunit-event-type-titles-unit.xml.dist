@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			event-type-titles-unit: pure-PHP unit tests for format-aware
+			archive titles (#1816). Uses file-level WP doubles, so it runs on
+			the host runtime with no WordPress loaded.
+		-->
+		<testsuite name="event-type-titles-unit">
+			<file>tests/Unit/Core/EventTypeTitlesTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

@@ -49,6 +49,7 @@ function extrachill_events_is_location_archive(): bool {
  * Override document title for location archives on the events site.
  *
  * Changes "{City} Live Music Calendar" → "Live Music in {City} Tonight & This Week".
+ * A single non-music `?event_type=` filter swaps the noun: "Comedy in {City} …" (#1816).
  * Runs at priority 1000 to override extrachill-seo's default pattern.
  *
  * @hook document_title_parts
@@ -60,8 +61,15 @@ function extrachill_events_location_title( array $title_parts ): array {
 		return $title_parts;
 	}
 
-	$term_name            = single_term_title( '', false );
-	$title_parts['title'] = sprintf( 'Live Music in %s Tonight & This Week', $term_name );
+	$term_name      = single_term_title( '', false );
+	$location_title = function_exists( 'extrachill_events_location_archive_title' )
+		? extrachill_events_location_archive_title(
+			$term_name,
+			function_exists( 'extrachill_events_get_single_event_type_filter' ) ? extrachill_events_get_single_event_type_filter() : null
+		)
+		: sprintf( 'Live Music in %s', $term_name );
+
+	$title_parts['title'] = $location_title . ' Tonight & This Week';
 
 	return $title_parts;
 }
@@ -86,7 +94,7 @@ function extrachill_events_location_description( string $description ): string {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term || ! isset( $term->term_id ) ) {
+	if ( ! $term instanceof WP_Term ) {
 		return $description;
 	}
 
@@ -133,10 +141,8 @@ function extrachill_events_build_location_description( string $city_name, int $t
 				$venue_names[0],
 				$venue_names[1]
 			);
-		} elseif ( count( $venue_names ) === 1 ) {
-			$description .= sprintf( ' including %s.', $venue_names[0] );
 		} else {
-			$description .= '.';
+			$description .= sprintf( ' including %s.', $venue_names[0] );
 		}
 	} else {
 		$description .= sprintf( ' Browse the full %s live music calendar on Extra Chill.', $city_name );
@@ -178,9 +184,7 @@ function extrachill_events_get_upcoming_event_count( int $term_id ): int {
 	}
 
 	// Use the public generation API, not calendar cache storage internals.
-	$generation = is_callable( array( \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::class, 'get_generation' ) )
-		? \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::get_generation()
-		: '';
+	$generation = \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::get_generation();
 	$cache_key  = 'ec_location_upcoming_count_' . $term_id . '_' . md5( $generation );
 	$cached     = get_transient( $cache_key );
 	if ( false !== $cached ) {

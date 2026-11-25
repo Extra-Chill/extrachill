@@ -32,7 +32,7 @@ function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
 	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 		ob_start();
 		extrachill_breadcrumbs();
-		return ob_get_clean();
+		return (string) ob_get_clean();
 	}
 	return $breadcrumbs;
 }
@@ -115,6 +115,13 @@ function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 	}
 	if ( is_tax() ) {
 		$term = get_queried_object();
+		// Non-music formats use the same format-aware title as the H1 (#1816).
+		if ( is_tax( 'event_type' ) && $term && function_exists( 'extrachill_events_event_type_term_title_profile' ) ) {
+			$profile = extrachill_events_event_type_term_title_profile( $term );
+			if ( ! $profile['music'] ) {
+				return '<span>' . esc_html( $profile['archive_title'] ) . '</span>';
+			}
+		}
 		if ( $term && isset( $term->name ) ) {
 			return '<span>' . esc_html( $term->name ) . '</span>';
 		}
@@ -170,7 +177,7 @@ function ec_events_breadcrumb_trail_single( $custom_trail ) {
 	if ( is_singular( 'data_machine_events' ) ) {
 		$trail = '';
 
-		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		$venue = ec_events_get_primary_venue_term( (int) get_the_ID() );
 		if ( $venue ) {
 			$venue_link = get_term_link( $venue );
 			if ( ! is_wp_error( $venue_link ) ) {
@@ -270,7 +277,7 @@ function ec_events_schema_breadcrumb_items( $items ) {
 			),
 		);
 
-		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		$venue = ec_events_get_primary_venue_term( (int) get_the_ID() );
 		if ( $venue ) {
 			$venue_link = get_term_link( $venue );
 			$items[]    = array(
@@ -291,6 +298,14 @@ function ec_events_schema_breadcrumb_items( $items ) {
 	if ( is_tax() ) {
 		$term = get_queried_object();
 		if ( $term && isset( $term->name ) ) {
+			$crumb_name = $term->name;
+			// Non-music formats use the same format-aware title as the H1 (#1816).
+			if ( is_tax( 'event_type' ) && function_exists( 'extrachill_events_event_type_term_title_profile' ) ) {
+				$profile = extrachill_events_event_type_term_title_profile( $term );
+				if ( ! $profile['music'] ) {
+					$crumb_name = $profile['archive_title'];
+				}
+			}
 			return array(
 				array(
 					'name' => 'Extra Chill',
@@ -301,7 +316,7 @@ function ec_events_schema_breadcrumb_items( $items ) {
 					'url'  => home_url( '/' ),
 				),
 				array(
-					'name' => $term->name,
+					'name' => $crumb_name,
 					'url'  => '',
 				),
 			);
