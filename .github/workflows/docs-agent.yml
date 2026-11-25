@@ -87,10 +87,13 @@ jobs:
     # docs_scope, and runs on WP Codebox v0.33.7: the docs branch is used as
     # given and workspace_git_status/diff work (Automattic/docs-agent#192,
     # Automattic/wp-codebox#2592); 4ec7594 keeps documented values the source
-    # reads from settings, such as fee rates (Automattic/docs-agent#193, #194).
+    # reads from settings, such as fee rates (Automattic/docs-agent#193, #194);
+    # ee333d5 accepts GitHub App publish credentials and runs on WP Codebox
+    # v0.34.0, which mints the app installation token (Automattic/docs-agent#196,
+    # Automattic/wp-codebox#2596).
     # Runner guide: plugins/extrachill-docs/docs/docs-agent-runner.md
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@4ec75944fe9802d9706f8c18ab866403c7d993f9
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@ee333d5af3fcf94e986da85b902a612da985f974
     with:
       audience: ${{ matrix.config.audience }}
       run_kind: ${{ matrix.config.run_kind }}
@@ -110,6 +113,9 @@ jobs:
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       EXTERNAL_PACKAGE_SOURCE_POLICY: ${{ secrets.DOCS_AGENT_EXTERNAL_PACKAGE_SOURCE_POLICY }}
-      # Fine-grained PAT (machine account, this repo only). PRs opened with
-      # github.token never trigger pull_request CI; unset falls back to it.
-      PUBLISH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+      # Publish docs PRs as the homeboy-ci GitHub App: PRs opened with
+      # github.token never trigger pull_request CI and are authored by
+      # github-actions[bot]. WP Codebox mints the installation token in the
+      # agent job; if the app secrets are unavailable it falls back to github.token.
+      PUBLISH_APP_ID: ${{ secrets.HOMEBOY_APP_ID }}
+      PUBLISH_APP_PRIVATE_KEY: ${{ secrets.HOMEBOY_APP_PRIVATE_KEY }}
