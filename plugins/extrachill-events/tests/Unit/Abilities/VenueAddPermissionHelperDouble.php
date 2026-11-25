@@ -12,7 +12,7 @@ namespace DataMachine\Abilities;
 if ( ! class_exists( PermissionHelper::class ) ) {
 	class PermissionHelper {
 		public static function run_as_system( callable $callback ) {
-			$previous                                = $GLOBALS['venue_add_test']['as_system'] ?? false;
+			$previous                               = $GLOBALS['venue_add_test']['as_system'] ?? false;
 			$GLOBALS['venue_add_test']['as_system'] = true;
 			try {
 				return $callback();

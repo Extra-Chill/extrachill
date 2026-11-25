@@ -214,7 +214,7 @@ class DataMachineFlowGateway {
 
 		$run = static fn() => $ability->execute( $input );
 
-		return is_callable( array( '\\DataMachine\\Abilities\\PermissionHelper', 'run_as_system' ) )
+		return class_exists( '\\DataMachine\\Abilities\\PermissionHelper' )
 			? \DataMachine\Abilities\PermissionHelper::run_as_system( $run )
 			: $run();
 	}
