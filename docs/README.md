@@ -5,7 +5,8 @@ Start with the [architecture overview](architecture.md) for cross-component rela
 ## Where documentation belongs
 
 - `plugins/<p>/docs/user/` holds published end-user help. Follow the canonical [writing rules](../plugins/extrachill-docs/runner-configs/writing-rules.md): plain language, user goals, no implementation details.
-- `plugins/<p>/docs/` outside `user/` holds developer reference that stays in the repository: contracts, hooks, integrations and operational notes. Keep domain-specific knowledge with its owning plugin.
+- `plugins/extrachill-api/docs/partner/` holds published [Partner Websites guides](../plugins/extrachill-api/docs/partner/index.md) for venue web developers; this explicitly mapped section is not subject to the end-user voice rules.
+- Other `plugins/<p>/docs/` outside `user/` holds developer reference that stays in the repository: contracts, hooks, integrations and operational notes. Keep domain-specific knowledge with its owning plugin.
 - `themes/extrachill/docs/` holds theme developer reference.
 - `plugins/<p>/docs/abilities.md` (or `themes/<t>/docs/abilities.md`) documents every WordPress ability the component registers with `wp_register_ability()`. Give each ability its own `### \`namespace/name\`` entry covering purpose, input, output, permission, exposure (REST, CLI and callers) and side effects. Entries describe the code as written. When a name is not a string literal (a constant, `sprintf()` or a shared helper), declare the concrete names in a `// abilities-docs: namespace/one, namespace/two.` comment above the call.
 - Each component's `docs/CHANGELOG.md` is release-owned, configured by its Homeboy `changelog_target`. Leave changelogs and version strings to the release process.
@@ -15,11 +16,11 @@ Do not move developer docs between components just to make the layout uniform. W
 
 ## How help reaches docs.extrachill.com
 
-The [platform map](../plugins/extrachill-docs/runner-configs/platform-map.yml) defines each published platform's source plugin, `docs_subpath`, parent slug, audience and optional Docs Agent configuration. Every platform publishes from its plugin's `docs/user/`, including Connect Your AI (`plugins/extrachill-docs/docs/user/`). Studio help is configured as private. A docs directory alone does not opt a component into publishing.
+The [platform map](../plugins/extrachill-docs/runner-configs/platform-map.yml) defines each published platform's source plugin, `docs_subpath`, parent slug, audience and optional Docs Agent configuration. Most platforms publish from their plugin's `docs/user/`, including Connect Your AI (`plugins/extrachill-docs/docs/user/`). Partner Websites publishes developer-facing guides from `plugins/extrachill-api/docs/partner/`, without a Docs Agent runner. Studio help is configured as private. A docs directory alone does not opt a component into publishing.
 
 The manually dispatched [Docs Agent workflow](../.github/workflows/docs-agent.yml) uses that map to propose changes under the configured component's `docs/user/` path, following the writing rules and voice checks. Only entries with runner configuration participate; this workflow writes help, not developer reference.
 
-After reviewed changes merge, the normal component deploy ships the Markdown files. On the docs site, [`extrachill-docs/publish-plugin-docs`](../plugins/extrachill-docs/inc/abilities/publish-plugin-docs.php) reads the installed mapped files (direct `*.md` children of `docs_subpath`, not recursively), then calls `extrachill-docs/upsert-doc-page` to create or update pages. The hourly scheduled check fingerprints installed content and publishes changed sources; it does not fetch from GitHub. Publishing is additive: missing source files are reported as orphans, not automatically deleted. Keep filenames stable to update existing pages in place. Developer references, changelogs and root architecture docs are not published by this pipeline.
+After reviewed changes merge, the normal component deploy ships the Markdown files. On the docs site, [`extrachill-docs/publish-plugin-docs`](../plugins/extrachill-docs/inc/abilities/publish-plugin-docs.php) reads the installed mapped files (direct `*.md` children of `docs_subpath`, not recursively), then calls `extrachill-docs/upsert-doc-page` to create or update pages. The hourly scheduled check fingerprints installed content and publishes changed sources; it does not fetch from GitHub. Publishing is additive: missing source files are reported as orphans, not automatically deleted. Keep filenames stable to update existing pages in place. Unmapped developer references, changelogs and root architecture docs are not published by this pipeline.
 
 ## Component index
 
@@ -31,7 +32,7 @@ Links use an existing docs index or overview where available; otherwise they ope
 |---|---|
 | [extrachill-ai-adventure](../plugins/extrachill-ai-adventure/docs/) | AI adventure experience on the main site; currently changelog only. |
 | [extrachill-analytics](../plugins/extrachill-analytics/docs/) | Network analytics, experiments, privacy and measurement contracts. |
-| [extrachill-api](../plugins/extrachill-api/docs/) | Central `extrachill/v1` REST route and API infrastructure reference. |
+| [extrachill-api](../plugins/extrachill-api/docs/) | Central `extrachill/v1` REST route and API infrastructure reference; published [Partner Websites guides](../plugins/extrachill-api/docs/partner/index.md). |
 | [extrachill-artist-platform](../plugins/extrachill-artist-platform/docs/overview.md) | Artist profiles, rosters, artist access and link-page integrations. |
 | [extrachill-blog](../plugins/extrachill-blog/docs/) | Editorial site behavior, homepage and artist dispatch rollout. |
 | [extrachill-booking](../plugins/extrachill-booking/docs/) | Booking component on the events site; currently changelog only. |

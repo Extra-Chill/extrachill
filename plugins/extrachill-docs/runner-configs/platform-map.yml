@@ -7,6 +7,12 @@
 # Legacy OWNER/REPO identities are derived by the PHP loader for existing pages.
 plugins:
 
+  plugins/extrachill-api:
+    platform_name: "Partner Websites"
+    parent_slug: "partner-websites"
+    audience: "venue web developers and partners integrating Extra Chill events into their own websites"
+    docs_subpath: "docs/partner"
+
   plugins/extrachill-docs:
     platform_name: "Connect Your AI"
     parent_slug: "mcp"
