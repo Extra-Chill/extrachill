@@ -119,3 +119,17 @@ Registrations and execution: [`redirect-abilities.php`](../inc/abilities/redirec
 - **Permission:** `manage_options` capability OR truthy defined `WP_CLI`.
 - **Exposure:** `show_in_rest: false`; extrachill-api route: none found; `wp extrachill seo redirects opportunities`.
 - **Side effects:** Calls `datamachine/google-search-console` for query data and, by default, HTTP GETs proposed destinations with no redirect following to require a direct 200. `verify: false` skips destination HTTP verification. Does not write redirect rules.
+
+## Event schema
+
+Registration and execution: [`event-schema-abilities.php`](../inc/abilities/event-schema-abilities.php), over the public PHP seam `ExtraChill\SEO\Schema\ec_seo_get_event_schema( int $post_id ): ?array` in [`schema-event.php`](../inc/schema/schema-event.php).
+
+### `extrachill/event-schema`
+
+- **Purpose:** Return the exact Schema.org Event entity a published event page emits (same `ec_seo_build_event_schema()` builder and entity-decoding boundary as the page graph), plus `@context`, so it can be embedded standalone on partner venue websites without drifting from our own page markup.
+- **Input:** Required `post_id` (integer ≥ 1; published `data_machine_events` post).
+- **Output:** Event object with `@context` (`https://schema.org`), `@type`, `name`, `startDate`, and every other property the page entity carries (location, performer, offers, image, …).
+- **Errors:** `extrachill_event_schema_unavailable` (404) when the post is missing, unpublished, not an event, or has no start date.
+- **Permission:** Public (`__return_true`) — the same entity is already published on the event page.
+- **Exposure:** `show_in_rest: false`; consumed by `extrachill/get-partner-venue-events` (extrachill-events), which backs extrachill-api GET `/extrachill/v1/partner/events`. The seam switches to the events site when called elsewhere and restores the caller's blog.
+- **Side effects:** None (read-only).

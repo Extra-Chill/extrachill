@@ -1412,3 +1412,38 @@ Registration: [`VenueOnboardingAbilities.php`](../inc/Abilities/VenueOnboardingA
 - **Permission:** Signed-in user; the repository binds the invitation to that user and token.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 - **Side effects:** Acceptance activates the membership. Rejection or expiry removes an unused invitation-created account.
+
+## Venue partner credentials
+
+- `extrachill/issue-venue-partner-key`
+- `extrachill/rotate-venue-partner-key`
+- `extrachill/revoke-venue-partner-key`
+- `extrachill/status-venue-partner-key`
+
+All take `{venue_term_id: integer >= 1}` and execute on the events site.
+TeamAuthorization requires `manage_members` on that exact venue (or its administrator override).
+These abilities are not REST-exposed. Output includes `venue_term_id`, `active`,
+`created_at`, `issued_by`, `last_four`, and `last_used_at` (nullable when absent).
+Issue and rotate additionally return `key`, shown only in that response. Issue
+rejects an existing credential; rotate explicitly replaces it. Revoke is idempotent.
+Only a keyed hash is stored; status never returns that hash. Last-use writes are
+throttled to five minutes and isolated from credential storage to avoid resurrecting
+a concurrently revoked key.
+
+CLI: `wp extrachill venues partner-key issue|rotate|revoke|status <venue-term-id> --user=<authorized-user> --url=events.extrachill.com`.
+Treat issuance output as a secret; do not capture it in shared logs.
+
+Verification (used by the partner events ability) treats every unusable key —
+missing, malformed, forged, rotated, revoked, or for a deleted venue — as one
+401 `extrachill_partner_key_invalid`.
+
+### `extrachill/get-partner-venue-events`
+
+- **Purpose:** Partner-website feed (#1802): the upcoming events of the one venue a partner key belongs to, shaped for server-rendered HTML plus JSON-LD. The key selects the venue; there is no venue input.
+- **Input:** `partner_key` (string, required); `limit` (integer 1–50, default 20).
+- **Output:** `venue` `{id, name, slug, url, booking_embed_url|null}`; `events[]` `{id, title, url, start, end|null, timezone, performers[], price|null, image|null, excerpt|null, status, ticket{url|null, label, kind}, schema}`; `generated_at` (ISO 8601); `cache_ttl` (300). `start`/`end` are ISO 8601 with the venue's offset; `timezone` is the venue's IANA zone. `ticket.kind` is `checkout` (first-party sale open; URL is the event page that hosts checkout), `external` (outside seller; URL is the event page, whose ticket button runs the first-party affiliate redirect), `info` (event page), or `none` (sold out or cancelled; `url` null). `schema` is the `extrachill/event-schema` entity (extrachill-seo) projected for partners: every offer's `url` (single `Offer`, `AggregateOffer` and its nested offers, or a list) is replaced with `ticket.url`, or removed when `ticket.url` is null, and any other URL on a non-Extra Chill host (venue website, organizer site, remote image) is dropped, so no outside seller or third-party link reaches partner HTML. Our own event pages still emit the unmodified entity. `schema` is null only when that plugin is unavailable. `booking_embed_url` is the venue page with `booking-embed=1` when booking is enabled with at least one allowlisted parent origin; the partner appends `parent-origin`.
+- **Composes:** `data-machine-events/query-events` (publish-only upcoming listing filtered by the `venue` term), data-machine-events' public event-data and venue-data helpers, `extrachill/event-schema`, and `extrachill/get-event-ticket-offer`.
+- **Errors:** 401 `extrachill_partner_key_invalid`; 400 `extrachill_partner_events_limit`; 503 `extrachill_partner_events_unavailable` when the event query ability is missing.
+- **Permission:** The partner key (`__return_true` at the ability boundary; authentication happens in the operation).
+- **Exposure:** `show_in_rest: false`; extrachill-api GET `/extrachill/v1/partner/events` with header `X-Extrachill-Partner-Key` (events-site route affinity).
+- **Side effects:** Throttled key last-used stamp only.
