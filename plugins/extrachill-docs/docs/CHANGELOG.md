@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.13.3] - 2026-11-25
+
+### Fixed
+- skip README.md and other unmappable docs files instead of importing stray posts
+
 ## [0.13.2] - 2026-11-21
 
 ### Changed
