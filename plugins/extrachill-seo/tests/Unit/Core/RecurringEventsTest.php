@@ -7,24 +7,8 @@
 
 declare( strict_types=1 );
 
-namespace DataMachineEvents\Core {
-	if ( ! class_exists( EventDatesTable::class ) ) {
-		class EventDatesTable {
-			public static function table_name(): string {
-				return 'wp_dm_event_dates';
-			}
-		}
-	}
-}
-
-namespace DataMachineEvents\Blocks\Calendar\Query {
-	if ( ! class_exists( UpcomingFilter::class ) ) {
-		class UpcomingFilter {
-			public static function upcoming_where( string $datetime ): string {
-				return "(ed.start_datetime >= '{$datetime}' OR ed.end_datetime >= '{$datetime}')";
-			}
-		}
-	}
+namespace {
+	require_once dirname( __DIR__, 2 ) . '/Support/DataMachineEventsDoubles.php';
 }
 
 namespace ExtraChill\SEO\Tests\Unit\Core {

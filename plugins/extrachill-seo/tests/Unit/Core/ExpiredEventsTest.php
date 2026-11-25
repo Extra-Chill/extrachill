@@ -5,28 +5,8 @@
  * @package ExtraChill\SEO\Tests
  */
 
-namespace DataMachineEvents\Core {
-	class EventDatesTable {
-		public static $dates;
-		public static function get( int $post_id ): ?object {
-			return self::$dates;
-		}
-		public static function table_name(): string {
-			return 'wp_7_datamachine_event_dates';
-		}
-	}
-}
-
-namespace DataMachineEvents\Blocks\Calendar\Query {
-	class UpcomingFilter {
-		public static function upcoming_where( string $datetime ): string {
-			return "(ed.start_datetime >= '{$datetime}' OR ed.end_datetime >= '{$datetime}')";
-		}
-		// Matches the owning plugin's public SQL contract.
-		public static function past_where( string $datetime ): string {
-			return "(ed.start_datetime < '{$datetime}' AND (ed.end_datetime < '{$datetime}' OR ed.end_datetime IS NULL))";
-		}
-	}
+namespace {
+	require_once dirname( __DIR__, 2 ) . '/Support/DataMachineEventsDoubles.php';
 }
 
 namespace ExtraChill\SEO\Core {
