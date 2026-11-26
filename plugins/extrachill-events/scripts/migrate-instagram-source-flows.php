@@ -9,7 +9,7 @@
 use ExtraChillEvents\Core\DataMachineFlowGateway;
 use ExtraChillEvents\Core\EventSourceHandler;
 
-if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( ! defined( 'WP_CLI' ) ) {
 	return;
 }
 
