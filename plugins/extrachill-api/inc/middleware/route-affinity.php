@@ -28,6 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function extrachill_api_add_artist_route_affinity( $affinity_map ) {
 	$affinity_map['/extrachill/v1/admin/artist-relationships'] = 'artist';
 	$affinity_map['/extrachill/v1/event-submissions']          = 'events';
+	$affinity_map['/extrachill/v1/partner/']                   = 'events';
 	$affinity_map['/extrachill/v1/giveaway/']                  = 'studio';
 	$affinity_map['/extrachill/v1/instagram/']                 = 'studio';
 	$affinity_map['/extrachill/v1/artists/']                   = 'artist';
@@ -126,6 +127,15 @@ function extrachill_api_route_affinity_forwarded_headers( WP_REST_Request $reque
 		$range = trim( (string) $request->get_header( 'Range' ) );
 		if ( '' !== $range ) {
 			$headers['range'] = $range;
+		}
+	}
+
+	// The partner key is the only credential of the partner events route; it
+	// must survive the hop to the events site, bound into the signed digest.
+	if ( 0 === strpos( (string) $request->get_route(), '/extrachill/v1/partner/' ) ) {
+		$partner_key = trim( (string) $request->get_header( 'X-Extrachill-Partner-Key' ) );
+		if ( '' !== $partner_key ) {
+			$headers['x-extrachill-partner-key'] = $partner_key;
 		}
 	}
 

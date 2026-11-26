@@ -66,6 +66,7 @@ class CommandRegistry {
 			'extrachill events add-city'                  => Commands\Events\AddCityCommand::class,
 			'extrachill venues'                           => Commands\Events\VenueDiscoveryCommand::class,
 			'extrachill venues expand'                    => Commands\Events\VenueExpandCommand::class,
+			'extrachill venues partner-key'               => Commands\Events\VenuePartnerKeyCommand::class,
 			'extrachill venues expand-report'             => Commands\Events\VenueExpansionReportCommand::class,
 			'extrachill shows'                            => Commands\Events\ConcertTrackingCommand::class,
 			'extrachill events ramp'                      => Commands\Events\EventSourceRampCommand::class,
