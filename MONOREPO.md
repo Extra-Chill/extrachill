@@ -28,7 +28,7 @@ The [documentation map](docs/README.md) defines where user help, developer refer
 
 ## Deploy model
 
-This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). Rolling back means deploying an older commit.
+This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). Members listed in `deploy/homeboy/projects/extrachill-monorepo/distribution-only.json` (e.g. `extrachill-partner`, installed on partner sites) are released but never deployed to the network. Rolling back means deploying an older commit.
 
 ## Releases and changelogs
 
