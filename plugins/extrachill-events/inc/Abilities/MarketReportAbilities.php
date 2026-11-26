@@ -512,27 +512,31 @@ class MarketReportAbilities {
 	 * @return array Rows grouped by source.
 	 */
 	private function getDemandRows( int $days, bool $search ): array {
-		$rows    = array(
+		$rows             = array(
 			'archive' => array(),
 			'events'  => array(),
 		);
-		$ability = wp_get_ability( $search ? 'datamachine/google-search-console' : 'datamachine/google-analytics' );
+		$ability          = wp_get_ability( $search ? 'datamachine/google-search-console' : 'datamachine/google-analytics' );
 		$rows['coverage'] = array_fill_keys(
 			array( 'archive', 'events' ),
-			array( 'status' => 'unavailable', 'message' => 'Analytics ability not registered.' )
+			array(
+				'status'  => 'unavailable',
+				'message' => 'Analytics ability not registered.',
+			)
 		);
 		if ( ! $ability ) {
 			return $rows;
 		}
 		$schema = $ability->get_input_schema();
 		$limit  = (int) ( $schema['properties']['limit']['maximum'] ?? $schema['properties']['limit']['default'] ?? 1000 );
+		$start  = strtotime( "-{$days} days" );
 		foreach ( array(
 			'archive' => '/location/',
 			'events'  => '/events/',
 		) as $source => $path ) {
 			$args = array(
 				'action'     => 'page_stats',
-				'start_date' => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ),
+				'start_date' => gmdate( 'Y-m-d', false === $start ? null : $start ),
 				'end_date'   => gmdate( 'Y-m-d' ),
 				'limit'      => $limit,
 			);
@@ -555,7 +559,8 @@ class MarketReportAbilities {
 				);
 				foreach ( $result['results'] ?? array() as $row ) {
 					$keys              = $row['keys'] ?? '';
-					$row['path']       = wp_parse_url( $row['pagePath'] ?? ( is_array( $keys ) ? ( $keys[0] ?? '' ) : $keys ), PHP_URL_PATH ) ?: '';
+					$path              = wp_parse_url( $row['pagePath'] ?? ( is_array( $keys ) ? ( $keys[0] ?? '' ) : $keys ), PHP_URL_PATH );
+					$row['path']       = is_string( $path ) ? $path : '';
 					$rows[ $source ][] = $row;
 				}
 			}
@@ -762,7 +767,7 @@ class MarketReportAbilities {
 	 * @return float Opportunity score.
 	 */
 	private function calculateOpportunityScore( int $events, int $venues, array $flows, array $ga, array $gsc ): float {
-		$scrapers    = $flows['venue_scrapers'];
+		$scrapers = $flows['venue_scrapers'];
 		// Rank on the available signals; coverage identifies missing analytics.
 		$sessions    = $ga['sessions'] ?? 0;
 		$impressions = $gsc['impressions'] ?? 0;
