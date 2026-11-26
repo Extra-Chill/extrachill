@@ -61,7 +61,8 @@ function extrachill_analytics_visitor_bot_reason( $visitor_id = null ) {
  * @return bool
  */
 function extrachill_analytics_request_turnstile_rejected() {
-	return '' !== extrachill_analytics_visitor_bot_reason();
+	return ! empty( $GLOBALS['extrachill_analytics_bot_evidence'][ get_current_blog_id() ]['request_rejected'] )
+		|| '' !== extrachill_analytics_visitor_bot_reason();
 }
 
 /**
@@ -133,6 +134,8 @@ function extrachill_analytics_event_has_solver_signature( $event_type, $event_da
  */
 // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,Generic.CodeAnalysis.UnusedFunctionParameter.Found -- extrachill_turnstile_rejected action signature; captcha data is deliberately not persisted.
 function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_token ) {
+	// Keep request-local evidence even when there is no visitor to persist it for.
+	$GLOBALS['extrachill_analytics_bot_evidence'][ get_current_blog_id() ]['request_rejected'] = true;
 	$visitor_id = extrachill_analytics_read_visitor_id();
 	if ( '' === $visitor_id ) {
 		return;
