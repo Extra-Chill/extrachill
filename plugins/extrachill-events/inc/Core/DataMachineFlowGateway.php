@@ -53,6 +53,7 @@ class DataMachineFlowGateway {
 
 		return array(
 			'flow_id'           => (int) ( $flow['flow_id'] ?? $flow_id ),
+			'pipeline_id'       => (int) ( $flow['pipeline_id'] ?? 0 ),
 			'flow_name'         => (string) ( $flow['flow_name'] ?? '' ),
 			'flow_config'       => is_array( $flow['flow_config'] ?? null ) ? $flow['flow_config'] : array(),
 			'scheduling_config' => is_array( $flow['scheduling_config'] ?? null ) ? $flow['scheduling_config'] : array(),
@@ -206,7 +207,7 @@ class DataMachineFlowGateway {
 	 * @param array  $input Ability input.
 	 * @return mixed Ability result, or a WP_Error when unavailable.
 	 */
-	private static function execute( string $name, array $input ) {
+	public static function execute( string $name, array $input ) {
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
 		if ( ! $ability ) {
 			return new \WP_Error( 'ability_unavailable', sprintf( 'Ability %s is not registered.', $name ) );

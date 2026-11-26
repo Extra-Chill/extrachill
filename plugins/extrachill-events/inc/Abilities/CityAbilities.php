@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once dirname( __DIR__ ) . '/Core/EventSourceHandler.php';
+
 class CityAbilities {
 
 	/**
@@ -629,7 +631,7 @@ class CityAbilities {
 					self::DEFAULT_AI_PROVIDER => array( 'model' => self::DEFAULT_AI_MODEL ),
 				);
 				$step['system_prompt'] = sprintf(
-					'You run the Extra Chill events feed for %s.',
+					'You run the Extra Chill events feed for %s. ' . \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY,
 					$city_label
 				);
 				$step['enabled_tools'] = array();
