@@ -1121,7 +1121,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertContains( 'listing', $qualify['output_schema']['properties']['source_kind']['enum'] );
 		$this->assertContains( 'listing', $registered['extrachill-events/submit-event-source']['output_schema']['properties']['source_kind']['enum'] );
 		$listing_branch = $approve['output_schema']['oneOf'][2];
-		$this->assertSame( array( 'listing' ), $listing_branch['properties']['source_kind']['enum'] );
+		$this->assertSame( array( 'listing', 'promoter' ), $listing_branch['properties']['source_kind']['enum'] );
 		$this->assertSame( array( 'success', 'pipeline_id', 'flow_id', 'source_kind' ), $listing_branch['required'] );
 		foreach ( array( 'preview', 'submit', 'approve', 'reject' ) as $action ) {
 			$this->assertArrayNotHasKey( "extrachill-events/{$action}-artist-url" . ( in_array( $action, array( 'approve', 'reject' ), true ) ? '-submission' : '' ), $registered );
