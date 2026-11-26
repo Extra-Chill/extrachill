@@ -55,6 +55,22 @@ if ( ! function_exists( 'current_user_can' ) ) {
 	}
 }
 
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $value ) {
+		return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( $value ) );
+	}
+}
+
+if ( ! function_exists( 'get_term_meta' ) ) {
+	function get_term_meta( $id, $key, $single = false ) {
+		return $GLOBALS['venue_add_test']['meta'][ $id ][ $key ] ?? '';
+	}
+	function update_term_meta( $id, $key, $value ) {
+		$GLOBALS['venue_add_test']['meta'][ $id ][ $key ] = $value;
+		return true;
+	}
+}
+
 if ( ! function_exists( 'wp_register_ability' ) ) {
 	function wp_register_ability( $name, $args ) {
 		$GLOBALS['venue_add_test_registered'][ $name ] = $args;
@@ -200,6 +216,13 @@ final class VenueAddTestDataMachine {
 
 	public function resolver(): callable {
 		return function ( $name ) {
+			if ( 'datamachine/resolve-source-url' === $name && ! empty( $GLOBALS['venue_add_test']['instagram_resolver'] ) ) {
+				return new class {
+					public function execute( $input ) {
+						return array( 'handler_slug' => 'instagram_account', 'handler_config' => array( 'username' => 'hedhi' ) );
+					}
+				};
+			}
 			if ( ! in_array( $name, array( 'datamachine/create-flow', 'datamachine/get-flows', 'datamachine/update-flow-step' ), true ) ) {
 				return null;
 			}
@@ -575,8 +598,45 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$this->assertTrue( $config['upsert']['enabled'] );
 		$this->assertSame( '', $config['ai']['user_message'] );
 		$this->assertCount( 3, $data_machine->calls['datamachine/update-flow-step'] );
+		$this->assertArrayNotHasKey( 'datamachine/update-step-configuration', $data_machine->calls );
 		$this->assertSame( array(), $this->wpdb->updates );
 		$this->assertFalse( $GLOBALS['venue_add_test']['as_system'] ?? false, 'Elevation is scoped to each Data Machine call.' );
+	}
+
+	public function test_events_staff_can_create_daily_instagram_draft_flow(): void {
+		$GLOBALS['venue_add_test']['instagram_resolver'] = true;
+		$GLOBALS['venue_add_test']['role'] = 'extra_chill_team';
+		$data_machine = new VenueAddTestDataMachine();
+		$GLOBALS['ec_test_ability_resolver'] = $data_machine->resolver();
+		$this->assertTrue( call_user_func( $this->add_venue_permission() ) );
+		$result = $this->abilities->executeAddVenue( array(
+			'location' => 'Charleston',
+			'name' => 'Hed Hi Studio',
+			'venue_term_id' => 77,
+			'url' => 'https://www.instagram.com/hedhi/',
+		) );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'daily', $result['interval'] );
+		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
+		$this->assertSame( array( 'username' => 'hedhi' ), $config['event_import']['handler_configs']['instagram_account'] );
+		$this->assertSame( 'draft', $config['upsert']['handler_configs']['upsert_event']['post_status'] );
+		$this->assertArrayNotHasKey( 'taxonomy_venue_selection', $config['upsert']['handler_configs']['upsert_event'] );
+		$this->assertSame( \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY, $config['ai']['user_message'] );
+		$this->assertArrayNotHasKey( 'datamachine/update-step-configuration', $data_machine->calls );
+	}
+
+	public function test_unreadable_instagram_has_clear_verdict(): void {
+		$GLOBALS['ec_test_ability_resolver'] = static function ( $name ) {
+			return new class {
+				public function execute( $input ) {
+					TestCase::assertSame( 1, $input['max_items'] );
+					return new WP_Error( 'instagram_account_unavailable', 'Personal account' );
+				}
+			};
+		};
+		$result = \ExtraChillEvents\Core\EventSourceHandler::preflight( array( 'handler_slug' => 'instagram_account', 'handler_config' => array( 'username' => 'private' ) ) );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'Only public Business/Creator accounts can be read.', $result->get_error_message() );
 	}
 
 	public function test_non_events_staff_is_still_denied_at_add_venue(): void {

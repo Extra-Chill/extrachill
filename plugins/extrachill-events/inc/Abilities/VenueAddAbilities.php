@@ -21,6 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once dirname( __DIR__ ) . '/Core/TeamAuthorization.php';
 require_once dirname( __DIR__ ) . '/Core/DataMachineFlowGateway.php';
+require_once dirname( __DIR__ ) . '/Core/EventSourceHandler.php';
 
 class VenueAddAbilities {
 
@@ -63,51 +64,53 @@ class VenueAddAbilities {
 						'type'       => 'object',
 						'required'   => array( 'name', 'url' ),
 						'properties' => array(
-							'pipeline_id'   => array(
+							'handler_slug'   => array( 'type' => 'string' ),
+							'handler_config' => array( 'type' => 'object' ),
+							'pipeline_id'    => array(
 								'type'        => 'integer',
 								'description' => 'Pipeline ID for the city this venue belongs to. Optional when location is given; disambiguates a city with more than one pipeline. One of pipeline_id or location is required.',
 							),
-							'location'      => array(
+							'location'       => array(
 								'type'        => array( 'integer', 'string' ),
 								'description' => 'City this venue belongs to: location term ID, slug, or exact name (e.g. "Charleston"). Resolves the city event pipeline when pipeline_id is omitted. One of pipeline_id or location is required.',
 							),
-							'name'          => array(
+							'name'           => array(
 								'type'        => 'string',
 								'description' => 'Venue name, e.g. "Exit/In" or "The Station Inn".',
 							),
-							'venue_term_id' => array(
+							'venue_term_id'  => array(
 								'type'        => 'integer',
 								'description' => 'Existing canonical venue term ID. Optional; prevents name-based duplication for known venues.',
 							),
-							'url'           => array(
+							'url'            => array(
 								'type'        => 'string',
 								'description' => 'Venue events page URL (the page the scraper will hit).',
 							),
-							'address'       => array(
+							'address'        => array(
 								'type'        => 'string',
 								'description' => 'Venue street address. Optional — used for geocoding.',
 							),
-							'city'          => array(
+							'city'           => array(
 								'type'        => 'string',
 								'description' => 'Venue city name. Optional — derived from pipeline if not provided.',
 							),
-							'state'         => array(
+							'state'          => array(
 								'type'        => 'string',
 								'description' => 'Venue state. Optional.',
 							),
-							'zip'           => array(
+							'zip'            => array(
 								'type'        => 'string',
 								'description' => 'Venue zip code. Optional.',
 							),
-							'website'       => array(
+							'website'        => array(
 								'type'        => 'string',
 								'description' => 'Venue homepage URL (may differ from events page URL). Optional.',
 							),
-							'interval'      => array(
+							'interval'       => array(
 								'type'        => 'string',
 								'description' => 'Scheduling interval. Defaults to "daily".',
 							),
-							'dry_run'       => array(
+							'dry_run'        => array(
 								'type'        => 'boolean',
 								'description' => 'Preview what would be created without making changes.',
 							),
@@ -167,6 +170,19 @@ class VenueAddAbilities {
 			if ( ! $known_term || is_wp_error( $known_term ) ) {
 				return new \WP_Error( 'venue_not_found', 'The supplied canonical venue term was not found.', array( 'status' => 404 ) );
 			}
+		}
+
+		$source = ! empty( $input['handler_slug'] )
+			? array(
+				'handler_slug'   => sanitize_key( $input['handler_slug'] ),
+				'handler_config' => (array) ( $input['handler_config'] ?? array() ),
+			)
+			: \ExtraChillEvents\Core\EventSourceHandler::resolve( $url );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		if ( \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ) {
+			$interval = 'daily';
 		}
 
 		$requested_location = null;
@@ -247,6 +263,10 @@ class VenueAddAbilities {
 			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}
 
+		if ( \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) && ! get_term_meta( $venue_term_id, '_venue_instagram', true ) ) {
+			update_term_meta( $venue_term_id, '_venue_instagram', $source['handler_config']['username'] ?? '' );
+		}
+
 		// Step 2: Create the flow. The gateway runs it as the system: this
 		// ability's permission callback is the authorization boundary.
 		$gateway = $this->flowGateway();
@@ -284,7 +304,8 @@ class VenueAddAbilities {
 			$state,
 			$zip,
 			$website,
-			$location_term
+			$location_term,
+			$source
 		);
 		if ( is_wp_error( $patched ) ) {
 			$patched->add_data(
@@ -693,7 +714,7 @@ class VenueAddAbilities {
 	 *
 	 * @return true|\WP_Error
 	 */
-	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term ) {
+	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term, array $source ) {
 		$gateway = $this->flowGateway();
 		$flow    = $gateway->get_flow( $flow_id );
 		if ( ! $flow ) {
@@ -732,8 +753,9 @@ class VenueAddAbilities {
 					$handler_config['venue_website'] = $website;
 				}
 
-				$step['handler_slugs']   = array( 'universal_web_scraper' );
-				$step['handler_configs'] = array( 'universal_web_scraper' => $handler_config );
+				$handler_config          = \ExtraChillEvents\Core\EventSourceHandler::is_web( $source ) ? array_merge( $handler_config, $source['handler_config'] ) : $source['handler_config'];
+				$step['handler_slugs']   = array( $source['handler_slug'] );
+				$step['handler_configs'] = array( $source['handler_slug'] => $handler_config );
 			}
 
 			if ( 'upsert' === $step_type ) {
@@ -743,7 +765,7 @@ class VenueAddAbilities {
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
-						'post_status'                 => 'publish',
+						'post_status'                 => \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? 'draft' : 'publish',
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
 						'taxonomy_location_selection' => $location_term,
@@ -760,7 +782,7 @@ class VenueAddAbilities {
 				// taxonomy + scraper handler config); universal processing policy
 				// lives in the agent SOUL. A human only adds a prompt here when the
 				// venue has a genuine quirk worth a per-flow delta.
-				$step['user_message'] = '';
+				$step['user_message'] = \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY : '';
 			}
 		}
 		unset( $step );
