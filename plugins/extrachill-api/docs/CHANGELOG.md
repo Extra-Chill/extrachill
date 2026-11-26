@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.61.0] - 2026-11-26
+
+### Added
+- keyed partner-scoped venue events API for partner websites
+
 ## [0.60.0] - 2026-11-22
 
 ### Added
