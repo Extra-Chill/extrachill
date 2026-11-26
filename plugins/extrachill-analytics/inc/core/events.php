@@ -60,6 +60,14 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		? $visitor_id
 		: null;
 
+	// These server-owned outcomes carry the account verified by their owning
+	// workflow, before OAuth/email callbacks necessarily establish a session.
+	// Public browser writes cannot emit these event types.
+	$is_account_outcome = in_array( $event_type, array( EC_ANALYTICS_EVENT_USER_REGISTRATION, EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED ), true );
+	$outcome_user_id    = $is_account_outcome && isset( $event_data['user_id'] ) && is_numeric( $event_data['user_id'] )
+		? absint( $event_data['user_id'] ) : 0;
+	$verified_account   = $outcome_user_id > 0 && false !== get_user_by( 'id', $outcome_user_id );
+
 	// Stamp the canonical human/bot verdict on EVERY event at write time so all
 	// downstream readers filter on one trustworthy, consistent flag instead of
 	// each re-litigating the question (issue #57). This is the single source of
@@ -69,11 +77,14 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	// hasn't already supplied one, so an explicit upstream classification (none
 	// today) would still win. We pass the resolved cookie state so the verdict
 	// uses the same visitor_id the row is stored under.
-	if ( ! array_key_exists( 'is_bot', $event_data )
+	if ( ( $is_account_outcome || ! array_key_exists( 'is_bot', $event_data ) )
 		&& function_exists( 'extrachill_analytics_classify_request' )
 	) {
 		$verdict              = extrachill_analytics_classify_request(
-			array( 'has_visitor_cookie' => null !== $stored_visitor_id )
+			array(
+				'has_visitor_cookie' => null !== $stored_visitor_id,
+				'is_authenticated'   => $verified_account ? true : null,
+			)
 		);
 		$event_data['is_bot'] = (bool) $verdict['is_bot'];
 	}
@@ -89,6 +100,17 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		if ( '' !== $bot_reason ) {
 			$event_data['is_bot']     = true;
 			$event_data['bot_reason'] = $bot_reason;
+		}
+	}
+
+	// A rejected callback may have no cookie to attach persistent evidence to.
+	if ( $is_account_outcome ) {
+		if ( function_exists( 'extrachill_analytics_request_turnstile_rejected' ) && extrachill_analytics_request_turnstile_rejected() ) {
+			$event_data['is_bot']     = true;
+			$event_data['bot_reason'] = $event_data['bot_reason'] ?? 'turnstile_rejected';
+		}
+		if ( ! empty( $event_data['is_bot'] ) && empty( $event_data['bot_reason'] ) ) {
+			$event_data['bot_reason'] = 'unverified_account_context';
 		}
 	}
 
@@ -109,7 +131,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		$event_data['source'] = extrachill_analytics_classify_search_source( $source_url );
 	}
 
-	$current_user_id = get_current_user_id();
+	$current_user_id = $verified_account ? $outcome_user_id : get_current_user_id();
 
 	// The event table is the final trust boundary for every caller, including
 	// server-owned events that do not pass through the public ability adapter.
