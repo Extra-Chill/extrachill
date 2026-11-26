@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests
  */
 
-// phpcs:disable Universal.Namespaces.DisallowCurlyBraceSyntax.Forbidden, Universal.Namespaces.DisallowDeclarationWithoutName.Forbidden, Universal.Namespaces.OneDeclarationPerFile.MultipleFound, Universal.Files.SeparateFunctionsFromOO.Mixed, Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.CodeAnalysis.UnusedFunctionParameter, WordPress.WP.AlternativeFunctions, Squiz.Commenting, Generic.Commenting -- Standalone harness bundles WordPress stubs and test doubles across namespaces.
+// phpcs:disable Universal.Namespaces.DisallowCurlyBraceSyntax.Forbidden, Universal.Namespaces.DisallowDeclarationWithoutName.Forbidden, Universal.Namespaces.OneDeclarationPerFile.MultipleFound, Universal.Files.SeparateFunctionsFromOO.Mixed, Generic.Files.OneObjectStructurePerFile.MultipleFound, Generic.CodeAnalysis.UnusedFunctionParameter, WordPress.WP.AlternativeFunctions, Squiz.Commenting, Generic.Commenting, Generic.Classes.DuplicateClassName.Found -- Standalone harness bundles WordPress stubs and test doubles across namespaces.
 
 namespace {
 
