@@ -403,7 +403,7 @@ function ec_seo_order_event_artist_terms( array $terms, string $performer_name, 
 			continue;
 		}
 		$seen[ $key ] = true;
-		$ordered[]   = $item['term'];
+		$ordered[]    = $item['term'];
 	}
 	return $ordered;
 }
@@ -426,7 +426,10 @@ function ec_seo_resolve_event_performers( \WP_Post $post, array $attrs ): array 
 	$terms      = is_array( $terms ) ? ec_seo_order_event_artist_terms( $terms, $name, $post->post_title ) : array();
 	$performers = array();
 	foreach ( $terms as $term ) {
-		$entity = array( '@type' => $type, 'name' => $term->name );
+		$entity = array(
+			'@type' => $type,
+			'name'  => $term->name,
+		);
 		$url    = get_term_link( $term );
 		if ( ! is_wp_error( $url ) && '' !== $url ) {
 			$entity['url'] = $url;
@@ -437,7 +440,10 @@ function ec_seo_resolve_event_performers( \WP_Post $post, array $attrs ): array 
 	if ( ! empty( $performers ) ) {
 		return $performers;
 	}
-	return '' !== $name ? array( '@type' => $type, 'name' => $name ) : array();
+	return '' !== $name ? array(
+		'@type' => $type,
+		'name'  => $name,
+	) : array();
 }
 
 /**
