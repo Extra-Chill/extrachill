@@ -19,7 +19,18 @@ class MonorepoDeployTest(unittest.TestCase):
         attachments = components("deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json")
         members = {json.loads(m.read_text())["id"] for m in ROOT.glob("plugins/*/homeboy.json")}
         members |= {json.loads(m.read_text())["id"] for m in ROOT.glob("themes/*/homeboy.json")}
-        self.assertEqual({a["id"] for a in attachments}, members)
+        # Distribution-only members ship as release zips to partner sites and
+        # are deliberately never attached for deploy to the network.
+        distribution_only = {
+            c["id"]
+            for c in json.loads(
+                (ROOT / "deploy/homeboy/projects/extrachill-monorepo/distribution-only.json").read_text()
+            )["components"]
+        }
+        self.assertTrue(distribution_only <= members, "distribution-only ids must be monorepo members")
+        attached = {a["id"] for a in attachments}
+        self.assertFalse(attached & distribution_only, "a distribution-only member must never be deployed")
+        self.assertEqual(attached, members - distribution_only)
         self.assertFalse(poller & members, "the release poller must never deploy a monorepo member")
         registry = {p.stem for p in (ROOT / "deploy/homeboy/components").glob("*.json")}
         self.assertEqual(registry, poller)
