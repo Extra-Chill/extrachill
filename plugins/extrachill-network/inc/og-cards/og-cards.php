@@ -185,6 +185,6 @@ foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) a
 }
 add_action( 'set_object_terms', __NAMESPACE__ . '\\queue_card_generation', 20, 1 );
 
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( defined( 'WP_CLI' ) && wp_validate_boolean( constant( 'WP_CLI' ) ) ) {
 	require_once __DIR__ . '/backfill-command.php';
 }

@@ -31,12 +31,13 @@ namespace ExtraChillNetwork\OgCards;
 
 	if ( ! function_exists( 'datamachine_get_event_dates' ) ) {
 		\WP_CLI::error( 'Data Machine Events date API is required.' );
+		return;
 	}
 
 	$after = max( 0, (int) ( $assoc_args['after'] ?? 0 ) );
 	$limit = max( 1, min( 1000, (int) ( $assoc_args['limit'] ?? 100 ) ) );
 	// Keyset pagination keeps memory and query cost bounded across 30k+ events.
-	$ids = $wpdb->get_col( $wpdb->prepare(
+	$ids        = $wpdb->get_col( $wpdb->prepare(
 		"SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status = %s AND ID > %d ORDER BY ID ASC LIMIT %d",
 		'data_machine_events',
 		'publish',
@@ -45,9 +46,9 @@ namespace ExtraChillNetwork\OgCards;
 	) );
 	$candidates = 0;
 	foreach ( $ids as $id ) {
-		$after = (int) $id;
-		$dates = datamachine_get_event_dates( $after );
-		$end   = $dates ? ( $dates->end_datetime ?? $dates->start_datetime ?? '' ) : '';
+		$after    = (int) $id;
+		$dates    = datamachine_get_event_dates( $after );
+		$end      = $dates ? ( $dates->end_datetime ?? $dates->start_datetime ?? '' ) : '';
 		$end_time = $end ? date_create( $end, wp_timezone() ) : false;
 		if ( ! $end_time || $end_time->getTimestamp() < time() || has_post_thumbnail( $after ) ) {
 			continue;

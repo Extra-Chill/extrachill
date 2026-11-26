@@ -141,10 +141,6 @@ class OgCardGenerationTask extends SystemTask {
 			);
 		}
 
-		if ( ! is_callable( array( \DataMachine\Abilities\Media\ImageTemplateAbilities::class, 'renderTemplate' ) ) ) {
-			return array( 'error' => 'Data Machine image template renderer not available' );
-		}
-
 		// Trusted internal call to the same implementation the ability wraps.
 		// Do not bypass or weaken the public ability's permission callback.
 		$result = \DataMachine\Abilities\Media\ImageTemplateAbilities::renderTemplate(
