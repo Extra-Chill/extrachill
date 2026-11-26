@@ -16,6 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
 
+// Core sitemap classes are kept as fixtures so provider inheritance uses the real contract.
+require_once __DIR__ . '/Fixtures/class-wp-sitemaps-provider.php';
+require_once __DIR__ . '/Fixtures/class-wp-sitemaps-posts.php';
+
 // ---------------------------------------------------------------------------
 // WordPress function stubs.
 //
