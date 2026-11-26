@@ -554,7 +554,7 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		if ( ! in_array( $organizer_type, array( 'Organization', 'Person' ), true ) ) {
 			$organizer_type = 'Organization';
 		}
-		$organizer = array(
+		$organizer     = array(
 			'@type' => $organizer_type,
 			'name'  => $organizer_name,
 		);
@@ -562,8 +562,8 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		if ( '' === $organizer_url && is_array( $venue_data ) ) {
 			$normalized = ec_seo_normalize_venue_name( $organizer_name );
 			$term_name  = $venue_term instanceof \WP_Term ? $venue_term->name : '';
-			if ( '' !== $normalized && ( $normalized === ec_seo_normalize_venue_name( $venue_name )
-				|| $normalized === ec_seo_normalize_venue_name( $term_name ) ) ) {
+			if ( '' !== $normalized && ( ec_seo_normalize_venue_name( $venue_name ) === $normalized
+				|| ec_seo_normalize_venue_name( $term_name ) === $normalized ) ) {
 				$organizer_url = trim( (string) ( $venue_data['website'] ?? '' ) );
 			}
 		}
