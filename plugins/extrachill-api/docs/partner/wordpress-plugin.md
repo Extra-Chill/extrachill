@@ -14,11 +14,11 @@ One key connects one venue, so there is no venue picker. Ask the team to rotate 
 
 ## Install and connect
 
-1. Obtain the Extra Chill partner plugin ZIP from the Extra Chill team.
+1. Download `extrachill-partner.zip` from the [latest release](https://github.com/Extra-Chill/extrachill-partner/releases/latest) of [Extra-Chill/extrachill-partner](https://github.com/Extra-Chill/extrachill-partner).
 2. On your own site (WordPress 6.5+ and PHP 7.4+), open **Plugins → Add New Plugin → Upload Plugin**. Upload the ZIP, install it, and activate it.
 3. Open **Settings → Extra Chill**, paste the key, and save. The settings validate the key and show the connected venue name. The saved key is not displayed in full.
 
-This is a standalone plugin for partner sites; it does not require the Extra Chill network plugins.
+This is a standalone plugin for partner sites; it does not require the Extra Chill network plugins. Updates ship as new GitHub Releases of the same repository; upload the newer ZIP to update.
 
 ## Add upcoming events
 

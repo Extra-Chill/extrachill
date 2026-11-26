@@ -28,7 +28,7 @@ The [documentation map](docs/README.md) defines where user help, developer refer
 
 ## Deploy model
 
-This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). Members listed in `deploy/homeboy/projects/extrachill-monorepo/distribution-only.json` (e.g. `extrachill-partner`, installed on partner sites) are released but never deployed to the network. Rolling back means deploying an older commit.
+This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). Rolling back means deploying an older commit.
 
 ## Releases and changelogs
 
@@ -60,7 +60,6 @@ Generated from the network rig's activation matrix, which mirrors production. Ch
 | `extrachill-network` | `plugins/extrachill-network` | all sites (network-activated) |
 | `extrachill-news-wire` | `plugins/extrachill-news-wire` | wire.extrachill.com |
 | `extrachill-newsletter` | `plugins/extrachill-newsletter` | all sites (network-activated) |
-| `extrachill-partner` | `plugins/extrachill-partner` |  |
 | `extrachill-search` | `plugins/extrachill-search` | all sites (network-activated) |
 | `extrachill-seo` | `plugins/extrachill-seo` | all sites (network-activated) |
 | `extrachill-shop` | `plugins/extrachill-shop` | shop.extrachill.com |

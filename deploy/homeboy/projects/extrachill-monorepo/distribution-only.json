@@ -1,9 +1,0 @@
-{
-  "description": "Monorepo members that are released and distributed but never deployed to the Extra Chill network. They have no deploy attachment in extrachill-monorepo.json, so `homeboy deploy extrachill-monorepo` never installs them on the server.",
-  "components": [
-    {
-      "id": "extrachill-partner",
-      "reason": "Partner WordPress plugin installed on partner venue sites (e.g. lofibrewing.com), distributed through its component release zip. It must not be installed on the Extra Chill network."
-    }
-  ]
-}

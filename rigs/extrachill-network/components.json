@@ -50,7 +50,7 @@
   "plugins": [
     {
       "slug": "extrachill-partner",
-      "repo": "Extra-Chill/extrachill",
+      "repo": "Extra-Chill/extrachill-partner",
       "asset": "extrachill-partner.zip",
       "source": "github",
       "activations": [],
