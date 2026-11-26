@@ -1478,8 +1478,7 @@ class ArtistUrlImportAbilities {
 		}
 		$import_handler_config = $source['handler_config'];
 		if ( EventSourceHandler::is_social( $source ) ) {
-			$interval                             = 'daily';
-			$upsert_handler_config['post_status'] = 'draft';
+			$interval = 'daily';
 		}
 
 		$ai_message = EventSourceHandler::is_social( $source ) ? EventSourceHandler::EVENT_POLICY : sprintf(
@@ -1867,9 +1866,6 @@ class ArtistUrlImportAbilities {
 			'taxonomy_genre_selection'    => SelectionMode::SKIP,
 			'taxonomy_promoter_selection' => SelectionMode::SKIP,
 		);
-		if ( EventSourceHandler::is_social( $source ) ) {
-			$upsert_handler_config['post_status'] = 'draft';
-		}
 		if ( 'promoter' === ( $binding['taxonomy'] ?? '' ) ) {
 			$upsert_handler_config['taxonomy_promoter_selection'] = (string) $binding['term_id'];
 		}

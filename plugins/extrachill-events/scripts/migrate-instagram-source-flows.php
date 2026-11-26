@@ -37,10 +37,11 @@ foreach ( array(
 			$matches[] = $ec_term;
 		}
 	}
-	if ( 1 !== count( $matches ) ) {
-		WP_CLI::error( "{$name}: expected one canonical venue/promoter term." );
+	if ( count( $matches ) > 1 ) {
+		WP_CLI::warning( "{$name}: ambiguous venue/promoter term match; skipping flow {$flow_id}." );
+		continue;
 	}
-	$ec_term   = $matches[0];
+	$ec_term   = $matches[0] ?? null;
 	$config    = $flow['flow_config'];
 	$instagram = false;
 	foreach ( $config as $step ) {
@@ -49,7 +50,9 @@ foreach ( array(
 	if ( ! $instagram ) {
 		WP_CLI::error( "Flow {$flow_id} is not an Instagram flow." );
 	}
-	WP_CLI::log( "{$flow_id}: bind {$ec_term->taxonomy} {$ec_term->term_id}; replace copied flow user_message with events policy; draft; daily" );
+	$ec_manual  = 'manual' === ( $flow['scheduling_config']['interval'] ?? '' );
+	$ec_binding = $ec_term ? "bind {$ec_term->taxonomy} {$ec_term->term_id}" : 'no matching term (venue resolved by name)';
+	WP_CLI::log( "{$flow_id}: {$ec_binding}; replace copied flow user_message with events policy; publish; " . ( $ec_manual ? 'keep manual schedule' : 'daily' ) );
 	if ( ! $apply ) {
 		continue;
 	}
@@ -57,10 +60,10 @@ foreach ( array(
 		$input = array( 'flow_step_id' => (string) ( $step['flow_step_id'] ?? $ec_step_id ) );
 		if ( 'upsert' === ( $step['step_type'] ?? '' ) ) {
 			$upsert = $step['handler_configs']['upsert_event'] ?? array();
-			if ( 'promoter' === $ec_term->taxonomy ) {
+			if ( $ec_term && 'promoter' === $ec_term->taxonomy ) {
 				$upsert['taxonomy_promoter_selection'] = (string) $ec_term->term_id;
 			}
-			$upsert['post_status']   = 'draft';
+			$upsert['post_status']   = 'publish';
 			$input['handler_slug']   = 'upsert_event';
 			$input['handler_config'] = $upsert;
 		} elseif ( 'ai' === ( $step['step_type'] ?? '' ) ) {
@@ -73,7 +76,7 @@ foreach ( array(
 			WP_CLI::error( "Flow {$flow_id}: update failed; stop and inspect before retrying." );
 		}
 	}
-	if ( ! $gateway->update_scheduling( $flow_id, array_merge( $flow['scheduling_config'], array( 'interval' => 'daily' ) ) ) ) {
+	if ( ! $ec_manual && ! $gateway->update_scheduling( $flow_id, array_merge( $flow['scheduling_config'], array( 'interval' => 'daily' ) ) ) ) {
 		WP_CLI::error( "Flow {$flow_id}: scheduling failed." );
 	}
 }
