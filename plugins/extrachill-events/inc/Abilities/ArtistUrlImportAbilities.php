@@ -614,14 +614,14 @@ class ArtistUrlImportAbilities {
 			return $result;
 		}
 		$metadata = (array) ( $result['items'][0]['data']['metadata'] ?? array() );
-		$name = (string) ( $metadata['account_name'] ?? $source['handler_config']['username'] ?? '' );
-		$binding = array();
-		$kind = 'unknown';
+		$name     = (string) ( $metadata['account_name'] ?? $source['handler_config']['username'] ?? '' );
+		$binding  = array();
+		$kind     = 'unknown';
 		foreach ( array( 'venue', 'promoter', 'artist' ) as $taxonomy ) {
 			$term_id = $this->matchTerm( $name, $taxonomy );
 			if ( class_exists( '\\DataMachineEvents\\Core\\InstagramHandle' ) ) {
 				$handle = \DataMachineEvents\Core\InstagramHandle::normalize( (string) ( $source['handler_config']['username'] ?? '' ) );
-				$terms = is_wp_error( $handle ) || '' === $handle ? array() : get_terms(
+				$terms  = is_wp_error( $handle ) || '' === $handle ? array() : get_terms(
 					array(
 						'taxonomy'   => $taxonomy,
 						'hide_empty' => false,
@@ -637,43 +637,50 @@ class ArtistUrlImportAbilities {
 					foreach ( $terms as $term ) {
 						if ( \DataMachineEvents\Core\InstagramHandle::read( (int) $term->term_id, $taxonomy ) === $handle ) {
 							$term_id = (int) $term->term_id;
-							$name = $term->name;
+							$name    = $term->name;
 							break;
 						}
 					}
 				}
 			}
 			if ( $term_id ) {
-				$kind = $taxonomy;
-				$binding = array( 'taxonomy' => $taxonomy, 'term_id' => $term_id, 'name' => $name );
+				$kind    = $taxonomy;
+				$binding = array(
+					'taxonomy' => $taxonomy,
+					'term_id'  => $term_id,
+					'name'     => $name,
+				);
 				break;
 			}
 		}
 		$readable = ! empty( $result['success'] );
 		return array(
-			'success' => $readable,
-			'qualified' => $readable,
-			'canonical_events_url' => $url,
-			'source_identity_url' => ArtistUrlSubmissionsTable::normalize_url( $url ),
-			'verdict' => $readable ? 'qualified' : 'unreadable',
-			'events_found' => 0,
-			'events_preview' => array(),
-			'extraction_method' => $source['handler_slug'],
-			'detected_format' => $source['handler_slug'],
-			'source_kind' => $kind,
+			'success'                   => $readable,
+			'qualified'                 => $readable,
+			'canonical_events_url'      => $url,
+			'source_identity_url'       => ArtistUrlSubmissionsTable::normalize_url( $url ),
+			'verdict'                   => $readable ? 'qualified' : 'unreadable',
+			'events_found'              => 0,
+			'events_preview'            => array(),
+			'extraction_method'         => $source['handler_slug'],
+			'detected_format'           => $source['handler_slug'],
+			'source_kind'               => $kind,
 			'classification_confidence' => $binding ? 'high' : 'low',
-			'scope_evidence' => array( 'source_handler' => $source['handler_slug'] ),
-			'entity_candidates' => $binding ? array( $binding ) : array(),
-			'existing_coverage' => array( 'covered' => false, 'type' => 'none' ),
-			'warnings' => $binding ? array() : array( 'No canonical entity matches this account. Explicit review is required.' ),
-			'recommended_route' => $binding ? 'moderation' : 'explicit_review',
-			'recommended_binding' => $binding,
-			'recurring_eligible' => $readable && ! empty( $binding ),
-			'source_metadata' => $metadata,
-			'suggested_artist_name' => 'artist' === $kind ? $name : '',
-			'suggested_artist_term_id' => 'artist' === $kind ? $binding['term_id'] : null,
-			'handler_slug' => $source['handler_slug'],
-			'handler_config' => $source['handler_config'],
+			'scope_evidence'            => array( 'source_handler' => $source['handler_slug'] ),
+			'entity_candidates'         => $binding ? array( $binding ) : array(),
+			'existing_coverage'         => array(
+				'covered' => false,
+				'type'    => 'none',
+			),
+			'warnings'                  => $binding ? array() : array( 'No canonical entity matches this account. Explicit review is required.' ),
+			'recommended_route'         => $binding ? 'moderation' : 'explicit_review',
+			'recommended_binding'       => $binding,
+			'recurring_eligible'        => $readable && ! empty( $binding ),
+			'source_metadata'           => $metadata,
+			'suggested_artist_name'     => 'artist' === $kind ? $name : '',
+			'suggested_artist_term_id'  => 'artist' === $kind ? $binding['term_id'] : null,
+			'handler_slug'              => $source['handler_slug'],
+			'handler_config'            => $source['handler_config'],
 		);
 	}
 
@@ -1471,7 +1478,7 @@ class ArtistUrlImportAbilities {
 		}
 		$import_handler_config = $source['handler_config'];
 		if ( EventSourceHandler::is_social( $source ) ) {
-			$interval = 'daily';
+			$interval                             = 'daily';
 			$upsert_handler_config['post_status'] = 'draft';
 		}
 

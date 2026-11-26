@@ -10,15 +10,28 @@ class EventSourceHandler {
 	public static function resolve( string $url ) {
 		$gateway = new DataMachineFlowGateway();
 		if ( $gateway->is_available( 'datamachine/resolve-source-url' ) ) {
-			$result = DataMachineFlowGateway::execute( 'datamachine/resolve-source-url', array( 'url' => $url, 'step_type' => 'event_import' ) );
+			$result = DataMachineFlowGateway::execute( 'datamachine/resolve-source-url', array(
+				'url'       => $url,
+				'step_type' => 'event_import',
+			) );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 			if ( ! empty( $result['handler_slug'] ) ) {
-				return array( 'handler_slug' => $result['handler_slug'], 'handler_config' => (array) ( $result['handler_config'] ?? array() ) );
+				return array(
+					'handler_slug'   => $result['handler_slug'],
+					'handler_config' => (array) ( $result['handler_config'] ?? array() ),
+				);
 			}
 		}
-		return array( 'handler_slug' => self::FALLBACK_HANDLER, 'handler_config' => array( 'source_url' => $url, 'search' => '', 'exclude_keywords' => '' ) );
+		return array(
+			'handler_slug'   => self::FALLBACK_HANDLER,
+			'handler_config' => array(
+				'source_url'       => $url,
+				'search'           => '',
+				'exclude_keywords' => '',
+			),
+		);
 	}
 
 	public static function is_web( array $source ): bool {

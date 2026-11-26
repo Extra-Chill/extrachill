@@ -64,53 +64,53 @@ class VenueAddAbilities {
 						'type'       => 'object',
 						'required'   => array( 'name', 'url' ),
 						'properties' => array(
-							'handler_slug' => array( 'type' => 'string' ),
+							'handler_slug'   => array( 'type' => 'string' ),
 							'handler_config' => array( 'type' => 'object' ),
-							'pipeline_id'   => array(
+							'pipeline_id'    => array(
 								'type'        => 'integer',
 								'description' => 'Pipeline ID for the city this venue belongs to. Optional when location is given; disambiguates a city with more than one pipeline. One of pipeline_id or location is required.',
 							),
-							'location'      => array(
+							'location'       => array(
 								'type'        => array( 'integer', 'string' ),
 								'description' => 'City this venue belongs to: location term ID, slug, or exact name (e.g. "Charleston"). Resolves the city event pipeline when pipeline_id is omitted. One of pipeline_id or location is required.',
 							),
-							'name'          => array(
+							'name'           => array(
 								'type'        => 'string',
 								'description' => 'Venue name, e.g. "Exit/In" or "The Station Inn".',
 							),
-							'venue_term_id' => array(
+							'venue_term_id'  => array(
 								'type'        => 'integer',
 								'description' => 'Existing canonical venue term ID. Optional; prevents name-based duplication for known venues.',
 							),
-							'url'           => array(
+							'url'            => array(
 								'type'        => 'string',
 								'description' => 'Venue events page URL (the page the scraper will hit).',
 							),
-							'address'       => array(
+							'address'        => array(
 								'type'        => 'string',
 								'description' => 'Venue street address. Optional — used for geocoding.',
 							),
-							'city'          => array(
+							'city'           => array(
 								'type'        => 'string',
 								'description' => 'Venue city name. Optional — derived from pipeline if not provided.',
 							),
-							'state'         => array(
+							'state'          => array(
 								'type'        => 'string',
 								'description' => 'Venue state. Optional.',
 							),
-							'zip'           => array(
+							'zip'            => array(
 								'type'        => 'string',
 								'description' => 'Venue zip code. Optional.',
 							),
-							'website'       => array(
+							'website'        => array(
 								'type'        => 'string',
 								'description' => 'Venue homepage URL (may differ from events page URL). Optional.',
 							),
-							'interval'      => array(
+							'interval'       => array(
 								'type'        => 'string',
 								'description' => 'Scheduling interval. Defaults to "daily".',
 							),
-							'dry_run'       => array(
+							'dry_run'        => array(
 								'type'        => 'boolean',
 								'description' => 'Preview what would be created without making changes.',
 							),
@@ -173,7 +173,10 @@ class VenueAddAbilities {
 		}
 
 		$source = ! empty( $input['handler_slug'] )
-			? array( 'handler_slug' => sanitize_key( $input['handler_slug'] ), 'handler_config' => (array) ( $input['handler_config'] ?? array() ) )
+			? array(
+				'handler_slug'   => sanitize_key( $input['handler_slug'] ),
+				'handler_config' => (array) ( $input['handler_config'] ?? array() ),
+			)
 			: \ExtraChillEvents\Core\EventSourceHandler::resolve( $url );
 		if ( is_wp_error( $source ) ) {
 			return $source;
@@ -750,7 +753,7 @@ class VenueAddAbilities {
 					$handler_config['venue_website'] = $website;
 				}
 
-				$handler_config = \ExtraChillEvents\Core\EventSourceHandler::is_web( $source ) ? array_merge( $handler_config, $source['handler_config'] ) : $source['handler_config'];
+				$handler_config          = \ExtraChillEvents\Core\EventSourceHandler::is_web( $source ) ? array_merge( $handler_config, $source['handler_config'] ) : $source['handler_config'];
 				$step['handler_slugs']   = array( $source['handler_slug'] );
 				$step['handler_configs'] = array( $source['handler_slug'] => $handler_config );
 			}
