@@ -603,7 +603,7 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$this->assertFalse( $GLOBALS['venue_add_test']['as_system'] ?? false, 'Elevation is scoped to each Data Machine call.' );
 	}
 
-	public function test_events_staff_can_create_daily_instagram_draft_flow(): void {
+	public function test_events_staff_can_create_daily_instagram_publishing_flow(): void {
 		$GLOBALS['venue_add_test']['instagram_resolver'] = true;
 		$GLOBALS['venue_add_test']['role'] = 'extra_chill_team';
 		$data_machine = new VenueAddTestDataMachine();
@@ -619,7 +619,7 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$this->assertSame( 'daily', $result['interval'] );
 		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
 		$this->assertSame( array( 'username' => 'hedhi' ), $config['event_import']['handler_configs']['instagram_account'] );
-		$this->assertSame( 'draft', $config['upsert']['handler_configs']['upsert_event']['post_status'] );
+		$this->assertSame( 'publish', $config['upsert']['handler_configs']['upsert_event']['post_status'] );
 		$this->assertArrayNotHasKey( 'taxonomy_venue_selection', $config['upsert']['handler_configs']['upsert_event'] );
 		$this->assertSame( \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY, $config['ai']['user_message'] );
 		$this->assertArrayNotHasKey( 'datamachine/update-step-configuration', $data_machine->calls );

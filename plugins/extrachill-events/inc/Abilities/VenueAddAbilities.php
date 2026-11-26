@@ -765,7 +765,7 @@ class VenueAddAbilities {
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
-						'post_status'                 => \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? 'draft' : 'publish',
+						'post_status'                 => 'publish',
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
 						'taxonomy_location_selection' => $location_term,
