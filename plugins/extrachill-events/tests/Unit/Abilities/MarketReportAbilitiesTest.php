@@ -145,7 +145,47 @@ final class MarketReportAbilitiesTest extends \BookingTestCase {
 		$this->assertSame( 1255.0, $this->invoke( 'calculateOpportunityScore', 10, 0, array( 'venue_scrapers' => 1 ), $ga, $gsc ) );
 	}
 
-	/** Queries request both sources at the long-tail limit. */
+	/** Empty regional parents are excluded, but empty leaf cities remain. */
+	public function test_excludes_zero_event_regions_even_with_slug_filter(): void {
+		$GLOBALS['market_test_terms'] = array(
+			(object) array( 'term_id' => 1, 'parent' => 0, 'slug' => 'world', 'count' => 0 ),
+			(object) array( 'term_id' => 2, 'parent' => 1, 'slug' => 'usa', 'count' => 0 ),
+			(object) array( 'term_id' => 3, 'parent' => 2, 'slug' => 'california', 'count' => 0 ),
+			(object) array( 'term_id' => 4, 'parent' => 3, 'slug' => 'los-angeles', 'count' => 10 ),
+			(object) array( 'term_id' => 5, 'parent' => 3, 'slug' => 'empty-city', 'count' => 0 ),
+		);
+		try {
+			$this->assertSame( array( 'los-angeles', 'empty-city' ), array_values( array_map( fn( $t ) => $t->slug, $this->invoke( 'getLocations', null ) ) ) );
+			$this->assertSame( array(), $this->invoke( 'getLocations', 'california' ) );
+		} finally {
+			unset( $GLOBALS['market_test_terms'] );
+		}
+	}
+
+	/** Failed sub-calls expose coverage and unknown metrics, not zeroes. */
+	public function test_failed_request_is_unavailable(): void {
+		$ability = new class() {
+			public function get_input_schema() {
+				return array( 'properties' => array( 'limit' => array( 'maximum' => 500 ) ) );
+			}
+			public function execute( $args ) {
+				return '/location/' === $args['page_filter']
+					? new \WP_Error( 'ga_failed', 'GA unavailable.' )
+					: array( 'success' => true, 'results' => array() );
+			}
+		};
+		$GLOBALS['ec_test_ability_resolver'] = static fn() => $ability;
+		$rows = $this->invoke( 'getDemandRows', 28, false );
+		$this->assertSame( 'unavailable', $rows['coverage']['archive']['status'] );
+		$this->assertSame( 'GA unavailable.', $rows['coverage']['archive']['message'] );
+		$this->assertSame( 'available', $rows['coverage']['events']['status'] );
+		$data = $this->invoke( 'applyCoverage', $this->invoke( 'emptyDemand', false ), $rows['coverage'] );
+		$this->assertNull( $data['sessions'] );
+		$this->assertNull( $data['archive']['sessions'] );
+		$this->assertSame( 0, $data['events']['sessions'] );
+	}
+
+	/** Queries request both sources at the declared limit. */
 	public function test_fetches_archive_and_event_pages(): void {
 		$calls                               = array();
 		$ability                             = new class( $calls ) {
@@ -153,7 +193,13 @@ final class MarketReportAbilitiesTest extends \BookingTestCase {
 			public function __construct( &$calls ) {
 				$this->calls =& $calls;
 			}
+			public function get_input_schema() {
+				return array( 'properties' => array( 'limit' => array( 'maximum' => 10000 ) ) );
+			}
 			public function execute( $args ) {
+				if ( $args['limit'] > 10000 ) {
+					return new \WP_Error( 'invalid_limit', 'Limit exceeds maximum.' );
+				}
 				$this->calls[] = $args;
 				return array(
 					'success' => true,
@@ -167,7 +213,7 @@ final class MarketReportAbilitiesTest extends \BookingTestCase {
 		$this->assertCount( 4, $calls );
 		$this->assertSame( 'events.extrachill.com/events/', $calls[1]['url_filter'] );
 		$this->assertSame( '/events/', $calls[3]['page_filter'] );
-		$this->assertSame( array( 25000, 25000, 25000, 25000 ), array_column( $calls, 'limit' ) );
+		$this->assertSame( array( 10000, 10000, 10000, 10000 ), array_column( $calls, 'limit' ) );
 		$this->assertSame( '/events/show/', $rows['events'][0]['path'] );
 	}
 }
