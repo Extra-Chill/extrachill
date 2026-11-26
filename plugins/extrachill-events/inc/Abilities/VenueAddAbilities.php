@@ -763,7 +763,6 @@ class VenueAddAbilities {
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
 						'post_status'                 => \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? 'draft' : 'publish',
-						'taxonomy_venue_selection'     => (string) $venue_term_id,
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
 						'taxonomy_location_selection' => $location_term,
@@ -780,7 +779,7 @@ class VenueAddAbilities {
 				// taxonomy + scraper handler config); universal processing policy
 				// lives in the agent SOUL. A human only adds a prompt here when the
 				// venue has a genuine quirk worth a per-flow delta.
-				$step['user_message'] = '';
+				$step['user_message'] = \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY : '';
 			}
 		}
 		unset( $step );

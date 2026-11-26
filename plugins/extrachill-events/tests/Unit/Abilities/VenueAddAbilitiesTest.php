@@ -209,7 +209,7 @@ final class VenueAddTestWpdb {
  */
 final class VenueAddTestDataMachine {
 	/** Fields upsert_event declares (venue/category/post_tag are excluded upstream). */
-	private const UPSERT_EVENT_FIELDS = array( 'post_status', 'include_images', 'post_author', 'taxonomy_location_selection', 'taxonomy_festival_selection', 'taxonomy_artist_selection', 'taxonomy_promoter_selection', 'taxonomy_genre_selection', 'taxonomy_venue_selection' );
+	private const UPSERT_EVENT_FIELDS = array( 'post_status', 'include_images', 'post_author', 'taxonomy_location_selection', 'taxonomy_festival_selection', 'taxonomy_artist_selection', 'taxonomy_promoter_selection', 'taxonomy_genre_selection' );
 
 	/** @var array<string,array> */
 	public $calls = array();
@@ -598,6 +598,7 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$this->assertTrue( $config['upsert']['enabled'] );
 		$this->assertSame( '', $config['ai']['user_message'] );
 		$this->assertCount( 3, $data_machine->calls['datamachine/update-flow-step'] );
+		$this->assertArrayNotHasKey( 'datamachine/update-step-configuration', $data_machine->calls );
 		$this->assertSame( array(), $this->wpdb->updates );
 		$this->assertFalse( $GLOBALS['venue_add_test']['as_system'] ?? false, 'Elevation is scoped to each Data Machine call.' );
 	}
@@ -619,8 +620,9 @@ final class VenueAddAbilitiesTest extends TestCase {
 		$config = VenueAddTestDataMachine::steps( $result['flow_id'] );
 		$this->assertSame( array( 'username' => 'hedhi' ), $config['event_import']['handler_configs']['instagram_account'] );
 		$this->assertSame( 'draft', $config['upsert']['handler_configs']['upsert_event']['post_status'] );
-		$this->assertSame( '77', $config['upsert']['handler_configs']['upsert_event']['taxonomy_venue_selection'] );
-		$this->assertSame( '', $config['ai']['user_message'] );
+		$this->assertArrayNotHasKey( 'taxonomy_venue_selection', $config['upsert']['handler_configs']['upsert_event'] );
+		$this->assertSame( \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY, $config['ai']['user_message'] );
+		$this->assertArrayNotHasKey( 'datamachine/update-step-configuration', $data_machine->calls );
 	}
 
 	public function test_unreadable_instagram_has_clear_verdict(): void {

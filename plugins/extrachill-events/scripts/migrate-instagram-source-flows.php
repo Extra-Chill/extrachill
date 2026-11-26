@@ -17,7 +17,7 @@ $apply = in_array( 'apply', $args ?? array(), true );
 $gateway = new DataMachineFlowGateway();
 $handlers = apply_filters( 'datamachine_handlers', array(), 'event_import' );
 if ( $apply && empty( $handlers['instagram_account']['ai_guidance'] ) && empty( $handlers['instagram_account']['meta']['ai_guidance'] ) ) {
-	WP_CLI::error( 'Deploy Instagram handler AI guidance before clearing flow prompts.' );
+	WP_CLI::error( 'Deploy Instagram handler AI guidance before replacing flow prompts.' );
 }
 
 foreach ( array( 902 => 'Grooving Violation', 903 => 'The Purple Buffalo', 908 => 'Kulture Klash', 909 => 'Mercantile and Mash' ) as $flow_id => $name ) {
@@ -44,47 +44,22 @@ foreach ( array( 902 => 'Grooving Violation', 903 => 'The Purple Buffalo', 908 =
 	if ( ! $instagram ) {
 		WP_CLI::error( "Flow {$flow_id} is not an Instagram flow." );
 	}
-	WP_CLI::log( "{$flow_id}: bind {$term->taxonomy} {$term->term_id}; clear copied prompts; draft; daily" );
+	WP_CLI::log( "{$flow_id}: bind {$term->taxonomy} {$term->term_id}; replace copied flow user_message with events policy; draft; daily" );
 	if ( ! $apply ) {
 		continue;
-	}
-	$description = $gateway->describe_pipeline( array( 'pipeline_id' => $flow['pipeline_id'] ) );
-	if ( is_wp_error( $description ) || empty( $description['pipeline'] ) ) {
-		WP_CLI::error( 'Cannot read pipeline prompt; no prompts cleared.' );
-	}
-	$pipeline = $description['pipeline'];
-	$prompt = '';
-	foreach ( $pipeline['pipeline_config'] ?? array() as $pipeline_step ) {
-		if ( 'ai' === ( $pipeline_step['step_type'] ?? '' ) ) {
-			$prompt = (string) ( $pipeline_step['system_prompt'] ?? '' );
-		}
-	}
-	if ( false === strpos( $prompt, EventSourceHandler::EVENT_POLICY ) ) {
-		$updated = $gateway->update_step_configuration( array(
-			'target' => 'pipeline',
-			'pipeline_id' => $flow['pipeline_id'],
-			'step_type' => 'ai',
-			'expected_revision' => (string) ( $pipeline['revision'] ?? '' ),
-			'configuration' => array( 'system_prompt' => $prompt . "\n\n" . EventSourceHandler::EVENT_POLICY ),
-		) );
-		if ( is_wp_error( $updated ) || empty( $updated['success'] ) ) {
-			WP_CLI::error( 'Cannot install canonical events policy; no prompts cleared.' );
-		}
 	}
 	foreach ( $config as $id => $step ) {
 		$input = array( 'flow_step_id' => (string) ( $step['flow_step_id'] ?? $id ) );
 		if ( 'upsert' === ( $step['step_type'] ?? '' ) ) {
 			$upsert = $step['handler_configs']['upsert_event'] ?? array();
-			$upsert[ 'taxonomy_' . $term->taxonomy . '_selection' ] = (string) $term->term_id;
+			if ( 'promoter' === $term->taxonomy ) {
+				$upsert['taxonomy_promoter_selection'] = (string) $term->term_id;
+			}
 			$upsert['post_status'] = 'draft';
 			$input['handler_slug'] = 'upsert_event';
 			$input['handler_config'] = $upsert;
 		} elseif ( 'ai' === ( $step['step_type'] ?? '' ) ) {
-			$input['user_message'] = '';
-			$cleared = DataMachineFlowGateway::execute( 'datamachine/queue-clear', array( 'flow_id' => $flow_id, 'flow_step_id' => $input['flow_step_id'] ) );
-			if ( is_wp_error( $cleared ) || empty( $cleared['success'] ) ) {
-				WP_CLI::error( "Flow {$flow_id}: queue clear failed." );
-			}
+			$input['user_message'] = EventSourceHandler::EVENT_POLICY;
 		} else {
 			continue;
 		}
@@ -97,4 +72,4 @@ foreach ( array( 902 => 'Grooving Violation', 903 => 'The Purple Buffalo', 908 =
 		WP_CLI::error( "Flow {$flow_id}: scheduling failed." );
 	}
 }
-WP_CLI::success( $apply ? 'Migration applied.' : 'Dry run only; pass apply after deploying handler guidance and canonical events policy.' );
+WP_CLI::success( $apply ? 'Migration applied.' : 'Dry run only; pass apply after deploying handler guidance.' );

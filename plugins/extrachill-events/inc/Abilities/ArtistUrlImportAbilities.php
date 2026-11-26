@@ -621,7 +621,18 @@ class ArtistUrlImportAbilities {
 			$term_id = $this->matchTerm( $name, $taxonomy );
 			if ( class_exists( '\\DataMachineEvents\\Core\\InstagramHandle' ) ) {
 				$handle = \DataMachineEvents\Core\InstagramHandle::normalize( (string) ( $source['handler_config']['username'] ?? '' ) );
-				$terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
+				$terms = is_wp_error( $handle ) || '' === $handle ? array() : get_terms(
+					array(
+						'taxonomy'   => $taxonomy,
+						'hide_empty' => false,
+						'meta_query' => array(
+							array(
+								'key'   => 'venue' === $taxonomy ? '_venue_instagram' : 'instagram',
+								'value' => $handle,
+							),
+						),
+					)
+				);
 				if ( ! is_wp_error( $terms ) && ! is_wp_error( $handle ) && '' !== $handle ) {
 					foreach ( $terms as $term ) {
 						if ( \DataMachineEvents\Core\InstagramHandle::read( (int) $term->term_id, $taxonomy ) === $handle ) {
@@ -1464,7 +1475,11 @@ class ArtistUrlImportAbilities {
 			$upsert_handler_config['post_status'] = 'draft';
 		}
 
-		$ai_message = '';
+		$ai_message = EventSourceHandler::is_social( $source ) ? EventSourceHandler::EVENT_POLICY : sprintf(
+			/* translators: %s: artist name */
+			__( 'Process this event from %s\'s tour page. The artist is already known and pre-selected. Identify the venue, city, and festival (if any) at extraction time.', 'extrachill-events' ),
+			$artist_name
+		);
 
 		$flow_input = array(
 			'pipeline_id'       => $pipeline_id,
@@ -1509,7 +1524,7 @@ class ArtistUrlImportAbilities {
 			$flow_id,
 			$import_handler_config,
 			$upsert_handler_config,
-			'',
+			$ai_message,
 			$source['handler_slug']
 		);
 		if ( $configured instanceof \WP_Error ) {
@@ -1851,7 +1866,11 @@ class ArtistUrlImportAbilities {
 		if ( 'promoter' === ( $binding['taxonomy'] ?? '' ) ) {
 			$upsert_handler_config['taxonomy_promoter_selection'] = (string) $binding['term_id'];
 		}
-		$ai_message = '';
+		$ai_message = EventSourceHandler::is_social( $source ) ? EventSourceHandler::EVENT_POLICY : sprintf(
+			/* translators: %s: listings source name */
+			__( 'Process this event from %s, a regional listings source covering many venues. No venue or city is pre-selected: identify the venue, city, performing artist(s), and festival (if any) from the event data.', 'extrachill-events' ),
+			$source_name
+		);
 
 		$flow_input = array(
 			'pipeline_id'       => $pipeline_id,
@@ -1887,7 +1906,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		$flow_id    = (int) $flow_result['flow_id'];
-		$configured = $this->configureFlowSteps( $pipeline_id, $flow_id, $import_handler_config, $upsert_handler_config, '', $source['handler_slug'] );
+		$configured = $this->configureFlowSteps( $pipeline_id, $flow_id, $import_handler_config, $upsert_handler_config, $ai_message, $source['handler_slug'] );
 		if ( $configured instanceof \WP_Error ) {
 			return $configured;
 		}
@@ -2602,7 +2621,7 @@ class ArtistUrlImportAbilities {
 				'pipeline_id'       => $pipeline_id,
 				'step_type'         => 'ai',
 				'expected_revision' => (string) ( $configuration['pipeline']['revision'] ?? '' ),
-				'configuration'     => array( 'system_prompt' => $prompt . "\n\n" . EventSourceHandler::EVENT_POLICY ),
+				'configuration'     => array( 'system_prompt' => $prompt ),
 			)
 		);
 	}

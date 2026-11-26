@@ -1683,6 +1683,25 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertSame( "Mo's Place Radio — Listings", $abilities['datamachine/create-flow']->calls[0]['flow_name'] );
 	}
 
+	public function test_artist_web_flow_keeps_message_without_updating_shared_pipeline(): void {
+		$this->wpdb->submissions[1] = $this->pending_submission( 'artist' );
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$abilities = $this->artist_flow_abilities( new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) ) );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeApprove( array( 'submission_id' => 1 ) );
+
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$flow = $abilities['datamachine/create-flow']->calls[0];
+		$message = $flow['step_configs']['ai']['user_message'];
+		$this->assertStringContainsString( 'The artist is already known and pre-selected.', $message );
+		$this->assertStringContainsString( 'tour page.', $message );
+		$updates = $abilities['datamachine/update-step-configuration']->calls;
+		$this->assertSame( array( 'flow', 'flow', 'flow' ), array_column( $updates, 'target' ) );
+		$this->assertSame( $message, $updates[2]['configuration']['user_message'] );
+	}
+
 	public function test_artist_shared_pipeline_creation_keeps_artist_prompt(): void {
 		$this->wpdb->submissions[1] = $this->pending_submission( 'artist' );
 		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
