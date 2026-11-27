@@ -19,11 +19,13 @@ final class ManagedVenueVoicesRestTest extends WP_UnitTestCase {
 	private int $member_user_id;
 	private int $venue_term_id;
 	private string $venue_url;
+	private int $original_blog_id;
 
 	/** Create one active canonical venue membership on the Events site. */
 	public function set_up(): void {
 		parent::set_up();
 
+		$this->original_blog_id = get_current_blog_id();
 		$this->member_user_id = self::factory()->user->create();
 		switch_to_blog( 7 );
 		try {
@@ -48,7 +50,7 @@ final class ManagedVenueVoicesRestTest extends WP_UnitTestCase {
 					TeamMembershipRepository::table(),
 					array(
 						'team_type'          => 'venue',
-						'team_term_id'       => $this->venue_term_id,
+						'team_id'            => $this->venue_term_id,
 						'user_id'            => $this->member_user_id,
 						'is_owner'           => 0,
 						'status'             => 'active',
@@ -97,6 +99,6 @@ final class ManagedVenueVoicesRestTest extends WP_UnitTestCase {
 			),
 			$authenticated->get_data()
 		);
-		$this->assertSame( 1, get_current_blog_id() );
+		$this->assertSame( $this->original_blog_id, get_current_blog_id() );
 	}
 }
