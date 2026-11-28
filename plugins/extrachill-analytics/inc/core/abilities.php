@@ -169,6 +169,8 @@ function extrachill_analytics_ability_track_event( $input ) {
 				array(
 					'has_visitor_cookie' => '' !== $visitor_id,
 					'request_origin'     => 'web',
+					'allow_cookieless'   => function_exists( 'extrachill_analytics_visitor_opted_out' )
+						&& extrachill_analytics_visitor_opted_out(),
 				)
 			);
 			$event_data['is_bot'] = (bool) $verdict['is_bot'];
