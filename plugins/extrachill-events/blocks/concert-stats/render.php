@@ -223,7 +223,7 @@ $wrapper_attributes = get_block_wrapper_attributes(
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped via get_block_wrapper_attributes. ?>>
 	<div
 		class="ec-concert-stats"
-		data-user-id="<?php echo esc_attr( $user_id ); ?>"
+		data-user-id="<?php echo esc_attr( (string) $user_id ); ?>"
 		data-events-url="<?php echo esc_attr( $events_url ); ?>"
 		data-docs-help-url="<?php echo esc_url( extrachill_events_docs_url( 'getting-started-with-my-shows' ) ); ?>"
 		data-docs-import-url="<?php echo esc_url( extrachill_events_docs_url( 'importing-concert-history' ) ); ?>"

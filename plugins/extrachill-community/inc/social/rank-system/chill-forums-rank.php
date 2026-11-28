@@ -36,7 +36,7 @@ function extrachill_add_rank_and_points_to_reply( $user_id = 0 ) {
 	echo '</div>';
 
 	echo '<div class="reply-author-points">';
-	echo '<span>Points:</span> ' . esc_html( extrachill_display_user_points( $reply_author_id ) );
+	echo '<span>Points:</span> ' . esc_html( (string) extrachill_display_user_points( $reply_author_id ) );
 	echo '</div>';
 
 	echo '</div>';

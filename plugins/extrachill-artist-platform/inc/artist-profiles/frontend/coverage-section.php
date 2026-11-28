@@ -71,7 +71,7 @@ if ( ! defined( 'EC_ARTIST_COVERAGE_CARD_LIMIT' ) ) {
  * companion extrachill-multisite PR deletes its profile Coverage registration,
  * after which this unhook is dead code to remove.
  *
- * @param array[] $sections       Registered sections.
+ * @param mixed   $sections       Registered sections (array[] expected; earlier filter callbacks are untrusted).
  * @param int     $artist_id      Artist profile post ID.
  * @param int     $artist_term_id Bound main-blog `artist` term_id.
  * @return array[]

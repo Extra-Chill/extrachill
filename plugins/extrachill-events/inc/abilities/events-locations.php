@@ -111,8 +111,9 @@ function extrachill_events_ability_locations( array $input ): array|\WP_Error {
 	}
 
 	$switched = get_current_blog_id() !== $events_blog_id;
-	if ( $switched && ! switch_to_blog( $events_blog_id ) ) {
-		return new \WP_Error( 'events_site_unavailable', __( 'The canonical Events site is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
+	if ( $switched ) {
+		// switch_to_blog() always returns true; site existence was checked above.
+		switch_to_blog( $events_blog_id );
 	}
 
 	try {
@@ -170,7 +171,7 @@ function extrachill_events_ability_locations( array $input ): array|\WP_Error {
 		}
 
 		$term     = get_term_by( 'slug', $slug, 'location' );
-		$location = $term && ! is_wp_error( $term ) ? extrachill_events_prepare_canonical_location( $term ) : null;
+		$location = $term ? extrachill_events_prepare_canonical_location( $term ) : null;
 		if ( null === $location ) {
 			return new \WP_Error( 'location_not_found', __( 'No selectable canonical event location matched that slug.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}

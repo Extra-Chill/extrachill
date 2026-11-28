@@ -1,5 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { createElement } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+/**
+ * Internal dependencies
+ */
 import {
 	getArtist,
 	getLinks,

@@ -1,5 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { __ } from '@wordpress/i18n';
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+/**
+ * External dependencies
+ */
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { render } from '@wordpress/element';
 import {
 	ActionRow,
@@ -15,6 +21,9 @@ import {
 	PanelHeader,
 	ResponsiveTabs,
 } from '@extrachill/components';
+/**
+ * Internal dependencies
+ */
 import {
 	getArtist,
 	updateArtist,
@@ -55,19 +64,21 @@ const useDebounce = (value, delay) => {
 };
 
 const useConfig = () => {
-	const config = window.ecArtistManagerConfig || {};
 	return useMemo(
-		() => ({
-			restUrl: config.restUrl,
-			nonce: config.nonce,
-			userArtists: Array.isArray(config.userArtists) ? config.userArtists : [],
-			selectedId: config.selectedId || 0,
-			artistSiteUrl: config.artistSiteUrl || '',
-			eventsSubmitUrl: config.eventsSubmitUrl || '',
-			qrCodesUrl: config.qrCodesUrl || '',
-			assets: config.assets || {},
-		}),
-		[ config ]
+		() => {
+			const config = window.ecArtistManagerConfig || {};
+			return {
+				restUrl: config.restUrl,
+				nonce: config.nonce,
+				userArtists: Array.isArray(config.userArtists) ? config.userArtists : [],
+				selectedId: config.selectedId || 0,
+				artistSiteUrl: config.artistSiteUrl || '',
+				eventsSubmitUrl: config.eventsSubmitUrl || '',
+				qrCodesUrl: config.qrCodesUrl || '',
+				assets: config.assets || {},
+			};
+		},
+		[]
 	);
 };
 
@@ -133,7 +144,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 							accept="image/*"
 							onChange={(e) => {
 								const file = e.target.files?.[0];
-								if (file) handleFileUpload(file, 'profile');
+								if (file) {handleFileUpload(file, 'profile');}
 							}}
 						/>
 						{formState.profileImage && (
@@ -156,7 +167,7 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 							accept="image/*"
 							onChange={(e) => {
 								const file = e.target.files?.[0];
-								if (file) handleFileUpload(file, 'header');
+								if (file) {handleFileUpload(file, 'header');}
 							}}
 						/>
 						{formState.headerImage && (
@@ -230,7 +241,7 @@ const ManagersTab = ({ artistId }) => {
 			setRoster(Array.isArray(data.members) ? data.members : []);
 			setInvites(Array.isArray(data.invites) ? data.invites : []);
 			setError('');
-		} catch (err) {
+		} catch {
 			setError('Could not load managers.');
 		} finally {
 			setLoading(false);
@@ -258,7 +269,7 @@ const ManagersTab = ({ artistId }) => {
 				const results = await searchArtistCapableUsers(debouncedSearch, artistId);
 				setSearchResults(Array.isArray(results) ? results : []);
 				setShowDropdown(true);
-			} catch (err) {
+			} catch {
 				setSearchResults([]);
 			} finally {
 				setSearching(false);
@@ -446,7 +457,7 @@ const SubscribersTab = ({ artistId }) => {
 			setTotal(data.total || 0);
 			setPage(nextPage);
 			setError('');
-		} catch (err) {
+		} catch {
 			setError('Could not load subscribers.');
 		} finally {
 			setLoading(false);
@@ -472,7 +483,7 @@ const SubscribersTab = ({ artistId }) => {
 			}
 			downloadSubscribersCsv(data);
 			setError('');
-		} catch (err) {
+		} catch {
 			setError('Export failed.');
 		}
 	};
@@ -582,7 +593,7 @@ const App = () => {
 		if (initialSelectedId) {
 			loadArtist(initialSelectedId);
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+	 
 	}, [ initialSelectedId ]);
 
 	const handleSave = async () => {

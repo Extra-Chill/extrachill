@@ -82,20 +82,20 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
 					error_log( 'Profile image upload failed: ' . $attach_id->get_error_message() );
 					return 'upload_failed';
 				}
-				if ( is_numeric( $attach_id ) ) {
-					$result = ec_artist_set_profile_image_from_page( $associated_artist_id, (int) $attach_id );
-					if ( is_wp_error( $result ) ) {
-						wp_delete_attachment( $attach_id, true );
-						return 'upload_failed';
-					}
-					update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
+				$result = ec_artist_set_profile_image_from_page( $associated_artist_id, (int) $attach_id );
+				if ( is_wp_error( $result ) ) {
+					wp_delete_attachment( $attach_id, true );
+					return 'upload_failed';
 				}
+				update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
 			}
 		} elseif ( $files_data['link_page_profile_image_upload']['size'] > $max_file_size ) {
 			// File size exceeded or upload error
 			return 'profile_image_size';
 		}
 	}
+
+	return null;
 }
 
 /**

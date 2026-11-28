@@ -148,7 +148,7 @@ class DoorAccessAbilities {
 	/**
 	 * Authorize the request against its resolved team.
 	 *
-	 * @param array $input Ability input.
+	 * @param mixed $input Ability input (expected array).
 	 * @return true|\WP_Error
 	 */
 	public function can_grant( $input = array() ) {
@@ -158,7 +158,7 @@ class DoorAccessAbilities {
 	/**
 	 * Grant door access.
 	 *
-	 * @param array $input Validated ability input.
+	 * @param mixed $input Validated ability input (expected array).
 	 * @return array|\WP_Error
 	 */
 	public function grant( $input = array() ) {

@@ -35,7 +35,7 @@ function ec_events_my_shows_mint_scope_token( $user_id ) {
 /**
  * Verify a purpose-bound, unexpired scope token.
  *
- * @param string $token Raw token string from the request `$input`.
+ * @param mixed $token Raw token from the request `$input` (string expected).
  * @return int Verified positive owner user id, or 0 when invalid.
  */
 function ec_events_my_shows_verify_scope_token( $token ) {

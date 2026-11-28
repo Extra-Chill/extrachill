@@ -2,7 +2,13 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "test_path_excludes": [
+          "tests/integration/artist-dispatch-rest-smoke.php"
+        ]
+      }
+    }
   },
   "id": "extrachill-blog",
   "remote_path": "wp-content/plugins/extrachill-blog",

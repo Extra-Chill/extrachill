@@ -14,8 +14,6 @@ import { ComboboxControl } from '@wordpress/components';
 /**
  * External dependencies
  */
-import { executeAbility } from '../../abilities';
-import { TwoStepSignInSection } from './two-step-sign-in';
 import {
 	BlockShell,
 	BlockShellInner,
@@ -32,6 +30,8 @@ import { cssVar, spacing, colors } from '@extrachill/tokens';
 /**
  * Internal dependencies
  */
+import { executeAbility } from '../../abilities';
+import { TwoStepSignInSection } from './two-step-sign-in';
 import type {
 	UserSettings,
 	UserProfile,

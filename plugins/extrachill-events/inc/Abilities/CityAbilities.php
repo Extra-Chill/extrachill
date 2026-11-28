@@ -348,7 +348,7 @@ class CityAbilities {
 		);
 
 		$new_parts = explode( ',', $coordinates );
-		$new_lat   = floatval( $new_parts[0] ?? 0 );
+		$new_lat   = floatval( $new_parts[0] );
 		$new_lon   = floatval( $new_parts[1] ?? 0 );
 
 		foreach ( $flows as $flow ) {
@@ -435,7 +435,7 @@ class CityAbilities {
 			// No country — look for state at any level (fallback).
 			$existing_state = term_exists( $state_name, 'location' );
 			if ( $existing_state ) {
-				$state_term_id = is_array( $existing_state ) ? (int) $existing_state['term_id'] : (int) $existing_state;
+				$state_term_id = (int) $existing_state['term_id'];
 			}
 		}
 
@@ -445,14 +445,14 @@ class CityAbilities {
 		if ( $parent_id ) {
 			$existing = term_exists( $city_label, 'location', $parent_id );
 			if ( $existing ) {
-				return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+				return (int) $existing['term_id'];
 			}
 		}
 
 		// Check for city at any level (may already exist from legacy creation).
 		$existing = term_exists( $city_label, 'location' );
 		if ( $existing ) {
-			$term_id = is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+			$term_id = (int) $existing['term_id'];
 
 			if ( $parent_id ) {
 				$term = get_term( $term_id, 'location' );
@@ -489,7 +489,7 @@ class CityAbilities {
 			}
 
 			// Term exists at root or under the correct parent — re-parent if orphaned.
-			if ( $parent_id && 0 === (int) $term->parent ) {
+			if ( $parent_id && $term instanceof \WP_Term && 0 === (int) $term->parent ) {
 				wp_update_term( $term_id, 'location', array( 'parent' => $parent_id ) );
 			}
 
@@ -521,13 +521,13 @@ class CityAbilities {
 		// Check for existing term under this specific parent.
 		$existing = term_exists( $name, 'location', $parent_id );
 		if ( $existing ) {
-			return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+			return (int) $existing['term_id'];
 		}
 
 		// Also check without parent constraint (term may exist at wrong level).
 		$existing = term_exists( $name, 'location' );
 		if ( $existing ) {
-			return is_array( $existing ) ? (int) $existing['term_id'] : (int) $existing;
+			return (int) $existing['term_id'];
 		}
 
 		// Create the term under the specified parent.

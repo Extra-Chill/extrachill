@@ -117,6 +117,13 @@ namespace {
 		}
 	}
 
+	// extrachill-users is a required plugin (Requires Plugins header); its team
+	// onboarding classes are constructed by VenueOnboardingAbilities. Load the
+	// class declarations only, no extrachill-users runtime functions.
+	foreach ( array( 'TeamMembershipRepository', 'TeamInvitationToken', 'TeamOnboardingAdapter', 'TeamOnboardingAdapters', 'TeamOnboardingRepository', 'TeamOnboardingService' ) as $users_team_class ) {
+		require_once dirname( __DIR__, 3 ) . '/extrachill-users/inc/teams/' . $users_team_class . '.php';
+	}
+
 	require dirname( __DIR__, 2 ) . '/extrachill-events.php';
 
 	foreach ( $GLOBALS['bootstrap_matrix_hooks'] as $registered_hook ) {

@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_subscribe( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_subscribe( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$email     = isset( $input['email'] ) ? sanitize_email( $input['email'] ) : '';
 
@@ -66,7 +66,7 @@ function extrachill_artist_platform_ability_artist_subscribe( array $input ): ar
 			'subscriber_email'  => $email,
 			'username'          => '',
 			'source'            => 'artist_subscribe_form',
-			'subscribed_at'     => current_time( 'mysql', 1 ),
+			'subscribed_at'     => current_time( 'mysql', true ),
 			'exported'          => 0,
 		),
 		array( '%d', '%s', '%s', '%s', '%s', '%d' )

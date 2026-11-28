@@ -58,7 +58,7 @@ function ec_news_wire_render_festival_hub_header() {
 	if ( '' !== $meta['start_date'] || '' !== $meta['end_date'] ) {
 		echo '<div class="archive-extra-meta-item">';
 		echo '<strong>' . esc_html__( 'Dates:', 'extrachill' ) . '</strong> ';
-		echo esc_html( trim( $meta['start_date'] . ' – ' . $meta['end_date'], " –" ) );
+		echo esc_html( trim( $meta['start_date'] . ' – ' . $meta['end_date'], ' –' ) );
 		echo '</div>';
 	}
 
@@ -89,18 +89,19 @@ add_action( 'extrachill_archive_below_description', 'ec_news_wire_render_festiva
  * @return \WP_Term|null Location term if exactly one exists.
  */
 function ec_news_wire_get_festival_single_location_term( $festival_term ) {
-	if ( ! taxonomy_exists( 'festival' ) ) {
+	$festival_taxonomy = get_taxonomy( 'festival' );
+	if ( ! $festival_taxonomy ) {
 		return null;
 	}
 
-	$post_types = get_taxonomy( 'festival' )->object_type;
+	$post_types = $festival_taxonomy->object_type;
 
 	$post_ids = get_posts(
 		array(
 			'post_type'      => $post_types,
 			'post_status'    => 'publish',
 			'fields'         => 'ids',
-			'posts_per_page' => 200,
+			'posts_per_page' => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- bounded ID-only scan used to build the festival hub header.
 			'no_found_rows'  => true,
 			'tax_query'      => array(
 				array(
@@ -116,6 +117,8 @@ function ec_news_wire_get_festival_single_location_term( $festival_term ) {
 		return null;
 	}
 
+	// The get_object_terms / wp_get_object_terms filters can alter the result shape.
+	/** @var array<mixed>|\WP_Error $location_terms */
 	$location_terms = wp_get_object_terms(
 		$post_ids,
 		'location',

@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.DisallowCurlyBraceSyntax,Universal.Namespaces.DisallowDeclarationWithoutName,Universal.Namespaces.OneDeclarationPerFile,WordPress.WP.AlternativeFunctions -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 /** Isolated request fixture for location SEO count caching. */
 
 namespace DataMachineEvents\Blocks\Calendar\Cache {
@@ -14,9 +15,9 @@ namespace {
 	define( 'ABSPATH', __DIR__ );
 	define( 'HOUR_IN_SECONDS', 3600 );
 	$GLOBALS['request'] = json_decode( $argv[1], true );
-	$cache             = $GLOBALS['request']['cache'] ?? array();
-	$queries           = array();
-	$writes            = array();
+	$cache              = $GLOBALS['request']['cache'] ?? array();
+	$queries            = array();
+	$writes             = array();
 	function add_filter( ...$args ) {}
 	function get_current_blog_id() { return 7; }
 	function get_transient( $key ) {
@@ -24,7 +25,7 @@ namespace {
 	}
 	function set_transient( $key, $value, $ttl ) {
 		$GLOBALS['cache'][ $key ] = $value;
-		$GLOBALS['writes'][]     = array( $key, $value, $ttl );
+		$GLOBALS['writes'][]      = array( $key, $value, $ttl );
 		return true;
 	}
 	function data_machine_events_query_events( $args ) {

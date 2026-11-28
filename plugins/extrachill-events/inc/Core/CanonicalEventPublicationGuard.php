@@ -22,8 +22,6 @@ class CanonicalEventPublicationGuard {
 	private $active_context;
 	/** @var int */
 	private $active_post_id = 0;
-	/** @var array|null */
-	private $active_publication;
 	/** @var string */
 	private $active_lifecycle_key = '';
 	/** @var bool */
@@ -84,7 +82,6 @@ class CanonicalEventPublicationGuard {
 
 		$this->active_context           = 'dme';
 		$this->active_post_id           = (int) ( $context['existing_post_id'] ?? 0 );
-		$this->active_publication       = $publication;
 		$this->active_lifecycle_key     = $this->lifecycle_key( $context );
 		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
@@ -120,7 +117,13 @@ class CanonicalEventPublicationGuard {
 		$this->active_post_id = $post_id;
 	}
 
-	/** Reject a conflicting REST/editor publication before WordPress persists it. */
+	/**
+	 * Reject a conflicting REST/editor publication before WordPress persists it.
+	 *
+	 * @param \stdClass        $prepared_post Post object prepared by rest_pre_insert_{post_type}.
+	 * @param mixed            $request       Current REST request (WP_REST_Request).
+	 * @return \stdClass|\WP_Error
+	 */
 	public function preflight_rest_insert( $prepared_post, $request ) {
 		$post_id          = absint( $prepared_post->ID ?? 0 );
 		$existing         = $post_id > 0 ? get_post( $post_id ) : null;
@@ -154,7 +157,6 @@ class CanonicalEventPublicationGuard {
 
 		$this->active_context           = 'rest';
 		$this->active_post_id           = $post_id;
-		$this->active_publication       = $publication;
 		$this->active_boundary_consumed = false;
 		$this->active_rest_request      = is_object( $request ) ? $request : null;
 		return $prepared_post;
@@ -249,7 +251,6 @@ class CanonicalEventPublicationGuard {
 		if ( true === $result ) {
 			$this->active_context           = 'post';
 			$this->active_post_id           = $post_id;
-			$this->active_publication       = $publication;
 			$this->active_boundary_consumed = true;
 		}
 		return false;
@@ -309,7 +310,6 @@ class CanonicalEventPublicationGuard {
 		}
 		$this->active_context           = 'event_update';
 		$this->active_post_id           = $post_id;
-		$this->active_publication       = $publication;
 		$this->active_lifecycle_key     = $this->lifecycle_key( $context );
 		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
@@ -419,7 +419,6 @@ class CanonicalEventPublicationGuard {
 		$this->acquired_locks           = array();
 		$this->active_context           = null;
 		$this->active_post_id           = 0;
-		$this->active_publication       = null;
 		$this->active_lifecycle_key     = '';
 		$this->active_poisoned          = false;
 		$this->active_boundary_consumed = false;
@@ -486,7 +485,7 @@ class CanonicalEventPublicationGuard {
 		}
 		foreach ( parse_blocks( $content ) as $block ) {
 			if ( 'data-machine-events/event-details' === ( $block['blockName'] ?? '' ) ) {
-				return is_array( $block['attrs'] ?? null ) ? $block['attrs'] : array();
+				return $block['attrs'];
 			}
 		}
 		return array();
@@ -590,7 +589,11 @@ class CanonicalEventPublicationGuard {
 		);
 	}
 
-	/** Return every UTC instant represented by one strict local wall time. */
+	/**
+	 * Return every UTC instant represented by one strict local wall time.
+	 *
+	 * @return non-empty-list<\DateTimeImmutable>|\WP_Error
+	 */
 	private function strict_local_datetime_candidates( string $date, string $time, \DateTimeZone $timezone ) {
 		$time  = $this->normalized_time( $time );
 		$value = $date . ' ' . $time;
@@ -599,7 +602,7 @@ class CanonicalEventPublicationGuard {
 			return new \WP_Error( 'canonical_event_datetime_invalid', __( 'Event dates must be valid local venue wall times.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		$transitions = $timezone->getTransitions( $wall->getTimestamp() - DAY_IN_SECONDS, $wall->getTimestamp() + DAY_IN_SECONDS );
-		if ( ! is_array( $transitions ) ) {
+		if ( empty( $transitions ) ) {
 			return new \WP_Error(
 				'canonical_event_venue_timezone_transitions_unavailable',
 				__( 'The venue timezone cannot be checked safely for publication.', 'extrachill-events' ),
@@ -612,17 +615,6 @@ class CanonicalEventPublicationGuard {
 		}
 		$offsets = array();
 		foreach ( $transitions as $transition ) {
-			if ( ! is_array( $transition ) || ! array_key_exists( 'offset', $transition ) ) {
-				return new \WP_Error(
-					'canonical_event_venue_timezone_transitions_unavailable',
-					__( 'The venue timezone cannot be checked safely for publication.', 'extrachill-events' ),
-					array(
-						'status'    => 409,
-						'timezone'  => $timezone->getName(),
-						'wall_time' => $value,
-					)
-				);
-			}
 			$offsets[] = (int) $transition['offset'];
 		}
 		$candidates = array();
@@ -646,7 +638,7 @@ class CanonicalEventPublicationGuard {
 	private function lifecycle_key( array $context ): string {
 		return hash(
 			'sha256',
-			wp_json_encode(
+			(string) wp_json_encode(
 				array(
 					'invocation_id'    => (string) ( $context['invocation_id'] ?? '' ),
 					'venue_term_id'    => (int) ( $context['venue_term_id'] ?? $context['next_venue_id'] ?? 0 ),

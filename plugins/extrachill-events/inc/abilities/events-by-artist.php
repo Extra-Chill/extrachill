@@ -323,7 +323,8 @@ function extrachill_events_read_artist_mapping_claims( int $events_term_id ) {
 	$wpdb->flush();
 	// A single indexed metadata value bounds this duplicate-claim check.
 	// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-	$query  = new WP_Term_Query();
+	$query = new WP_Term_Query();
+	/** @var array<int|string>|string $claims `fields => ids` queries return term IDs. */
 	$claims = $query->query(
 		array(
 			'taxonomy'      => 'artist',
@@ -340,7 +341,7 @@ function extrachill_events_read_artist_mapping_claims( int $events_term_id ) {
 		return new WP_Error( 'artist_mapping_claims_query_failed', __( 'Canonical artist mapping claims could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
 	}
 
-	return is_wp_error( $claims ) ? $claims : array_map( 'intval', (array) $claims );
+	return array_map( 'intval', (array) $claims );
 }
 
 /**
@@ -353,7 +354,8 @@ function extrachill_events_read_artist_term( int $artist_term_id ) {
 	global $wpdb;
 
 	$wpdb->flush();
-	$query          = new WP_Term_Query();
+	$query = new WP_Term_Query();
+	/** @var \WP_Term[]|string $terms Default `fields => all` queries return WP_Term objects. */
 	$terms          = $query->query(
 		array(
 			'taxonomy'      => 'artist',
@@ -364,9 +366,8 @@ function extrachill_events_read_artist_term( int $artist_term_id ) {
 		)
 	);
 	$database_error = (string) $wpdb->last_error;
-	if ( '' !== $database_error || is_wp_error( $terms ) ) {
+	if ( '' !== $database_error || ! is_array( $terms ) ) {
 		return new WP_Error( 'artist_term_query_failed', __( 'Artist taxonomy data could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
 	}
 	return empty( $terms ) ? null : reset( $terms );
 }
-

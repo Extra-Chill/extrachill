@@ -12,6 +12,7 @@
 get_header();
 extrachill_breadcrumbs();
 
+/** @var WP_Term $queried_term Discovery pages only resolve on location term archives (see extrachill_events_is_discovery_page()). */
 $queried_term = get_queried_object();
 $scope        = extrachill_events_get_current_scope();
 $label        = extrachill_events_get_scope_label( $scope );

@@ -11,12 +11,12 @@
  * Replaces a "Do you already have an Extra Chill Community account?" modal
  * whose buttons dispatched an event nothing listened for (#244).
  *
- * @package ExtraChillArtistPlatform
+ * @package
  */
 ( function () {
 	'use strict';
 
-	var params = new URLSearchParams( window.location.search );
+	const params = new URLSearchParams( window.location.search );
 	if ( 'true' !== params.get( 'from_join' ) ) {
 		return;
 	}

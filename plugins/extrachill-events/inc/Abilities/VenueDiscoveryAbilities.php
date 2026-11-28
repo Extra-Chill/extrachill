@@ -223,7 +223,7 @@ class VenueDiscoveryAbilities {
 	 */
 	private function matchesRequestedLocation( string $requested_location, array $address_components ): bool {
 		$requested_parts = array_map( 'trim', explode( ',', $requested_location, 2 ) );
-		$requested_city  = $requested_parts[0] ?? '';
+		$requested_city  = $requested_parts[0];
 		$requested_state = $requested_parts[1] ?? '';
 		$result_city     = (string) ( $address_components['city'] ?? '' );
 
@@ -314,7 +314,7 @@ class VenueDiscoveryAbilities {
 						)
 					),
 				),
-				'body'    => wp_json_encode(
+				'body'    => (string) wp_json_encode(
 					array(
 						'textQuery'      => $query,
 						'maxResultCount' => self::MAX_RESULTS,

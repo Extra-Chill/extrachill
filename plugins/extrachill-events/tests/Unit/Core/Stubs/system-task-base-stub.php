@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Namespaces.OneDeclarationPerFile,Universal.NamingConventions.NoReservedKeywordParameterNames -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Stub for DataMachine\Engine\AI\System\Tasks\SystemTask base class.
  *

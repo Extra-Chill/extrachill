@@ -114,7 +114,7 @@ class NetworkSettings {
 	 * Sanitize the digest recipient field — accept an email or an empty
 	 * string. Anything else is rejected back to the previous value.
 	 *
-	 * @param string $input Raw input.
+	 * @param mixed $input Raw input.
 	 * @return string
 	 */
 	public static function sanitize_recipient( $input ): string {

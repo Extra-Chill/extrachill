@@ -72,7 +72,7 @@ function extrachill_blog_provision_submit_page( $path, $title, $sentinel, $paren
 		true
 	);
 
-	if ( is_wp_error( $page_id ) || ! $page_id ) {
+	if ( is_wp_error( $page_id ) ) {
 		return 0;
 	}
 	$owned          = (array) get_option( EXTRACHILL_BLOG_DISPATCH_PAGES_OPTION, array() );
@@ -185,8 +185,8 @@ function extrachill_blog_dispatch_has_current_terms( $access ) {
 /**
  * Confirm an artist ID against the Users ability response.
  *
- * @param int        $artist_id Artist profile ID.
- * @param array|null $access Access state.
+ * @param int                 $artist_id Artist profile ID.
+ * @param array|WP_Error|null $access Access state.
  * @return bool Whether the current user may represent the artist.
  */
 function extrachill_blog_dispatch_can_represent_artist( $artist_id, $access = null ) {
@@ -445,9 +445,10 @@ function extrachill_blog_dispatch_acquire_lock( $operation, $user_id ) {
 	}
 	if ( is_array( $current ) && ! empty( $current['expires'] ) && (int) $current['expires'] < time() ) {
 		global $wpdb;
+		/** @var wpdb|null $wpdb */
 		$owned = false;
 		if ( isset( $wpdb->options ) ) {
-			$owned = 1 === $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", maybe_serialize( $lock ), $key, maybe_serialize( $current ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- atomic compare-and-swap on one owned lock option.
+			$owned = 1 === $wpdb->query( $wpdb->prepare( 'UPDATE %i SET option_value = %s WHERE option_name = %s AND option_value = %s', $wpdb->options, maybe_serialize( $lock ), $key, maybe_serialize( $current ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- atomic compare-and-swap on one owned lock option.
 			wp_cache_delete( $key, 'options' );
 		} elseif ( get_option( $key ) === $current ) {
 			update_option( $key, $lock, false );
@@ -464,7 +465,7 @@ function extrachill_blog_dispatch_acquire_lock( $operation, $user_id ) {
 /**
  * Release one atomic operation lock.
  *
- * @param array $lock Owned lock token.
+ * @param mixed $lock Owned lock token; anything other than a token array is ignored.
  */
 function extrachill_blog_dispatch_release_lock( $lock ) {
 	if ( ! is_array( $lock ) || empty( $lock['key'] ) || empty( $lock['token'] ) ) {
@@ -477,8 +478,9 @@ function extrachill_blog_dispatch_release_lock( $lock ) {
 		return;
 	}
 	global $wpdb;
+	/** @var wpdb|null $wpdb */
 	if ( isset( $wpdb->options ) ) {
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $key, maybe_serialize( $current ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- owner-token compare-and-delete.
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name = %s AND option_value = %s', $wpdb->options, $key, maybe_serialize( $current ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- owner-token compare-and-delete.
 		wp_cache_delete( $key, 'options' );
 	} elseif ( get_option( $key ) === $current ) {
 		delete_option( $key );
@@ -787,9 +789,9 @@ add_filter( 'map_meta_cap', 'extrachill_blog_dispatch_map_meta_cap', 10, 4 );
 /**
  * Stamp the first review time and lifecycle analytics.
  *
- * @param string  $new_status New status.
- * @param string  $old_status Old status.
- * @param WP_Post $post Post.
+ * @param string $new_status New status.
+ * @param string $old_status Old status.
+ * @param mixed  $post Post object from the transition hook.
  */
 function extrachill_blog_dispatch_transition( $new_status, $old_status, $post ) {
 	if ( ! $post instanceof WP_Post || ! extrachill_blog_is_artist_dispatch( $post->ID ) || $new_status === $old_status || get_post_status( $post->ID ) !== $new_status ) {

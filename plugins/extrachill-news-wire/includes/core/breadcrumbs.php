@@ -124,18 +124,17 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_wire_breadcrumb_trail_s
  *
  * @hook extrachill_back_to_home_label
  * @param string $label Default back-to-home link label from theme
- * @param string $url Back-to-home link URL
  * @return string Modified label for wire pages, unchanged for homepage
  * @since 0.1.0
  */
-function ec_wire_back_to_home_label( $label, $url ) {
+function ec_wire_back_to_home_label( $label ) {
 	if ( get_current_blog_id() !== EC_BLOG_ID_WIRE || is_front_page() ) {
 		return $label;
 	}
 
 	return '← Back to News Wire';
 }
-add_filter( 'extrachill_back_to_home_label', 'ec_wire_back_to_home_label', 10, 2 );
+add_filter( 'extrachill_back_to_home_label', 'ec_wire_back_to_home_label', 10, 1 );
 
 /**
  * Override schema breadcrumb items for news wire site

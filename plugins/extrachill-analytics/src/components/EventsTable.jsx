@@ -4,8 +4,15 @@
  * Displays analytics events in a paginated table with expandable detail rows.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState } from '@wordpress/element';
 import { Button, Spinner } from '@wordpress/components';
+
+/**
+ * Internal dependencies
+ */
 import EventDetail from './EventDetail';
 
 export default function EventsTable( {
@@ -28,8 +35,12 @@ export default function EventsTable( {
 	};
 
 	const truncateUrl = ( url, maxLength = 40 ) => {
-		if ( ! url ) return '-';
-		if ( url.length <= maxLength ) return url;
+		if ( ! url ) {
+			return '-';
+		}
+		if ( url.length <= maxLength ) {
+			return url;
+		}
 		return url.substring( 0, maxLength ) + '...';
 	};
 
@@ -50,6 +61,76 @@ export default function EventsTable( {
 		}
 	};
 
+	const renderEventList = () => {
+		if ( events.length === 0 ) {
+			return (
+				<p className="ec-analytics__empty">
+					No events found. Try adjusting your filters.
+				</p>
+			);
+		}
+
+		return (
+			<div className="ec-analytics__table">
+				<table className="widefat striped">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Event Type</th>
+							<th>Source URL</th>
+							<th>Blog</th>
+							<th>User</th>
+							<th>Date</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						{ events.map( ( event ) => (
+							<tr key={ event.id }>
+								<td>{ event.id }</td>
+								<td>
+									<span
+										className={ getEventTypeBadgeClass(
+											event.event_type
+										) }
+									>
+										{ event.event_type
+											? event.event_type.replace(
+													/_/g,
+													' '
+											  )
+											: 'Unknown' }
+									</span>
+								</td>
+								<td>
+									<span title={ event.source_url }>
+										{ truncateUrl( event.source_url ) }
+									</span>
+								</td>
+								<td>{ event.blog_id }</td>
+								<td>{ event.user_id || 'Anon' }</td>
+								<td>{ formatDate( event.created_at ) }</td>
+								<td>
+									<Button
+										variant="tertiary"
+										onClick={ () =>
+											toggleExpand( event.id )
+										}
+										className="ec-analytics__expand-btn"
+									>
+										{ expandedEventId === event.id
+											? 'Hide'
+											: 'View' }
+									</Button>
+								</td>
+							</tr>
+						) ) }
+					</tbody>
+				</table>
+			</div>
+		);
+	};
+
 	return (
 		<div className="ec-analytics__table-container">
 			{ isLoading ? (
@@ -57,68 +138,8 @@ export default function EventsTable( {
 					<Spinner />
 					<span>Loading events...</span>
 				</div>
-			) : events.length === 0 ? (
-				<p className="ec-analytics__empty">
-					No events found. Try adjusting your filters.
-				</p>
 			) : (
-				<div className="ec-analytics__table">
-					<table className="widefat striped">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>Event Type</th>
-								<th>Source URL</th>
-								<th>Blog</th>
-								<th>User</th>
-								<th>Date</th>
-								<th></th>
-							</tr>
-						</thead>
-						<tbody>
-							{ events.map( ( event ) => (
-								<tr key={ event.id }>
-									<td>{ event.id }</td>
-									<td>
-										<span
-											className={ getEventTypeBadgeClass(
-												event.event_type
-											) }
-										>
-											{ event.event_type
-												? event.event_type.replace(
-														/_/g,
-														' '
-												  )
-												: 'Unknown' }
-										</span>
-									</td>
-									<td>
-										<span title={ event.source_url }>
-											{ truncateUrl( event.source_url ) }
-										</span>
-									</td>
-									<td>{ event.blog_id }</td>
-									<td>{ event.user_id || 'Anon' }</td>
-									<td>{ formatDate( event.created_at ) }</td>
-									<td>
-										<Button
-											variant="tertiary"
-											onClick={ () =>
-												toggleExpand( event.id )
-											}
-											className="ec-analytics__expand-btn"
-										>
-											{ expandedEventId === event.id
-												? 'Hide'
-												: 'View' }
-										</Button>
-									</td>
-								</tr>
-							) ) }
-						</tbody>
-					</table>
-				</div>
+				renderEventList()
 			) }
 
 			{ /* Expanded Event Detail */ }

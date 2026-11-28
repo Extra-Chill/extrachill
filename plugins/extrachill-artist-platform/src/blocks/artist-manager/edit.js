@@ -4,6 +4,9 @@
  * for logged-in users with artist permissions.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { __ } from '@wordpress/i18n';
 import { useBlockProps } from '@wordpress/block-editor';
 import { Placeholder, Notice } from '@wordpress/components';

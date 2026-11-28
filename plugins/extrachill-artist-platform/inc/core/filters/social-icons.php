@@ -12,6 +12,7 @@ defined( 'ABSPATH' ) || exit;
 
 class ExtraChillArtistPlatform_SocialLinks {
 
+	/** @var self|null */
 	private static $instance = null;
 
 	/** Legacy profile copy; read only until the Link Page owns socials. */
@@ -20,6 +21,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	/** Page-owned socials (written through the Link Pages storage API). */
 	const PAGE_META_KEY = '_link_page_social_links';
 
+	/** @var array|null Lazily resolved supported social types. */
 	private $supported_types = null;
 
 	public static function instance() {
@@ -351,7 +353,6 @@ class ExtraChillArtistPlatform_SocialLinks {
 		if ( ! is_array( $link ) ) {
 			return false;
 		}
-		// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; guarded by page_storage_available().)
 		$clean = ec_sanitize_social_links( array( $link ) );
 		if ( is_wp_error( $clean ) || empty( $clean[0] ) ) {
 			return false;
@@ -387,7 +388,6 @@ class ExtraChillArtistPlatform_SocialLinks {
 			}
 			return $clean;
 		}
-		// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; guarded by page_storage_available().)
 		$clean = ec_sanitize_social_links( array_values( $social_links ) );
 		if ( is_wp_error( $clean ) ) {
 			return new WP_Error( 'validation_failed', $clean->get_error_message(), array( 'cause' => $clean->get_error_code() ) + (array) $clean->get_error_data() );
@@ -417,7 +417,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	 * Get label for a social link
 	 *
 	 * @since 1.1.0
-	 * @param array $link Social link data
+	 * @param mixed $link Social link data (non-arrays get the generic label)
 	 * @return string Link label
 	 */
 	public function get_link_label( $link ) {
@@ -517,7 +517,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	 *
 	 * @since 1.1.0
 	 * @param int $artist_id Artist profile post ID
-	 * @return string JSON-encoded social links
+	 * @return string|false JSON-encoded social links, or false if encoding fails
 	 */
 	public function get_json( $artist_id ) {
 		$social_links = $this->get( $artist_id );

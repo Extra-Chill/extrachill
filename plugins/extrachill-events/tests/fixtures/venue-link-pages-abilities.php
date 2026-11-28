@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 /** Coordinated ability registration fixture. */
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -40,17 +41,17 @@ foreach ( $GLOBALS['venue_link_page_abilities'] as $name => $args ) {
 		'show_in_rest'  => true === $args['meta']['show_in_rest'],
 	);
 	if ( 'extrachill/save-venue-link-page-links' === $name ) {
-		$sections = $args['input_schema']['properties']['links'];
-		$section  = $sections['items'];
-		$link     = $section['properties']['links']['items'];
+		$sections                     = $args['input_schema']['properties']['links'];
+		$section                      = $sections['items'];
+		$link_schema                  = $section['properties']['links']['items'];
 		$contracts[ $name ]['limits'] = array(
 			'sections'          => $sections['maxItems'],
 			'links_per_section' => $section['properties']['links']['maxItems'],
 			'id'                => $section['properties']['id']['maxLength'],
 			'section_title'     => $section['properties']['section_title']['maxLength'],
-			'link_text'         => $link['properties']['link_text']['maxLength'],
-			'link_url'          => $link['properties']['link_url']['maxLength'],
-			'expires_at'        => $link['properties']['expires_at']['maxLength'],
+			'link_text'         => $link_schema['properties']['link_text']['maxLength'],
+			'link_url'          => $link_schema['properties']['link_url']['maxLength'],
+			'expires_at'        => $link_schema['properties']['expires_at']['maxLength'],
 		);
 	}
 }

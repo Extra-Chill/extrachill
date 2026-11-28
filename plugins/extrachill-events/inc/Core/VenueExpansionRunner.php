@@ -89,7 +89,7 @@ class VenueExpansionRunner {
 		);
 		if ( is_wp_error( $city_result ) ) {
 			if ( 'city_exists' !== $city_result->get_error_code() ) {
-				return $this->fail( $report, $city_result->get_error_code(), $city_result->get_error_message() );
+				return $this->fail( $report, (string) $city_result->get_error_code(), $city_result->get_error_message() );
 			}
 			$error_data                   = (array) $city_result->get_error_data();
 			$report['pipeline']['status'] = 'existing';
@@ -115,7 +115,7 @@ class VenueExpansionRunner {
 			)
 		);
 		if ( is_wp_error( $discovery ) ) {
-			return $this->fail( $report, $discovery->get_error_code(), $discovery->get_error_message() );
+			return $this->fail( $report, (string) $discovery->get_error_code(), $discovery->get_error_message() );
 		}
 
 		$venues                           = array_slice( (array) ( $discovery['venues'] ?? array() ), 0, $max_venues );
@@ -147,7 +147,7 @@ class VenueExpansionRunner {
 				if ( ! empty( $metadata ) ) {
 					$enrichment = ( $this->known_venue_enricher )( $term_id, $metadata );
 					if ( is_wp_error( $enrichment ) ) {
-						return $this->fail( $report, $enrichment->get_error_code(), $enrichment->get_error_message() );
+						return $this->fail( $report, (string) $enrichment->get_error_code(), $enrichment->get_error_message() );
 					}
 					$row['enriched_fields'] = array_values( (array) ( $enrichment['updated_fields'] ?? array() ) );
 					if ( ! empty( $row['enriched_fields'] ) ) {
@@ -193,7 +193,7 @@ class VenueExpansionRunner {
 					)
 				);
 				if ( is_wp_error( $qualification ) ) {
-					return $this->fail( $report, $qualification->get_error_code(), $qualification->get_error_message() );
+					return $this->fail( $report, (string) $qualification->get_error_code(), $qualification->get_error_message() );
 				}
 			}
 
@@ -234,7 +234,7 @@ class VenueExpansionRunner {
 			$add_result = $add->execute( $add_input );
 			if ( is_wp_error( $add_result ) ) {
 				if ( 'venue_exists' !== $add_result->get_error_code() ) {
-					return $this->fail( $report, $add_result->get_error_code(), $add_result->get_error_message() );
+					return $this->fail( $report, (string) $add_result->get_error_code(), $add_result->get_error_message() );
 				}
 				$error_data     = (array) $add_result->get_error_data();
 				$row['status']  = 'skipped_existing_flow';

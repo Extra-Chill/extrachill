@@ -128,7 +128,6 @@ function extrachill_artist_platform_ability_artist_permission( $input ) {
 
 	return $artist_id
 		&& function_exists( 'ec_user_can' )
-		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		&& ec_user_can(
 			'manage_artist',
 			array(
@@ -162,7 +161,6 @@ function extrachill_artist_platform_ability_create_permission( $input ) {
 	}
 
 	return function_exists( 'ec_user_can' )
-		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		&& ec_user_can( 'create_artist_profile', array( 'user_id' => $actor_user_id ) );
 }
 
@@ -283,11 +281,10 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 /**
  * Sanitize link page settings.
  *
- * @param array $settings Raw settings.
+ * @param mixed $settings Raw settings (untyped ability input; non-arrays yield an empty array).
  * @return array Sanitized settings as flat keys for ec_handle_link_page_save().
  */
 function extrachill_artist_platform_sanitize_link_settings( $settings ) {
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $settings ) ) {
 		return array();
 	}
@@ -330,12 +327,11 @@ function extrachill_artist_platform_sanitize_link_settings( $settings ) {
 /**
  * Sanitize social links array with ID assignment.
  *
- * @param array $socials       Raw social links data.
+ * @param mixed $socials       Raw social links data (untyped ability input; non-arrays yield an empty array).
  * @param int   $link_page_id  Link page post ID for counter-based ID generation.
  * @return array Sanitized social links array.
  */
 function extrachill_artist_platform_sanitize_socials( $socials, $link_page_id = 0 ) {
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $socials ) ) {
 		return array();
 	}

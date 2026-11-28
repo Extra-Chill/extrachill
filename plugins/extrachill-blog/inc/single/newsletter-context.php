@@ -48,7 +48,7 @@ function extrachill_blog_contextualize_newsletter_form( $args, $context ) {
 		}
 
 		$terms = wp_get_post_terms(
-			get_the_ID(),
+			(int) get_the_ID(),
 			$taxonomy,
 			array(
 				'orderby' => 'name',

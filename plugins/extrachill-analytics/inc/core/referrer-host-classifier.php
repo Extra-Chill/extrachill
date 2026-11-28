@@ -74,7 +74,7 @@ function extrachill_analytics_normalize_referrer_host( $raw_referrer, $current_h
 	// `facebook.com` collapse to one bucket, keeping cardinality low.
 	$host = strtolower( $host );
 	if ( 0 === strpos( $host, 'www.' ) ) {
-		$host = substr( $host, 4 );
+		$host = (string) substr( $host, 4 );
 	}
 
 	// Same-host referrers carry no cross-surface signal (an in-page reload or
@@ -89,7 +89,7 @@ function extrachill_analytics_normalize_referrer_host( $raw_referrer, $current_h
 	}
 	$current_host = strtolower( trim( (string) $current_host ) );
 	if ( 0 === strpos( $current_host, 'www.' ) ) {
-		$current_host = substr( $current_host, 4 );
+		$current_host = (string) substr( $current_host, 4 );
 	}
 
 	if ( '' !== $current_host && $host === $current_host ) {

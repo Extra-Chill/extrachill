@@ -275,7 +275,7 @@ function ec_events_my_shows_get_tracked_venue_term_ids( int $user_id ): array {
 		$venue_term_ids = array();
 		foreach ( $event_ids as $event_id ) {
 			$terms = wp_get_post_terms( (int) $event_id, 'venue', array( 'fields' => 'ids' ) );
-			if ( ! is_wp_error( $terms ) && is_array( $terms ) ) {
+			if ( ! is_wp_error( $terms ) ) {
 				$venue_term_ids = array_merge( $venue_term_ids, $terms );
 			}
 		}

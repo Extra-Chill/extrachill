@@ -487,7 +487,7 @@ class EventTimeAuditAbilities {
 		$blocks = parse_blocks( $content );
 		foreach ( $blocks as $block ) {
 			if ( 'data-machine-events/event-details' === $block['blockName'] ) {
-				return $block['attrs'] ?? array();
+				return $block['attrs'];
 			}
 		}
 		return null;
@@ -573,9 +573,11 @@ class EventTimeAuditAbilities {
 			return;
 		}
 
+		$event_block = $blocks[ $block_index ];
 		foreach ( $changes as $field => $change ) {
-			$blocks[ $block_index ]['attrs'][ $field ] = $change['new'];
+			$event_block['attrs'][ $field ] = $change['new'];
 		}
+		$blocks[ $block_index ] = $event_block;
 
 		$new_content = serialize_blocks( $blocks );
 

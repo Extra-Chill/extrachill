@@ -8,12 +8,14 @@
           { "name": "@extrachill/tokens", "path": "../../packages/tokens" },
           { "name": "@extrachill/components", "path": "../../packages/components" }
         ],
+        "wordpress_runtime_php_version": "8.4",
         "validation_dependencies": [
           {
             "source_type": "wp.org",
             "slug": "bbpress"
           },
           "../extrachill-network",
+          "../extrachill-api",
           "../extrachill-users",
           "../extrachill-analytics",
           "agents-api",

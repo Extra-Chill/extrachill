@@ -89,7 +89,8 @@ class ArtistAuthorization {
 		global $wpdb;
 
 		$wpdb->flush();
-		$query          = new \WP_Term_Query();
+		$query = new \WP_Term_Query();
+		/** @var \WP_Term[]|string $terms Default `fields => all` queries return WP_Term objects. */
 		$terms          = $query->query(
 			array(
 				'taxonomy'      => $taxonomy,
@@ -100,7 +101,7 @@ class ArtistAuthorization {
 			)
 		);
 		$database_error = (string) $wpdb->last_error;
-		if ( '' !== $database_error || is_wp_error( $terms ) ) {
+		if ( '' !== $database_error || ! is_array( $terms ) ) {
 			return new \WP_Error( $error_code, __( 'Artist taxonomy data could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		return empty( $terms ) ? null : reset( $terms );

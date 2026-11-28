@@ -41,7 +41,7 @@
  * @package ExtraChillCommunity
  */
 
-if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) ) {
 	return;
 }
 
@@ -344,6 +344,7 @@ foreach ( $geo_sources as $src_forum_id => $location_slug ) {
 
 		// Backfill the origin forum's location term onto the moved topic.
 		if ( $location_slug && ! $dry_run ) {
+			/** @var WP_Term|WP_Error|false $location_term get_term() filters may return WP_Error. */
 			$location_term = get_term_by( 'slug', $location_slug, 'location' );
 			if ( $location_term && ! is_wp_error( $location_term ) ) {
 				wp_set_object_terms( $topic_id, array( (int) $location_term->term_id ), 'location' );

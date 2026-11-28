@@ -427,6 +427,7 @@ final class QualifyVerdict {
 		 *
 		 * @param array $params Default list of identifying parameter names (lowercase).
 		 */
+		/** @var mixed $filtered Filter callbacks may return any type. */
 		$filtered = apply_filters( 'extrachill_events_qualify_identifying_query_params', $defaults );
 
 		return is_array( $filtered ) ? array_map( 'strtolower', $filtered ) : $defaults;

@@ -26,7 +26,15 @@ function is_wp_error( $thing ): bool {
 	return $thing instanceof \WP_Error;
 }
 
-function wp_remote_get(): array {
+/**
+ * Mirrors the WordPress signature; always returns a canned 200 response.
+ *
+ * @param string $url  Request URL.
+ * @param array  $args Request arguments.
+ * @return array|\WP_Error
+ */
+function wp_remote_get( $url, $args = array() ) {
+	unset( $url, $args );
 	return array(
 		'response' => array( 'code' => 200 ),
 		'body'     => '<html><body>Events</body></html>',
@@ -41,7 +49,8 @@ function wp_remote_retrieve_body( array $response ): string {
 	return (string) ( $response['body'] ?? '' );
 }
 
-function wp_remote_retrieve_header(): string {
+function wp_remote_retrieve_header( $response, $header ): string {
+	unset( $response, $header );
 	return '';
 }
 
@@ -67,8 +76,15 @@ function is_wp_error( $thing ): bool {
 	return $thing instanceof \WP_Error;
 }
 
-function wp_remote_get(): array {
-	return \ExtraChillEvents\Core\wp_remote_get();
+/**
+ * Mirrors the WordPress signature; delegates to the Core stub.
+ *
+ * @param string $url  Request URL.
+ * @param array  $args Request arguments.
+ * @return array|\WP_Error
+ */
+function wp_remote_get( $url, $args = array() ) {
+	return \ExtraChillEvents\Core\wp_remote_get( $url, $args );
 }
 
 function wp_remote_retrieve_body( array $response ): string {

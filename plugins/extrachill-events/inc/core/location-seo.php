@@ -86,7 +86,7 @@ function extrachill_events_location_description( string $description ): string {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term || ! isset( $term->term_id ) ) {
+	if ( ! $term || ! isset( $term->term_id, $term->name ) ) {
 		return $description;
 	}
 
@@ -133,10 +133,9 @@ function extrachill_events_build_location_description( string $city_name, int $t
 				$venue_names[0],
 				$venue_names[1]
 			);
-		} elseif ( count( $venue_names ) === 1 ) {
-			$description .= sprintf( ' including %s.', $venue_names[0] );
 		} else {
-			$description .= '.';
+			// Every venue row carries a name, so a non-empty venue list yields at least one.
+			$description .= sprintf( ' including %s.', $venue_names[0] );
 		}
 	} else {
 		$description .= sprintf( ' Browse the full %s live music calendar on Extra Chill.', $city_name );
@@ -178,7 +177,7 @@ function extrachill_events_get_upcoming_event_count( int $term_id ): int {
 	}
 
 	// Use the public generation API, not calendar cache storage internals.
-	$generation = is_callable( array( \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::class, 'get_generation' ) )
+	$generation = class_exists( \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::class )
 		? \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::get_generation()
 		: '';
 	$cache_key  = 'ec_location_upcoming_count_' . $term_id . '_' . md5( $generation );

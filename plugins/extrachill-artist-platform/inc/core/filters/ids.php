@@ -201,5 +201,5 @@ add_filter( 'query_vars', function( $vars ) {
 /**
  * Register ID resolution functions as WordPress filters
  */
-add_filter( 'ec_get_artist_id', 'ec_get_artist_id', 10, 2 );
-add_filter( 'ec_get_link_page_id', 'ec_get_link_page_id', 10, 2 );
+add_filter( 'ec_get_artist_id', 'ec_get_artist_id', 10, 1 );
+add_filter( 'ec_get_link_page_id', 'ec_get_link_page_id', 10, 1 );

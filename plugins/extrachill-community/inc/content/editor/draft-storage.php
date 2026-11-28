@@ -133,7 +133,7 @@ function extrachill_community_bbpress_drafts_upsert( $user_id, array $draft ) {
 	// Manual INSERT ... ON DUPLICATE KEY UPDATE — $wpdb->replace would delete
 	// the row first (losing draft_id continuity), so we do this explicitly.
 	// phpcs:disable WordPress.DB.PreparedSQL -- Table name from $wpdb->prefix, not user input.
-	$sql = $wpdb->prepare(
+	$sql    = $wpdb->prepare(
 		"INSERT INTO {$table}
 			(user_id, blog_id, type, forum_id, topic_id, reply_to, title, content, updated_at)
 		VALUES (%d, %d, %s, %d, %d, %d, %s, %s, %d)

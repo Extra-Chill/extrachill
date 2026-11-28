@@ -76,7 +76,7 @@ function extrachill_analytics_enqueue_admin_assets( $hook ) {
 			'extrachill-analytics-admin',
 			EXTRACHILL_ANALYTICS_PLUGIN_URL . 'build/analytics.css',
 			array( 'wp-components' ),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }

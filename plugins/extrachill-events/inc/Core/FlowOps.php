@@ -136,8 +136,14 @@ class FlowOps {
 		// Cancel any in-flight recheck before scheduling a new one so a
 		// repeat pause never leaves a stale action behind.
 		$prior_action_id = (int) ( $scheduling['recheck_action_id'] ?? 0 );
-		if ( $prior_action_id > 0 && function_exists( 'as_unschedule_action' ) ) {
-			as_unschedule_action( 'dme/qualify_recheck', null, 'dme_qualify' );
+		// Cancel by ID: unscheduling by hook alone would cancel whichever
+		// flow's recheck is next in the group, not this flow's.
+		if ( $prior_action_id > 0 && class_exists( '\ActionScheduler' ) ) {
+			try {
+				\ActionScheduler::store()->cancel_action( $prior_action_id );
+			} catch ( \Throwable $e ) {
+				unset( $e ); // Already ran or was removed; nothing to cancel.
+			}
 		}
 
 		// Schedule the next recheck when enabled and the verdict has a

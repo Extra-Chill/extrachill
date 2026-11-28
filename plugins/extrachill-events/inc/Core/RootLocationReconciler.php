@@ -74,11 +74,13 @@ final class RootLocationReconciler {
 				continue;
 			}
 
-			$status = $match['status'];
-			$reason = $match['reason'];
-			if ( 'safe_match' === $status ) {
+			// Canonical matches are drawn from $terms, so they are WP_Term instances.
+			$canonical = $match['canonical'] instanceof \WP_Term ? $match['canonical'] : null;
+			$status    = $match['status'];
+			$reason    = $match['reason'];
+			if ( 'safe_match' === $status && null !== $canonical ) {
 				if ( null !== $repair ) {
-					$result = $repair->repair( $term, $match['canonical'] );
+					$result = $repair->repair( $term, $canonical );
 					$status = $result['status'];
 					$reason = $result['reason'];
 				} else {
@@ -89,8 +91,8 @@ final class RootLocationReconciler {
 			$rows[] = array(
 				'candidate_id'  => (int) $term->term_id,
 				'candidate'     => $term->name,
-				'canonical_id'  => $match['canonical'] ? (int) $match['canonical']->term_id : '',
-				'canonical'     => $match['canonical'] ? $match['canonical']->name : '',
+				'canonical_id'  => $canonical ? (int) $canonical->term_id : '',
+				'canonical'     => $canonical ? $canonical->name : '',
 				'relationships' => (int) $term->count,
 				'status'        => $status,
 				'reason'        => $reason,
@@ -124,8 +126,8 @@ final class RootLocationReconciler {
 	/**
 	 * Preflight redirect URLs, abilities, and existing-rule conflicts.
 	 *
-	 * @param object $duplicate Duplicate root location term.
-	 * @param object $canonical Canonical hierarchy location term.
+	 * @param \WP_Term $duplicate Duplicate root location term.
+	 * @param \WP_Term $canonical Canonical hierarchy location term.
 	 */
 	public function prepare_redirect( object $duplicate, object $canonical ) {
 		$from_link = get_term_link( $duplicate );

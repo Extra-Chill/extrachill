@@ -32,7 +32,7 @@ function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
 	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
 		ob_start();
 		extrachill_breadcrumbs();
-		return ob_get_clean();
+		return (string) ob_get_clean();
 	}
 	return $breadcrumbs;
 }
@@ -170,7 +170,7 @@ function ec_events_breadcrumb_trail_single( $custom_trail ) {
 	if ( is_singular( 'data_machine_events' ) ) {
 		$trail = '';
 
-		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		$venue = ec_events_get_primary_venue_term( (int) get_the_ID() );
 		if ( $venue ) {
 			$venue_link = get_term_link( $venue );
 			if ( ! is_wp_error( $venue_link ) ) {
@@ -270,7 +270,7 @@ function ec_events_schema_breadcrumb_items( $items ) {
 			),
 		);
 
-		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		$venue = ec_events_get_primary_venue_term( (int) get_the_ID() );
 		if ( $venue ) {
 			$venue_link = get_term_link( $venue );
 			$items[]    = array(

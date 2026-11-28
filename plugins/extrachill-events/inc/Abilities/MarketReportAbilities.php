@@ -402,7 +402,7 @@ class MarketReportAbilities {
 			)
 		);
 		$name_to_id    = array();
-		foreach ( $all_locations as $term ) {
+		foreach ( is_wp_error( $all_locations ) ? array() : $all_locations as $term ) {
 			$name_to_id[ $term->name ] = $term->term_id;
 		}
 
