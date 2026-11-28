@@ -28,7 +28,12 @@ function extrachill_network_register_dropdown_experiment( $definitions ) {
 		'key'                  => 'network-dropdown-everywhere',
 		// v2: restart after #1352. v1 exposures stopped at 2026-11-13 00:38 UTC
 		// while treatment never rendered; v1 data must not mix with v2.
-		'definition_version'   => 2,
+		// v3: restart after #1814. v2 treatment appended a duplicate site crumb
+		// (`Extra Chill › Community › [Community ▾]`) on sites whose root already
+		// names the site, and only treatment was exposed (hidden control had no
+		// box), so v2 arms are neither comparable nor balanced. Never mix v2 data
+		// with v3. Activate v3 only after experiment bot filtering (#1778) lands.
+		'definition_version'   => 3,
 		'assignment_policy'    => 'weighted_random',
 		'default_state'        => 'inactive',
 		'default_variant'      => 'control',
@@ -85,8 +90,56 @@ function extrachill_network_register_dropdown_experiment_script() {
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_network_register_dropdown_experiment_script', 6 );
 
-/** Append a hidden, cache-neutral candidate immediately after the root crumb. */
+/**
+ * Treatment markup handed from the root filter to the after-root sibling hook.
+ *
+ * Pass a string to replace the pending markup; the previous value is returned.
+ */
+function extrachill_network_dropdown_experiment_pending( $markup = null ) {
+	static $pending = '';
+
+	$previous = $pending;
+	if ( null !== $markup ) {
+		$pending = (string) $markup;
+	}
+	return $previous;
+}
+
+/**
+ * Split a breadcrumb root into its shared prefix and trailing current-site crumb.
+ *
+ * Site plugins commonly render `Extra Chill › <a href="{home_url}">Site</a>`.
+ * The trailing link is the site crumb only when it points at this site's home
+ * URL, so no plugin is special-cased by name. Roots without one (main site)
+ * return an empty site crumb.
+ *
+ * @param string $root Filtered root breadcrumb HTML.
+ * @return array{0:string,1:string} Prefix HTML and site crumb HTML (separator included).
+ */
+function extrachill_network_dropdown_split_root( $root ) {
+	if ( ! preg_match( '/^(.*?)(\s*(?:›|&rsaquo;|&#8250;)\s*<a\s[^>]*\bhref=(["\'])([^"\']*)\3[^>]*>(?:(?!<\/a>).)*<\/a>\s*)$/su', $root, $matches ) ) {
+		return array( $root, '' );
+	}
+	$href = untrailingslashit( html_entity_decode( $matches[4], ENT_QUOTES ) );
+	if ( '' === trim( $matches[1] ) || untrailingslashit( home_url() ) !== $href ) {
+		return array( $root, '' );
+	}
+	return array( $matches[1], $matches[2] );
+}
+
+/**
+ * Render both arms around the root crumb without any server-side assignment.
+ *
+ * Hooked late on `extrachill_breadcrumbs_root` so site plugin roots are final.
+ * Markup (cache-neutral; JS swaps arms after assignment):
+ * - measured wrapper: the shared prefix (`Extra Chill`), visible in both arms,
+ *   carries the experiment attributes so exposure fires under one condition;
+ * - control segment: the existing ` › <a>Site</a>` crumb, visible by default;
+ * - treatment segment: ` › [Site ▾]`, emitted hidden via the after-root hook
+ *   because post-HTML sanitization of the root strips buttons and SVG.
+ */
 function extrachill_network_dropdown_experiment_root( $root ) {
+	extrachill_network_dropdown_experiment_pending( '' );
 	if ( is_admin() ) {
 		return $root;
 	}
@@ -114,12 +167,24 @@ function extrachill_network_dropdown_experiment_root( $root ) {
 		return $root;
 	}
 
+	list( $prefix, $site_crumb ) = extrachill_network_dropdown_split_root( $root );
+
 	wp_enqueue_script( 'extrachill-network-dropdown-experiment' );
-	return $root . '<span class="ec-network-dropdown-experiment" hidden inert aria-hidden="true" ' . $attributes . '> › ' . extrachill_network_dropdown( $label ) . '</span>';
+	extrachill_network_dropdown_experiment_pending(
+		'<span class="ec-network-dropdown-experiment-treatment" hidden inert aria-hidden="true"> › ' . extrachill_network_dropdown( $label ) . '</span>'
+	);
+
+	$html = '<span class="ec-network-dropdown-experiment" ' . $attributes . '>' . $prefix . '</span>';
+	if ( '' !== $site_crumb ) {
+		$html .= '<span class="ec-network-dropdown-experiment-control">' . $site_crumb . '</span>';
+	}
+	return $html;
 }
-/** Output trusted component HTML through the theme's unsanitized sibling hook. */
+add_filter( 'extrachill_breadcrumbs_root', 'extrachill_network_dropdown_experiment_root', 1000 );
+
+/** Output the hidden treatment candidate through the theme's unsanitized sibling hook. */
 function extrachill_network_dropdown_experiment_after_root() {
-	echo extrachill_network_dropdown_experiment_root( '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component escapes labels, URLs and experiment attributes.
+	echo extrachill_network_dropdown_experiment_pending( '' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Component escapes labels and URLs.
 }
 add_action( 'extrachill_breadcrumbs_after_root', 'extrachill_network_dropdown_experiment_after_root' );
 
@@ -202,7 +267,7 @@ function extrachill_network_dropdown( $current_label ) {
 	<span class="ec-mini-dropdown" aria-expanded="false" data-ec-track-placement="<?php echo esc_attr( 'network-dropdown' ); ?>">
 		<button class="ec-mini-dropdown-toggle network-dropdown-toggle" aria-haspopup="true" data-ec-track="<?php echo esc_attr( 'network-dropdown-open' ); ?>">
 			<?php echo esc_html( $current_label ); ?>
-			<?php echo ec_icon( 'chevron-down' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted local SVG sprite markup. ?>
+			<?php echo function_exists( 'ec_icon' ) ? ec_icon( 'chevron-down' ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted local SVG sprite markup. ?>
 		</button>
 		<ul class="ec-mini-dropdown-menu" role="menu">
 			<?php foreach ( $other_sites as $site ) : ?>

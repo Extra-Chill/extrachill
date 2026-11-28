@@ -7,7 +7,7 @@ Complete flow diagram showing the artist platform join experience from start to 
 ```
 START: User visits extrachill.link/join
   │
-  ├─ Domain Mapping: sunrise.php redirects to artist.extrachill.com/login/?from_join=true
+  ├─ Link Pages site (blog 13): ec_network_link_page_join_route() redirects to artist.extrachill.com/login/?from_join=true
   │
   ├─ AUTHENTICATION
   │  ├─ User sees join flow modal (inc/join/templates/join-flow-modal.php)

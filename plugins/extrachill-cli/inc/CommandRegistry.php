@@ -40,6 +40,7 @@ class CommandRegistry {
 			'extrachill analytics 404'                    => Commands\Analytics\FourOhFourCommand::class,
 			'extrachill analytics attacks'                => Commands\Analytics\AttacksCommand::class,
 			'extrachill analytics search-gaps'            => Commands\Analytics\SearchGapsCommand::class,
+			'extrachill analytics calendar-queries'       => Commands\Analytics\CalendarQueriesCommand::class,
 			'extrachill analytics bot-filter-impact'      => Commands\Analytics\BotFilterImpactCommand::class,
 			'extrachill analytics errors'                 => Commands\Analytics\ErrorsCommand::class,
 			'extrachill analytics retention'              => Commands\Analytics\RetentionCommand::class,
@@ -56,6 +57,7 @@ class CommandRegistry {
 			'extrachill analytics content-flags'          => Commands\Analytics\ContentFlagsCommand::class,
 			'extrachill analytics gsc-opportunities'      => Commands\Analytics\GscOpportunitiesCommand::class,
 			'extrachill analytics revenue'                => Commands\Analytics\RevenueCommand::class,
+			'extrachill analytics link-page-tables'       => Commands\Analytics\LinkPageTablesCommand::class,
 
 			// Events commands.
 			'extrachill events'                           => Commands\Events\LocationCommand::class,
@@ -65,6 +67,7 @@ class CommandRegistry {
 			'extrachill events add-city'                  => Commands\Events\AddCityCommand::class,
 			'extrachill venues'                           => Commands\Events\VenueDiscoveryCommand::class,
 			'extrachill venues expand'                    => Commands\Events\VenueExpandCommand::class,
+			'extrachill venues partner-key'               => Commands\Events\VenuePartnerKeyCommand::class,
 			'extrachill venues expand-report'             => Commands\Events\VenueExpansionReportCommand::class,
 			'extrachill shows'                            => Commands\Events\ConcertTrackingCommand::class,
 			'extrachill events ramp'                      => Commands\Events\EventSourceRampCommand::class,
@@ -123,6 +126,7 @@ class CommandRegistry {
 			'extrachill shop order'                       => Commands\Shop\OrderCommand::class,
 			'extrachill shop webhook'                     => Commands\Shop\WebhookCommand::class,
 			'extrachill shop boost'                       => Commands\Shop\BoostCommand::class,
+			'extrachill shop fees'                        => Commands\Shop\FeesCommand::class,
 
 			// Roadie commands — talk to the Extra Chill platform chat agent.
 		);

@@ -151,7 +151,7 @@ ec_test_assert(
 		'hook'          => 'ec_artist_profile_sections',
 		'callback'      => 'extrachill_network_register_artist_discussions_section',
 		'priority'      => 10,
-		'accepted_args' => 3,
+		'accepted_args' => 1,
 	) === $GLOBALS['ec_test_filters'][0],
 	'Network must register through the Artist section seam when bbPress is absent.'
 );

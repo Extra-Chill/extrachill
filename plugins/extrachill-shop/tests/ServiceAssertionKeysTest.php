@@ -48,8 +48,10 @@ final class ServiceAssertionKeysTest extends TestCase {
 		$sources = extrachill_shop_register_ticket_source_grants( array() );
 		$targets = extrachill_events_ticket_target_grants();
 
-		$this->assertCount( 6, $sources );
-		$this->assertCount( 6, $targets );
+		$this->assertCount( 7, $sources );
+		$this->assertCount( 7, $targets );
+		$this->assertSame( array_column( $sources, 'route' ), array_column( $targets, 'route' ), 'Shop and Events grant the same routes.' );
+		$this->assertContains( '/wp-abilities/v1/abilities/extrachill/resend-ticket-pass-emails/run', array_column( $targets, 'route' ) );
 		$this->assertSame( $sources[0]['keys'], $targets[0]['keys'] );
 		$this->assertContains( '/wp-abilities/v1/abilities/extrachill/notify-commerce-seller/run', array_column( $sources, 'route' ) );
 		$this->assertContains( '/wp-abilities/v1/abilities/extrachill/restore-ticket-passes/run', array_column( $targets, 'route' ) );

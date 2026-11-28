@@ -18,6 +18,7 @@ Paths in this reference use the `/wp-json/extrachill/v1` namespace. Route-level 
 - [Digest unsubscribe](events/local-scene-digest-unsubscribe.md)
 - [Ticket checkout](events/ticket-checkout.md)
 - [Upcoming counts](events/upcoming-counts.md)
+- [Partner events (keyed venue feed)](partner/events.md)
 
 ### Community and accounts
 

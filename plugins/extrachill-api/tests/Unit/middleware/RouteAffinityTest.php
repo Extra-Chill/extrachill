@@ -150,6 +150,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 
 		$this->assertSame( 'artist', $map['/extrachill/v1/admin/artist-relationships'] );
 		$this->assertSame( 'events', $map['/extrachill/v1/event-submissions'] );
+		$this->assertSame( 'events', $map['/extrachill/v1/partner/'] );
 		$this->assertSame( 'studio', $map['/extrachill/v1/giveaway/'] );
 		$this->assertSame( 'studio', $map['/extrachill/v1/instagram/'] );
 	}

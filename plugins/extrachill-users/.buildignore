@@ -21,3 +21,6 @@ blocks/
 
 # Jest configuration (development only).
 jest.config.cjs
+
+# Editor/lint module resolution (development only).
+jsconfig.json

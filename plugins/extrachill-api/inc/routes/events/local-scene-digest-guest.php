@@ -6,7 +6,9 @@
  * POST /extrachill/v1/events/local-scene-digest/guest-subscribe
  *
  * Lets a logged-out visitor ask for a city's weekly show email with only an
- * email address. The extrachill-events ability owns everything behind it
+ * email address. With `scope: venue` the same flow asks for one venue's
+ * weekly show updates instead (extrachill#1724); `location_slug` then
+ * carries the venue term slug. The extrachill-events ability owns everything behind it
  * (account resolution, the signed confirm email, throttling) and is hidden
  * from the core REST runner; this route is the public write boundary:
  * Cloudflare Turnstile, then the shared per-client public-write rate limit.
@@ -42,6 +44,10 @@ function extrachill_api_register_local_scene_digest_guest_route() {
 				'email'              => array(
 					'required' => true,
 					'type'     => 'string',
+				),
+				'scope'              => array(
+					'type' => 'string',
+					'enum' => array( 'location', 'venue' ),
 				),
 				'referrer'           => array( 'type' => 'string' ),
 				'utm'                => array( 'type' => 'object' ),
@@ -95,6 +101,10 @@ function extrachill_api_handle_local_scene_digest_guest( WP_REST_Request $reques
 		'location_slug' => sanitize_title( (string) $request->get_param( 'location_slug' ) ),
 		'email'         => sanitize_email( (string) $request->get_param( 'email' ) ),
 	);
+
+	if ( 'venue' === $request->get_param( 'scope' ) ) {
+		$input['scope'] = 'venue';
+	}
 
 	$referrer = esc_url_raw( (string) $request->get_param( 'referrer' ) );
 	if ( '' !== $referrer ) {

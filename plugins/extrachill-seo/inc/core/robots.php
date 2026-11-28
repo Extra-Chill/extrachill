@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/expired-events.php';
+
 /**
  * Modify robots meta directives
  *
@@ -24,6 +26,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'wp_robots',
 	function ( $robots ) {
+		// Keep old event URLs live, but stop indexing them after the retention window.
+		if ( is_singular( 'data_machine_events' ) && ec_seo_is_expired_event( get_queried_object_id() ) ) {
+			$robots['noindex'] = true;
+			$robots['follow']  = true;
+			unset( $robots['index'], $robots['nofollow'], $robots['max-image-preview'] );
+			return $robots;
+		}
+
 		// Noindex search results
 		if ( is_search() ) {
 			$robots['noindex'] = true;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Analytics
  * Description: Network-wide analytics tracking and reporting for the Extra Chill Platform.
- * Version: 0.49.4
+ * Version: 0.50.0
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-analytics
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_ANALYTICS_VERSION', '0.49.4' );
+define( 'EXTRACHILL_ANALYTICS_VERSION', '0.50.0' );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_ANALYTICS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -23,6 +23,7 @@ define( 'EXTRACHILL_ANALYTICS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/events-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/php-error-log-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/mediavine-revenue-db.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/revenue-ledger.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/class-extrachill-analytics-revenue-store.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/link-page-schema.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
@@ -56,6 +57,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-integration.
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-reporting.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/write-integrity.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/outcome-trust.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/deleted-account-outcomes.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/gtm.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/reports-permission.php';
@@ -67,11 +69,14 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-404-patte
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/drill-404-category.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/list-404-events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/purge-404-events.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/cleanup-link-page-tables.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-404-top-ips.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-attack-summary.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-search-gaps.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-page-view.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-cta-click.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-calendar-query.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/calendar-query-report.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-network-click.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-content-link-click.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/track-form-submit.php';
@@ -98,6 +103,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-content-r
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-content-revenue-pages.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-content-revenue-diagnostics.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/ingest-revenue.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/migrate-revenue-ledger.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-bot-filter-impact.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-delivery-coverage.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-php-error-summary.php';

@@ -10,6 +10,10 @@ namespace Stripe\Checkout;
 class Session {
 	public $id;
 	public $status;
+	public $payment_status;
+	public $payment_intent;
+	public $customer_email;
+	public $metadata;
 
 	public static function create( $params, $options ) {
 		if ( ! empty( $GLOBALS['test_session_create_fail'] ) ) {
@@ -32,6 +36,9 @@ class Session {
 		$session->id                           = $id;
 		$session->status                       = $GLOBALS['stripe_session_status'][ $id ] ?? 'open';
 		$GLOBALS['stripe_session_retrieved'][] = array( $id, $options );
+		foreach ( $GLOBALS['stripe_session_data'][ $id ] ?? array() as $key => $value ) {
+			$session->$key = $value;
+		}
 		return $session;
 	}
 

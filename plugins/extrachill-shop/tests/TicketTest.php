@@ -19,6 +19,24 @@ require_once dirname( __DIR__ ) . '/inc/core/seller-order-notifications.php';
 require_once __DIR__ . '/fixtures/ticket-wc-orders.php';
 require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
+require_once dirname( __DIR__ ) . '/inc/core/ticket-reconciliation.php';
+
+if ( ! function_exists( 'as_has_scheduled_action' ) ) {
+	function as_has_scheduled_action( $hook, $args = null, $group = '' ) {
+		foreach ( $GLOBALS['test_recurring_actions'] ?? array() as $action ) {
+			if ( $hook === $action[2] && $group === $action[4] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
+if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+	function as_schedule_recurring_action( $timestamp, $interval, $hook, $args = array(), $group = '' ) {
+		$GLOBALS['test_recurring_actions'][] = array( $timestamp, $interval, $hook, $args, $group );
+		return count( $GLOBALS['test_recurring_actions'] );
+	}
+}
 
 final class TicketTest extends \PHPUnit\Framework\TestCase {
 	protected function tearDown(): void {
@@ -26,14 +44,14 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	}
 	protected function setUp(): void {
 		extrachill_shop_reset_seller_permission_cache();
-		$GLOBALS['test_orders']                 = array();
-		$GLOBALS['test_wc_refunds']             = array();
-		$GLOBALS['test_wc_refund_objects']      = array();
-		$GLOBALS['ticket_order_queries']        = array();
-		$GLOBALS['test_wc_create_order_fail']   = false;
-		$GLOBALS['test_wc_get_orders_callback'] = 'ticket_test_wc_get_orders';
+		$GLOBALS['test_orders']                            = array();
+		$GLOBALS['test_wc_refunds']                        = array();
+		$GLOBALS['test_wc_refund_objects']                 = array();
+		$GLOBALS['ticket_order_queries']                   = array();
+		$GLOBALS['test_wc_create_order_fail']              = false;
+		$GLOBALS['test_wc_get_orders_callback']            = 'ticket_test_wc_get_orders';
 		\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = true;
-		$GLOBALS['test_options']           = array(
+		$GLOBALS['test_options']                           = array(
 			'extrachill_shop_stripe_seller_venue:9911' => array(
 				'account_id'       => 'acct_venue',
 				'status'           => 'active',
@@ -42,21 +60,22 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				'fee_payer'        => 'account',
 			),
 		);
-		$GLOBALS['test_transients']          = array();
-		$GLOBALS['test_stripe_status']       = null;
-		$GLOBALS['test_stripe_status_calls'] = array();
-		$GLOBALS['test_user_id']           = 551;
-		$GLOBALS['test_site_options']      = array();
-		$GLOBALS['test_blog_options']      = array();
-		$GLOBALS['ticket_refunds']         = array();
-		$GLOBALS['ticket_refund_fail']     = false;
-		$GLOBALS['test_owner_calls']       = array();
-		$GLOBALS['test_user_meta']         = array();
-		$GLOBALS['ticket_session_request'] = null;
+		$GLOBALS['test_transients']                        = array();
+		$GLOBALS['test_stripe_status']                     = null;
+		$GLOBALS['test_stripe_status_calls']               = array();
+		$GLOBALS['test_user_id']                           = 551;
+		$GLOBALS['test_site_options']                      = array();
+		$GLOBALS['test_blog_options']                      = array();
+		$GLOBALS['test_post_meta']                         = array();
+		$GLOBALS['ticket_refunds']                         = array();
+		$GLOBALS['ticket_refund_fail']                     = false;
+		$GLOBALS['test_owner_calls']                       = array();
+		$GLOBALS['test_user_meta']                         = array();
+		$GLOBALS['ticket_session_request']                 = null;
 		// Two $10 tickets at the shipped defaults ($1 per ticket, 2.9% + 30¢
 		// processing estimate): the buyer pays $22.97.
-		$GLOBALS['ticket_charge_amount']   = 2297;
-		$GLOBALS['ticket_offer']           = array(
+		$GLOBALS['ticket_charge_amount']         = 2297;
+		$GLOBALS['ticket_offer']                 = array(
 			'event_id'    => 101,
 			'title'       => 'Lo-Fi show',
 			'url'         => 'https://events.extrachill.com/show',
@@ -70,9 +89,18 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				'id'   => 9911,
 			),
 		);
-		$GLOBALS['ticket_issue_status']    = 'issued';
-		$GLOBALS['ticket_redeemed']        = false;
-		$GLOBALS['test_owner_callback']    = static function ( $site, $method, $route ) {
+		$GLOBALS['ticket_issue_status']          = 'issued';
+		$GLOBALS['ticket_emails_failed']         = 0;
+		$GLOBALS['ticket_resend']                = array(
+			'emailed' => 2,
+			'failed'  => 0,
+		);
+		$GLOBALS['stripe_session_data']          = array();
+		$GLOBALS['stripe_session_status']        = array();
+		$GLOBALS['stripe_session_retrieved']     = array();
+		$GLOBALS['stripe_session_retrieve_fail'] = false;
+		$GLOBALS['ticket_redeemed']              = false;
+		$GLOBALS['test_owner_callback']          = static function ( $site, $method, $route ) {
 			if ( str_contains( $route, 'get-event-ticket-offer' ) ) {
 				return $GLOBALS['ticket_offer']; }
 			if ( str_contains( $route, 'get-commerce-seller' ) ) {
@@ -83,9 +111,12 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				); }
 			if ( str_contains( $route, 'issue-ticket-passes' ) ) {
 				return array(
-					'status' => $GLOBALS['ticket_issue_status'],
-					'passes' => array(),
+					'status'        => $GLOBALS['ticket_issue_status'],
+					'passes'        => array(),
+					'emails_failed' => $GLOBALS['ticket_emails_failed'],
 				); }
+			if ( str_contains( $route, 'resend-ticket-pass-emails' ) ) {
+				return $GLOBALS['ticket_resend']; }
 			if ( str_contains( $route, 'get-ticket-order-status' ) ) {
 				return array(
 					'event_id'     => 101,
@@ -230,12 +261,12 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	public static function payer_orders(): array {
 		// price, quantity, Stripe controller.fees.payer, service fee, application fee.
 		return array(
-			'account pays, $20 x 1'      => array( 2000, 1, 'account', 194, 100 ),
-			'account pays, $20 x 4'      => array( 2000, 4, 'account', 682, 400 ),
-			'Express pays, $20 x 1'      => array( 2000, 1, 'application_express', 194, 194 ),
-			'Express pays, $20 x 4'      => array( 2000, 4, 'application_express', 682, 682 ),
-			'application pays, $20 x 1'  => array( 2000, 1, 'application', 194, 194 ),
-			'application pays, $20 x 4'  => array( 2000, 4, 'application', 682, 682 ),
+			'account pays, $20 x 1'     => array( 2000, 1, 'account', 194, 100 ),
+			'account pays, $20 x 4'     => array( 2000, 4, 'account', 682, 400 ),
+			'Express pays, $20 x 1'     => array( 2000, 1, 'application_express', 194, 194 ),
+			'Express pays, $20 x 4'     => array( 2000, 4, 'application_express', 682, 682 ),
+			'application pays, $20 x 1' => array( 2000, 1, 'application', 194, 194 ),
+			'application pays, $20 x 4' => array( 2000, 4, 'application', 682, 682 ),
 		);
 	}
 
@@ -248,7 +279,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	 */
 	public function test_application_fee_follows_the_processing_fee_payer( int $price, int $quantity, string $payer, int $service_fee, int $application_fee ): void {
 		$subtotal = $price * $quantity;
-		$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity, $payer );
+		$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array(
+			'type' => 'venue',
+			'id'   => 9911,
+		), $quantity, $payer );
 		$this->assertSame( array(
 			'buyer_fee'       => $service_fee,
 			'application_fee' => $application_fee,
@@ -268,7 +302,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function test_unknown_payer_uses_the_venue_safe_account_math(): void {
-		$seller  = array( 'type' => 'venue', 'id' => 9911 );
+		$seller  = array(
+			'type' => 'venue',
+			'id'   => 9911,
+		);
 		$account = extrachill_commerce_fee( 'extrachill_ticket', 8000, $seller, 4, 'account' );
 		foreach ( array( '', 'something_new' ) as $payer ) {
 			$this->assertSame( 'account', extrachill_commerce_processing_payer( $payer ) );
@@ -287,7 +324,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 
 	public function test_seller_fee_is_still_taken_from_the_venue_when_the_platform_pays(): void {
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_percent' => 5 );
-		$fees = extrachill_commerce_fee( 'extrachill_ticket', 2000, array( 'type' => 'venue', 'id' => 9911 ), 1, 'application_express' );
+		$fees = extrachill_commerce_fee( 'extrachill_ticket', 2000, array(
+			'type' => 'venue',
+			'id'   => 9911,
+		), 1, 'application_express' );
 		$this->assertSame( 2000 - 100, 2000 + $fees['buyer_fee'] - $fees['application_fee'] );
 	}
 
@@ -321,9 +361,15 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		);
 		$this->checkout();
 		$this->assertSame( 297, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
-		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9911 ) )['fee_payer'] );
+		$this->assertSame( 'application_express', extrachill_shop_get_seller_stripe_account_record( array(
+			'type' => 'venue',
+			'id'   => 9911,
+		) )['fee_payer'] );
 		// The status Stripe reported earlier is kept.
-		$this->assertSame( 'active', extrachill_shop_get_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9911 ) )['status'] );
+		$this->assertSame( 'active', extrachill_shop_get_seller_stripe_account_record( array(
+			'type' => 'venue',
+			'id'   => 9911,
+		) )['status'] );
 		$this->checkout();
 		$this->assertSame( array( 'acct_venue' ), $GLOBALS['test_stripe_status_calls'] );
 	}
@@ -383,7 +429,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		foreach ( array( 1, 2, 3, 99, 101, 333, 999, 1234, 4999, 12345, 99999 ) as $price ) {
 			foreach ( array( 1, 3, 7, 10 ) as $quantity ) {
 				$subtotal = $price * $quantity;
-				$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array( 'type' => 'venue', 'id' => 9911 ), $quantity );
+				$fees     = extrachill_commerce_fee( 'extrachill_ticket', $subtotal, array(
+					'type' => 'venue',
+					'id'   => 9911,
+				), $quantity );
 				$total    = $subtotal + $fees['buyer_fee'];
 				$this->assertSame( $subtotal, $total - extrachill_commerce_processing_estimate( $total, $settings ) - $fees['application_fee'], "$price x $quantity" );
 				$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
@@ -391,7 +440,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		}
 		// A processing estimate with no buyer fee still keeps the venue whole.
 		$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'ticket_buyer_fee_per_ticket_minor' => 0 );
-		$fees = extrachill_commerce_fee( 'extrachill_ticket', 1000, array( 'type' => 'venue', 'id' => 9911 ), 1 );
+		$fees = extrachill_commerce_fee( 'extrachill_ticket', 1000, array(
+			'type' => 'venue',
+			'id'   => 9911,
+		), 1 );
 		$this->assertGreaterThanOrEqual( 0, $fees['application_fee'] );
 		$this->assertSame( 1000, 1000 + $fees['buyer_fee'] - extrachill_commerce_processing_estimate( 1000 + $fees['buyer_fee'], ec_commerce_fee_settings() ) - $fees['application_fee'] );
 	}
@@ -401,7 +453,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 			'buyer_fee'       => 0,
 			'application_fee' => 0,
 		);
-		$this->assertSame( $none, extrachill_commerce_fee( 'extrachill_ticket', 0, array( 'type' => 'venue', 'id' => 9911 ), 4 ) );
+		$this->assertSame( $none, extrachill_commerce_fee( 'extrachill_ticket', 0, array(
+			'type' => 'venue',
+			'id'   => 9911,
+		), 4 ) );
 		$this->assertSame( $none, extrachill_commerce_fee( 'extrachill_ticket', 2000, null, 1 ) );
 		// A free offer never reaches Stripe.
 		$GLOBALS['ticket_offer']['price_minor'] = 0;
@@ -472,7 +527,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function test_failed_stripe_session_leaves_no_order_behind(): void {
-		$GLOBALS['ticket_refund_fail'] = false;
+		$GLOBALS['ticket_refund_fail']       = false;
 		$GLOBALS['test_session_create_fail'] = true;
 		$this->assertSame( 'ticket_checkout_failed', $this->checkout()->get_error_code() );
 		unset( $GLOBALS['test_session_create_fail'] );
@@ -556,7 +611,10 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		// The show's orders come from an event + status query, never a scan.
 		$query = current( array_filter( $GLOBALS['ticket_order_queries'], static fn( $args ) => isset( $args['status'] ) ) );
 		$this->assertSame( array( 'wc-processing', 'wc-completed' ), $query['status'] );
-		$this->assertContains( array( 'key' => EXTRACHILL_SHOP_TICKET_EVENT_META, 'value' => '101' ), $query['meta_query'] );
+		$this->assertContains( array(
+			'key'   => EXTRACHILL_SHOP_TICKET_EVENT_META,
+			'value' => '101',
+		), $query['meta_query'] );
 		unset( $GLOBALS['stripe_session_ids'] );
 	}
 	public function test_zero_fees_and_refusals(): void {
@@ -577,6 +635,50 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['status'] = 'restricted';
 		$this->assertSame( 'seller_payments_unavailable', $this->checkout()->get_error_code() );
 	}
+	public function test_checkout_charges_the_event_fee_override_and_orders_keep_their_fee(): void {
+		// #1698: a zero-fee show (a memorial): no Service fee, no application fee.
+		$GLOBALS['test_post_meta'][101]['_extrachill_commerce_fee_override'] = array(
+			'ticket_percent'                    => 0,
+			'ticket_buyer_fee_per_ticket_minor' => 0,
+			'ticket_buyer_fee_flat_minor'       => 0,
+			'ticket_buyer_fee_percent'          => 0,
+			'processing_percent'                => 0,
+			'processing_fixed_minor'            => 0,
+		);
+		$this->checkout();
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertCount( 1, $params['line_items'], 'No Service fee line.' );
+		$this->assertSame( 0, $params['payment_intent_data']['application_fee_amount'] );
+		$stored = array(
+			'subtotal_minor'        => 2000,
+			'service_fee_minor'     => 0,
+			'total_minor'           => 2000,
+			'application_fee_minor' => 0,
+			'currency'              => 'usd',
+			'processing_payer'      => 'account',
+		);
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+
+		// Clearing the override changes later checkouts, never a placed order.
+		unset( $GLOBALS['test_post_meta'][101] );
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_later' );
+		$this->checkout();
+		$this->assertSame( 200, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$this->assertSame( $stored, extrachill_shop_ticket_order_amounts( $this->order() ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+	public function test_checkout_applies_the_seller_override_under_the_event_override(): void {
+		$GLOBALS['test_blog_options'][3]['extrachill_shop_fee_seller_venue:9911'] = array( 'ticket_percent' => 10 );
+		$this->checkout();
+		// The $2.00 the defaults take, plus 10% of the $20 subtotal from the venue.
+		$this->assertSame( 400, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'] );
+		$GLOBALS['test_post_meta'][101]['_extrachill_commerce_fee_override'] = array( 'ticket_percent' => 0 );
+		$GLOBALS['stripe_session_ids']                                       = array( 'cs_event' );
+		$this->checkout();
+		$this->assertSame( 200, $GLOBALS['ticket_session_request'][0]['payment_intent_data']['application_fee_amount'], 'The event wins.' );
+		unset( $GLOBALS['stripe_session_ids'], $GLOBALS['test_post_meta'][101] );
+	}
 	public function test_fulfilment_replay_and_service_identity(): void {
 		$this->checkout();
 		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
@@ -587,6 +689,53 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 0, $call['args']['user_id'] );
 		$this->assertSame( 'extrachill.events.tickets', $call['args']['service_assertion']['service_id'] );
 		$this->assertSame( 'cs_ticket', $call['args']['body']['input']['idempotency_key'] );
+	}
+	/** @dataProvider held_pass_statuses */
+	public function test_sold_out_duplicate_with_existing_passes_never_refunds( $status ): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$GLOBALS['ticket_passes']       = array(
+			array(
+				'code'   => 'pass',
+				'status' => $status,
+			),
+		);
+		try {
+			$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+			$this->assertSame( 'completed', $this->order()->get_status() );
+			$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+			$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+		} finally {
+			unset( $GLOBALS['ticket_passes'] ); }
+	}
+	public function held_pass_statuses(): array {
+		return array( array( 'active' ), array( 'redeemed' ) );
+	}
+	public function test_sold_out_status_lookup_failure_retries_without_refund(): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$callback                       = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static function ( $site, $method, $route ) use ( $callback ) {
+			if ( str_contains( $route, 'get-ticket-order-status' ) ) {
+				return new WP_Error( 'events_unavailable', 'Retry later.' );
+			}
+			return $callback( $site, $method, $route );
+		};
+		$this->assertSame( 'events_unavailable', extrachill_shop_route_webhook_event( $this->event() )->get_error_code() );
+		$this->assertCount( 0, $GLOBALS['ticket_refunds'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+	}
+	public function test_sold_out_failed_refund_retry_does_not_issue_again(): void {
+		$this->checkout();
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$GLOBALS['ticket_refund_fail']  = true;
+		$this->assertSame( 'ticket_refund_failed', extrachill_shop_route_webhook_event( $this->event() )->get_error_code() );
+		$this->assertSame( 'sold_out', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) );
+		$GLOBALS['ticket_refund_fail']  = false;
+		$GLOBALS['ticket_issue_status'] = 'issued';
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$this->assertSame( 'refunded', $this->order()->get_status() );
+		$this->assertSame( 0, $this->order()->paid );
 	}
 	public function test_sold_out_auto_refund_and_replay(): void {
 		$this->checkout();
@@ -617,16 +766,331 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 	public function test_failed_refund_can_be_retried(): void {
 		$this->checkout();
 		extrachill_shop_route_webhook_event( $this->event() );
-		$GLOBALS['ticket_refund_fail'] = true;
+		$GLOBALS['ticket_refund_fail']         = true;
+		$GLOBALS['stripe_refund_attempt_keys'] = array();
 		$this->assertSame( 'ticket_refund_failed', extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) )->get_error_code() );
 		$this->assertSame( 'refund_pending', extrachill_shop_ticket_order_state( $this->order() ) );
 		$this->assertSame( array(), $this->order()->refunds, 'Nothing is recorded until the refund succeeds.' );
 		$GLOBALS['ticket_refund_fail'] = false;
 		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) ) );
-		$this->assertSame( 'ticket-refund-cs_ticket', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		// Stripe would replay the refusal under the first key; the retry gets its own.
+		$this->assertSame( array( 'ticket-refund-cs_ticket-1', 'ticket-refund-cs_ticket-2' ), $GLOBALS['stripe_refund_attempt_keys'] );
+		$this->assertSame( 'ticket-refund-cs_ticket-2', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		$this->assertSame( '2', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_ATTEMPTS_META ) );
 		$this->assertSame( 'refunded', extrachill_shop_ticket_order_state( $this->order() ) );
 		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_REFUND_PENDING_META ) );
 	}
+	public function test_public_ticket_holds_ability(): void {
+		extrachill_shop_register_ticket_abilities();
+		$ability = $GLOBALS['test_abilities']['extrachill/get-event-ticket-holds'];
+		$this->assertSame( '__return_true', $ability['permission_callback'] );
+		$this->assertTrue( $ability['meta']['show_in_rest'] );
+		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
+		$this->assertSame( array( 'event' ), $ability['input_schema']['required'] );
+		$none = array(
+			'held'    => 0,
+			'by_type' => array(),
+		);
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->checkout();
+		$this->assertSame( array(
+			'held'    => 2,
+			'by_type' => array( 'general' => 2 ),
+		), call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 202 ) ) );
+		$this->order()->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, time() - 1 );
+		$this->assertSame( $none, call_user_func( $ability['execute_callback'], array( 'event' => 101 ) ) );
+	}
+
+	public function test_open_checkouts_hold_their_tickets(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 3;
+		$GLOBALS['stripe_session_ids']        = array( 'cs_one', 'cs_two' );
+		$this->assertSame( 'cs_one', $this->checkout()['session_id'] );
+		$order = $this->order( 'cs_one' );
+		$hold  = (int) $order->get_meta( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META );
+		// The hold ends when Stripe closes the Session.
+		$this->assertSame( $GLOBALS['ticket_session_request'][0]['expires_at'], $hold );
+		$this->assertEqualsWithDelta( time() + EXTRACHILL_SHOP_TICKET_HOLD_SECONDS, $hold, 5 );
+		$this->assertSame( 2, extrachill_shop_held_ticket_quantity( 101 ) );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101, $order->get_id() ) );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 202 ), 'Holds are per show.' );
+
+		// Events still reports 3 left, but two of them are held.
+		$sessions = count( $GLOBALS['stripe_sessions_created'] ?? array() );
+		$error    = $this->checkout();
+		$this->assertSame( 'tickets_held', $error->get_error_code() );
+		$this->assertSame( 409, $error->get_error_data()['status'] );
+		$this->assertCount( $sessions, $GLOBALS['stripe_sessions_created'] ?? array(), 'No Session for a held-out checkout.' );
+		$this->assertCount( 1, array_filter( $GLOBALS['test_orders'], static fn( $o ) => $o instanceof TicketTestOrder ), 'No order left behind.' );
+		// The one ticket not held can still be bought.
+		$this->assertSame( 'cs_two', $this->checkout( array( 'quantity' => 1 ) )['session_id'] );
+		$this->assertSame( 3, extrachill_shop_held_ticket_quantity( 101 ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_holds_end_with_the_session_and_last_while_paid_but_unissued(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 2;
+		$GLOBALS['stripe_session_ids']        = array( 'cs_one', 'cs_two', 'cs_three' );
+		$this->checkout();
+		$this->assertSame( 'tickets_held', $this->checkout()->get_error_code() );
+		$order = $this->order( 'cs_one' );
+		// Paid, fulfilment pending: the hold outlives the Session until passes are issued.
+		$order->update_meta_data( '_extrachill_payment_intent', 'pi_one' );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() - 1 ) );
+		$this->assertSame( 2, extrachill_shop_held_ticket_quantity( 101 ) );
+		// Unpaid and past its expiry: released even before the expired webhook.
+		$order->delete_meta_data( '_extrachill_payment_intent' );
+		$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101 ) );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() + 600 ) );
+		// An expired (cancelled) or issued order holds nothing.
+		foreach ( array( 'cancelled', 'failed', 'completed', 'refunded' ) as $status ) {
+			$order->status = $status;
+			$this->assertSame( 0, extrachill_shop_held_ticket_quantity( 101 ), $status );
+		}
+		$order->status = 'cancelled';
+		$this->assertSame( 'cs_two', $this->checkout()['session_id'] );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_racing_checkouts_never_oversell_the_last_tickets(): void {
+		$GLOBALS['ticket_offer']['remaining'] = 2;
+		// Another checkout saved its hold after this one's first count.
+		$GLOBALS['test_wc_get_orders_callback'] = static function ( array $args ) {
+			static $racer = false;
+			if ( ! $racer && isset( $args['status'] ) && array( 'wc-pending' ) === $args['status'] && ! empty( $GLOBALS['test_orders'] ) ) {
+				$racer = true;
+				$other = wc_create_order( array( 'status' => 'pending' ) );
+				$item  = new WC_Order_Item_Product();
+				$item->set_quantity( 1 );
+				$other->add_item( $item );
+				$other->update_meta_data( EXTRACHILL_SHOP_ORDER_KIND_META, EXTRACHILL_SHOP_TICKET_KIND );
+				$other->update_meta_data( EXTRACHILL_SHOP_TICKET_EVENT_META, '101' );
+				$other->update_meta_data( EXTRACHILL_SHOP_TICKET_HOLD_UNTIL_META, (string) ( time() + 600 ) );
+			}
+			return ticket_test_wc_get_orders( $args );
+		};
+		$this->assertSame( 'tickets_held', $this->checkout()->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'], 'The losing checkout never reaches Stripe.' );
+		$this->assertSame( 1, extrachill_shop_held_ticket_quantity( 101 ), 'Only the other checkout still holds.' );
+	}
+
+	/** A two-type offer as Events returns it, read with $code. */
+	private function tiered_offer( ?array $code = null, bool $invalid = false ): void {
+		$GLOBALS['ticket_offer']['ticket_types'] = array(
+			array(
+				'id'               => 'ga',
+				'name'             => 'GA',
+				'price_minor'      => 1000,
+				'unit_price_minor' => $code ? 800 : 1000,
+				'remaining'        => null,
+				'code_applies'     => (bool) $code,
+			),
+			array(
+				'id'               => 'vip',
+				'name'             => 'VIP',
+				'price_minor'      => 3000,
+				'unit_price_minor' => 3000,
+				'remaining'        => 2,
+				'code_applies'     => false,
+			),
+		);
+		$GLOBALS['ticket_offer']['code']         = $code;
+		$GLOBALS['ticket_offer']['code_invalid'] = $invalid;
+	}
+
+	public function test_checkout_charges_the_chosen_type(): void {
+		$this->tiered_offer();
+		$this->assertSame( 'ticket_type_unavailable', $this->checkout()->get_error_code(), 'Two types: the buyer must pick.' );
+		$this->assertSame( 'ticket_type_unavailable', $this->checkout( array( 'ticket_type' => 'nope' ) )->get_error_code() );
+		$this->assertSame( 'cs_ticket', $this->checkout( array( 'ticket_type' => 'vip' ) )['session_id'] );
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 3000, $params['line_items'][0]['price_data']['unit_amount'] );
+		$this->assertSame( 'Lo-Fi show — VIP', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'vip', $params['metadata']['ticket_type'] );
+		$this->assertArrayNotHasKey( 'ticket_code', $params['metadata'] );
+		$order = $this->order();
+		$this->assertSame( 'vip', $order->get_meta( EXTRACHILL_SHOP_TICKET_TYPE_META ) );
+		$this->assertSame( 'Event tickets: Lo-Fi show (VIP)', $order->get_items( 'line_item' )[0]->get_name() );
+		$this->assertSame( 6000, extrachill_shop_ticket_order_amounts( $order )['subtotal_minor'] );
+		$this->assertSame( array(
+			'held'    => 2,
+			'by_type' => array( 'vip' => 2 ),
+		), extrachill_shop_held_ticket_quantities( 101 ) );
+
+		// Fulfilment issues the passes as VIP.
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$issue = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'issue-ticket-passes' ) ) );
+		$this->assertSame( 'vip', $issue[0]['args']['body']['input']['ticket_type'] );
+	}
+
+	public function test_type_holds_are_counted_per_type(): void {
+		$this->tiered_offer();
+		$GLOBALS['stripe_session_ids'] = array( 'cs_one', 'cs_two' );
+		$this->checkout( array(
+			'ticket_type' => 'vip',
+			'quantity'    => 1,
+		) );
+		$this->assertSame( 'tickets_held', $this->checkout( array(
+			'ticket_type' => 'vip',
+			'quantity'    => 2,
+		) )->get_error_code(), 'One of two VIP is held.' );
+		$this->assertSame( 'cs_two', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'quantity'    => 2,
+		) )['session_id'], 'GA is unaffected.' );
+		$this->assertSame( 'ticket_sold_out', $this->checkout( array(
+			'ticket_type' => 'vip',
+			'quantity'    => 3,
+		) )->get_error_code() );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_code_discounts_the_charge_and_the_fees(): void {
+		$this->tiered_offer( array(
+			'code'             => 'FRIENDS',
+			'percent_off'      => 20,
+			'amount_off_minor' => 0,
+			'max_uses'         => 3,
+			'ticket_types'     => array( 'ga' ),
+		) );
+		$this->assertSame( 'ticket_code_not_applicable', $this->checkout( array(
+			'ticket_type' => 'vip',
+			'code'        => 'friends',
+		) )->get_error_code() );
+		$this->assertSame( 'cs_ticket', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => ' friends ',
+		) )['session_id'] );
+		$offer_call = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'get-event-ticket-offer' ) ) );
+		$this->assertSame( 'FRIENDS', end( $offer_call )['args']['query']['input']['code'], 'The code is read upper-cased from Events.' );
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 800, $params['line_items'][0]['price_data']['unit_amount'] );
+		$this->assertSame( 'Lo-Fi show — GA (code FRIENDS)', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'FRIENDS', $params['metadata']['ticket_code'] );
+		$order   = $this->order();
+		$amounts = extrachill_shop_ticket_order_amounts( $order );
+		$this->assertSame( 1600, $amounts['subtotal_minor'] );
+		// $2 platform fee plus processing on $16 instead of $20 (2.97 undiscounted).
+		$this->assertSame( 285, $amounts['service_fee_minor'], 'Fees follow the paid subtotal.' );
+		$this->assertSame( 1885, $amounts['total_minor'] );
+		$line = $order->get_items( 'line_item' )[0];
+		$this->assertSame( 20.0, $line->get_subtotal(), 'List price before the code.' );
+		$this->assertSame( 16.0, $line->get_total() );
+		$this->assertSame( 4.0, $order->get_discount_total() );
+		$this->assertSame( 'FRIENDS', $order->get_meta( EXTRACHILL_SHOP_TICKET_CODE_META ) );
+		$this->assertSame( '400', $order->get_meta( EXTRACHILL_SHOP_TICKET_DISCOUNT_META ) );
+		$this->assertSame( 2, extrachill_shop_ticket_code_uses( 101, 'FRIENDS' ) );
+	}
+
+	public function test_sales_report_lists_paid_orders_with_code_type_and_money(): void {
+		$this->tiered_offer( array(
+			'code'             => 'FRIENDS',
+			'percent_off'      => 20,
+			'amount_off_minor' => 0,
+			'max_uses'         => 0,
+			'ticket_types'     => array( 'ga' ),
+		) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_code', 'cs_gone', 'cs_open' );
+		$this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'FRIENDS',
+			'name'        => 'Ada Lovelace',
+		) );
+		$this->tiered_offer();
+		$this->checkout( array( 'ticket_type' => 'ga' ) );
+		$this->checkout( array( 'ticket_type' => 'ga' ) );
+		$this->mark_paid( 'cs_code', 'pi_code' );
+		$this->mark_paid( 'cs_gone', 'pi_gone' );
+		$this->assertSame( array( 'refunded' => true ), extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_gone' ) ) );
+
+		$rows = array_column( extrachill_shop_get_event_ticket_order_report( array( 'event_id' => 101 ) )['orders'], null, 'order_reference' );
+		$this->assertSame( array( 'cs_code', 'cs_gone' ), array_keys( $rows ), 'Open checkouts never took money.' );
+		$code = $rows['cs_code'];
+		$this->assertSame( array( 'ga', 'FRIENDS', 2, 1600, 400, 1885, 'issued', 0 ), array( $code['ticket_type'], $code['code'], $code['quantity'], $code['subtotal_minor'], $code['discount_minor'], $code['total_minor'], $code['state'], $code['refunded_minor'] ) );
+		$this->assertSame( 'buyer@example.com', $code['email'] );
+		$this->assertGreaterThan( 0, $code['fees_minor'] );
+		$gone = $rows['cs_gone'];
+		$this->assertSame( 'refunded', $gone['state'] );
+		$this->assertSame( $gone['total_minor'], $gone['refunded_minor'] );
+		$this->assertSame( 0, $gone['fees_minor'], 'A refund returns the application fee.' );
+		$this->assertSame( '', $gone['code'] );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_code_use_limit_counts_paid_and_open_checkouts(): void {
+		$this->tiered_offer( array(
+			'code'             => 'FRIENDS',
+			'percent_off'      => 20,
+			'amount_off_minor' => 0,
+			'max_uses'         => 3,
+			'ticket_types'     => array(),
+		) );
+		$GLOBALS['stripe_session_ids'] = array( 'cs_one', 'cs_two' );
+		$this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'FRIENDS',
+		) );
+		$this->mark_paid( 'cs_one', 'pi_one' );
+		$this->assertSame( 'ticket_code_used_up', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'FRIENDS',
+		) )->get_error_code() );
+		$this->assertSame( 'cs_two', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'FRIENDS',
+			'quantity'    => 1,
+		) )['session_id'] );
+		$this->assertSame( 3, extrachill_shop_ticket_code_uses( 101, 'FRIENDS' ) );
+		unset( $GLOBALS['stripe_session_ids'] );
+	}
+
+	public function test_bad_and_free_codes_are_refused_before_stripe(): void {
+		$this->tiered_offer( null, true );
+		$this->assertSame( 'ticket_code_invalid', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'NOPE',
+		) )->get_error_code() );
+		$this->tiered_offer( array(
+			'code'             => 'COMP',
+			'percent_off'      => 0,
+			'amount_off_minor' => 5000,
+			'max_uses'         => 0,
+			'ticket_types'     => array(),
+		) );
+		$GLOBALS['ticket_offer']['ticket_types'][0]['unit_price_minor'] = 0;
+		$this->assertSame( 'ticket_code_free', $this->checkout( array(
+			'ticket_type' => 'ga',
+			'code'        => 'COMP',
+		) )->get_error_code() );
+		$this->assertNull( $GLOBALS['ticket_session_request'] );
+		$this->assertSame( array(), array_filter( $GLOBALS['test_orders'], static fn( $o ) => $o instanceof TicketTestOrder ) );
+	}
+
+	public function test_single_price_show_needs_no_type_and_keeps_its_names(): void {
+		$GLOBALS['ticket_offer']['ticket_types'] = array(
+			array(
+				'id'               => 'general',
+				'name'             => 'General admission',
+				'price_minor'      => 1000,
+				'unit_price_minor' => 1000,
+				'remaining'        => null,
+				'code_applies'     => false,
+			),
+		);
+		$this->checkout();
+		list( $params ) = $GLOBALS['ticket_session_request'];
+		$this->assertSame( 'Lo-Fi show', $params['line_items'][0]['price_data']['product_data']['name'] );
+		$this->assertSame( 'general', $params['metadata']['ticket_type'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$issue = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'issue-ticket-passes' ) ) );
+		$this->assertArrayNotHasKey( 'ticket_type', $issue[0]['args']['body']['input'], 'Single-price shows send what they always did.' );
+	}
+
+	public function test_unlimited_shows_need_no_hold_count(): void {
+		$this->checkout();
+		$this->assertSame( array(), array_filter( $GLOBALS['ticket_order_queries'], static fn( $args ) => array( 'wc-pending' ) === ( $args['status'] ?? null ) ) );
+	}
+
 	public function test_wrong_account_and_unpaid_sessions_do_not_issue(): void {
 		$this->checkout();
 		$event          = $this->event();
@@ -643,7 +1107,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		add_filter( 'extrachill_shop_ticket_service_assertion_active_key_id', static function () { return 'test';
 		} );
 		$grants = extrachill_shop_register_ticket_source_grants( array() );
-		$this->assertCount( 6, $grants );
+		$this->assertCount( 7, $grants );
 		foreach ( $grants as $grant ) {
 			$this->assertSame( 'POST', $grant['method'] );
 			$this->assertSame( 'events.extrachill.com', $grant['target_host'] );
@@ -981,9 +1445,12 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		// The query is by the buyer's customer ID and the ticket kind.
 		$query = end( $GLOBALS['ticket_order_queries'] );
 		$this->assertSame( 552, $query['customer_id'] );
-		$this->assertContains( array( 'key' => EXTRACHILL_SHOP_ORDER_KIND_META, 'value' => EXTRACHILL_SHOP_TICKET_KIND ), $query['meta_query'] );
+		$this->assertContains( array(
+			'key'   => EXTRACHILL_SHOP_ORDER_KIND_META,
+			'value' => EXTRACHILL_SHOP_TICKET_KIND,
+		), $query['meta_query'] );
 		// A guest checkout under the same email never shows up either.
-		$GLOBALS['test_user_id'] = 0;
+		$GLOBALS['test_user_id']       = 0;
 		$GLOBALS['stripe_session_ids'] = array( 'cs_guest' );
 		$this->checkout();
 		$this->mark_paid( 'cs_guest', 'pi_guest' );
@@ -1005,5 +1472,226 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$ability = $GLOBALS['test_abilities']['extrachill/list-my-ticket-orders'];
 		$this->assertSame( 'is_user_logged_in', $ability['permission_callback'] );
 		$this->assertSame( 'boolean', $GLOBALS['test_abilities']['extrachill/start-ticket-checkout']['input_schema']['properties']['terms_accepted']['type'] );
+	}
+	/** Age the order past the webhook grace period and stub its Session in Stripe. */
+	private function missed_webhook( string $payment_status, string $status = 'complete' ): TicketTestOrder {
+		$order          = $this->order();
+		$order->created = time() - 3600;
+		$GLOBALS['stripe_session_status']['cs_ticket'] = $status;
+		$GLOBALS['stripe_session_data']['cs_ticket']   = array(
+			'payment_status' => $payment_status,
+			'payment_intent' => 'pi_ticket',
+			'customer_email' => 'buyer@example.com',
+			'metadata'       => (object) array(
+				'kind'     => 'extrachill_ticket',
+				'name'     => 'Buyer',
+				'order_id' => (string) $order->get_id(),
+			),
+		);
+		return $order;
+	}
+	private function owner_calls( string $ability ): array {
+		return array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], $ability ) ) );
+	}
+	public function test_reconciliation_fulfils_a_paid_order_whose_webhook_never_arrived(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$this->assertSame( array(
+			'fulfilled' => 1,
+			'closed'    => 0,
+			'open'      => 0,
+			'failed'    => 0,
+		), extrachill_shop_reconcile_pending_ticket_orders() );
+		$order = $this->order();
+		$this->assertSame( 'completed', $order->get_status() );
+		$this->assertSame( 'pi_ticket', $order->get_meta( '_extrachill_payment_intent' ) );
+		$this->assertSame( 'cs_ticket', $order->get_meta( EXTRACHILL_SHOP_TICKET_RECONCILED_META ) );
+		$this->assertStringContainsString( 'never completed fulfilment', end( $order->notes ) );
+		// The Session is read on the seller's account, as the webhook would carry it.
+		$this->assertSame( array( 'cs_ticket', array( 'stripe_account' => 'acct_venue' ) ), $GLOBALS['stripe_session_retrieved'][0] );
+		$issue = $this->owner_calls( 'issue-ticket-passes' );
+		$this->assertCount( 1, $issue );
+		$this->assertSame( 'cs_ticket', $issue[0]['args']['body']['input']['idempotency_key'] );
+		$this->assertSame( 'buyer@example.com', $issue[0]['args']['body']['input']['email'] );
+		// A late webhook after reconciliation is a no-op.
+		$count = count( $GLOBALS['test_owner_calls'] );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$this->assertCount( $count, $GLOBALS['test_owner_calls'] );
+		$this->assertSame( 1, $this->order()->paid );
+		// Completed orders drop out of the next run.
+		$this->assertSame( 0, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+	}
+	public function test_reconciliation_leaves_recent_and_open_sessions_alone(): void {
+		$this->checkout();
+		// Inside the grace period the webhook still has time; Stripe is not asked.
+		$this->assertSame( array(
+			'fulfilled' => 0,
+			'closed'    => 0,
+			'open'      => 0,
+			'failed'    => 0,
+		), extrachill_shop_reconcile_pending_ticket_orders() );
+		$this->assertSame( array(), $GLOBALS['stripe_session_retrieved'] );
+		$this->missed_webhook( 'unpaid', 'open' );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['open'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$this->assertSame( array(), $this->owner_calls( 'issue-ticket-passes' ) );
+		// Too old to reconcile: left for an operator.
+		$this->assertSame( 0, extrachill_shop_reconcile_pending_ticket_orders( time() + 30 * 86400 )['open'] );
+		$this->assertQueryArgs();
+	}
+	private function assertQueryArgs(): void {
+		$query = $GLOBALS['ticket_order_queries'][0];
+		$this->assertSame( array( 'wc-pending' ), $query['status'] );
+		$this->assertSame( EXTRACHILL_SHOP_TICKET_RECONCILE_BATCH, $query['limit'] );
+		$this->assertMatchesRegularExpression( '/^\d+\.\.\.\d+$/', $query['date_created'] );
+		$this->assertContains( array(
+			'key'   => EXTRACHILL_SHOP_ORDER_KIND_META,
+			'value' => EXTRACHILL_SHOP_TICKET_KIND,
+		), $query['meta_query'] );
+	}
+	public function test_reconciliation_cancels_an_order_whose_session_expired_unpaid(): void {
+		$this->checkout();
+		$this->missed_webhook( 'unpaid', 'expired' );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['closed'] );
+		$this->assertSame( 'cancelled', $this->order()->get_status() );
+		$this->assertSame( 'expired', extrachill_shop_ticket_order_state( $this->order() ) );
+		$this->assertSame( array(), $this->owner_calls( 'issue-ticket-passes' ) );
+	}
+	public function test_reconciliation_failures_are_retried_on_the_next_run(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$GLOBALS['stripe_session_retrieve_fail'] = true;
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['failed'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$GLOBALS['stripe_session_retrieve_fail'] = false;
+		// Events is down: the order stays pending with the payment stored.
+		$callback                       = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static fn( $site, $method, $route, $args ) => str_contains( $route, 'issue-ticket-passes' ) ? new WP_Error( 'owner_unavailable', 'Down.' ) : $callback( $site, $method, $route, $args );
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['failed'] );
+		$this->assertSame( 'pending', $this->order()->get_status() );
+		$this->assertSame( 'pi_ticket', $this->order()->get_meta( '_extrachill_payment_intent' ) );
+		$GLOBALS['test_owner_callback'] = $callback;
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+		$this->assertSame( 'completed', $this->order()->get_status() );
+	}
+	public function test_reconciliation_of_a_sold_out_show_refunds_instead_of_issuing(): void {
+		$this->checkout();
+		$this->missed_webhook( 'paid' );
+		$GLOBALS['ticket_issue_status'] = 'sold_out';
+		$this->assertSame( 1, extrachill_shop_reconcile_pending_ticket_orders()['fulfilled'] );
+		$this->assertCount( 1, $GLOBALS['ticket_refunds'] );
+		$this->assertSame( 'refunded', $this->order()->get_status() );
+	}
+	public function test_undelivered_pass_emails_are_flagged_and_retried_until_sent(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 2;
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->event() ) );
+		$order = $this->order();
+		$this->assertSame( 'completed', $order->get_status(), 'The passes exist, so the order is issued.' );
+		$this->assertSame( '1', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$GLOBALS['ticket_resend'] = array(
+			'emailed' => 0,
+			'failed'  => 2,
+		);
+		$this->assertSame( array(
+			'sent'      => 0,
+			'failed'    => 1,
+			'exhausted' => 0,
+		), extrachill_shop_retry_ticket_pass_emails() );
+		$this->assertSame( '1', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		$GLOBALS['ticket_resend'] = array(
+			'emailed' => 2,
+			'failed'  => 0,
+		);
+		$this->assertSame( array(
+			'sent'      => 1,
+			'failed'    => 0,
+			'exhausted' => 0,
+		), extrachill_shop_retry_ticket_pass_emails() );
+		$resend = $this->owner_calls( 'resend-ticket-pass-emails' );
+		$this->assertCount( 2, $resend );
+		$this->assertSame( array(
+			'order_reference' => 'cs_ticket',
+			'email'           => 'buyer@example.com',
+		), $resend[1]['args']['body']['input'] );
+		$this->assertSame( 'extrachill.events.tickets', $resend[1]['args']['service_assertion']['service_id'] );
+		$order = $this->order();
+		$this->assertSame( '', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertSame( '', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		$this->assertStringContainsString( 'Re-sent 2 pass email(s)', end( $order->notes ) );
+		// Nothing left to retry.
+		$this->assertSame( array(
+			'sent'      => 0,
+			'failed'    => 0,
+			'exhausted' => 0,
+		), extrachill_shop_retry_ticket_pass_emails() );
+		$this->assertCount( 2, $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_delivered_pass_emails_are_not_retried(): void {
+		$this->checkout();
+		extrachill_shop_route_webhook_event( $this->event() );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		extrachill_shop_run_ticket_reconciliation();
+		$this->assertSame( array(), $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_pass_email_retries_are_bounded(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 1;
+		extrachill_shop_route_webhook_event( $this->event() );
+		$callback                       = $GLOBALS['test_owner_callback'];
+		$GLOBALS['test_owner_callback'] = static fn( $site, $method, $route, $args ) => str_contains( $route, 'resend-ticket-pass-emails' ) ? new WP_Error( 'owner_unavailable', 'Down.' ) : $callback( $site, $method, $route, $args );
+		for ( $i = 1; $i < EXTRACHILL_SHOP_TICKET_PASS_EMAIL_MAX_ATTEMPTS; $i++ ) {
+			$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['failed'] );
+		}
+		$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['exhausted'] );
+		$order = $this->order();
+		$this->assertSame( 'exhausted', $order->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertStringContainsString( 'manually', end( $order->notes ) );
+		$this->assertSame( array(
+			'sent'      => 0,
+			'failed'    => 0,
+			'exhausted' => 0,
+		), extrachill_shop_retry_ticket_pass_emails(), 'An exhausted order is not retried again.' );
+		$this->assertCount( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_MAX_ATTEMPTS, $this->owner_calls( 'resend-ticket-pass-emails' ) );
+	}
+	public function test_refunded_orders_stop_pass_email_retries(): void {
+		$this->checkout();
+		$GLOBALS['ticket_emails_failed'] = 2;
+		extrachill_shop_route_webhook_event( $this->event() );
+		// Refunded orders are not queried; a refund_pending order has no active passes left.
+		$order         = $this->order();
+		$order->status = 'refunded';
+		$this->assertSame( array(
+			'sent'      => 0,
+			'failed'    => 0,
+			'exhausted' => 0,
+		), extrachill_shop_retry_ticket_pass_emails() );
+		$order->status            = 'completed';
+		$GLOBALS['ticket_resend'] = array(
+			'emailed' => 0,
+			'failed'  => 0,
+		);
+		$this->assertSame( 1, extrachill_shop_retry_ticket_pass_emails()['sent'] );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertStringContainsString( 'No active passes', end( $this->order()->notes ) );
+	}
+	public function test_won_dispute_restore_emails_clear_a_pending_pass_email_retry(): void {
+		$this->disputed_order();
+		$order = $this->order();
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META, '1' );
+		$order->update_meta_data( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META, '3' );
+		$GLOBALS['ticket_restore'] = array( 'restored' => 2 );
+		$this->assertTrue( extrachill_shop_route_webhook_event( $this->closed_dispute( 'won' ) ) );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_PENDING_META ) );
+		$this->assertSame( '', $this->order()->get_meta( EXTRACHILL_SHOP_TICKET_PASS_EMAIL_ATTEMPTS_META ) );
+		unset( $GLOBALS['ticket_restore'] );
+	}
+	public function test_reconciliation_is_scheduled_once_with_action_scheduler(): void {
+		$GLOBALS['test_recurring_actions'] = array();
+		$this->assertTrue( extrachill_shop_schedule_ticket_reconciliation() );
+		$this->assertTrue( extrachill_shop_schedule_ticket_reconciliation() );
+		$this->assertCount( 1, $GLOBALS['test_recurring_actions'] );
+		$this->assertSame( array( EXTRACHILL_SHOP_TICKET_RECONCILE_INTERVAL, EXTRACHILL_SHOP_TICKET_RECONCILE_HOOK, array(), EXTRACHILL_SHOP_TICKET_RECONCILE_GROUP ), array_slice( $GLOBALS['test_recurring_actions'][0], 1 ) );
+		unset( $GLOBALS['test_recurring_actions'] );
 	}
 }

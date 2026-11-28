@@ -90,6 +90,20 @@ class TicketSalesAbilities {
 									'sold'            => $count,
 									'checked_in'      => $count,
 									'refunded'        => $count,
+									// Live (sold, not refunded) passes per ticket type.
+									'ticket_types'    => array(
+										'type'  => 'array',
+										'items' => array(
+											'type'       => 'object',
+											'properties' => array(
+												'id'       => array( 'type' => 'string' ),
+												'name'     => array( 'type' => 'string' ),
+												'price_minor' => $count,
+												'quantity' => $count,
+												'sold'     => $count,
+											),
+										),
+									),
 									'orders'          => array(
 										'type'  => 'array',
 										'items' => array(
@@ -98,6 +112,7 @@ class TicketSalesAbilities {
 												'order_reference' => array( 'type' => 'string' ),
 												'name'     => array( 'type' => 'string' ),
 												'quantity' => $count,
+												'ticket_type' => array( 'type' => 'string' ),
 												'checked_in' => $count,
 												'bought_at' => array( 'type' => 'string' ),
 												'status'   => array(
@@ -277,7 +292,8 @@ class TicketSalesAbilities {
 					'event_id'   => $event_id,
 					'title'      => html_entity_decode( (string) get_the_title( $event_id ), ENT_QUOTES ),
 					'url'        => $url,
-					'manage_url' => '' === $url ? '' : $url . '#ec-guest-list-management',
+					// Host tools live on the /guest-list host screen (extrachill#1702).
+					'manage_url' => '' === $url ? '' : ( function_exists( 'extrachill_events_guest_list_host_tools_url' ) ? extrachill_events_guest_list_host_tools_url( $event_id, 'ec-guest-list-management' ) : $url . '#ec-guest-list-management' ),
 					'start'      => $dates && ! empty( $dates->start_datetime ) ? (string) $dates->start_datetime : '',
 					'timing'     => function_exists( 'datamachine_get_event_timing' ) ? datamachine_get_event_timing( $event_id ) : 'past',
 				),
@@ -329,12 +345,37 @@ class TicketSalesAbilities {
 			'checked_in' => 0,
 			'refunded'   => 0,
 		);
+		// Every type the show sells, then any a sold pass names that was since removed.
+		$types = array();
+		foreach ( TicketTypes::effective( $settings ) as $type ) {
+			$types[ $type['id'] ] = array(
+				'id'          => $type['id'],
+				'name'        => $type['name'],
+				'price_minor' => (int) $type['price_minor'],
+				'quantity'    => (int) $type['quantity'],
+				'sold'        => 0,
+			);
+		}
 		foreach ( $rows as $row ) {
 			$reference = (string) $row['order_reference'];
+			$type_id   = RsvpPassesTable::ticket_type_of( $row );
+			if ( ! isset( $types[ $type_id ] ) ) {
+				$types[ $type_id ] = array(
+					'id'          => $type_id,
+					'name'        => $type_id,
+					'price_minor' => 0,
+					'quantity'    => 0,
+					'sold'        => 0,
+				);
+			}
+			if ( RsvpPassesTable::STATUS_REVOKED !== $row['status'] ) {
+				++$types[ $type_id ]['sold'];
+			}
 			if ( ! isset( $orders[ $reference ] ) ) {
 				$orders[ $reference ] = array(
 					'order_reference' => $reference,
 					'name'            => (string) ( $row['guest_name'] ?? '' ),
+					'ticket_type'     => $types[ $type_id ]['name'],
 					'quantity'        => 0,
 					'checked_in'      => 0,
 					'revoked'         => 0,
@@ -377,7 +418,10 @@ class TicketSalesAbilities {
 			'price_minor'     => (int) $settings['ticket_price_minor'],
 			'currency'        => (string) $settings['ticket_currency'],
 			'quantity'        => (int) $settings['ticket_quantity'],
-		) + $counts + array( 'orders' => $order_list );
+		) + $counts + array(
+			'ticket_types' => array_values( $types ),
+			'orders'       => $order_list,
+		);
 	}
 
 	/**

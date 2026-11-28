@@ -16,6 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
 
+// Core sitemap classes are kept as fixtures so provider inheritance uses the real contract.
+require_once __DIR__ . '/Fixtures/class-wp-sitemaps-provider.php';
+require_once __DIR__ . '/Fixtures/class-wp-sitemaps-posts.php';
+
 // ---------------------------------------------------------------------------
 // WordPress function stubs.
 //
@@ -256,6 +260,12 @@ if ( ! function_exists( 'has_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'current_time' ) ) {
+	function current_time( $type ) {
+		return $GLOBALS['ec_seo_test_current_time'] ?? '2026-01-01 00:00:00';
+	}
+}
+
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		return true;
@@ -308,6 +318,7 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		public string $post_excerpt   = '';
 		public string $post_name      = '';
 		public string $post_type      = 'data_machine_events';
+		public string $post_status    = 'publish';
 		public ?string $permalink     = null;
 		public ?string $thumbnail_url = null;
 
@@ -587,6 +598,15 @@ if ( ! function_exists( 'get_the_modified_date' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_post' ) ) {
+	function get_post( $post = null ) {
+		if ( $post instanceof WP_Post ) {
+			return $post;
+		}
+		return $GLOBALS['ec_seo_test_posts'][ (int) $post ] ?? null;
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Test support helpers + data-machine-events public API stub.
 // ---------------------------------------------------------------------------
@@ -632,6 +652,7 @@ require_once __DIR__ . '/../inc/core/meta-tags.php';
 require_once __DIR__ . '/../inc/core/canonical.php';
 require_once __DIR__ . '/../inc/core/app-banner.php';
 require_once __DIR__ . '/../inc/core/sparse-terms.php';
+require_once __DIR__ . '/../inc/core/recurring-events.php';
 require_once __DIR__ . '/../inc/core/open-graph.php';
 require_once __DIR__ . '/../inc/schema/schema-output.php';
 require_once __DIR__ . '/../inc/schema/schema-webpage.php';

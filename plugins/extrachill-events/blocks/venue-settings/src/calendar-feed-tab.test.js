@@ -49,7 +49,7 @@ jest.mock( '@extrachill/components', () => {
 				children
 			),
 	};
-} );
+}, { virtual: true } );
 
 const venue = { id: 1524, name: 'Lo-Fi Brewing' };
 

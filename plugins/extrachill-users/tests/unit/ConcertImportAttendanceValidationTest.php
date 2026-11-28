@@ -18,9 +18,20 @@ class Test_Concert_Import_Attendance_Validation extends WP_UnitTestCase {
 	/**
 	 * Canonical Events site fixture ID.
 	 *
+	 * The main site stands in for Events: blogs created by the factory get
+	 * MySQL TEMPORARY tables, which cannot be self-joined, so the two-clause
+	 * external-ID meta query would error out ("Can't reopen table").
+	 *
 	 * @var int
 	 */
 	private int $events_blog_id;
+
+	/**
+	 * Separate site the import is started from, to prove context is restored.
+	 *
+	 * @var int
+	 */
+	private int $origin_blog_id;
 
 	/**
 	 * Authenticated import user ID.
@@ -41,7 +52,8 @@ class Test_Concert_Import_Attendance_Validation extends WP_UnitTestCase {
 	 */
 	protected function setUp(): void {
 		parent::setUp();
-		$this->events_blog_id = self::factory()->blog->create();
+		$this->events_blog_id = get_main_site_id();
+		$this->origin_blog_id = self::factory()->blog->create();
 		$this->user_id        = self::factory()->user->create();
 		$this->external_event = new ExternalEvent(
 			array(
@@ -164,14 +176,20 @@ class Test_Concert_Import_Attendance_Validation extends WP_UnitTestCase {
 	 * An unpublished external-ID match fails instead of claiming attendance.
 	 */
 	public function test_unpublished_external_id_match_fails_run_truthfully(): void {
-		$original_blog_id = get_current_blog_id();
-		$event_id         = $this->create_imported_event( 'draft' );
-		$start            = ImportOrchestrator::start( $this->user_id, 'attendance-validation', 'fixture-user' );
-		$this->assertFalse( is_wp_error( $start ) );
+		$event_id = $this->create_imported_event( 'draft' );
 
-		ImportOrchestrator::process( (int) $start['run_id'] );
+		switch_to_blog( $this->origin_blog_id );
+		try {
+			$start = ImportOrchestrator::start( $this->user_id, 'attendance-validation', 'fixture-user' );
+			$this->assertFalse( is_wp_error( $start ) );
 
-		$this->assertSame( $original_blog_id, get_current_blog_id() );
+			ImportOrchestrator::process( (int) $start['run_id'] );
+
+			$this->assertSame( $this->origin_blog_id, get_current_blog_id() );
+		} finally {
+			restore_current_blog();
+		}
+
 		$this->assertFalse( ec_users_is_event_marked( $this->user_id, $event_id, $this->events_blog_id ) );
 
 		$status_ability = wp_get_ability( 'extrachill/get-concert-import-status' );

@@ -62,6 +62,7 @@ $GLOBALS['ec_resolution_meta']        = array(
 );
 
 function add_action() {}
+function do_action() {}
 function add_filter() {}
 function is_wp_error() {
 	return false;
@@ -98,8 +99,23 @@ function get_term_by( $field, $value ) {
 function get_term( $term_id ) {
 	return $GLOBALS['ec_resolution_terms'][ $term_id ] ?? null;
 }
-function get_terms() {
-	return array_values( $GLOBALS['ec_resolution_terms'] );
+function taxonomy_exists( $taxonomy ) {
+	return 'location' === $taxonomy;
+}
+function get_terms( $args = array() ) {
+	$terms = array_filter(
+		$GLOBALS['ec_resolution_terms'],
+		static function ( $term ) use ( $args ) {
+			return ( ! isset( $args['name'] ) || $term->name === $args['name'] )
+				&& ( ! isset( $args['parent'] ) || $term->parent === $args['parent'] );
+		}
+	);
+	return array_values( $terms );
+}
+function wp_insert_term( $name, $taxonomy, $args = array() ) {
+	$term_id = max( array_keys( $GLOBALS['ec_resolution_terms'] ) ) + 1;
+	$GLOBALS['ec_resolution_terms'][ $term_id ] = new WP_Term( $term_id, $name, strtolower( str_replace( ' ', '-', $name ) ), $args['parent'] ?? 0 );
+	return array( 'term_id' => $term_id );
 }
 
 require_once dirname( __DIR__ ) . '/inc/core/location-normalizer.php';
@@ -152,9 +168,11 @@ if ( '10' !== $guarded ) {
 }
 $GLOBALS['ec_resolution_meta']['_venue_state'] = 'PA';
 $guarded = extrachill_events_prevent_dynamic_location_creation( 'Wilmington, PA', 'location', 150479 );
-if ( '' !== $guarded ) {
+$created = get_term( (int) $guarded );
+$parent  = $created instanceof WP_Term ? get_term( $created->parent ) : null;
+if ( ! $created instanceof WP_Term || 'Wilmington' !== $created->name || ! $parent instanceof WP_Term || 'Pennsylvania' !== $parent->name ) {
 	++$failures;
-	printf( "FAIL: unresolved AI-decided location must be refused instead of created\n" );
+	printf( "FAIL: missing location must be created from venue metadata under the correct state, not from AI free text\n" );
 }
 $GLOBALS['ec_resolution_meta']['_venue_state'] = 'NC';
 

@@ -156,7 +156,7 @@ class NetworkTermAbilities {
 	 * Search approved identities for an eligible target.
 	 *
 	 * @param array $input Ability input.
-	 * @return array|\WP_Error
+	 * @return array|string|\WP_Error String when a cross-site response body is not JSON.
 	 */
 	public function search( array $input ) {
 		$site_key  = sanitize_key( $input['site'] );
@@ -192,7 +192,7 @@ class NetworkTermAbilities {
 	 * Materialize one approved local projection.
 	 *
 	 * @param array $input Ability input.
-	 * @return array|\WP_Error
+	 * @return array|string|\WP_Error String when a cross-site response body is not JSON.
 	 */
 	public function project( array $input ) {
 		$site_key = sanitize_key( $input['site'] );
@@ -225,7 +225,7 @@ class NetworkTermAbilities {
 	 * Schedule one manual classification or rerun.
 	 *
 	 * @param array $input Ability input.
-	 * @return array|\WP_Error
+	 * @return array|string|\WP_Error String when a cross-site response body is not JSON.
 	 */
 	public function classify( array $input ) {
 		$site_key = sanitize_key( $input['site'] );
@@ -317,7 +317,7 @@ class NetworkTermAbilities {
 	 * @param string $method       REST method.
 	 * @param array  $input        Ability input.
 	 * @param int    $blog_id      Target blog ID.
-	 * @return array|\WP_Error|null Null when already in the target runtime.
+	 * @return array|string|\WP_Error|null Null when already in the target runtime; otherwise the remote response data, raw body, or WP_Error.
 	 */
 	private function routeToTargetRuntime( $ability_name, $method, array $input, $blog_id ) {
 		if ( (int) get_current_blog_id() === (int) $blog_id ) {

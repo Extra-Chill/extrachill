@@ -57,6 +57,25 @@ class TaxonomyCountAbilities {
 							'type'        => 'string',
 							'description' => __( 'Post type to count. If omitted, uses all post types registered for the taxonomy.', 'extrachill-network' ),
 						),
+						'number'    => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => __( 'Maximum terms to return. Omit or use 0 for no limit. Ignored when slug is provided.', 'extrachill-network' ),
+						),
+						'offset'    => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => __( 'Number of matching terms to skip. Defaults to 0. Ignored when slug is provided.', 'extrachill-network' ),
+						),
+						'search'    => array(
+							'type'        => 'string',
+							'description' => __( 'Only include terms whose names contain this text. Ignored when slug is provided.', 'extrachill-network' ),
+						),
+						'min_count' => array(
+							'type'        => 'integer',
+							'minimum'     => 1,
+							'description' => __( 'Minimum published post count (inclusive). Defaults to 1; only terms with published posts are listed. Ignored when slug is provided.', 'extrachill-network' ),
+						),
 						'slug'      => array(
 							'type'        => array( 'string', 'null' ),
 							'description' => __( 'Optional term slug. When provided, the result contains only that single term (still returned under the "terms" array). Omit for the full bulk listing.', 'extrachill-network' ),
@@ -81,7 +100,11 @@ class TaxonomyCountAbilities {
 								),
 							),
 						),
-						'total'    => array( 'type' => 'integer' ),
+						'total'    => array(
+							'type'        => 'integer',
+							'description' => __( 'Matching terms before pagination.', 'extrachill-network' ),
+						),
+						'has_more' => array( 'type' => 'boolean' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'executeGetTaxonomyPostCounts' ),
@@ -128,7 +151,7 @@ class TaxonomyCountAbilities {
 				return $this->computeSingleCount( $taxonomy, $site_key, $post_type, $slug );
 			}
 
-			return $this->computeCounts( $taxonomy, $site_key, $post_type );
+			return $this->computeCounts( $taxonomy, $site_key, $post_type, $input );
 		} finally {
 			restore_current_blog();
 		}
@@ -164,6 +187,7 @@ class TaxonomyCountAbilities {
 			'taxonomy' => $taxonomy,
 			'terms'    => array(),
 			'total'    => 0,
+			'has_more' => false,
 		);
 
 		$term = get_term_by( 'slug', $slug, $taxonomy );
@@ -216,6 +240,7 @@ class TaxonomyCountAbilities {
 				),
 			),
 			'total'    => 1,
+			'has_more' => false,
 		);
 	}
 
@@ -227,9 +252,10 @@ class TaxonomyCountAbilities {
 	 * @param string      $taxonomy  Taxonomy slug.
 	 * @param string      $site_key  Site key for the response.
 	 * @param string|null $post_type Optional explicit post type.
+	 * @param array       $input     Optional bulk filters and pagination.
 	 * @return array|\WP_Error Structured result, or an error.
 	 */
-	private function computeCounts( string $taxonomy, string $site_key, ?string $post_type ): array|\WP_Error {
+	private function computeCounts( string $taxonomy, string $site_key, ?string $post_type, array $input ): array|\WP_Error {
 		$tax_obj = get_taxonomy( $taxonomy );
 		if ( false === $tax_obj ) {
 			return new \WP_Error(
@@ -249,6 +275,9 @@ class TaxonomyCountAbilities {
 
 		global $wpdb;
 
+		$query_args   = array_merge( array( $taxonomy ), $post_types );
+		$query_args[] = '%' . $wpdb->esc_like( $input['search'] ?? '' ) . '%';
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
@@ -260,9 +289,10 @@ class TaxonomyCountAbilities {
 				WHERE tt.taxonomy = %s
 				AND p.post_type IN (" . implode( ',', array_fill( 0, count( $post_types ), '%s' ) ) . ")
 				AND p.post_status = 'publish'
+				AND t.name LIKE %s
 				GROUP BY t.term_id
-				ORDER BY post_count DESC",
-				array_merge( array( $taxonomy ), $post_types )
+				ORDER BY post_count DESC, t.term_id ASC",
+				$query_args
 			)
 		);
 
@@ -272,12 +302,14 @@ class TaxonomyCountAbilities {
 				'taxonomy' => $taxonomy,
 				'terms'    => array(),
 				'total'    => 0,
+				'has_more' => false,
 			);
 		}
 
-		$terms = array();
+		$terms     = array();
+		$min_count = max( 1, (int) ( $input['min_count'] ?? 1 ) );
 		foreach ( $rows as $row ) {
-			if ( (int) $row->post_count < 1 ) {
+			if ( (int) $row->post_count < $min_count ) {
 				continue;
 			}
 
@@ -295,11 +327,18 @@ class TaxonomyCountAbilities {
 			);
 		}
 
+		// Page after filtering invalid links so total describes the usable listing.
+		$total  = count( $terms );
+		$offset = max( 0, (int) ( $input['offset'] ?? 0 ) );
+		$number = max( 0, (int) ( $input['number'] ?? 0 ) );
+		$terms  = array_slice( $terms, $offset, $number > 0 ? $number : null );
+
 		return array(
 			'site'     => $site_key,
 			'taxonomy' => $taxonomy,
 			'terms'    => $terms,
-			'total'    => count( $terms ),
+			'total'    => $total,
+			'has_more' => $offset + count( $terms ) < $total,
 		);
 	}
 }

@@ -7,8 +7,10 @@ the seller is responsible for tax.
 
 ## Fees: the venue keeps the full ticket price
 
-Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity, $fee_payer )`,
-which delegates to `extrachill_commerce_ticket_fee()` and reads the network
+Ticket fees come from `extrachill_commerce_fee( 'extrachill_ticket', $subtotal, $seller, $quantity, $fee_payer, array( 'event_id' => … ) )`,
+which delegates to `extrachill_commerce_ticket_fee()` with the rates
+`ec_commerce_fee_settings()` resolves for that show (see
+[Fee overrides](#fee-overrides)). The default is the network
 `extrachill_commerce_fees` setting (Network Admin → Payments → Fees):
 
 | Key | Default | Meaning |
@@ -59,6 +61,28 @@ of Extra Chill's share. Set the estimate conservatively if that matters. Free
 tickets never reach checkout (`invalid_ticket_price`), and a zero subtotal or a
 platform-owned offer has no fee. With every fee and the estimate at 0 there is no
 Service fee line and the application fee is 0.
+
+### Fee overrides
+
+A seller or a single event can override any of the fields above (#1698).
+Rates resolve field by field: the network setting, then the seller override,
+then the event override. A field an override does not set inherits; `0` is an
+override (a memorial show with no fees at all). One filter,
+`ec_commerce_fee_settings_resolved( $settings, $context, $layers )`, runs on the
+result, and the result is sanitized again.
+
+| Override | Stored in |
+| --- | --- |
+| Seller (`type:id`) | Shop blog option `extrachill_shop_fee_seller_{type}:{id}`, next to the seller's `extrachill_shop_stripe_seller_*` and `extrachill_shop_shipping_seller_*` records |
+| Event | Registered post meta `_extrachill_commerce_fee_override` on the `data_machine_events` post (Events blog) |
+
+Only network admins (`manage_network_options`) change them, through
+`extrachill/get-|set-|clear-commerce-fee-override` or
+`wp extrachill shop fees get|set|clear <event:ID|type:id>`. A checkout reads
+the rates when it starts and the order stores the fee it charged
+(`application_fee_minor`, `service_fee_minor`), so changing or clearing an
+override never changes a placed order. Merch resolves with the seller (no
+event).
 
 Worked example at the defaults (US card, 2.9% + 30¢ actual processing):
 
@@ -135,6 +159,19 @@ every field.
   `_extrachill_fee_payer`, `_extrachill_terms_accepted_at` /
   `_extrachill_terms_version`, `_extrachill_checkout_sessions`, and
   `_extrachill_payment_intent` once paid.
+- **Ticket types and codes (#1716):** `_extrachill_ticket_type` is the type ID
+  bought (absent on older orders, which read as `general`).
+  `_extrachill_ticket_code` and `_extrachill_ticket_discount_minor` record a
+  discount or access code. With a code, the line subtotal is the list price and
+  the line total is what the buyer paid, and the order's discount total is the
+  difference. The line name and `ticket_type` item meta name the type unless it
+  is a single-price show's only type. Session metadata adds `ticket_type` and
+  `ticket_code`. Fees are computed on the discounted subtotal.
+- **Holds per type:** `extrachill_shop_held_ticket_quantities()` returns the
+  show total and `by_type`. Checkout checks both against the show's and the
+  type's remaining, before and after saving its own order. A capped code is
+  checked the same way with `extrachill_shop_ticket_code_uses()`, which counts
+  paid (processing, completed, on-hold) and holding orders.
 - **Order reference:** the Checkout Session ID, stored as
   `_extrachill_ticket_reference`. Events keys passes, sales and
   `get-ticket-order-status` by it, so nothing changed there. The Session's
@@ -187,20 +224,66 @@ stored account) or by PaymentIntent and account. None of them scan.
   grants must allow service `extrachill.events.tickets`, scope
   `extrachill/events:tickets`, and the exact POST routes for issue-ticket-passes,
   get-ticket-order-status, revoke-ticket-passes, restore-ticket-passes,
-  record-checkout-ticket-sales, and notify-commerce-seller. These are separate from
+  record-checkout-ticket-sales, notify-commerce-seller, and
+  resend-ticket-pass-emails. These are separate from
   priority-boost keys. Without Events and its matching grants, issuance fails
   and webhook delivery must be retried.
 - Pilot seller: Lo-Fi Brewing. Ensure its canonical venue binding points to a
   charges-enabled connected account. Exercise test-mode checkout and webhook
   delivery before enabling a paid offer.
 
+**Inventory holds.** Events counts only issued passes against capacity, so
+Shop holds the tickets of every unfinished checkout. A pending ticket order
+holds its quantity until `_extrachill_ticket_hold_until` (the Session's
+`expires_at`, 30 minutes), and for as long as it is paid but not yet issued.
+Checkout refuses with `tickets_held` (409) when Events' `remaining` minus the
+held tickets can't cover the request. After the order is saved, the holds are
+counted again with it included; if they exceed `remaining`, the order is
+deleted before any Session exists. Two checkouts racing for the last tickets
+then see each other's holds, so at worst both step back and neither oversells.
+Shows without a capacity (`remaining` null) skip the hold count.
+
 The ticket order binds the seller and connected account before the Session
 exists. If Stripe refuses the Session, the pending order is deleted. Events
 issuance uses the session ID as both idempotency key and order reference.
 Sold-out payments are refunded on the stored account with application fees
-returned; the reason is stored in `_extrachill_ticket_refund_reason`. Stripe refund
-requests use a stable per-session idempotency key. Webhook failures return errors
+returned; the reason is stored in `_extrachill_ticket_refund_reason`. Each Stripe
+refund attempt gets its own idempotency key (`ticket-refund-<session>-<attempt>`,
+counted in `_extrachill_ticket_refund_attempts`): Stripe keeps a refused request's
+result under its key for 24 hours, so a retry under the old key would only replay
+the refusal. A full refund can't be issued twice either way; Stripe refuses a
+second refund of a refunded charge. Merch refunds do the same with
+`_extrachill_refund_attempts`. Webhook failures return errors
 for Stripe retries; the order is marked paid only after Events confirms issuance.
+
+## Reconciliation: missed webhooks and undelivered pass emails
+
+`inc/core/ticket-reconciliation.php` schedules a recurring Action Scheduler
+job (`extrachill_shop_reconcile_ticket_orders`, group
+`extrachill-shop-tickets`, every 15 minutes) that runs two passes of up to 50
+orders each:
+
+- **Missed payment webhooks.** Ticket orders still `pending` more than 10
+  minutes and less than 7 days after checkout (Stripe retries a webhook for 3
+  days) are checked against their Checkout Session on the stored connected
+  account. A paid Session goes through `extrachill_shop_fulfil_ticket_session()`,
+  the same idempotent path the webhook uses (store the PaymentIntent, record
+  the sale, issue passes keyed by the Session ID, complete the order; refund a
+  sold-out show). An expired Session cancels the order. An open Session, or a
+  delayed payment still in flight, is left for its webhook. A Stripe or Events
+  failure leaves the order `pending` for the next run. A reconciled order gets
+  `_extrachill_ticket_reconciled` (the Session ID) and an order note; a webhook
+  that arrives later is a no-op.
+- **Undelivered pass emails.** `issue-ticket-passes` reports `emails_failed`,
+  the pass emails Events could not queue. The order is still issued (the
+  passes exist and show under My Account → Tickets) and is flagged with
+  `_extrachill_ticket_pass_email_pending` = `1`. The job calls Events'
+  `resend-ticket-pass-emails` with the order reference and billing email;
+  Events emails each active pass again (revoked and checked-in passes are
+  skipped). When nothing fails the flag is cleared with an order note. Each
+  failure counts in `_extrachill_ticket_pass_email_attempts`; after 8 the flag
+  becomes `exhausted` and an order note asks an operator to send the passes.
+  A won dispute whose restore emailed passes clears the flag too.
 
 ## Refund ordering deviation
 

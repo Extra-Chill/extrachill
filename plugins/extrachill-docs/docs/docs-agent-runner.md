@@ -4,9 +4,9 @@ How to run [Docs Agent](https://github.com/Automattic/docs-agent) against a mono
 
 ## Moving parts
 
-- `.github/workflows/docs-agent.yml` is the dispatch workflow. It has one SHA pin to `Automattic/docs-agent/.github/workflows/maintain-docs.yml`, which in turn pins a WP Codebox release. The comment above the `uses:` line records why each pin moved.
+- `.github/workflows/docs-agent.yml` runs Docs Agent nightly and on manual dispatch. It has one SHA pin to `Automattic/docs-agent/.github/workflows/maintain-docs.yml`, which in turn pins a WP Codebox release. The comment above the `uses:` line records why each pin moved.
 - `runner-configs/platform-map.yml` holds each component's `runner` block: lane, `run_kind`, `docs_branch`, writable paths, `source_delta`, drift checks, `max_turns`, model, and the full prompt.
-- `scripts/docs-agent-config.py` resolves and validates a component's runner block for the workflow. `tests/test_docs_agent_config.py` checks the map, the dispatch choices, and the pin.
+- `scripts/docs-agent-config.py` resolves and validates runner blocks and prints the workflow's job matrix (`--event workflow_dispatch <component>` or `--event schedule`). `tests/test_docs_agent_config.py` checks the map, the dispatch choices, the schedule filter, and the pin.
 - `runner-configs/writing-rules.md` is the voice standard the prompt tells the agent to follow. The drift check `scripts/check-user-docs-voice.php` enforces part of it.
 
 ## Dispatch
@@ -19,7 +19,25 @@ gh workflow run docs-agent.yml -R Extra-Chill/extrachill -f component=extrachill
 gh workflow run docs-agent.yml -R Extra-Chill/extrachill -f component=extrachill-shop -f dry_run=false
 ```
 
-Only components with a `runner` block appear in the `component` choice. To add one, add the block and the choice together; the config test fails if they disagree.
+Only components with a `runner` block appear in the `component` choice. To add one, add the block and the choice together; the config test fails if they disagree. A manual dispatch always runs the chosen component, whether or not its source changed.
+
+## Nightly schedule
+
+The workflow also runs every night at 07:00 UTC (`cron: '0 7 * * *'`, US night). Scheduled runs are live (`dry_run` is false) and use each component's `run_kind`, which is `maintenance` for every configured component.
+
+- **Which components:** every component with a `runner` block in `platform-map.yml`. There is no hand-maintained list; adding a runner block adds the component to the nightly run.
+- **Skip rule:** a component runs only if a commit on `main` in the last 24 hours (`CHANGE_WINDOW_HOURS` in `scripts/docs-agent-config.py`) changed a file under `plugins/<component>/` outside `plugins/<component>/docs/`. Docs-only changes, including merged docs PRs, do not trigger a run. Scheduled runs check out `main` with full history and the config job runs `git log HEAD --since="24 hours ago" --name-only -- plugins/`.
+- **Nothing changed:** the matrix is empty, `has_components` is `false`, and the `docs-agent` job is skipped. The workflow still succeeds.
+- **Limits:** the matrix uses `fail-fast: false`, so one failing component does not cancel the others, and `max-parallel: 2`. Runs share a concurrency group per component (`docs-agent-<component>`), so a manual dispatch waits for that component's scheduled run instead of racing it.
+- **Output:** a scheduled run only opens or updates the component's stable `docs_branch` PR. Nothing is auto-merged; the review below still applies.
+
+A source change that lands just before a run is picked up that night. If a scheduled run fails or is missed, the change leaves the 24-hour window, so dispatch that component by hand.
+
+To preview tonight's matrix locally:
+
+```sh
+python3 plugins/extrachill-docs/scripts/docs-agent-config.py --event schedule --ref origin/main
+```
 
 ## Runner settings
 

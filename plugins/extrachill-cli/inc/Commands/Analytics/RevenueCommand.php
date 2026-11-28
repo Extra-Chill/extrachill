@@ -19,6 +19,11 @@ class RevenueCommand {
 	/**
 	 * Fetch Mediavine period reports and replace their deterministic snapshots.
 	 *
+	 * Reads through the Data Machine Business Mediavine reader
+	 * (datamachine/mediavine-reports) and ingests through
+	 * extrachill/ingest-revenue, which resolves URLs to posts and writes each
+	 * snapshot to the revenue ledger via datamachine/revenue-ingest.
+	 *
 	 * @synopsis [--start=<date>] [--end=<date>] [--period=<period>] [--periods=<json>] [--site-id=<id>] [--hostname=<host>] [--mode=<mode>] [--snapshot=<label>] [--dry-run]
 	 *
 	 * ## OPTIONS
@@ -336,6 +341,128 @@ class RevenueCommand {
 
 		if ( 'fail' === ( $result['overall_status'] ?? 'fail' ) ) {
 			WP_CLI::error( 'Revenue diagnostics reported failures.' );
+		}
+	}
+
+	/**
+	 * Copy the legacy revenue table into the revenue ledger (dry run by default).
+	 *
+	 * Prints per-period totals before (legacy table) and after (ledger) and
+	 * whether parity holds. Never drops the legacy table.
+	 *
+	 * @synopsis [--execute] [--blog-id=<id>] [--format=<format>]
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--execute]
+	 * : Write to the ledger. Without it the migration is a dry run.
+	 * [--blog-id=<id>]
+	 * : Restrict to one legacy blog_id. 0 = every blog.
+	 * [--format=<format>]
+	 * : table, json, or csv.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill analytics revenue migrate
+	 *     wp extrachill analytics revenue migrate --execute
+	 *
+	 * @subcommand migrate
+	 * @when after_wp_load
+	 */
+	public function migrate( $args, $assoc_args ) {
+		$ability = $this->ability( 'extrachill/migrate-revenue-ledger', 'Extra Chill Analytics' );
+		$result  = $ability->execute(
+			array(
+				'execute' => isset( $assoc_args['execute'] ),
+				'blog_id' => (int) ( $assoc_args['blog-id'] ?? 0 ),
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+		if ( 'json' === $format ) {
+			WP_CLI::print_value( $result, array( 'format' => $format ) );
+		} else {
+			WP_CLI::log( sprintf( 'Revenue ledger migration%s - %d legacy row(s)', ! empty( $result['dry_run'] ) ? ' (DRY RUN)' : '', (int) ( $result['legacy_rows'] ?? 0 ) ) );
+			Utils\format_items( $format, (array) ( $result['parity']['periods'] ?? array() ), $this->parity_fields() );
+			Utils\format_items( $format, (array) ( $result['snapshots'] ?? array() ), array( 'account', 'period_label', 'period_start', 'period_end', 'rows', 'views', 'revenue', 'status' ) );
+			$this->log_undated( $result );
+		}
+
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::error( $result['error'] ?? implode( '; ', (array) ( $result['errors'] ?? array( 'Revenue ledger migration failed.' ) ) ) );
+		}
+		WP_CLI::success( ! empty( $result['parity']['holds'] ) ? 'Parity holds for every dated legacy period.' : 'Parity does not hold yet.' . ( ! empty( $result['dry_run'] ) ? ' Re-run with --execute to migrate.' : '' ) );
+	}
+
+	/**
+	 * Drop the retired legacy revenue table (dry run by default).
+	 *
+	 * Refuses unless every dated legacy period has parity in the revenue ledger.
+	 *
+	 * @synopsis [--execute] [--allow-undated] [--format=<format>]
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--execute]
+	 * : Drop the table. Without it only reports whether the drop is allowed.
+	 * [--allow-undated]
+	 * : Accept losing undated (all-time) legacy rows the dated ledger cannot hold.
+	 * [--format=<format>]
+	 * : table, json, or csv.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill analytics revenue drop-legacy
+	 *     wp extrachill analytics revenue drop-legacy --execute
+	 *
+	 * @subcommand drop-legacy
+	 * @when after_wp_load
+	 */
+	public function drop_legacy( $args, $assoc_args ) {
+		$ability = $this->ability( 'extrachill/drop-legacy-revenue-table', 'Extra Chill Analytics' );
+		$result  = $ability->execute(
+			array(
+				'execute'       => isset( $assoc_args['execute'] ),
+				'allow_undated' => isset( $assoc_args['allow-undated'] ),
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$format = $assoc_args['format'] ?? 'table';
+		if ( 'json' === $format ) {
+			WP_CLI::print_value( $result, array( 'format' => $format ) );
+		} elseif ( ! empty( $result['parity']['periods'] ) ) {
+			Utils\format_items( $format, (array) $result['parity']['periods'], $this->parity_fields() );
+		}
+
+		if ( ! empty( $result['refused'] ) ) {
+			WP_CLI::error( 'Refusing to drop the legacy revenue table: ' . implode( ' ', (array) ( $result['reasons'] ?? array() ) ) );
+		}
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::error( implode( ' ', (array) ( $result['reasons'] ?? array( 'Drop failed.' ) ) ) );
+		}
+		if ( ! empty( $result['dropped'] ) ) {
+			WP_CLI::success( 'Dropped the legacy revenue table.' );
+		} elseif ( ! empty( $result['would_drop'] ) ) {
+			WP_CLI::success( 'Parity holds; re-run with --execute to drop the legacy revenue table.' );
+		} else {
+			WP_CLI::success( implode( ' ', (array) ( $result['reasons'] ?? array() ) ) );
+		}
+	}
+
+	private function parity_fields() {
+		return array( 'blog_id', 'period_label', 'period_start', 'period_end', 'status', 'legacy_rows', 'ledger_rows', 'legacy_views', 'ledger_views', 'legacy_revenue', 'ledger_revenue' );
+	}
+
+	private function log_undated( $result ) {
+		$undated = (array) ( $result['undated'] ?? array() );
+		if ( ! empty( $undated['rows'] ) ) {
+			WP_CLI::warning( sprintf( '%d undated legacy row(s) (%s) cannot be stored in the dated ledger and were not migrated.', (int) $undated['rows'], implode( ', ', (array) ( $undated['periods'] ?? array() ) ) ) );
 		}
 	}
 
