@@ -242,19 +242,18 @@ extrachill_social_links();
 
 ```php
 $args = array(
-    'share_url'         => get_permalink(),      // URL to share
-    'share_title'       => get_the_title(),      // Title to share
-    'share_description' => '',                    // Description (optional)
-    'share_image'       => '',                    // Image URL (optional)
+    'share_url'   => get_permalink(),  // URL to share
+    'share_title' => get_the_title(),  // Title to share
+    'button_size' => 'button-small',   // Also accepts button-medium or button-large
 );
 ```
 
 ### Share Options
 
-- Facebook
-- Twitter/X
-- Email
-- Copy Link (with clipboard API + fallback)
+- Native share sheet when the browser supports it
+- Fallback menu: Facebook, X, Reddit, Bluesky, Email, Copy Link, and Copy Markdown
+
+Shared page URLs use `utm_source=<destination>`, `utm_medium=share`, and `utm_campaign=share`, which the analytics plugin reads on landing pageviews. X uses `twitter` and Copy Link uses `copy_link`. Copy Markdown still exports the original Markdown.
 
 ### Usage
 
@@ -271,12 +270,12 @@ extrachill_share_button( array(
 
 ### Features
 
-- Dropdown toggle on click
-- Close on outside click
-- Clipboard copy with "Copied!" feedback
-- Fallback prompt for unsupported browsers
-- External links open in new tab
-- JavaScript interactions via `share.js`
+- Open the native share sheet first; use the dropdown when the API is unavailable or fails for reasons other than cancellation.
+- Close the dropdown on outside click or Escape.
+- Show "Copied!" after successful clipboard copy.
+- Open external social links in a new tab.
+
+`share.js` records `share_click` events via the existing click endpoint. Use `destination=toggle` as the funnel denominator (opening attempts only, not closing clicks), and count menu destinations and `native` as picks. `native` means the browser's share promise resolved, not that a message was delivered. A cancelled native sheet records `destination=native_cancelled` separately; exclude it from picks.
 
 ## Notice System Component
 
