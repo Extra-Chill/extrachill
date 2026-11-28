@@ -933,7 +933,7 @@ function resolveComponentSource(component, overrides, releaseSet, monorepoSource
   }
   const pin = releaseSet[component.slug];
   if (component.source === 'wporg') {
-    return component.wporgSlug === 'gutenberg' ? 'https://downloads.wordpress.org/plugin/gutenberg.24.0.0.zip' : `https://downloads.wordpress.org/plugin/${component.wporgSlug}.zip`; // TEMP A/B pin
+    return `https://downloads.wordpress.org/plugin/${component.wporgSlug}.zip`;
   }
   if (component.source === 'github') {
     if (pin?.ref) {
