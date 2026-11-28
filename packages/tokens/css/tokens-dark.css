@@ -24,6 +24,11 @@
         --accent-3: #0b5394;
         --error-color: #ef4444;
         --success-color: #46b450;
+        --button-primary-text-color: #fff;
+        --button-primary-hover-bg: #1a6bb8;
+        --button-success-hover-bg: #3da746;
+        --button-danger-text-color: #0a0a0a;
+        --button-danger-hover-bg: #ff6262;
         --notice-bg: #1e1e1e;
         --notice-border: #444;
         --card-background: #2a2a2a;

@@ -338,10 +338,10 @@ const html = `<!DOCTYPE html>
     color: var(--button-text-color);
     font-size: var(--font-size-sm);
   }
-  .btn--primary { background: var(--accent); }
+  .btn--primary { background: var(--accent); color: var(--button-on-bright-text-color); }
   .btn--accent2 { background: var(--accent-2); }
-  .btn--accent3 { background: var(--accent-3); }
-  .btn--danger { background: var(--error-color); }
+  .btn--accent3 { background: var(--accent-3); color: var(--button-primary-text-color); }
+  .btn--danger { background: var(--error-color); color: var(--button-danger-text-color); }
 
   .notice {
     border-left: 4px solid var(--border-color);

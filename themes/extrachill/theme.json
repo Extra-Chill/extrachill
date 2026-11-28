@@ -72,6 +72,41 @@
 					"name": "Button text on accent backgrounds"
 				},
 				{
+					"slug": "button-primary-text-color",
+					"color": "#0a0a0a",
+					"name": "Primary button text on the cyan / blue accent"
+				},
+				{
+					"slug": "button-primary-hover-bg",
+					"color": "#00aec7",
+					"name": "Primary button hover background (cyan / blue)"
+				},
+				{
+					"slug": "button-on-bright-text-color",
+					"color": "#0a0a0a",
+					"name": "Text on the green secondary and success buttons"
+				},
+				{
+					"slug": "button-secondary-hover-bg",
+					"color": "#6ab312",
+					"name": "Secondary button hover background (green)"
+				},
+				{
+					"slug": "button-success-hover-bg",
+					"color": "#219638",
+					"name": "Success button hover background (green)"
+				},
+				{
+					"slug": "button-danger-text-color",
+					"color": "#fff",
+					"name": "Danger button text on the red error background"
+				},
+				{
+					"slug": "button-danger-hover-bg",
+					"color": "#b82525",
+					"name": "Danger button hover background (red)"
+				},
+				{
 					"slug": "header-background",
 					"color": "#000",
 					"name": "Site header background"
