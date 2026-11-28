@@ -29,6 +29,8 @@
  *      request that is otherwise an interactive web request is treated as
  *      NON-human (suspect) by the default verdict, because a human who reached
  *      a search box or deep page has loaded a page and minted the cookie.
+ *      The `allow_cookieless` exception lets a validated interactive browser
+ *      that opted out via GPC or DNT count as human without a visitor cookie.
  *
  * AUTHENTICATED-USER OVERRIDE (issue #103): the three signals above were
  * designed for ANONYMOUS front-end traffic, where rest/cli/cron == "no browser
@@ -71,6 +73,11 @@ function extrachill_analytics_is_browser_fetch() {
 /**
  * Check the browser and origin signals shared by pageviews and browser events.
  *
+ * Same-origin browser REST fetches count as interactive because front-end
+ * signup, newsletter, and registration forms submit through REST (#275, #302).
+ * Server-to-server REST requests send no Sec-Fetch-Site header, so they stay
+ * non-human under the anonymous-traffic policy.
+ *
  * @param string $ua_class         Classified user agent.
  * @param string $request_origin   Detected origin, or 'web' for an admitted browser beacon.
  * @param bool   $is_browser_fetch Whether a REST request is an interactive fetch.
@@ -94,7 +101,8 @@ function extrachill_analytics_is_interactive_browser( $ua_class, $request_origin
  *           the request is a same-origin browser fetch (#275, #302)
  *         - ua_class === 'browser'          (not 'bot' and not 'empty')
  *         - has_visitor_cookie === true     (a real browser minted ec_vid),
- *           or the caller explicitly allows a cookieless browser request.
+ *           or the caller sets `allow_cookieless` for a validated browser
+ *           that opted out via GPC or DNT and has no visitor cookie.
  *   Otherwise is_human = FALSE (is_bot = TRUE). Turnstile rejection overrides
  *   either path.
  *
