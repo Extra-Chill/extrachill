@@ -240,7 +240,7 @@
 				},
 				{
 					"slug": "font-family-body",
-					"fontFamily": "'Helvetica', 'Open Sans', serif",
+					"fontFamily": "Helvetica, 'Open Sans', Arial, sans-serif",
 					"name": "Body text"
 				},
 				{
@@ -250,7 +250,7 @@
 				},
 				{
 					"slug": "font-family-mono",
-					"fontFamily": "'Helvetica', Arial, sans-serif",
+					"fontFamily": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
 					"name": "Monospace / code"
 				}
 			]

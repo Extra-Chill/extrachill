@@ -204,7 +204,7 @@ export const typography: Record< TypographyTokenKey, StaticToken > = {
 	},
 	fontFamilyBody: {
 		cssVar: '--font-family-body',
-		value: "'Helvetica', 'Open Sans', serif",
+		value: "Helvetica, 'Open Sans', Arial, sans-serif",
 		description: 'Body text',
 	},
 	fontFamilyBrand: {
@@ -214,7 +214,7 @@ export const typography: Record< TypographyTokenKey, StaticToken > = {
 	},
 	fontFamilyMono: {
 		cssVar: '--font-family-mono',
-		value: "'Helvetica', Arial, sans-serif",
+		value: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 		description: 'Monospace / code',
 	},
 } as const;

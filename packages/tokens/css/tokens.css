@@ -48,9 +48,9 @@
 
     /* ===== Typography ===== */
     --font-family-heading: "Loft Sans", sans-serif;
-    --font-family-body: 'Helvetica', 'Open Sans', serif;
+    --font-family-body: Helvetica, 'Open Sans', Arial, sans-serif;
     --font-family-brand: "Lobster", sans-serif;
-    --font-family-mono: 'Helvetica', Arial, sans-serif;
+    --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
     /* ===== Font Sizes ===== */
     --font-size-xs: 0.625rem;

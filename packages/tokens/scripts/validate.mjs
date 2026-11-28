@@ -6,7 +6,8 @@
  * 1. Every token in JSON appears in the CSS output
  * 2. Every CSS variable in the CSS file is accounted for in JSON
  * 3. Taxonomy badge tokens appear in both root.css and taxonomy-badges.css
- * 4. Token count matches expectations
+ * 4. Font family stacks end in the expected generic family
+ * 5. Token count matches expectations
  */
 
 import { readFileSync, existsSync } from 'fs';
@@ -115,6 +116,24 @@ for ( const name of darkCssVars ) {
 		if ( ! lightCssVars.has( name ) ) {
 			error( `Dark CSS var "${ name }" not found in light CSS or color tokens` );
 		}
+	}
+}
+
+// ─── Validate: Typography stacks end in the expected generic ───────────────
+
+console.log( '\n--- Font family fallbacks ---' );
+const fontFallbacks = {
+	'font-family-heading': 'sans-serif',
+	'font-family-body': 'sans-serif',
+	'font-family-brand': 'sans-serif',
+	'font-family-mono': 'monospace',
+};
+
+for ( const [ name, expected ] of Object.entries( fontFallbacks ) ) {
+	const stack = tokensJson.categories.typography?.[ name ]?.value;
+	const fallback = typeof stack === 'string' ? stack.split( ',' ).pop().trim() : '';
+	if ( fallback.toLowerCase() !== expected ) {
+		error( `Font token "${ name }" must end in the unquoted generic ${ expected }` );
 	}
 }
 
