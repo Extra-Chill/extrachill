@@ -105,8 +105,8 @@ function extrachill_analytics_classify_format( $post ) {
 	}
 
 	// 1. Legacy .html URLs — a structural fact, not a taxonomy one.
-	$permalink = get_permalink( $post );
-	if ( is_string( $permalink ) && preg_match( '/\.html(?:[\/?#]|$)/i', $permalink ) ) {
+	$permalink = (string) get_permalink( $post );
+	if ( preg_match( '/\.html(?:[\/?#]|$)/i', $permalink ) ) {
 		return 'legacy-html';
 	}
 

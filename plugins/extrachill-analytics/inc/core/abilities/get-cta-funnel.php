@@ -113,7 +113,7 @@ function extrachill_analytics_register_cta_funnel_ability() {
  *
  * @param string $event_type Event type to read.
  * @param array  $query_args Shared query args (date_from, blog_id).
- * @return array<int,object> Decoded event rows.
+ * @return array<int,\stdClass> Decoded event rows.
  */
 function extrachill_analytics_cta_funnel_fetch_events( $event_type, array $query_args ) {
 	$args               = $query_args;
@@ -176,7 +176,7 @@ function extrachill_analytics_ability_get_cta_funnel( $input ) {
 
 	$query_args = array();
 	if ( $days > 0 ) {
-		$query_args['date_from'] = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$query_args['date_from'] = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 	}
 	if ( $blog_id > 0 ) {
 		$query_args['blog_id'] = $blog_id;
@@ -247,7 +247,7 @@ function extrachill_analytics_ability_get_cta_funnel( $input ) {
 	}
 
 	$period = $days > 0
-		? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+		? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 		: 'all time';
 
 	if ( empty( $by_cta ) ) {

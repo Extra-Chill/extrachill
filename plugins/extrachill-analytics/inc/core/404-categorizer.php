@@ -297,7 +297,7 @@ function extrachill_analytics_extract_404_slug( $url ) {
 	$path = strtok( $url, '?' );
 
 	// Remove .html suffix.
-	$path = preg_replace( '/\.html$/i', '', $path );
+	$path = preg_replace( '/\.html$/i', '', (string) $path );
 
 	// Remove date prefix /YYYY/MM/.
 	$path = preg_replace( '#^/\d{4}/\d{2}/#', '/', $path );

@@ -111,7 +111,7 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -159,9 +159,7 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 		$query_values[] = $fetch_limit;
 	}
 
-	$results = empty( $query_values )
-		? $wpdb->get_results( $sql ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		: $wpdb->get_results( $wpdb->prepare( $sql, $query_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	$results = $wpdb->get_results( $wpdb->prepare( $sql, $query_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 	$rows = array();
 	foreach ( $results as $row ) {
@@ -179,14 +177,10 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 
 	// Total + distinct across the entire filtered set (not just returned rows).
 	$count_sql   = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
-	$grand_total = empty( $where_values )
-		? (int) $wpdb->get_var( $count_sql ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		: (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	$grand_total = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 	$distinct_sql = "SELECT COUNT(DISTINCT {$group}) FROM {$table} WHERE {$where_clause}";
-	$distinct     = empty( $where_values )
-		? (int) $wpdb->get_var( $distinct_sql ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		: (int) $wpdb->get_var( $wpdb->prepare( $distinct_sql, $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+	$distinct     = (int) $wpdb->get_var( $wpdb->prepare( $distinct_sql, $where_values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 	return array(
 		'rows'      => $rows,
@@ -195,7 +189,7 @@ function extrachill_analytics_ability_get_attack_summary( $input ) {
 		'group_by'  => $group_by,
 		'days'      => $days,
 		'period'    => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'truncated' => $truncated,
 	);

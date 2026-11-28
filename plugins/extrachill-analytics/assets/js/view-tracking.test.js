@@ -1,5 +1,4 @@
 /* global afterEach, beforeEach, describe, expect, it, jest */
-/* eslint-disable no-redeclare -- Classic config already provides Jest globals. */
 
 const runTracker = ( config, referrer = '' ) => {
 	let body;

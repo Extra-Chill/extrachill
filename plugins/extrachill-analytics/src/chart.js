@@ -28,6 +28,9 @@
  *           both resolve to the auto-registered Chart constructor)
  */
 
+/**
+ * External dependencies
+ */
 import Chart, * as ChartModule from 'chart.js/auto';
 
 // Expose the full namespace. `default` is the auto-registered Chart

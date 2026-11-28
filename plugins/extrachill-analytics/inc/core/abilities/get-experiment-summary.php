@@ -94,7 +94,7 @@ function extrachill_analytics_register_experiment_summary_ability() {
 /**
  * Validate and normalize generic report input.
  *
- * @param array $input Ability input.
+ * @param mixed $input Ability input.
  * @return array|WP_Error Normalized options or an admission error.
  */
 function extrachill_analytics_experiment_summary_options( $input ) {
@@ -162,7 +162,7 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 		return $options;
 	}
 	$options['as_of']           = gmdate( 'Y-m-d H:i:s' );
-	$options['since']           = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $options['days'] . ' days' ) );
+	$options['since']           = gmdate( 'Y-m-d H:i:s', (int) strtotime( '-' . $options['days'] . ' days' ) );
 	$options['requested_since'] = $options['since'];
 	$first_assignment           = extrachill_analytics_experiment_first_assignment_at( $options['experiment_key'], $options['definition_version'], $options['since'], $options['as_of'], $options['max_events'] );
 	if ( null !== $first_assignment && $first_assignment > $options['since'] ) {
@@ -634,7 +634,7 @@ function extrachill_analytics_build_experiment_summary_from_source( $source, $op
 				continue;
 			}
 			foreach ( array( 'assignment', 'exposure' ) as $lens ) {
-				$anchor = 'assignment' === $lens ? ( $assignments[ $person ] ?? null ) : ( $exposures[ $person ] ?? null );
+				$anchor = 'assignment' === $lens ? $assignments[ $person ] : ( $exposures[ $person ] ?? null );
 				if (
 				null === $anchor
 				|| ! extrachill_analytics_experiment_is_after( $event, $anchor )
@@ -735,8 +735,8 @@ function extrachill_analytics_build_experiment_summary_from_source( $source, $op
 			'observed_event_rows_by_version' => $versions,
 			'mixed_versions_observed'        => count( $versions ) > 1,
 			'requested_version'              => $options['definition_version'],
-			'surfaces'                       => array_values( array_keys( $surfaces ) ),
-			'assignment_policies'            => array_values( array_keys( $policies ) ),
+			'surfaces'                       => array_keys( $surfaces ),
+			'assignment_policies'            => array_keys( $policies ),
 		),
 		'coverage'            => array_merge(
 			$coverage,

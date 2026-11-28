@@ -471,7 +471,7 @@ function extrachill_analytics_ability_get_content_revenue_pages( $input ) {
 	if ( true !== $auth ) {
 		return array(
 			'success'   => false,
-			'error'     => is_string( $auth ) ? $auth : 'Permission denied.',
+			'error'     => $auth,
 			'rows'      => 0,
 			'blog_id'   => $blog_id,
 			'window'    => '',
@@ -888,21 +888,19 @@ function extrachill_analytics_revenue_build_pages( array $records, array $args )
 			);
 		}
 
-		$a             = &$agg[ $key ];
-		$views         = (int) ( isset( $rec['views'] ) ? $rec['views'] : 0 );
-		$a['views']   += $views;
-		$a['revenue'] += (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
+		$views                   = (int) ( isset( $rec['views'] ) ? $rec['views'] : 0 );
+		$agg[ $key ]['views']   += $views;
+		$agg[ $key ]['revenue'] += (float) ( isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
 
-		$a['source_rpm_values'][]                      = (float) ( isset( $rec['source_rpm'] ) ? $rec['source_rpm'] : 0.0 );
-		$a['cpm_values'][]                             = (float) ( isset( $rec['cpm'] ) ? $rec['cpm'] : 0.0 );
-		$a['viewability_values'][]                     = (float) ( isset( $rec['viewability'] ) ? $rec['viewability'] : 0.0 );
-		$a['fill_rate_values'][]                       = (float) ( isset( $rec['fill_rate'] ) ? $rec['fill_rate'] : 0.0 );
-		$a['impressions_values'][]                     = (float) ( isset( $rec['impressions_per_pageview'] ) ? $rec['impressions_per_pageview'] : 0.0 );
-		$record_policy                                 = extrachill_analytics_revenue_normalize_ad_policy( isset( $rec['ad_policy'] ) ? $rec['ad_policy'] : null );
-		$record_policy_status                          = extrachill_analytics_revenue_policy_status( $record_policy );
-		$a['policy_statuses'][ $record_policy_status ] = isset( $a['policy_statuses'][ $record_policy_status ] ) ? $a['policy_statuses'][ $record_policy_status ] + 1 : 1;
-		$a['policy_conflict']                          = $a['policy_conflict'] || extrachill_analytics_revenue_policy_conflicts( $record_policy, isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
-		unset( $a );
+		$agg[ $key ]['source_rpm_values'][]  = (float) ( isset( $rec['source_rpm'] ) ? $rec['source_rpm'] : 0.0 );
+		$agg[ $key ]['cpm_values'][]         = (float) ( isset( $rec['cpm'] ) ? $rec['cpm'] : 0.0 );
+		$agg[ $key ]['viewability_values'][] = (float) ( isset( $rec['viewability'] ) ? $rec['viewability'] : 0.0 );
+		$agg[ $key ]['fill_rate_values'][]   = (float) ( isset( $rec['fill_rate'] ) ? $rec['fill_rate'] : 0.0 );
+		$agg[ $key ]['impressions_values'][] = (float) ( isset( $rec['impressions_per_pageview'] ) ? $rec['impressions_per_pageview'] : 0.0 );
+		$record_policy                       = extrachill_analytics_revenue_normalize_ad_policy( isset( $rec['ad_policy'] ) ? $rec['ad_policy'] : null );
+		$record_policy_status                = extrachill_analytics_revenue_policy_status( $record_policy );
+		$agg[ $key ]['policy_statuses'][ $record_policy_status ] = isset( $agg[ $key ]['policy_statuses'][ $record_policy_status ] ) ? $agg[ $key ]['policy_statuses'][ $record_policy_status ] + 1 : 1;
+		$agg[ $key ]['policy_conflict']                          = $agg[ $key ]['policy_conflict'] || extrachill_analytics_revenue_policy_conflicts( $record_policy, isset( $rec['revenue'] ) ? $rec['revenue'] : 0.0 );
 	}
 
 	$cohort_pages = 0;
@@ -1194,7 +1192,8 @@ function extrachill_analytics_revenue_median( array $values ) {
 	if ( 1 === $n % 2 ) {
 		return (float) $values[ (int) floor( $n / 2 ) ];
 	}
-	$lo = (float) $values[ ( $n / 2 ) - 1 ];
-	$hi = (float) $values[ $n / 2 ];
+	$mid = intdiv( $n, 2 );
+	$lo  = (float) $values[ $mid - 1 ];
+	$hi  = (float) $values[ $mid ];
 	return ( $lo + $hi ) / 2.0;
 }
