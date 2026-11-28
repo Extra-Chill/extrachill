@@ -32,6 +32,7 @@ function extrachill_analytics_beacon_nonce_fallback( $result ) {
 		'/wp-abilities/v1/abilities/extrachill/track-network-click/run',
 		'/wp-abilities/v1/abilities/extrachill/track-cta-click/run',
 		'/wp-abilities/v1/abilities/extrachill/track-form-submit/run',
+		'/wp-abilities/v1/abilities/extrachill/track-calendar-query/run',
 		'/wp-abilities/v1/abilities/extrachill/track-content-link-click/run',
 	);
 	if ( ! in_array( untrailingslashit( $route ), $routes, true ) ) {
@@ -424,6 +425,8 @@ function extrachill_analytics_validate_public_event_data( $event_type, $event_da
 				'link_kind' => array( 'string', 20 ),
 			);
 			break;
+		case EC_ANALYTICS_EVENT_CALENDAR_QUERY:
+			return extrachill_analytics_validate_calendar_query( $event_data );
 		case EC_ANALYTICS_EVENT_FORM_SUBMIT:
 			$fields = array(
 				'form'      => array( 'string', 80 ),

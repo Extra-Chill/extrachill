@@ -33,6 +33,15 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Exposure:** `show_in_rest`: true. API: none found. CLI: none found.
 - **Side effects:** Writes an admitted event to the network-wide analytics events table.
 
+### `extrachill/track-calendar-query`
+
+- **Purpose:** Record a `calendar_query` from the Data Machine calendar. Filter opens are tracked separately as the `calendar-filter-open` CTA.
+- **Input:** `source_url` (string, required, maximum 2048 characters) and `event_data` (object, required). The event requires `trigger`, `route`, `has_date_range`, and a nonnegative integer `result_count`. Optional dimensions are `scope`, `search_term`, `taxonomies` (taxonomy to term ID lists), and the archive pair `archive_taxonomy` / `archive_term` (term ID).
+- **Output:** `integer`: Event ID on success, 0 on failure, or `WP_Error` if admission fails.
+- **Permission:** Public browser admission checks apply. Visitor identity and bot status are server-owned.
+- **Exposure:** `show_in_rest`: true. Read the breakdown with `wp extrachill analytics calendar-queries`.
+- **Side effects:** Resolves term IDs to slugs and stores only a sanitized, length-capped search term. Probe-shaped terms use the shared `search_attack` classification instead.
+
 ### `extrachill/track-form-submit`
 
 - **Purpose:** Record a form_submit event for a named form. Never carries field values.
