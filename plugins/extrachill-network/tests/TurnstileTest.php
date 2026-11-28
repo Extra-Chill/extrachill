@@ -244,8 +244,33 @@ class TurnstileTest extends WP_UnitTestCase {
 		$request = new WP_REST_Request( 'POST', '/test' );
 		$request->set_param( 'turnstile_response', 'good-token' );
 
+		$verified_before = did_action( 'extrachill_turnstile_verified' );
 		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$this->assertSame( $verified_before + 1, did_action( 'extrachill_turnstile_verified' ) );
 		$this->assertSame( array(), $this->rejections );
+	}
+
+	public function test_check_request_reports_duplicate_metadata_without_accepting_token() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => false, 'error-codes' => array( 'timeout-or-duplicate' ) ) ) );
+		$reported = array();
+		add_action(
+			'extrachill_turnstile_rejected',
+			static function ( $code, $request_or_token, $error_codes ) use ( &$reported ) {
+				$reported = array( $code, $request_or_token, $error_codes );
+			},
+			10,
+			3
+		);
+
+		$verified_before = did_action( 'extrachill_turnstile_verified' );
+		$result = ec_turnstile_check_request( 'duplicate-token' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'turnstile_failed', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( array( 'turnstile_failed', 'duplicate-token', array( 'timeout-or-duplicate' ) ), $reported );
+		$this->assertSame( $verified_before, did_action( 'extrachill_turnstile_verified' ) );
 	}
 
 	public function test_check_request_rejection_preserves_raw_token() {

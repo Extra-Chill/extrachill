@@ -12,6 +12,7 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 
 	public function set_up(): void {
 		parent::set_up();
+		wp_set_current_user( 0 );
 		$this->forget_evidence();
 		unset( $_SERVER['HTTP_SEC_GPC'], $_SERVER['HTTP_DNT'] );
 		$_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ] = self::VISITOR;
@@ -19,6 +20,7 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 
 	public function tear_down(): void {
 		$this->forget_evidence();
+		wp_set_current_user( 0 );
 		unset( $_SERVER['HTTP_SEC_GPC'], $_SERVER['HTTP_DNT'] );
 		parent::tear_down();
 	}
@@ -27,6 +29,7 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 		unset( $GLOBALS['extrachill_analytics_bot_evidence'] );
 		foreach ( array( self::VISITOR, self::OTHER ) as $visitor ) {
 			delete_site_transient( extrachill_analytics_bot_evidence_key( get_current_blog_id(), $visitor ) );
+			delete_site_transient( extrachill_analytics_turnstile_verified_key( $visitor ) );
 		}
 	}
 
@@ -95,6 +98,54 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 		$this->next_request();
 		$this->assertFalse( extrachill_analytics_request_turnstile_rejected() );
 		$this->assertSame( '', extrachill_analytics_visitor_bot_reason( self::VISITOR ) );
+	}
+
+	public function test_duplicate_after_success_does_not_reclassify_existing_or_later_events(): void {
+		$before = extrachill_track_analytics_event( 'page_view', array( 'is_bot' => false ) );
+		do_action( 'extrachill_turnstile_verified' );
+		$this->next_request();
+
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', '', array( 'timeout-or-duplicate' ) );
+
+		$this->assertFalse( extrachill_analytics_request_turnstile_rejected() );
+		$this->assertFalse( $this->row( $before )['is_bot'] );
+		$this->next_request();
+		$later = extrachill_track_analytics_event( 'form_submit', array( 'is_bot' => false ) );
+		$this->assertFalse( $this->row( $later )['is_bot'] );
+	}
+
+	public function test_duplicate_without_success_for_this_visitor_still_flags(): void {
+		do_action( 'extrachill_turnstile_verified' );
+		$this->next_request();
+		$_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ] = self::OTHER;
+
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', '', array( 'timeout-or-duplicate' ) );
+
+		$this->assertTrue( extrachill_analytics_request_turnstile_rejected() );
+		$this->next_request();
+		$this->assertSame( 'turnstile_rejected', extrachill_analytics_visitor_bot_reason() );
+		$this->assertSame( '', extrachill_analytics_visitor_bot_reason( self::VISITOR ) );
+	}
+
+	public function test_invalid_token_after_success_still_flags_anonymous_visitor(): void {
+		do_action( 'extrachill_turnstile_verified' );
+		$this->next_request();
+
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', '', array( 'invalid-input-response' ) );
+
+		$this->assertSame( 'turnstile_rejected', extrachill_analytics_visitor_bot_reason() );
+	}
+
+	public function test_logged_in_user_is_not_flagged_on_rejection(): void {
+		$before = extrachill_track_analytics_event( 'page_view', array( 'is_bot' => false ) );
+		wp_set_current_user( self::factory()->user->create() );
+
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', '', array( 'invalid-input-response' ) );
+
+		$this->assertFalse( extrachill_analytics_request_turnstile_rejected() );
+		$this->assertFalse( $this->row( $before )['is_bot'] );
+		$this->next_request();
+		$this->assertSame( '', extrachill_analytics_visitor_bot_reason() );
 	}
 
 	public function test_rejection_evidence_survives_into_later_beacon_requests(): void {
