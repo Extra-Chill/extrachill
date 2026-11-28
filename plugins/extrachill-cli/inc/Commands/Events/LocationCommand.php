@@ -259,30 +259,34 @@ class LocationCommand {
 		$rows = array();
 		foreach ( $result['locations'] as $loc ) {
 			$rows[] = array(
-				'location'    => $loc['name'],
-				'events'      => $loc['events'],
-				'upcoming'    => $loc['upcoming_events'],
-				'venues'      => $loc['venues'],
-				'scrapers'    => $loc['flows']['venue_scrapers'],
-				'tm'          => $loc['flows']['ticketmaster'],
-				'dice'        => $loc['flows']['dice'],
-				'ga_sessions' => $loc['ga']['sessions'],
-				'gsc_impr'    => $loc['gsc']['impressions'],
-				'gsc_clicks'  => $loc['gsc']['clicks'],
-				'opportunity' => $loc['opportunity_score'],
+				'location'     => $loc['name'],
+				'events'       => $loc['events'],
+				'upcoming'     => $loc['upcoming_events'],
+				'venues'       => $loc['venues'],
+				'scrapers'     => $loc['flows']['venue_scrapers'],
+				'tm'           => $loc['flows']['ticketmaster'],
+				'dice'         => $loc['flows']['dice'],
+				'ga_sessions'  => $loc['ga']['sessions'],
+				'gsc_impr'     => $loc['gsc']['impressions'],
+				'gsc_clicks'   => $loc['gsc']['clicks'],
+				'event_impr'   => $loc['gsc']['events']['impressions'] ?? 0,
+				'event_clicks' => $loc['gsc']['events']['clicks'] ?? 0,
+				'opportunity'  => $loc['opportunity_score'],
 			);
 		}
 
 		if ( 'table' === $format ) {
 			$summary = $result['summary'];
-			WP_CLI::log( sprintf(
-				'Market Report — %d locations, %s events, %s venues, %d flows (%d days analytics)',
-				$summary['total_locations'],
-				number_format( $summary['total_events'] ),
-				number_format( $summary['total_venues'] ),
-				$summary['total_flows'],
-				$input['days']
-			) );
+			WP_CLI::log(
+				sprintf(
+					'Market Report — %d locations, %s events, %s venues, %d flows (%d days analytics)',
+					$summary['total_locations'],
+					number_format( $summary['total_events'] ),
+					number_format( $summary['total_venues'] ),
+					$summary['total_flows'],
+					$input['days']
+				)
+			);
 			WP_CLI::log( sprintf( 'Sorted by: %s', $input['sort'] ) );
 			WP_CLI::log( str_repeat( '─', 110 ) );
 		}
@@ -290,7 +294,7 @@ class LocationCommand {
 		Utils\format_items(
 			$format,
 			$rows,
-			array( 'location', 'events', 'upcoming', 'venues', 'scrapers', 'tm', 'dice', 'ga_sessions', 'gsc_impr', 'gsc_clicks', 'opportunity' )
+			array( 'location', 'events', 'upcoming', 'venues', 'scrapers', 'tm', 'dice', 'ga_sessions', 'gsc_impr', 'gsc_clicks', 'event_impr', 'event_clicks', 'opportunity' )
 		);
 
 		if ( 'table' === $format && ! empty( $result['locations'] ) ) {

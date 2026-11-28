@@ -114,14 +114,15 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 		$GLOBALS['promoter_test']['abilities'][ $name ] = $definition; }
 }
 
+require_once __DIR__ . '/Support/post-fixtures.php';
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $post_id ) {
-		return $GLOBALS['promoter_test']['posts'][ $post_id ] ?? null;
+		return ec_events_test_fixture_post( $post_id );
 	}
 }
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
 	function wp_get_post_terms( $post_id, $taxonomy ) {
-		return $GLOBALS['promoter_test']['post_terms'][ $post_id ][ $taxonomy ] ?? array();
+		return ec_events_test_fixture_post_terms( $post_id, $taxonomy );
 	}
 }
 

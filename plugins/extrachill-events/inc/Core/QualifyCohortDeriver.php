@@ -135,6 +135,12 @@ final class QualifyCohortDeriver {
 
 		$final_url   = (string) ( $fingerprint['final_url'] ?? '' );
 		$source_host = self::url_host( $source_url );
+		if ( self::is_social_host( $source_host ) && class_exists( '\\DataMachine\\Core\\Steps\\HandlerUrlResolver' ) ) {
+			$claim = \DataMachine\Core\Steps\HandlerUrlResolver::resolve( $source_url, 'event_import' );
+			if ( $claim && empty( $claim['handler_config']['source_url'] ) ) {
+				return self::cohort( 'operational', $source_host, $signal, $shape, (string) $claim['handler_slug'], 'handler_preflight_required' );
+			}
+		}
 		if ( self::UNSUPPORTED_SOURCE_VERDICT === $verdict ) {
 			if ( self::is_login_wall( $final_url ) ) {
 				return self::cohort( 'non_actionable', self::url_host( $final_url ), $signal, $shape, $attempt['extractor'], 'login_wall' );

@@ -124,6 +124,15 @@ Registration: [`RsvpPassAbilities.php`](../inc/Abilities/RsvpPassAbilities.php).
 - **Exposure:** `show_in_rest: false`; [API: guest-list-pass](../../extrachill-api/docs/routes/events/guest-list-pass.md).
 - **Side effects:** Verifies the guest-list password, issues a pass without an account and optionally emails a copy.
 
+### `extrachill/get-event-door-list`
+
+- **Purpose:** Read the same sorted, check-in-ready rows as the web door screen. Includes RSVP passes, paid tickets, host names, band names, Eventbrite imports and venue/promoter standing lists. Accounts marked Going without a pass are excluded, just as on the web check-in list.
+- **Input:** `event_id` (integer, required).
+- **Output:** `object {rows: array<object>, total: integer, checked_in: integer}`. Rows contain `pass_id`, `kind` (`attendee`, `guest`, `owner_list`), `label`, `display_name` or `guest_name`, `source`, `source_kind`, `ticket_type`, `status`, `checked_in`, `checked_in_at` (raw timestamp, empty before check-in), and `code`.
+- **Permission:** Valid event post and `extrachill_events_user_can_manage_event(get_current_user_id(), event_id)`, including venue/promoter door staff granted team access via `extrachill/grant-door-access`; otherwise 404/403. Same gate as the web door screen.
+- **Exposure:** `show_in_rest: true`; readonly, idempotent, non-destructive.
+- **Check-in:** Send the row's `code` and `event_id` to `extrachill/redeem-event-pass`.
+
 ### `extrachill/list-event-door-attendees`
 
 - **Purpose:** List every attendee of any event the caller manages, including private ones. Host/organizer only. Includes RSVP pass redemption state when the event has a perk enabled.
@@ -139,7 +148,7 @@ Registration: [`RsvpPassAbilities.php`](../inc/Abilities/RsvpPassAbilities.php).
 - **Output:** `object {already_redeemed: boolean, redeemed_at: string, redeemed_by_user_id: integer}`.
 - **Permission:** Valid event post and `extrachill_events_user_can_manage_event(get_current_user_id(), event_id)`; otherwise 404/403.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
-- **Side effects:** Records atomic pass redemption; repeated redemption returns the existing record.
+- **Side effects:** Records atomic pass redemption for attendee and guest rows (including tickets, band/host names and imports). Standing owner-list codes route to `extrachill_events_owner_list_check_in()` for an atomic per-event check-in without consuming the standing pass. A double tap returns `already_redeemed: true` with the original `redeemed_at` and actor. This existing code-based path serves every door row; no separate check-in ability is needed.
 
 ### `extrachill/remove-guest-list-name`
 
@@ -192,7 +201,7 @@ Registration: [`VenueAddAbilities.php`](../inc/Abilities/VenueAddAbilities.php).
 - **Output:** `object {message: string, flow_id: integer, venue_term_id: integer, pipeline_id: integer}`.
 - **Permission:** events staff through `TeamAuthorization::current_user_is_events_staff()`: `access_events_admin` (the events team capability) or `manage_options`. `extrachill/add-city` stays administrator-only.
 - **Exposure:** `show_in_rest: true`; `wp extrachill venues add` adapter (`--pipeline` or `--location`).
-- **Side effects:** Creates or reuses a venue term, creates a Data Machine flow and patches steps unless dry-run.
+- **Side effects:** Creates or reuses a venue term, creates a Data Machine flow and configures its steps (`datamachine/update-flow-step`) unless dry-run. This ability is the authorization boundary: once its permission passes, every Data Machine call runs as the system through `DataMachineFlowGateway`, so events staff without Data Machine caps complete the flow end to end. A failed step write returns `flow_step_update_failed` with the created `flow_id` and `venue_term_id`.
 
 ## Guest List Party
 
@@ -342,9 +351,28 @@ Registration: [`TicketSalesAbilities.php`](../inc/Abilities/TicketSalesAbilities
 
 - **Purpose:** Ticketed shows and orders for a venue or promoter seller, with refund eligibility. Requires finance authority on the seller.
 - **Input:** `type` (string, required); `id` (integer, required).
-- **Output:** `object {events: array<object {event_id: integer, title: string, url: string, manage_url: string, start: string, timing: string, tickets_enabled: boolean, price_minor: integer, currency: string, quantity: integer, sold: integer, checked_in: integer, refunded: integer, orders: array<object {order_reference: string, name: string, quantity: integer, checked_in: integer, bought_at: string, status: string, refundable: boolean}>}>}`.
+- **Output:** `object {events: array<object {event_id: integer, title: string, url: string, manage_url: string, start: string, timing: string, tickets_enabled: boolean, price_minor: integer, currency: string, quantity: integer, sold: integer, checked_in: integer, refunded: integer, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, sold: integer}>, orders: array<object {order_reference: string, name: string, ticket_type: string, quantity: integer, checked_in: integer, bought_at: string, status: string, refundable: boolean}>}>}`.
 - **Permission:** Logged-in user with `can_manage_finances` for the seller; cancellation first validates the event and resolves its configured seller.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
+
+## Show Ticket Report
+
+Registration: [`ShowTicketReportAbilities.php`](../inc/Abilities/ShowTicketReportAbilities.php).
+
+### `extrachill/get-show-ticket-report`
+
+- **Purpose:** Sales report for one show (extrachill#1746): tickets sold, gross, fees, refunds and net, a breakdown by ticket type and by code, and the check-in rate. Shown in **Host tools** on the host's `/guest-list` screen.
+- **Input:** `event_id` (integer, required, minimum 1). No other properties.
+- **Output:** `object {event_id: integer, tickets_enabled: boolean, currency: string, sold: integer, refunded: integer, checked_in: integer, check_in_rate: integer, money_available: boolean, gross_minor: integer, fees_minor: integer, refunds_minor: integer, net_minor: integer, ticket_types: array<object {id: string, name: string, sold: integer, quantity: integer, revenue_minor: integer}>, codes: array<object {code: string, uses: integer, max_uses: integer, discount_minor: integer}>}`.
+  - `sold` counts live paid passes (active or checked in) via `RsvpPassesTable::paid_ticket_counts_by_type()`, the same count capacity uses; `refunded` counts revoked paid passes; `check_in_rate` is checked-in paid passes over `sold`, as a whole percent.
+  - Money comes from Shop's `extrachill/get-event-ticket-order-report`, read as the current user. `gross_minor` is what buyers paid, `refunds_minor` what went back, `fees_minor` Extra Chill's application fee on orders that kept it, and `net_minor = gross - refunds - fees`. A type's `revenue_minor` and a code's `uses` / `discount_minor` count orders that weren't refunded.
+  - A show with no ticket types reads as one `general` type at the single price. Types and codes since removed still report by ID.
+  - When Shop refuses (the user can't manage the seller) or is unreachable, `money_available` is false and the money fields are 0.
+- **Permission:** Logged-in user who manages the event (`extrachill_events_user_can_manage_event()`), the same rule as the door list; the event must be a `data_machine_events` post.
+- **Exposure:** `show_in_rest: true`, read-only and idempotent. Rendered by `templates/show-ticket-report.php` through `extrachill_events_door_ticket_report()`; API/CLI: none.
+- **Side effects:** None.
+
+The same file holds the door list CSV export helpers. `admin-post.php?action=ec_door_list_csv&event_id=N` (nonce `ec_door_list_csv_{N}`, see `inc/core/door-list-export.php`) downloads everyone on the door list with Name, Email, Source, Ticket type, Code, Order reference and Checked in, using the door list's authorization. Ticket buyer emails and codes fill in from the Shop order report when the user can manage the seller. Cells that start like a spreadsheet formula get a leading `'`. The host screen's **Buy tickets** QR (`action=ec_buy_tickets_qr`) links to the event page and renders only while `extrachill/get-event-ticket-offer` reports `sale_open`.
 
 ## Venue Discovery
 
@@ -619,15 +647,15 @@ Registration: [`EventPerkAbilities.php`](../inc/Abilities/EventPerkAbilities.php
 
 - **Purpose:** Get an event's RSVP perk configuration.
 - **Input:** `event` (string, required).
-- **Output:** `object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, post_id: integer, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, claimed: integer, checked_in: integer, spots_left: integer | null, full: boolean, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}`.
+- **Output:** Readers who can't manage the event get `ticket_codes` empty and no `hidden` types. `object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, hidden: boolean}>, ticket_codes: array<object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>}>, post_id: integer, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, claimed: integer, checked_in: integer, spots_left: integer | null, full: boolean, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}`.
 - **Permission:** Always allowed by the callback (no authentication check).
 - **Exposure:** `show_in_rest: true`; `wp extrachill events guest-list` adapter.
 
 ### `extrachill/set-event-perk`
 
 - **Purpose:** Enable or disable an RSVP perk on an event, set its attendee-facing description, and choose how guests get on the list (mode). Empty or omitted fields keep their current value.
-- **Input:** `tickets_enabled` (boolean, optional); `ticket_price_minor` (integer, optional); `ticket_currency` (string, optional); `ticket_quantity` (integer, optional); `ticket_seller` (object {type: string, id: integer}, optional); `event` (string, required); `enabled` (boolean, optional); `text` (string, optional); `clear_text` (boolean, optional, default false); `mode` (string, optional); `password` (string, optional); `clear_password` (boolean, optional, default false); `capacity` (integer, optional); `image_id` (integer, optional); `allotments_enabled` (boolean, optional).
-- **Output:** `object {success: boolean, event: object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, post_id: integer, title: string, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}}`.
+- **Input:** `tickets_enabled` (boolean, optional); `ticket_price_minor` (integer, optional); `ticket_currency` (string, optional); `ticket_quantity` (integer, optional); `ticket_seller` (object {type: string, id: integer}, optional); `ticket_types` (array, optional: up to 10 types; an omitted `id` is made from the name); `ticket_codes` (array, optional: up to 50 codes, 3–32 letters, digits or dashes); `event` (string, required); `enabled` (boolean, optional); `text` (string, optional); `clear_text` (boolean, optional, default false); `mode` (string, optional); `password` (string, optional); `clear_password` (boolean, optional, default false); `capacity` (integer, optional); `image_id` (integer, optional); `allotments_enabled` (boolean, optional).
+- **Output:** `object {success: boolean, event: object {tickets_enabled: boolean, ticket_price_minor: integer, ticket_currency: string, ticket_quantity: integer, ticket_seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, quantity: integer, hidden: boolean}>, ticket_codes: array<object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>}>, post_id: integer, title: string, enabled: boolean, text: string, password_required: boolean, mode: string, capacity: integer, allotments_enabled: boolean, image_id: integer, image_url: string, pass_image_url: string, pass_image_source: string}}`.
 - **Permission:** Resolves the event, then checks `extrachill_events_user_can_manage_event` for the current user. Returns 404 for a missing event, 503 if the authority helper is unavailable, or 403 on denial.
 - **Exposure:** `show_in_rest: true`; `wp extrachill events guest-list` adapter.
 - **Side effects:** Writes event perk, guest-list and ticket settings; hashes passwords and may update artwork/capacity.
@@ -882,6 +910,14 @@ Registration: [`MarketReportAbilities.php`](../inc/Abilities/MarketReportAbiliti
 - **Permission:** `current_user_can('manage_options')`.
 - **Exposure:** `show_in_rest: true`; `wp extrachill events` adapter.
 
+Market demand includes both `/location/` archives and `/events/<slug>/` pages (up to 25,000 rows per source/provider). Event slugs from both providers are resolved together in one database query to published `data_machine_events` posts and their `location` terms. Child terms roll up to reported ancestor markets, deduplicated per event/market; unmatched URLs are ignored. A location filter still includes demand assigned to its descendants.
+
+Both `ga` and `gsc` include `archive` and `events` objects with the same metric fields as their parent. Existing parent fields remain the combined totals (GA sessions are summed page-level sessions, not deduplicated users/sessions across pages). GSC position is impression-weighted across both sources. Empty sources have zero-valued metrics. CLI `event_impr` and `event_clicks` expose event-page search demand alongside combined `gsc_impr` and `gsc_clicks`.
+
+Opportunity formula (unchanged except for combined demand): `(5 * ga.sessions + 0.5 * gsc.impressions + 0.1 * events) * (10 / max(1, venue_scrapers + 1))`, rounded to one decimal. Venues and clicks do not affect the score.
+
+Targeted tests: `vendor/bin/phpunit -c phpunit-market-report-unit.xml.dist`.
+
 ## Pending Event Submissions
 
 Registration: [`PendingEventSubmissionsAbility.php`](../inc/Abilities/PendingEventSubmissionsAbility.php).
@@ -1003,19 +1039,19 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 ### `extrachill/get-event-ticket-offer`
 
 - **Purpose:** get-event-ticket-offer See [existing guide](paid-tickets.md).
-- **Input:** `event` (string | integer, required).
-- **Output:** `object {event_id: integer, title: string, url: string, enabled: boolean, price_minor: integer, currency: string, remaining: integer | null, sale_open: boolean, seller: object {type: string, id: integer}}`.
+- **Input:** `event` (string | integer, required); `code` (string, optional, case-insensitive).
+- **Output:** `object {event_id: integer, title: string, url: string, enabled: boolean, price_minor: integer, currency: string, remaining: integer | null, sale_open: boolean, seller: object {type: string, id: integer}, ticket_types: array<object {id: string, name: string, price_minor: integer, unit_price_minor: integer, remaining: integer | null, code_applies: boolean}>, code: object {code: string, percent_off: integer, amount_off_minor: integer, max_uses: integer, ticket_types: array<string>} | null, code_invalid: boolean}`. `ticket_types` lists buyer-visible types (hidden types only when `code` unlocks them) with `unit_price_minor` after the code. A legacy single-price offer reads as one `general` type. `price_minor` is the cheapest public type. `sale_open` also needs a buyable type. Codes themselves are never listed.
 - **Permission:** Always allowed by the callback (no authentication check).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 
 ### `extrachill/issue-ticket-passes`
 
 - **Purpose:** issue-ticket-passes See [existing guide](paid-tickets.md).
-- **Input:** `event` (string | integer, required); `quantity` (integer, required); `name` (string, required); `email` (string, required); `idempotency_key` (string, required); `order_reference` (string, required); `payment_reference` (string, required).
-- **Output:** `object {status: string, passes: array<object {code: string, url: string}>}`.
+- **Input:** `event` (string | integer, required); `quantity` (integer, required); `name` (string, required); `email` (string, required); `idempotency_key` (string, required); `order_reference` (string, required); `payment_reference` (string, required); `ticket_type` (string, optional, default `general`). The type's own quantity is enforced with show capacity; a type removed after payment still issues.
+- **Output:** `object {status: string, passes: array<object {code: string, url: string}>, emails_failed: integer}`.
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
-- **Side effects:** Issues idempotent ticket pass rows and emails newly issued passes.
+- **Side effects:** Issues idempotent ticket pass rows and emails newly issued passes; `emails_failed` counts emails that could not be queued.
 
 ### `extrachill/get-ticket-order-status`
 
@@ -1051,6 +1087,15 @@ Registration: [`TicketAbilities.php`](../inc/Abilities/TicketAbilities.php).
 - **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 - **Side effects:** Emails seller owners the supplied commerce notification.
+
+### `extrachill/resend-ticket-pass-emails`
+
+- **Purpose:** resend-ticket-pass-emails See [existing guide](paid-tickets.md).
+- **Input:** `order_reference` (string, required); `email` (string, required).
+- **Output:** `object {emailed: integer, failed: integer}`.
+- **Permission:** Verified ticket service authority (`extrachill_events_ticket_has_service_authority`).
+- **Exposure:** `show_in_rest: true`; API/CLI: none found.
+- **Side effects:** Emails the order's active passes to the buyer again (not idempotent).
 
 ## Managed Event
 
@@ -1276,6 +1321,15 @@ Registration: [`VenueMembershipAbilities.php`](../inc/Abilities/VenueMembershipA
 - **Permission:** `ec_manage_venue_members`.
 - **Exposure:** `show_in_rest: true`; venue-settings block.
 
+### `extrachill/venue-export-show-updates-subscribers`
+
+- **Purpose:** Export the fans who opted in to one venue's weekly show updates (extrachill#1724), so the venue keeps its email audience.
+- **Input:** `venue_term_id` (integer, required).
+- **Output:** `subscribers[]` (`email`, `display_name`, `unsubscribe_url`), `venue_name`, `export_date`, `total`.
+- **Permission:** `ec_manage_venue_members`.
+- **Exposure:** `show_in_rest: true`. Registered in [`VenueShowUpdatesAbilities.php`](../inc/Abilities/VenueShowUpdatesAbilities.php).
+- **Side effects:** None. Only subscribers who still allow notification email are returned.
+
 ## Venue Onboarding
 
 Registration: [`VenueOnboardingAbilities.php`](../inc/Abilities/VenueOnboardingAbilities.php). Claims and invitations run through the shared `TeamOnboardingService` from Extra Chill Users, with the venue `VenueOnboardingAdapter`. All are `show_in_rest: true`; the output schema is a loose object or array holding the public claim or invitation record.
@@ -1358,3 +1412,38 @@ Registration: [`VenueOnboardingAbilities.php`](../inc/Abilities/VenueOnboardingA
 - **Permission:** Signed-in user; the repository binds the invitation to that user and token.
 - **Exposure:** `show_in_rest: true`; API/CLI: none found.
 - **Side effects:** Acceptance activates the membership. Rejection or expiry removes an unused invitation-created account.
+
+## Venue partner credentials
+
+- `extrachill/issue-venue-partner-key`
+- `extrachill/rotate-venue-partner-key`
+- `extrachill/revoke-venue-partner-key`
+- `extrachill/status-venue-partner-key`
+
+All take `{venue_term_id: integer >= 1}` and execute on the events site.
+TeamAuthorization requires `manage_members` on that exact venue (or its administrator override).
+These abilities are not REST-exposed. Output includes `venue_term_id`, `active`,
+`created_at`, `issued_by`, `last_four`, and `last_used_at` (nullable when absent).
+Issue and rotate additionally return `key`, shown only in that response. Issue
+rejects an existing credential; rotate explicitly replaces it. Revoke is idempotent.
+Only a keyed hash is stored; status never returns that hash. Last-use writes are
+throttled to five minutes and isolated from credential storage to avoid resurrecting
+a concurrently revoked key.
+
+CLI: `wp extrachill venues partner-key issue|rotate|revoke|status <venue-term-id> --user=<authorized-user> --url=events.extrachill.com`.
+Treat issuance output as a secret; do not capture it in shared logs.
+
+Verification (used by the partner events ability) treats every unusable key —
+missing, malformed, forged, rotated, revoked, or for a deleted venue — as one
+401 `extrachill_partner_key_invalid`.
+
+### `extrachill/get-partner-venue-events`
+
+- **Purpose:** Partner-website feed (#1802): the upcoming events of the one venue a partner key belongs to, shaped for server-rendered HTML plus JSON-LD. The key selects the venue; there is no venue input.
+- **Input:** `partner_key` (string, required); `limit` (integer 1–50, default 20).
+- **Output:** `venue` `{id, name, slug, url, booking_embed_url|null}`; `events[]` `{id, title, url, start, end|null, timezone, performers[], price|null, image|null, excerpt|null, status, ticket{url|null, label, kind}, schema}`; `generated_at` (ISO 8601); `cache_ttl` (300). `start`/`end` are ISO 8601 with the venue's offset; `timezone` is the venue's IANA zone. `ticket.kind` is `checkout` (first-party sale open; URL is the event page that hosts checkout), `external` (outside seller; URL is the event page, whose ticket button runs the first-party affiliate redirect), `info` (event page), or `none` (sold out or cancelled; `url` null). `schema` is the `extrachill/event-schema` entity (extrachill-seo) projected for partners: every offer's `url` (single `Offer`, `AggregateOffer` and its nested offers, or a list) is replaced with `ticket.url`, or removed when `ticket.url` is null, and any other URL on a non-Extra Chill host (venue website, organizer site, remote image) is dropped, so no outside seller or third-party link reaches partner HTML. Our own event pages still emit the unmodified entity. `schema` is null only when that plugin is unavailable. `booking_embed_url` is the venue page with `booking-embed=1` when booking is enabled with at least one allowlisted parent origin; the partner appends `parent-origin`.
+- **Composes:** `data-machine-events/query-events` (publish-only upcoming listing filtered by the `venue` term), data-machine-events' public event-data and venue-data helpers, `extrachill/event-schema`, and `extrachill/get-event-ticket-offer`.
+- **Errors:** 401 `extrachill_partner_key_invalid`; 400 `extrachill_partner_events_limit`; 503 `extrachill_partner_events_unavailable` when the event query ability is missing.
+- **Permission:** The partner key (`__return_true` at the ability boundary; authentication happens in the operation).
+- **Exposure:** `show_in_rest: false`; extrachill-api GET `/extrachill/v1/partner/events` with header `X-Extrachill-Partner-Key` (events-site route affinity).
+- **Side effects:** Throttled key last-used stamp only.

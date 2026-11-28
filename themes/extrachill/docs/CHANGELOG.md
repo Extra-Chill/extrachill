@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.24.0] - 2026-11-28
+
+### Added
+- prioritize native sharing and attribute share links
+
+## [2.23.1] - 2026-11-25
+
+### Fixed
+- declare standalone tests in homeboy.json; drop stale test manifest
+
 ## [2.23.0] - 2026-11-18
 
 ### Added

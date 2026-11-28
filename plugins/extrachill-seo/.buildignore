@@ -14,3 +14,6 @@ package-lock.json
 phpunit.xml
 .phpcs.xml
 phpcs.xml.dist
+
+# Editor/lint module resolution (development only).
+jsconfig.json

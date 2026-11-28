@@ -1,5 +1,5 @@
 {
-  "$comment": "Read read-only from production via `wp site list --fields=blog_id,url,domain,path` on extrachill.com, 2026-09-23. Blog IDs are NOT reproduced in the disposable rig: WordPress assigns new sequential blog IDs to wp_insert_site() in a fresh install, so every part of this rig matches sites by domain, never by blog ID. `install` is subdomain per wp-config.php SUBDOMAIN_INSTALL=true; extrachill.link is a distinct core multisite domain (not a sunrise.php path-mapping target) matching how sunrise.php actually behaves in production (see NETWORK-ARCHITECTURE.MD spike notes on extrachill-network#223).",
+  "$comment": "Read read-only from production via `wp site list --fields=blog_id,url,domain,path` on extrachill.com, 2026-09-23. Blog IDs are NOT reproduced in the disposable rig: WordPress assigns new sequential blog IDs to wp_insert_site() in a fresh install, so every part of this rig matches sites by domain, never by blog ID. `install` is subdomain per wp-config.php SUBDOMAIN_INSTALL=true; extrachill.link is a distinct core multisite domain, exactly as in production, which runs no sunrise.php drop-in (#1705) (see NETWORK-ARCHITECTURE.MD spike notes on extrachill-network#223).",
   "install": "subdomain",
   "sites": [
     { "domain": "extrachill.com", "path": "/", "title": "Extra Chill", "primary": true, "productionBlogId": 1 },

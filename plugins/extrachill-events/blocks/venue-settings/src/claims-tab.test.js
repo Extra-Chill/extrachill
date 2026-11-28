@@ -34,7 +34,7 @@ jest.mock( '@extrachill/components', () => {
 		PanelHeader: ( { title, description } ) =>
 			React.createElement( 'header', null, title, ' ', description ),
 	};
-} );
+}, { virtual: true } );
 
 beforeAll( () => {
 	global.IS_REACT_ACT_ENVIRONMENT = true;

@@ -17,8 +17,7 @@ define( 'EXTRACHILL_ANALYTICS_SCHEMA_LOCK_TTL', 300 );
  */
 function extrachill_analytics_network_schema_is_ready() {
 	return EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION === get_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION )
-		&& EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION === get_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION )
-		&& EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION === get_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION );
+		&& EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION === get_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION );
 }
 
 /**
@@ -63,7 +62,8 @@ function extrachill_analytics_install_network_schema() {
 	try {
 		extrachill_analytics_events_create_table();
 		extrachill_analytics_php_error_create_table();
-		extrachill_analytics_revenue_create_table();
+		// Revenue storage is owned by the Data Machine Business revenue ledger;
+		// the retired Mediavine table is never created here (see revenue-ledger.php).
 	} finally {
 		delete_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION );
 	}

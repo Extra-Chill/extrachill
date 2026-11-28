@@ -1,9 +1,6 @@
 /**
- * Share Button - Copy Link Handler
- *
- * Handles clipboard copy for share button copy-link functionality.
+ * Native sharing, fallback menu actions, and share funnel tracking.
  * Dropdown behavior provided by mini-dropdown.js.
- * Tracks share clicks via analytics endpoint.
  */
 (function() {
     'use strict';
@@ -11,7 +8,7 @@
     /**
      * Track share click via analytics endpoint.
      *
-     * @param {string} destination Share destination (facebook, twitter, etc.)
+     * @param {string} destination Share destination or funnel marker
      * @param {string} shareUrl    URL being shared
      */
     function ecTrackShare(destination, shareUrl) {
@@ -23,9 +20,7 @@
             destination_url: shareUrl || window.location.href
         };
 
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(endpoint, new Blob([JSON.stringify(data)], { type: 'application/json' }));
-        } else {
+        if (!navigator.sendBeacon || !navigator.sendBeacon(endpoint, new Blob([JSON.stringify(data)], { type: 'application/json' }))) {
             fetch(endpoint, {
                 method: 'POST',
                 body: JSON.stringify(data),
@@ -75,65 +70,82 @@
             });
     }
 
-    // Track social share link clicks (these open in new tabs, no preventDefault needed)
+    let nativeSharePending = false;
+
+    // Capture before the mini-dropdown click handler. It won't open a toggle
+    // whose click was handled by native sharing.
+    document.addEventListener('click', async function(event) {
+        const toggle = event.target.closest('.share-dropdown .ec-mini-dropdown-toggle');
+        if (!toggle || event.defaultPrevented) {
+            return;
+        }
+
+        const dropdown = toggle.closest('.share-dropdown');
+        if (dropdown.getAttribute('aria-expanded') === 'true') {
+            return; // Let the dropdown handle closing, without counting another open.
+        }
+        if (nativeSharePending) {
+            event.preventDefault();
+            return;
+        }
+
+        ecTrackShare('toggle');
+        const shareData = { title: toggle.dataset.shareTitle, url: toggle.dataset.nativeShareUrl };
+        if (!shareData.url || typeof navigator.share !== 'function' ||
+            (typeof navigator.canShare === 'function' && !navigator.canShare(shareData))) {
+            return;
+        }
+
+        nativeSharePending = true;
+        try {
+            // Invoke while the click still grants transient user activation.
+            const result = navigator.share(shareData);
+            event.preventDefault();
+            await result;
+        } catch (error) {
+            // A synchronous failure leaves the normal dropdown click intact.
+            // For a rejected promise the click was already intercepted.
+            if (!event.defaultPrevented) {
+                return;
+            }
+            if (error.name === 'AbortError') {
+                ecTrackShare('native_cancelled');
+            } else {
+                dropdown.setAttribute('aria-expanded', 'true');
+            }
+            return;
+        } finally {
+            nativeSharePending = false;
+        }
+        ecTrackShare('native', shareData.url);
+    }, true);
+
     document.addEventListener('click', function(event) {
-        const shareOption = event.target.closest('.share-dropdown .share-option a');
-        if (!shareOption) {
+        const option = event.target.closest('.share-dropdown a[data-share-destination]');
+        if (!option) {
             return;
         }
 
-        const optionContainer = shareOption.closest('.share-option');
-        if (!optionContainer) {
-            return;
-        }
-
-        // Determine destination from class name
-        let destination = null;
-        if (optionContainer.classList.contains('facebook')) {
-            destination = 'facebook';
-        } else if (optionContainer.classList.contains('twitter')) {
-            destination = 'twitter';
-        } else if (optionContainer.classList.contains('reddit')) {
-            destination = 'reddit';
-        } else if (optionContainer.classList.contains('bluesky')) {
-            destination = 'bluesky';
-        } else if (optionContainer.classList.contains('email')) {
-            destination = 'email';
-        }
-
-        // Track if it's a social share (not copy-link or copy-markdown, handled separately)
-        if (destination && !optionContainer.classList.contains('copy-link') && !optionContainer.classList.contains('copy-markdown')) {
-            ecTrackShare(destination, window.location.href);
-        }
-    });
-
-    // Handle copy-link and copy-markdown (these need preventDefault)
-    document.addEventListener('click', function(event) {
-        const copyLink = event.target.closest('.copy-link a');
-        const copyMarkdown = event.target.closest('.copy-markdown a');
-
-        if (!copyLink && !copyMarkdown) {
-            return;
-        }
-
-        event.preventDefault();
-
-        if (copyLink) {
-            const url = copyLink.getAttribute('data-share-url');
+        const destination = option.dataset.shareDestination;
+        if (destination === 'copy_link') {
+            event.preventDefault();
+            const url = option.dataset.shareUrl;
             if (!url) {
                 return;
             }
 
             ecTrackShare('copy_link', url);
-            ecCopyToClipboard(url, copyLink);
+            ecCopyToClipboard(url, option);
             return;
         }
 
-        const dropdown = event.target.closest('.share-dropdown');
-        if (!dropdown) {
+        if (destination !== 'copy_markdown') {
+            ecTrackShare(destination);
             return;
         }
 
+        event.preventDefault();
+        const dropdown = option.closest('.share-dropdown');
         const postId = dropdown.getAttribute('data-post-id');
         if (!postId) {
             return;
@@ -141,17 +153,17 @@
 
         const blogId = dropdown.getAttribute('data-blog-id');
 
-        copyMarkdown.textContent = 'Loading...';
+        option.textContent = 'Loading...';
         ecTrackShare('copy_markdown', window.location.href);
         ecFetchMarkdownExport(postId, blogId)
             .then(function(markdown) {
-                return ecCopyToClipboard(markdown, copyMarkdown);
+                return ecCopyToClipboard(markdown, option);
             })
             .catch(function() {
                 // Silent failure
             })
             .finally(function() {
-                copyMarkdown.textContent = 'Copy Markdown';
+                option.textContent = 'Copy Markdown';
             });
     });
 })();

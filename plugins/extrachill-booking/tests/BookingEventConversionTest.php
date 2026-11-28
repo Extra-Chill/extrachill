@@ -346,6 +346,7 @@ final class BookingEventConversionTest extends BookingTestCase {
 		$this->assertSame( 'PerformingGroup', $input['event']['performerType'] );
 		$this->assertSame( 'MusicEvent', $input['event']['eventType'] );
 		$this->assertSame( 'The Canonical Room', $input['event']['venue'] );
+		$this->assertSame( 55, $input['event']['venue_term_id'], 'The canonical venue term is pinned so DME never re-resolves it by name.' );
 		$this->assertSame( '123 King Street', $input['event']['venueAddress'] );
 		$this->assertSame( 'Charleston', $input['event']['venueCity'] );
 		$this->assertSame( 'SC', $input['event']['venueState'] );

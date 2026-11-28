@@ -81,7 +81,7 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 		$this->assertSame( 'confirmed_bot', extrachill_analytics_conversion_outcome_trust_class( array( 'event_data' => $this->row( $later ), 'user_id' => 123 ) ) );
 	}
 
-	public function test_missing_invalid_or_opted_out_cookie_does_nothing(): void {
+	public function test_missing_invalid_or_opted_out_cookie_keeps_only_request_evidence(): void {
 		$id = extrachill_track_analytics_event( 'page_view', array( 'is_bot' => false ) );
 		foreach ( array( '', 'invalid' ) as $cookie ) {
 			$_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ] = $cookie;
@@ -91,7 +91,9 @@ final class TurnstileRejectionTest extends Extrachill_Analytics_TestCase {
 		$_SERVER['HTTP_SEC_GPC'] = '1';
 		do_action( 'extrachill_turnstile_rejected', 'missing_token', '' );
 		$this->assertFalse( $this->row( $id )['is_bot'] );
-		$this->assertEmpty( $GLOBALS['extrachill_analytics_bot_evidence'] ?? array() );
+		$this->assertTrue( extrachill_analytics_request_turnstile_rejected() );
+		$this->next_request();
+		$this->assertFalse( extrachill_analytics_request_turnstile_rejected() );
 		$this->assertSame( '', extrachill_analytics_visitor_bot_reason( self::VISITOR ) );
 	}
 

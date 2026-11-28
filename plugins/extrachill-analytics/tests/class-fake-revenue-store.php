@@ -225,6 +225,15 @@ final class Fake_Revenue_Store {
 	}
 
 	/**
+	 * Last store error (the fake never records one).
+	 *
+	 * @return string
+	 */
+	public function last_error() {
+		return '';
+	}
+
+	/**
 	 * Roll back to the snapshot captured at begin().
 	 *
 	 * @return bool

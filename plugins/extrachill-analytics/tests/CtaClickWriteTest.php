@@ -82,6 +82,45 @@ final class CtaClickWriteTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * A privacy opt-out waives the cookie requirement, not the browser check.
+	 *
+	 * @dataProvider cookieless_request_provider
+	 *
+	 * @param string|null $privacy_header Opt-out header, if sent.
+	 * @param string      $user_agent     Request user agent.
+	 * @param bool        $is_bot         Expected stored verdict.
+	 */
+	public function test_cookieless_cta_click_verdict( ?string $privacy_header, string $user_agent, bool $is_bot ): void {
+		if ( null !== $privacy_header ) {
+			$_SERVER[ $privacy_header ] = '1';
+		}
+		$_SERVER['HTTP_USER_AGENT'] = $user_agent;
+
+		$result = extrachill_analytics_ability_track_cta_click( $this->valid_input() );
+
+		$this->assertIsInt( $result );
+		$this->assertGreaterThan( 0, $result );
+		$rows = $this->event_rows( EC_ANALYTICS_EVENT_CTA_CLICK );
+		$this->assertCount( 1, $rows );
+		$this->assertNull( $rows[0]->visitor_id );
+		$this->assertSame( $is_bot, $this->event_data( $rows[0] )['is_bot'] );
+	}
+
+	/**
+	 * Cookieless browser and crawler requests.
+	 *
+	 * @return array<string, array{string|null, string, bool}>
+	 */
+	public static function cookieless_request_provider(): array {
+		return array(
+			'GPC browser' => array( 'HTTP_SEC_GPC', 'Mozilla/5.0', false ),
+			'DNT browser' => array( 'HTTP_DNT', 'Mozilla/5.0', false ),
+			'no opt-out'  => array( null, 'Mozilla/5.0', true ),
+			'GPC crawler' => array( 'HTTP_SEC_GPC', 'Googlebot', true ),
+		);
+	}
+
+	/**
 	 * The same route + label + dest always produces the same automatic id —
 	 * the button survives re-renders and repeat page loads.
 	 */

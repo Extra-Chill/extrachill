@@ -165,6 +165,7 @@ function extrachill_api_get_team_members( $request ) {
  * @return WP_REST_Response|WP_Error Response with sync report or error.
  */
 function extrachill_api_sync_team_members( $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/sync-team-members' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'Team members ability is not available.', array( 'status' => 500 ) );

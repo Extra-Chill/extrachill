@@ -196,6 +196,11 @@ final class PriorityBoostAbilityTest extends TestCase {
 
 	/** Events asks Network for exactly its own service and scope. */
 	public function test_service_authority_delegates_exact_grant_to_network(): void {
+		if ( function_exists( 'ec_cross_site_set_verified_service_context' ) ) {
+			$this->assert_network_service_authority();
+			return;
+		}
+
 		$GLOBALS['priority_boost_grant_checks'] = array();
 		$GLOBALS['priority_boost_bound_grant']  = null;
 		$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
@@ -209,6 +214,45 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$expected = array( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID, EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_SCOPE );
 		$this->assertSame( array( $expected, $expected, $expected ), $GLOBALS['priority_boost_grant_checks'] );
 		$GLOBALS['priority_boost_bound_grant'] = null;
+	}
+
+	/** Exercise the loaded Network contract rather than the standalone shim. */
+	private function assert_network_service_authority(): void {
+		$grant = extrachill_events_priority_boost_build_target_grant(
+			array(
+				'source_site_id' => 3,
+				'target_site_id' => 7,
+				'target_host'    => 'events.extrachill.com',
+				'keys'           => array( 'current' => str_repeat( 's', 32 ) ),
+			)
+		);
+		$request = new WP_REST_Request( $grant['method'], $grant['route'] );
+		$original_stack = $GLOBALS['ec_cross_site_active_rest_requests'] ?? array();
+		$register = static function ( array $grants ) use ( $grant ): array {
+			$grants[] = $grant;
+			return $grants;
+		};
+		add_filter( 'ec_cross_site_service_assertion_target_grants', $register );
+		$GLOBALS['ec_cross_site_active_rest_requests'] = array( $request );
+		try {
+			$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
+
+			$claims = $grant;
+			$claims['service_id'] = 'extrachill.events.tickets';
+			$claims['scope'] = 'extrachill/events:tickets';
+			ec_cross_site_set_verified_service_context( $request, $claims );
+			$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
+
+			ec_cross_site_set_verified_service_context( $request, $grant );
+			$this->assertTrue( extrachill_events_priority_boost_has_verified_service_authority() );
+
+			$request->set_route( '/wrong-route' );
+			$this->assertFalse( extrachill_events_priority_boost_has_verified_service_authority() );
+		} finally {
+			remove_filter( 'ec_cross_site_service_assertion_target_grants', $register );
+			unset( $GLOBALS['ec_cross_site_verified_service_contexts'][ $request ] );
+			$GLOBALS['ec_cross_site_active_rest_requests'] = $original_stack;
+		}
 	}
 
 	/** Invalid transport assertions never become Events service authority. */

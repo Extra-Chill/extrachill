@@ -22,7 +22,7 @@
 			<file>tests/Unit/Core/RsvpGuestListTest.php</file>
 			<file>tests/Unit/Core/RsvpPassCardTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestListPartiesTest.php</file>
-			<file>tests/Unit/Core/GuestListShowDayPinTest.php</file>
+			<file>tests/Unit/Core/GuestCheckInTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestListRequestsTest.php</file>
 			<file>tests/Unit/Core/OwnerGuestListTest.php</file>
 			<file>tests/Unit/Core/GuestListSortTest.php</file>

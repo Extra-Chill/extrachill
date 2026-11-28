@@ -194,7 +194,7 @@ function extrachill_get_promoted_events_for_location_term( int $location_term_id
 			AND {$upcoming_sql['where']}
 		ORDER BY ed.start_datetime ASC
 		LIMIT %d",
-		array_merge( $priority_ids, array( $location_term_id, $now, $now, $limit ) )
+		array_merge( $priority_ids, array( $location_term_id ), array_fill( 0, $upcoming_sql['param_count'], $now ), array( $limit ) )
 	);
 
 	$post_ids = array_map( 'intval', (array) $wpdb->get_col( $sql ) );

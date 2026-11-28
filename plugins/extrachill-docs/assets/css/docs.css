@@ -160,27 +160,26 @@
 
 
 /* "Did this help?" on docs articles */
-.docs-feedback {
+[data-docs-feedback-block] {
 	margin-top: 2rem;
 	padding-top: 1rem;
 	border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
 }
 
-.docs-feedback__question {
+#docs-feedback-question {
 	margin: 0 0 0.5rem;
 	font-weight: 600;
 }
 
-.docs-feedback__actions {
+[data-docs-feedback-actions] {
 	display: flex;
 	gap: 0.5rem;
 }
 
-.docs-feedback__actions[hidden],
-.docs-feedback__reply[hidden] {
+[data-docs-feedback-block] [hidden] {
 	display: none;
 }
 
-.docs-feedback__reply {
+[data-docs-feedback-reply="yes"] {
 	margin: 0;
 }

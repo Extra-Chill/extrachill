@@ -36,6 +36,7 @@ class AdPolicyAbility {
 					'default'    => array(),
 					'properties' => array(
 						'blog_id'              => array( 'type' => 'integer' ),
+						'post_id'              => array( 'type' => 'integer' ),
 						'post_type'            => array( 'type' => 'string' ),
 						'is_front_page'        => array( 'type' => 'boolean' ),
 						'is_home'              => array( 'type' => 'boolean' ),

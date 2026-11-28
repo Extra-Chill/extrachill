@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.77.1] - 2026-11-25
+
+### Fixed
+- close comments on attachments and non-commentable sites network-wide
+
+## [0.77.0] - 2026-11-24
+
+### Added
+- make Remember me a 30-day rolling login renewed in place
+
+## [0.76.0] - 2026-11-21
+
+### Added
+- venue show-updates subscriptions + weekly venue digest
+
 ## [0.75.1] - 2026-11-18
 
 ### Fixed

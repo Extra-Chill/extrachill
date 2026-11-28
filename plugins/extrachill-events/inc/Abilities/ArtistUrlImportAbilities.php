@@ -26,6 +26,7 @@ namespace ExtraChillEvents\Abilities;
 
 use DataMachine\Core\Selection\SelectionMode;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
+use ExtraChillEvents\Core\DataMachineFlowGateway;
 use ExtraChillEvents\Core\QualifyFingerprinter;
 use ExtraChillEvents\Core\QualifyVerdict;
 use ExtraChillEvents\Core\VenueExpansionRunner;
@@ -35,17 +36,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/SubmissionTrustPolicy.php';
+require_once dirname( __DIR__ ) . '/Core/DataMachineFlowGateway.php';
+require_once dirname( __DIR__ ) . '/Core/EventSourceHandler.php';
+
+use ExtraChillEvents\Core\EventSourceHandler;
 
 class ArtistUrlImportAbilities {
 	/** Feature-owned producer for submitter moderation notifications. */
 	private const NOTIFICATION_PRODUCER = 'extrachill-events-artist-url-import';
 
-	/**
-	 * Registered event-import handler slug configured on created flows.
-	 * This is data-machine-events' public handler contract, not an internal
-	 * class reference.
-	 */
-	private const SCRAPER_HANDLER_SLUG = 'universal_web_scraper';
+	/** Legacy scraper reads use the same compatibility fallback as resolution. */
+	private const SCRAPER_HANDLER_SLUG = EventSourceHandler::FALLBACK_HANDLER;
 
 	/**
 	 * Stable name of the single shared Artist Tour Import pipeline (B1).
@@ -110,6 +111,13 @@ class ArtistUrlImportAbilities {
 	private const DEFAULT_POST_AUTHOR = 32;
 
 	private static bool $registered = false;
+
+	/**
+	 * Data Machine gateway (see flowGateway()).
+	 *
+	 * @var DataMachineFlowGateway|null
+	 */
+	private ?DataMachineFlowGateway $flow_gateway = null;
 
 	/**
 	 * Resolve the system agent context used to own pipelines/flows and to
@@ -252,7 +260,7 @@ class ArtistUrlImportAbilities {
 						'events_found'  => array( 'type' => 'integer' ),
 						'source_kind'   => array(
 							'type' => 'string',
-							'enum' => array( 'artist', 'venue', 'listing' ),
+							'enum' => array( 'artist', 'venue', 'listing', 'promoter' ),
 						),
 						'auto_approved' => array( 'type' => 'boolean' ),
 						'flow_id'       => array( 'type' => 'integer' ),
@@ -268,7 +276,7 @@ class ArtistUrlImportAbilities {
 			'submission_id'     => array( 'type' => 'integer' ),
 			'source_kind'       => array(
 				'type' => 'string',
-				'enum' => array( 'artist', 'venue', 'listing', 'unknown' ),
+				'enum' => array( 'artist', 'venue', 'listing', 'promoter', 'unknown' ),
 			),
 			'entity_term_id'    => array( 'type' => 'integer' ),
 			'entity_name'       => array( 'type' => 'string' ),
@@ -330,7 +338,7 @@ class ArtistUrlImportAbilities {
 								'flow_id'              => array( 'type' => 'integer' ),
 								'source_kind'          => array(
 									'type' => 'string',
-									'enum' => array( 'listing' ),
+									'enum' => array( 'listing', 'promoter' ),
 								),
 								'linked_existing_flow' => array( 'type' => 'boolean' ),
 							),
@@ -411,7 +419,7 @@ class ArtistUrlImportAbilities {
 				'extraction_method'         => array( 'type' => 'string' ),
 				'source_kind'               => array(
 					'type' => 'string',
-					'enum' => array( 'artist', 'venue', 'listing', 'unknown' ),
+					'enum' => array( 'artist', 'venue', 'listing', 'promoter', 'unknown' ),
 				),
 				'classification_confidence' => array(
 					'type' => 'string',
@@ -497,6 +505,14 @@ class ArtistUrlImportAbilities {
 		$url = $this->normalizeInputUrl( (string) ( $input['url'] ?? '' ) );
 		if ( is_wp_error( $url ) ) {
 			return $url;
+		}
+
+		$source = EventSourceHandler::resolve( $url );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		if ( ! EventSourceHandler::is_web( $source ) ) {
+			return $this->qualifyClaimedSource( $url, $source );
 		}
 
 		$qualification = ( new VenueQualificationAbilities() )->qualifyWithPage(
@@ -588,6 +604,83 @@ class ArtistUrlImportAbilities {
 			'source_metadata'           => $probe['source_metadata'],
 			'suggested_artist_name'     => 'artist' === $classification['source_kind'] ? (string) ( $classification['binding']['name'] ?? '' ) : '',
 			'suggested_artist_term_id'  => 'artist' === $classification['source_kind'] ? ( $classification['binding']['term_id'] ?? null ) : null,
+		);
+	}
+
+	/** Classify a readable profile using canonical taxonomy identity, never a caption guess. */
+	private function qualifyClaimedSource( string $url, array $source ) {
+		$result = EventSourceHandler::preflight( $source );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$metadata = (array) ( $result['items'][0]['data']['metadata'] ?? array() );
+		$name     = (string) ( $metadata['account_name'] ?? $source['handler_config']['username'] ?? '' );
+		$binding  = array();
+		$kind     = 'unknown';
+		foreach ( array( 'venue', 'promoter', 'artist' ) as $taxonomy ) {
+			$term_id = $this->matchTerm( $name, $taxonomy );
+			if ( class_exists( '\\DataMachineEvents\\Core\\InstagramHandle' ) ) {
+				$handle = \DataMachineEvents\Core\InstagramHandle::normalize( (string) ( $source['handler_config']['username'] ?? '' ) );
+				$terms  = is_wp_error( $handle ) || '' === $handle ? array() : get_terms(
+					array(
+						'taxonomy'   => $taxonomy,
+						'hide_empty' => false,
+						'meta_query' => array(
+							array(
+								'key'   => 'venue' === $taxonomy ? '_venue_instagram' : 'instagram',
+								'value' => $handle,
+							),
+						),
+					)
+				);
+				if ( ! is_wp_error( $terms ) && ! is_wp_error( $handle ) && '' !== $handle ) {
+					foreach ( $terms as $term ) {
+						if ( \DataMachineEvents\Core\InstagramHandle::read( (int) $term->term_id, $taxonomy ) === $handle ) {
+							$term_id = (int) $term->term_id;
+							$name    = $term->name;
+							break;
+						}
+					}
+				}
+			}
+			if ( $term_id ) {
+				$kind    = $taxonomy;
+				$binding = array(
+					'taxonomy' => $taxonomy,
+					'term_id'  => $term_id,
+					'name'     => $name,
+				);
+				break;
+			}
+		}
+		$readable = ! empty( $result['success'] );
+		return array(
+			'success'                   => $readable,
+			'qualified'                 => $readable,
+			'canonical_events_url'      => $url,
+			'source_identity_url'       => ArtistUrlSubmissionsTable::normalize_url( $url ),
+			'verdict'                   => $readable ? 'qualified' : 'unreadable',
+			'events_found'              => 0,
+			'events_preview'            => array(),
+			'extraction_method'         => $source['handler_slug'],
+			'detected_format'           => $source['handler_slug'],
+			'source_kind'               => $kind,
+			'classification_confidence' => $binding ? 'high' : 'low',
+			'scope_evidence'            => array( 'source_handler' => $source['handler_slug'] ),
+			'entity_candidates'         => $binding ? array( $binding ) : array(),
+			'existing_coverage'         => array(
+				'covered' => false,
+				'type'    => 'none',
+			),
+			'warnings'                  => $binding ? array() : array( 'No canonical entity matches this account. Explicit review is required.' ),
+			'recommended_route'         => $binding ? 'moderation' : 'explicit_review',
+			'recommended_binding'       => $binding,
+			'recurring_eligible'        => $readable && ! empty( $binding ),
+			'source_metadata'           => $metadata,
+			'suggested_artist_name'     => 'artist' === $kind ? $name : '',
+			'suggested_artist_term_id'  => 'artist' === $kind ? $binding['term_id'] : null,
+			'handler_slug'              => $source['handler_slug'],
+			'handler_config'            => $source['handler_config'],
 		);
 	}
 
@@ -1298,7 +1391,7 @@ class ArtistUrlImportAbilities {
 		$submission['canonical_url']       = (string) $fresh['canonical_events_url'];
 		$submission['fresh_qualification'] = $fresh;
 
-		if ( 'listing' === $source_kind ) {
+		if ( in_array( $source_kind, array( 'listing', 'promoter' ), true ) ) {
 			return $this->approveListingSubmission( $submission_id, $submission, $input );
 		}
 
@@ -1331,8 +1424,7 @@ class ArtistUrlImportAbilities {
 		if ( is_wp_error( $artist_identity ) ) {
 			return $artist_identity;
 		}
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -1380,13 +1472,16 @@ class ArtistUrlImportAbilities {
 			'taxonomy_promoter_selection' => SelectionMode::SKIP,
 		);
 
-		$import_handler_config = array(
-			'source_url'       => (string) $submission['canonical_url'],
-			'search'           => '',
-			'exclude_keywords' => '',
-		);
+		$source = EventSourceHandler::resolve( (string) $submission['canonical_url'] );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		$import_handler_config = $source['handler_config'];
+		if ( EventSourceHandler::is_social( $source ) ) {
+			$interval = 'daily';
+		}
 
-		$ai_message = sprintf(
+		$ai_message = EventSourceHandler::is_social( $source ) ? EventSourceHandler::EVENT_POLICY : sprintf(
 			/* translators: %s: artist name */
 			__( 'Process this event from %s\'s tour page. The artist is already known and pre-selected. Identify the venue, city, and festival (if any) at extraction time.', 'extrachill-events' ),
 			$artist_name
@@ -1398,7 +1493,7 @@ class ArtistUrlImportAbilities {
 			'scheduling_config' => array( 'interval' => $interval ),
 			'step_configs'      => array(
 				'event_import' => array(
-					'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+					'handler_slug'   => $source['handler_slug'],
 					'handler_config' => $import_handler_config,
 				),
 				'upsert'       => array(
@@ -1416,7 +1511,7 @@ class ArtistUrlImportAbilities {
 			$flow_input['agent_id'] = $flow_agent_id;
 		}
 
-		$flow_result = $flow_ability->execute( $flow_input );
+		$flow_result = $this->flowGateway()->create_flow( $flow_input );
 		if ( is_wp_error( $flow_result ) ) {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
@@ -1435,7 +1530,8 @@ class ArtistUrlImportAbilities {
 			$flow_id,
 			$import_handler_config,
 			$upsert_handler_config,
-			$ai_message
+			$ai_message,
+			$source['handler_slug']
 		);
 		if ( $configured instanceof \WP_Error ) {
 			return $configured;
@@ -1493,12 +1589,9 @@ class ArtistUrlImportAbilities {
 		// validation failures (#221). If a future run result ever exposes a
 		// count, use it.
 		$events_imported_immediately = null;
-		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
-		if ( $run_ability ) {
-			$run_result = $run_ability->execute( array( 'flow_id' => $flow_id ) );
-			if ( is_array( $run_result ) && isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
-				$events_imported_immediately = (int) $run_result['events_imported'];
-			}
+		$run_result                  = $this->flowGateway()->run_flow_result( $flow_id );
+		if ( is_array( $run_result ) && isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
+			$events_imported_immediately = (int) $run_result['events_imported'];
 		}
 
 		return array(
@@ -1514,7 +1607,7 @@ class ArtistUrlImportAbilities {
 	/** Resolve approval dispatch without silently coercing unknown sources. */
 	private function resolveApprovalKind( string $stored_kind, $explicit_kind = null ) {
 		$kind = null !== $explicit_kind ? sanitize_key( (string) $explicit_kind ) : sanitize_key( $stored_kind );
-		if ( in_array( $kind, array( 'artist', 'venue', 'listing' ), true ) ) {
+		if ( in_array( $kind, array( 'artist', 'venue', 'listing', 'promoter' ), true ) ) {
 			return $kind;
 		}
 		return new \WP_Error(
@@ -1574,6 +1667,12 @@ class ArtistUrlImportAbilities {
 	private function freshQualificationPersistence( array $submission ): array {
 		$fresh   = (array) ( $submission['fresh_qualification'] ?? array() );
 		$binding = (array) ( $fresh['recommended_binding'] ?? array() );
+		if ( 'instagram_account' === ( $fresh['handler_slug'] ?? '' ) && ! empty( $binding['term_id'] ) ) {
+			$key = 'venue' === $binding['taxonomy'] ? '_venue_instagram' : 'instagram';
+			if ( ! get_term_meta( (int) $binding['term_id'], $key, true ) ) {
+				update_term_meta( (int) $binding['term_id'], $key, $fresh['handler_config']['username'] ?? '' );
+			}
+		}
 		return array(
 			'canonical_url'         => (string) ( $fresh['canonical_events_url'] ?? $submission['canonical_url'] ?? $submission['url'] ?? '' ),
 			'qualification_verdict' => (string) ( $fresh['verdict'] ?? '' ),
@@ -1645,7 +1744,7 @@ class ArtistUrlImportAbilities {
 		$linked_existing = $existing_flow_id > 0;
 		$flow_id         = $existing_flow_id;
 		if ( ! $linked_existing ) {
-			$flow_id = $this->createListingFlow( $pipeline_id, $source_url, $source_name, $interval );
+			$flow_id = $this->createListingFlow( $pipeline_id, $source_url, $source_name, $interval, (array) ( $fresh['recommended_binding'] ?? array() ) );
 			if ( $flow_id instanceof \WP_Error ) {
 				return $flow_id;
 			}
@@ -1659,9 +1758,9 @@ class ArtistUrlImportAbilities {
 					'status'          => ArtistUrlSubmissionsTable::STATUS_APPROVED,
 					'pipeline_id'     => $pipeline_id,
 					'flow_id'         => $flow_id,
-					'source_kind'     => 'listing',
-					'entity_taxonomy' => '',
-					'entity_term_id'  => null,
+					'source_kind'     => (string) ( $fresh['source_kind'] ?? 'listing' ),
+					'entity_taxonomy' => (string) ( $fresh['recommended_binding']['taxonomy'] ?? '' ),
+					'entity_term_id'  => $fresh['recommended_binding']['term_id'] ?? null,
 					'entity_name'     => $source_name,
 					'reviewed_at'     => current_time( 'mysql', true ),
 					'reviewed_by'     => get_current_user_id(),
@@ -1681,17 +1780,14 @@ class ArtistUrlImportAbilities {
 
 		// A linked flow is already scheduled; only kick off a new one.
 		if ( ! $linked_existing ) {
-			$run_ability = wp_get_ability( 'datamachine/run-flow' );
-			if ( $run_ability ) {
-				$run_ability->execute( array( 'flow_id' => $flow_id ) );
-			}
+			$this->flowGateway()->run_flow( $flow_id );
 		}
 
 		return array(
 			'success'              => true,
 			'pipeline_id'          => $pipeline_id,
 			'flow_id'              => $flow_id,
-			'source_kind'          => 'listing',
+			'source_kind'          => (string) ( $fresh['source_kind'] ?? 'listing' ),
 			'linked_existing_flow' => $linked_existing,
 		);
 	}
@@ -1747,17 +1843,19 @@ class ArtistUrlImportAbilities {
 	 *
 	 * @return int|\WP_Error Flow ID or WP_Error.
 	 */
-	private function createListingFlow( int $pipeline_id, string $source_url, string $source_name, string $interval ) {
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+	private function createListingFlow( int $pipeline_id, string $source_url, string $source_name, string $interval, array $binding = array() ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		$import_handler_config = array(
-			'source_url'       => $source_url,
-			'search'           => '',
-			'exclude_keywords' => '',
-		);
+		$source = EventSourceHandler::resolve( $source_url );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		$import_handler_config = $source['handler_config'];
+		if ( EventSourceHandler::is_social( $source ) ) {
+			$interval = 'daily';
+		}
 		$upsert_handler_config = array(
 			'post_status'                 => 'publish',
 			'include_images'              => false,
@@ -1768,7 +1866,10 @@ class ArtistUrlImportAbilities {
 			'taxonomy_genre_selection'    => SelectionMode::SKIP,
 			'taxonomy_promoter_selection' => SelectionMode::SKIP,
 		);
-		$ai_message            = sprintf(
+		if ( 'promoter' === ( $binding['taxonomy'] ?? '' ) ) {
+			$upsert_handler_config['taxonomy_promoter_selection'] = (string) $binding['term_id'];
+		}
+		$ai_message = EventSourceHandler::is_social( $source ) ? EventSourceHandler::EVENT_POLICY : sprintf(
 			/* translators: %s: listings source name */
 			__( 'Process this event from %s, a regional listings source covering many venues. No venue or city is pre-selected: identify the venue, city, performing artist(s), and festival (if any) from the event data.', 'extrachill-events' ),
 			$source_name
@@ -1780,7 +1881,7 @@ class ArtistUrlImportAbilities {
 			'scheduling_config' => array( 'interval' => $interval ),
 			'step_configs'      => array(
 				'event_import' => array(
-					'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+					'handler_slug'   => $source['handler_slug'],
 					'handler_config' => $import_handler_config,
 				),
 				'upsert'       => array(
@@ -1798,7 +1899,7 @@ class ArtistUrlImportAbilities {
 			$flow_input['agent_id'] = $flow_agent_id;
 		}
 
-		$flow_result = $flow_ability->execute( $flow_input );
+		$flow_result = $this->flowGateway()->create_flow( $flow_input );
 		if ( is_wp_error( $flow_result ) ) {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
@@ -1808,7 +1909,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		$flow_id    = (int) $flow_result['flow_id'];
-		$configured = $this->configureFlowSteps( $pipeline_id, $flow_id, $import_handler_config, $upsert_handler_config, $ai_message );
+		$configured = $this->configureFlowSteps( $pipeline_id, $flow_id, $import_handler_config, $upsert_handler_config, $ai_message, $source['handler_slug'] );
 		if ( $configured instanceof \WP_Error ) {
 			return $configured;
 		}
@@ -1885,9 +1986,8 @@ class ArtistUrlImportAbilities {
 			$venue_term_id
 		);
 
-		$run_ability = wp_get_ability( 'datamachine/run-flow' );
-		if ( $run_ability && $flow_id > 0 ) {
-			$run_ability->execute( array( 'flow_id' => $flow_id ) );
+		if ( $flow_id > 0 ) {
+			$this->flowGateway()->run_flow( $flow_id );
 		}
 
 		return array(
@@ -2430,8 +2530,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		// Create the shared pipeline scaffold (event_import → ai → upsert).
-		$pipeline_ability = wp_get_ability( 'datamachine/create-pipeline' );
-		if ( ! $pipeline_ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/create-pipeline' ) ) {
 			return new \WP_Error( 'missing_ability', __( 'datamachine/create-pipeline ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -2464,9 +2563,12 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$pipeline_result = $pipeline_ability->execute( $pipeline_input );
+		$pipeline_result = $this->flowGateway()->create_pipeline( $pipeline_input );
+		if ( is_wp_error( $pipeline_result ) ) {
+			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared ' . $pipeline_name . ' pipeline: ' . $pipeline_result->get_error_message(), array( 'status' => 500 ) );
+		}
 
-		if ( empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
+		if ( ! is_array( $pipeline_result ) || empty( $pipeline_result['success'] ) || empty( $pipeline_result['pipeline_id'] ) ) {
 			$err = $pipeline_result['error'] ?? 'Unknown error';
 			return new \WP_Error( 'pipeline_creation_failed', 'Failed to create shared ' . $pipeline_name . ' pipeline: ' . $err, array( 'status' => 500 ) );
 		}
@@ -2489,12 +2591,11 @@ class ArtistUrlImportAbilities {
 	 * @return array|\WP_Error
 	 */
 	private function getPipelineConfiguration( array $selector ) {
-		$ability = wp_get_ability( 'datamachine/get-pipeline-configuration' );
-		if ( ! $ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/get-pipeline-configuration' ) ) {
 			return $this->configurationDependencyUnavailable();
 		}
 
-		return $this->normalizeConfigurationResult( $ability->execute( $selector ) );
+		return $this->normalizeConfigurationResult( $this->flowGateway()->describe_pipeline( $selector ) );
 	}
 
 	/**
@@ -2552,7 +2653,7 @@ class ArtistUrlImportAbilities {
 	 * @param string $ai_message            Per-artist AI message.
 	 * @return true|\WP_Error
 	 */
-	private function configureFlowSteps( int $pipeline_id, int $flow_id, array $import_handler_config, array $upsert_handler_config, string $ai_message ) {
+	private function configureFlowSteps( int $pipeline_id, int $flow_id, array $import_handler_config, array $upsert_handler_config, string $ai_message, string $handler_slug = EventSourceHandler::FALLBACK_HANDLER ) {
 		$configuration = $this->getPipelineConfiguration( array( 'pipeline_id' => $pipeline_id ) );
 		if ( $configuration instanceof \WP_Error ) {
 			return $configuration;
@@ -2572,7 +2673,7 @@ class ArtistUrlImportAbilities {
 		$revision = (string) ( $flow['revision'] ?? '' );
 		$updates  = array(
 			'event_import' => array(
-				'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+				'handler_slug'   => $handler_slug,
 				'handler_config' => $import_handler_config,
 			),
 			'upsert'       => array(
@@ -2608,12 +2709,25 @@ class ArtistUrlImportAbilities {
 	 * @return array|\WP_Error
 	 */
 	private function updateStepConfiguration( array $input ) {
-		$ability = wp_get_ability( 'datamachine/update-step-configuration' );
-		if ( ! $ability ) {
+		if ( ! $this->flowGateway()->is_available( 'datamachine/update-step-configuration' ) ) {
 			return $this->configurationDependencyUnavailable();
 		}
 
-		return $this->normalizeConfigurationResult( $ability->execute( $input ) );
+		return $this->normalizeConfigurationResult( $this->flowGateway()->update_step_configuration( $input ) );
+	}
+
+	/**
+	 * Data Machine gateway. Each call runs as the system: the events
+	 * ability's own permission callback is the authorization boundary, so
+	 * events staff without Data Machine manage caps can finish approval.
+	 * Built lazily so reflection-built test instances work.
+	 */
+	private function flowGateway(): DataMachineFlowGateway {
+		if ( null === $this->flow_gateway ) {
+			$this->flow_gateway = new DataMachineFlowGateway();
+		}
+
+		return $this->flow_gateway;
 	}
 
 	/**

@@ -3,6 +3,7 @@
     <testsuites>
         <testsuite name="tickets-unit">
             <file>tests/Unit/Abilities/TicketAbilitiesTest.php</file>
+            <file>tests/Unit/Abilities/DoorListAbilitiesTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

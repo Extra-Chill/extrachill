@@ -1,5 +1,45 @@
 # Changelog
 
+## [2.47.3] - 2026-11-28
+
+### Fixed
+- render network dropdown experiment without duplicate crumb, symmetric exposure, v3
+
+## [2.47.2] - 2026-11-25
+
+### Fixed
+- close comments on attachments and non-commentable sites network-wide
+
+## [2.47.1] - 2026-11-22
+
+### Fixed
+- resolve set-post-ad-free policy for a logged-out visitor
+
+## [2.47.0] - 2026-11-22
+
+### Added
+- extrachill/set-post-ad-free ability
+
+## [2.46.0] - 2026-11-22
+
+### Added
+- per-post ad-free flag honored by the ad policy
+
+## [2.45.2] - 2026-11-21
+
+### Fixed
+- add paging and filters to taxonomy post counts
+
+## [2.45.1] - 2026-11-20
+
+### Fixed
+- reuse Turnstile verdicts during REST permission rechecks
+
+## [2.45.0] - 2026-11-19
+
+### Added
+- commerce fees resolve global → seller → event overrides
+
 ## [2.44.0] - 2026-11-18
 
 ### Added

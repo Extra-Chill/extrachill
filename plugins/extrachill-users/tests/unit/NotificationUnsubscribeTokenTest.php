@@ -15,6 +15,9 @@ class Test_Notification_Unsubscribe_Token extends WP_UnitTestCase {
 	public function test_new_url_round_trip(): void {
 		$user_id = self::factory()->user->create();
 		parse_str( wp_parse_url( ec_notifications_unsubscribe_url( $user_id ), PHP_URL_QUERY ), $params );
+		// Plain permalinks carry the REST route itself as a query arg; that is
+		// routing, not payload.
+		unset( $params['rest_route'] );
 		$this->assertSame( array( 'token' ), array_keys( $params ) );
 		$this->assertSame( $user_id, ec_notifications_unsubscribe_verify( 0, 0, '', $params['token'] ) );
 		$this->assertNull( extrachill_verify( 'users.notifications_unsubscribe', $params['token'], time() + EC_NOTIFICATIONS_UNSUBSCRIBE_TTL + 1 ) );
@@ -54,8 +57,9 @@ class Test_Notification_Unsubscribe_Token extends WP_UnitTestCase {
 
 	/** New requests validate without any of the legacy query parameters. */
 	public function test_route_schema_accepts_token_only(): void {
-		ec_notifications_register_unsubscribe_route();
-		$routes = rest_get_server()->get_routes();
+		// A fresh server fires rest_api_init, where the plugin registers the route.
+		$GLOBALS['wp_rest_server'] = null;
+		$routes                    = rest_get_server()->get_routes();
 		$args   = $routes['/extrachill/v1/notifications/unsubscribe'][0]['args'];
 		$this->assertSame( 'string', $args['token']['type'] );
 		foreach ( array( 'uid', 'ts', 'sig' ) as $key ) {

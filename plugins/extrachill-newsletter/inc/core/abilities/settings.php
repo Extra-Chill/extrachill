@@ -58,23 +58,23 @@ function extrachill_newsletter_register_settings_abilities() {
 				'type'       => 'object',
 				'default'    => array(),
 				'properties' => array(
-					'from_name'     => array(
+					'from_name'  => array(
 						'type'        => 'string',
 						'description' => __( 'From name for campaigns.', 'extrachill-newsletter' ),
 					),
-					'from_email'    => array(
+					'from_email' => array(
 						'type'        => 'string',
 						'description' => __( 'From email for campaigns.', 'extrachill-newsletter' ),
 					),
-					'reply_to'      => array(
+					'reply_to'   => array(
 						'type'        => 'string',
 						'description' => __( 'Reply-to email for campaigns.', 'extrachill-newsletter' ),
 					),
-					'brand_id'      => array(
+					'brand_id'   => array(
 						'type'        => 'string',
 						'description' => __( 'Sendy brand ID.', 'extrachill-newsletter' ),
 					),
-					'list_ids'      => array(
+					'list_ids'   => array(
 						'type'        => 'object',
 						'description' => __( 'Map of context keys to Sendy list IDs (e.g. {"homepage": "abc123"}).', 'extrachill-newsletter' ),
 					),

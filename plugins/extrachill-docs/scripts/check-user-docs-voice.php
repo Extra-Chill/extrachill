@@ -39,7 +39,8 @@ function ec_user_docs_forbidden_patterns(): array {
  */
 function ec_user_docs_voice_violations( string $text ): array {
 	$violations = array();
-	foreach ( preg_split( '/\R/', $text ) as $index => $line ) {
+	$lines      = preg_split( '/\R/', $text );
+	foreach ( false === $lines ? array() : $lines as $index => $line ) {
 		// Bare links are allowed to contain technical words in the URL itself.
 		$scan = preg_replace( '/\]\([^)]*\)|https?:\/\/\S+/', ']', $line );
 		foreach ( ec_user_docs_forbidden_patterns() as $label => $pattern ) {

@@ -77,6 +77,7 @@ function extrachill_api_register_auth_sessions_routes() {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_sessions_list_handler( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	if ( ! wp_has_ability( EXTRACHILL_API_AUTH_SESSIONS_LIST_ABILITY ) ) {
 		return new WP_Error( 'ability_not_found', 'wp-native-auth plugin is required.', array( 'status' => 500 ) );
 	}

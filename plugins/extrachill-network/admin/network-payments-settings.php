@@ -163,7 +163,7 @@ function ec_handle_network_payments_save() {
 	// Fee rates are plain settings, not secrets: every save writes the full array.
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above via check_admin_referer().
 	$submitted_fees = isset( $_POST['ec_commerce_fees'] ) && is_array( $_POST['ec_commerce_fees'] ) ? wp_unslash( $_POST['ec_commerce_fees'] ) : array();
-	update_site_option( 'extrachill_commerce_fees', ec_commerce_fee_sanitize( $submitted_fees, ec_commerce_fee_settings() ) );
+	update_site_option( 'extrachill_commerce_fees', ec_commerce_fee_sanitize( $submitted_fees, ec_commerce_fee_global_settings() ) );
 
 	$redirect_url = add_query_arg(
 		array(
@@ -302,10 +302,10 @@ function ec_render_network_payments_page() {
 					<tr>
 						<th colspan="2" style="padding-top: 30px;">
 							<h2><?php esc_html_e( 'Fees', 'extrachill-network' ); ?></h2>
-							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Merch sellers pay card processing: when Extra Chill pays a seller\'s processing, the merch fee adds the estimate on the whole charge. Set the estimate at or above real processing costs. When a card costs more than the estimate, whoever pays processing absorbs the difference: Extra Chill for Express sellers, or the seller when their own account pays processing. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Ticket buyers pay one Service fee: the per-ticket and per-order fees plus the card processing estimate, so the venue nets the full ticket price. Merch sellers pay card processing: when Extra Chill pays a seller\'s processing, the merch fee adds the estimate on the whole charge. Set the estimate at or above real processing costs. When a card costs more than the estimate, whoever pays processing absorbs the difference: Extra Chill for Express sellers, or the seller when their own account pays processing. Changes apply to checkouts started after saving. These are the defaults: a seller or an event can override some of them (wp extrachill shop fees).', 'extrachill-network' ); ?></p>
 						</th>
 					</tr>
-					<?php $fees = ec_commerce_fee_settings(); ?>
+					<?php $fees = ec_commerce_fee_global_settings(); ?>
 					<?php foreach ( ec_commerce_fee_labels() as $key => $label ) : ?>
 						<?php $is_percent = ec_commerce_fee_fields()[ $key ]; ?>
 					<tr>

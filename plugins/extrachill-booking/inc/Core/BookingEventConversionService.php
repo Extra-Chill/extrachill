@@ -391,6 +391,8 @@ class BookingEventConversionService {
 				'performer'     => $booking['artist_name'],
 				'performerType' => 'PerformingGroup',
 				'venue'         => $venue->name,
+				// Pin the canonical term so DME never re-resolves the venue by name.
+				'venue_term_id' => (int) $booking['venue_term_id'],
 				'eventStatus'   => 'EventScheduled',
 				'eventType'     => $this->canonical_event_type( $booking ),
 			),

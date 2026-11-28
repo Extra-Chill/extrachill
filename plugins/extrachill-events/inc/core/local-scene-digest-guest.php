@@ -71,6 +71,28 @@ function extrachill_events_guest_digest_city( string $slug ): ?WP_Term {
 }
 
 /**
+ * Resolve a digest-eligible term for a scope: a city-depth location for the
+ * city digest, or any existing venue term for venue show updates (#1724).
+ *
+ * @param string $slug  Term slug.
+ * @param string $scope location|venue.
+ * @return WP_Term|null
+ */
+function extrachill_events_guest_digest_term( string $slug, string $scope = 'location' ): ?WP_Term {
+	if ( 'venue' !== extrachill_events_normalize_digest_scope( $scope ) ) {
+		return extrachill_events_guest_digest_city( $slug );
+	}
+
+	$slug = sanitize_title( $slug );
+	if ( '' === $slug ) {
+		return null;
+	}
+
+	$term = get_term_by( 'slug', $slug, EXTRACHILL_EVENTS_VENUE_UPDATES_TAXONOMY );
+	return $term instanceof WP_Term && EXTRACHILL_EVENTS_VENUE_UPDATES_TAXONOMY === $term->taxonomy ? $term : null;
+}
+
+/**
  * Seconds before a repeat signup for the same inbox and city re-sends.
  *
  * @return int
@@ -89,24 +111,34 @@ function extrachill_events_guest_digest_resend_window(): int {
  *
  * @param int    $user_id User ID.
  * @param string $slug    City slug.
+ * @param string $scope   location|venue.
  * @return string
  */
-function extrachill_events_guest_digest_resend_key( int $user_id, string $slug ): string {
-	return 'ec_guest_digest_' . $user_id . '_' . md5( $slug );
+function extrachill_events_guest_digest_resend_key( int $user_id, string $slug, string $scope = 'location' ): string {
+	$scope = extrachill_events_normalize_digest_scope( $scope );
+	return 'ec_guest_digest_' . $user_id . '_' . md5( 'venue' === $scope ? 'venue|' . $slug : $slug );
 }
 
 /**
  * Ask for the weekly digest by email. Response is deliberately opaque.
  *
- * @param string $slug        City (location) slug.
+ * The same double opt-in serves venue show updates (#1724): pass the venue
+ * slug with `$scope = 'venue'`. Nothing is subscribed until the inbox owner
+ * confirms the signed link.
+ *
+ * @param string $slug        City (location) slug, or venue slug for the venue scope.
  * @param string $email       Email address.
  * @param array  $attribution Optional `referrer` (string) and `utm` (array).
+ * @param string $scope       location|venue.
  * @return array|WP_Error `{ status: 'check_inbox' }` or a validation error.
  */
-function extrachill_events_guest_subscribe_local_scene_digest( string $slug, string $email, array $attribution = array() ) {
-	$term = extrachill_events_guest_digest_city( $slug );
+function extrachill_events_guest_subscribe_local_scene_digest( string $slug, string $email, array $attribution = array(), string $scope = 'location' ) {
+	$scope = extrachill_events_normalize_digest_scope( $scope );
+	$term  = extrachill_events_guest_digest_term( $slug, $scope );
 	if ( null === $term ) {
-		return new WP_Error( 'city_not_found', __( 'That city could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+		return 'venue' === $scope
+			? new WP_Error( 'venue_not_found', __( 'That venue could not be found.', 'extrachill-events' ), array( 'status' => 404 ) )
+			: new WP_Error( 'city_not_found', __( 'That city could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
 	$email = sanitize_email( $email );
@@ -121,7 +153,7 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 
 	$resolve_input = array(
 		'email'               => $email,
-		'registration_source' => 'local_scene_digest',
+		'registration_source' => extrachill_events_digest_scope( $scope )['utm_source'],
 	);
 
 	$registration_page = get_term_link( $term );
@@ -148,11 +180,14 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 	}
 
 	// Record the city before the resend throttle so every request is kept.
-	extrachill_events_record_guest_digest_request( $user_id, $term->slug );
+	// The request ledger is the city digest's funnel; venue requests are not recorded.
+	if ( 'location' === $scope ) {
+		extrachill_events_record_guest_digest_request( $user_id, $term->slug );
+	}
 
-	$throttle = extrachill_events_guest_digest_resend_key( $user_id, $term->slug );
+	$throttle = extrachill_events_guest_digest_resend_key( $user_id, $term->slug, $scope );
 	if ( false === get_transient( $throttle ) ) {
-		$sent = extrachill_events_send_guest_digest_confirm_email( $user_id, $email, $term, (string) ( $account['claim_url'] ?? '' ) );
+		$sent = extrachill_events_send_guest_digest_confirm_email( $user_id, $email, $term, (string) ( $account['claim_url'] ?? '' ), $scope, ! empty( $attribution['eventbrite_import'] ) );
 		if ( $sent && extrachill_events_guest_digest_resend_window() > 0 ) {
 			set_transient( $throttle, 1, extrachill_events_guest_digest_resend_window() );
 		}
@@ -369,15 +404,25 @@ function extrachill_events_guest_digest_signature( int $user_id, string $slug, i
 /**
  * Mint the signed confirm link, landing on the city's calendar.
  *
+ * Venue confirm links add a `scope: venue` claim and land on the venue page.
+ *
  * @param int      $user_id User ID.
- * @param WP_Term  $term    City term.
+ * @param WP_Term  $term    City (or venue) term.
  * @param int|null $expires Optional expiry timestamp.
+ * @param string   $scope   location|venue.
  * @return string
  */
-function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term, ?int $expires = null ): string {
+function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term, ?int $expires = null, string $scope = 'location' ): string {
 	$expires = $expires ?? ( time() + EXTRACHILL_EVENTS_GUEST_DIGEST_CONFIRM_TTL );
 	$base    = get_term_link( $term );
 	$base    = is_wp_error( $base ) ? home_url( '/' ) : (string) $base;
+	$claims  = array(
+		'user_id' => $user_id,
+		'slug'    => $term->slug,
+	);
+	if ( 'venue' === extrachill_events_normalize_digest_scope( $scope ) ) {
+		$claims['scope'] = 'venue';
+	}
 
 	return extrachill_events_local_scene_digest_add_query_args(
 		$base,
@@ -385,10 +430,7 @@ function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term
 			EXTRACHILL_EVENTS_GUEST_DIGEST_QUERY_VAR => 1,
 			'token'                                  => extrachill_sign(
 				'events.guest_digest_confirm',
-				array(
-					'user_id' => $user_id,
-					'slug'    => $term->slug,
-				),
+				$claims,
 				max( 1, min( EXTRACHILL_EVENTS_GUEST_DIGEST_CONFIRM_TTL, $expires - time() ) )
 			),
 		)
@@ -399,18 +441,20 @@ function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term
  * Verify a confirm link's parameters. Does not change anything.
  *
  * @param array $params `user`, `location`, `expires`, `signature`.
- * @return array{user_id:int,term:WP_Term,token?:string,expires?:int,signature?:string}|WP_Error
+ * @return array{user_id:int,term:WP_Term,scope:string,token?:string,expires?:int,signature?:string}|WP_Error
  */
 function extrachill_events_verify_guest_digest_confirm( array $params, ?int $now = null ) {
 	$now    = $now ?? time();
 	$token  = is_string( $params['token'] ?? null ) ? $params['token'] : '';
 	$claims = extrachill_verify( 'events.guest_digest_confirm', $token, $now );
 	if ( null !== $claims ) {
-		$user_id = (int) ( $claims['user_id'] ?? 0 );
-		$slug    = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
-		$term    = extrachill_events_guest_digest_city( $slug );
+		$user_id   = (int) ( $claims['user_id'] ?? 0 );
+		$slug      = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
+		$raw_scope = (string) ( $claims['scope'] ?? 'location' );
+		$scope     = extrachill_events_normalize_digest_scope( $raw_scope );
+		$term      = $scope === $raw_scope ? extrachill_events_guest_digest_term( $slug, $scope ) : null;
 		if ( $user_id > 0 && null !== $term && get_userdata( $user_id ) ) {
-			return compact( 'user_id', 'term', 'token' );
+			return compact( 'user_id', 'term', 'token', 'scope' );
 		}
 	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
 		return extrachill_events_guest_digest_confirm_legacy_verify( $params );
@@ -443,6 +487,7 @@ function extrachill_events_guest_digest_confirm_legacy_verify( array $params ) {
 		'term'      => $term,
 		'expires'   => $expires,
 		'signature' => $signature,
+		'scope'     => 'location',
 	);
 }
 
@@ -461,8 +506,9 @@ function extrachill_events_confirm_guest_digest( array $params ) {
 		return new WP_Error( 'guest_digest_unavailable', __( 'Email signup is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
 	}
 
-	$user_id = $verified['user_id'];
-	$term    = $verified['term'];
+	$user_id    = $verified['user_id'];
+	$term       = $verified['term'];
+	$definition = extrachill_events_digest_scope( $verified['scope'] );
 
 	extrachill_events_digest_subscription_context(
 		array(
@@ -471,9 +517,18 @@ function extrachill_events_confirm_guest_digest( array $params ) {
 		)
 	);
 
-	$result = extrachill_users_subscribe_to_entity( $user_id, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug );
+	$result = extrachill_users_subscribe_to_entity( $user_id, $definition['entity'], $definition['taxonomy'], $term->slug );
 	if ( is_wp_error( $result ) || empty( $result['subscribed'] ) ) {
 		return new WP_Error( 'guest_digest_failed', __( 'Something went wrong. Try again.', 'extrachill-events' ), array( 'status' => 500 ) );
+	}
+
+	// Venue show updates never touch the city request ledger or the Local Scene.
+	if ( 'venue' === $definition['scope'] ) {
+		return array(
+			'subscribed' => true,
+			'term'       => $term,
+			'scope'      => 'venue',
+		);
 	}
 
 	extrachill_events_mark_guest_digest_request_confirmed( $user_id, $term->slug );
@@ -495,11 +550,20 @@ function extrachill_events_confirm_guest_digest( array $params ) {
  * @param WP_Term $term        City.
  * @param string  $confirm_url Signed confirm link.
  * @param string  $claim_url   Optional set-password link for an unclaimed account.
+ * @param string  $scope       location|venue.
  * @return string
  */
-function extrachill_events_render_guest_digest_email_body( WP_Term $term, string $confirm_url, string $claim_url = '' ): string {
-	/* translators: %s: City name. */
-	$html  = '<p>' . sprintf( esc_html__( "Confirm and we'll send you upcoming shows in %s once a week.", 'extrachill-events' ), esc_html( $term->name ) ) . '</p>';
+function extrachill_events_render_guest_digest_email_body( WP_Term $term, string $confirm_url, string $claim_url = '', string $scope = 'location', bool $eventbrite_import = false ): string {
+	$intro = 'venue' === extrachill_events_normalize_digest_scope( $scope )
+		/* translators: %s: Venue name. */
+		? esc_html__( "Confirm and we'll email you once a week when %s has shows coming up.", 'extrachill-events' )
+		/* translators: %s: City name. */
+		: esc_html__( "Confirm and we'll send you upcoming shows in %s once a week.", 'extrachill-events' );
+	if ( $eventbrite_import && 'venue' === $scope ) {
+		/* translators: %s: Venue name. */
+		$intro = esc_html__( 'You bought tickets at %s on Eventbrite; confirm to keep getting show updates here.', 'extrachill-events' );
+	}
+	$html  = '<p>' . sprintf( $intro, esc_html( $term->name ) ) . '</p>';
 	$html .= '<p><a href="' . esc_url( $confirm_url ) . '">' . esc_html__( 'Confirm the weekly email', 'extrachill-events' ) . '</a></p>';
 	$html .= '<p>' . esc_html__( "Didn't ask for this? Ignore this email and nothing happens.", 'extrachill-events' ) . '</p>';
 
@@ -518,19 +582,25 @@ function extrachill_events_render_guest_digest_email_body( WP_Term $term, string
  * @param string  $email     Recipient.
  * @param WP_Term $term      City.
  * @param string  $claim_url Optional set-password link.
+ * @param string  $scope     location|venue.
  * @return bool Whether the send was queued.
  */
-function extrachill_events_send_guest_digest_confirm_email( int $user_id, string $email, WP_Term $term, string $claim_url = '' ): bool {
-	$confirm_url = extrachill_events_guest_digest_confirm_url( $user_id, $term );
-	$result      = ec_send_email_queued(
+function extrachill_events_send_guest_digest_confirm_email( int $user_id, string $email, WP_Term $term, string $claim_url = '', string $scope = 'location', bool $eventbrite_import = false ): bool {
+	$scope       = extrachill_events_normalize_digest_scope( $scope );
+	$confirm_url = extrachill_events_guest_digest_confirm_url( $user_id, $term, null, $scope );
+	$subject     = 'venue' === $scope
+		/* translators: %s: Venue name. */
+		? sprintf( __( 'Confirm to get %s show updates', 'extrachill-events' ), $term->name )
+		/* translators: %s: City name. */
+		: sprintf( __( "Confirm to get this week's shows in %s", 'extrachill-events' ), $term->name );
+	$result = ec_send_email_queued(
 		array(
 			'to'        => $email,
-			/* translators: %s: City name. */
-			'subject'   => sprintf( __( "Confirm to get this week's shows in %s", 'extrachill-events' ), $term->name ),
+			'subject'   => $subject,
 			'from_name' => 'Extra Chill Events',
 			'template'  => 'extrachill/branded',
 			'context'   => array(
-				'body_html' => extrachill_events_render_guest_digest_email_body( $term, $confirm_url, $claim_url ),
+				'body_html' => extrachill_events_render_guest_digest_email_body( $term, $confirm_url, $claim_url, $scope, $eventbrite_import ),
 				'cta_url'   => $confirm_url,
 				'cta_label' => __( 'Confirm', 'extrachill-events' ),
 			),
@@ -605,11 +675,15 @@ function extrachill_events_guest_digest_confirm_page( array $params, bool $is_po
 		return $page;
 	}
 
-	$term = $verified['term'];
+	$term     = $verified['term'];
+	$is_venue = 'venue' === $verified['scope'];
 	if ( ! $is_post ) {
 		return array(
-			/* translators: %s: City name. */
-			'title'       => sprintf( __( "Get this week's shows in %s?", 'extrachill-events' ), $term->name ),
+			'title'       => $is_venue
+				/* translators: %s: Venue name. */
+				? sprintf( __( 'Get %s show updates?', 'extrachill-events' ), $term->name )
+				/* translators: %s: City name. */
+				: sprintf( __( "Get this week's shows in %s?", 'extrachill-events' ), $term->name ),
 			'message'     => __( 'One email a week. Unsubscribe from any email.', 'extrachill-events' ),
 			'action_html' => extrachill_events_build_guest_digest_confirm_form( $params ),
 			'page_assets' => true,
@@ -626,8 +700,11 @@ function extrachill_events_guest_digest_confirm_page( array $params, bool $is_po
 	$calendar = get_term_link( $term );
 	return array(
 		'title'       => __( "You're in", 'extrachill-events' ),
-		/* translators: %s: City name. */
-		'message'     => sprintf( __( 'Upcoming shows in %s will land in your inbox once a week.', 'extrachill-events' ), $term->name ),
+		'message'     => $is_venue
+			/* translators: %s: Venue name. */
+			? sprintf( __( 'Upcoming shows at %s will land in your inbox once a week.', 'extrachill-events' ), $term->name )
+			/* translators: %s: City name. */
+			: sprintf( __( 'Upcoming shows in %s will land in your inbox once a week.', 'extrachill-events' ), $term->name ),
 		'action_html' => is_wp_error( $calendar ) ? '' : '<form><a href="' . esc_url( (string) $calendar ) . '">' . esc_html__( 'See the calendar', 'extrachill-events' ) . '</a></form>',
 		'page_assets' => false,
 	);
@@ -657,20 +734,22 @@ function extrachill_events_build_guest_digest_confirm_form( array $params ): str
  * visitors; this is the only listener. Signed-in states never call it.
  *
  * @hook extrachill_events_render_guest_digest_form
- * @param mixed  $term      City term (anything else renders nothing).
- * @param string $placement Analytics placement (event_digest_offer|archive_scene).
+ * @param mixed  $term      City term, or venue term for the venue scope (anything else renders nothing).
+ * @param string $placement Analytics placement (event_digest_offer|archive_scene|venue_updates_event|venue_updates_archive).
+ * @param string $scope     location|venue.
  */
-function extrachill_events_render_guest_digest_form( $term, string $placement = '' ): void {
+function extrachill_events_render_guest_digest_form( $term, string $placement = '', string $scope = 'location' ): void {
 	if ( ! $term instanceof WP_Term || is_user_logged_in() ) {
 		return;
 	}
 
+	$scope = extrachill_events_normalize_digest_scope( $scope );
 	extrachill_events_enqueue_guest_digest_assets();
 	$id = 'ec-digest-guest-email-' . sanitize_key( $placement . '-' . $term->term_id );
 	?>
-	<form class="ec-digest-guest" data-ec-digest-guest data-location-slug="<?php echo esc_attr( $term->slug ); ?>" novalidate>
+	<form class="ec-digest-guest" data-ec-digest-guest data-location-slug="<?php echo esc_attr( $term->slug ); ?>" data-digest-scope="<?php echo esc_attr( $scope ); ?>" novalidate>
 		<input type="email" id="<?php echo esc_attr( $id ); ?>" aria-label="<?php esc_attr_e( 'Email', 'extrachill-events' ); ?>" name="email" autocomplete="email" placeholder="<?php esc_attr_e( 'you@example.com', 'extrachill-events' ); ?>" required>
-		<button type="submit" class="button-1 button-small" data-ec-track="<?php echo esc_attr( 'digest-guest-' . sanitize_key( $placement ) ); ?>"><?php esc_html_e( "Get this week's shows", 'extrachill-events' ); ?></button>
+		<button type="submit" class="button-1 button-small" data-ec-track="<?php echo esc_attr( 'digest-guest-' . sanitize_key( $placement ) ); ?>"><?php echo 'venue' === $scope ? esc_html__( 'Get show updates', 'extrachill-events' ) : esc_html__( "Get this week's shows", 'extrachill-events' ); ?></button>
 		<?php
 		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 			echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'interaction-only' ) ) );
@@ -680,7 +759,7 @@ function extrachill_events_render_guest_digest_form( $term, string $placement = 
 	</form>
 	<?php
 }
-add_action( 'extrachill_events_render_guest_digest_form', 'extrachill_events_render_guest_digest_form', 10, 2 );
+add_action( 'extrachill_events_render_guest_digest_form', 'extrachill_events_render_guest_digest_form', 10, 3 );
 
 /** Enqueue the guest form script, Turnstile, and its route config once. */
 function extrachill_events_enqueue_guest_digest_assets(): void {

@@ -17,14 +17,22 @@
 			}
 			button.disabled = true;
 			error.hidden = true;
-			const body = JSON.stringify( {
+			const purchase = {
 				event: Number( form.dataset.event ),
 				quantity: Number( fields.get( 'quantity' ) ),
 				name: fields.get( 'name' ),
 				email: fields.get( 'email' ),
 				terms_accepted: true,
+				venue_show_updates: !! fields.get( 'venue_show_updates' ),
 				turnstile_response: fields.get( 'cf-turnstile-response' ) || '',
+			};
+			// Ticket type and code are optional: single-type shows send the one type.
+			[ 'ticket_type', 'code' ].forEach( function ( key ) {
+				if ( fields.get( key ) ) {
+					purchase[ key ] = fields.get( key );
+				}
 			} );
+			const body = JSON.stringify( purchase );
 			// Logged-in buyers send their account cookie and REST nonce so the
 			// order lands in My Account > Tickets. A stale nonce falls back to a
 			// guest checkout rather than blocking the purchase.

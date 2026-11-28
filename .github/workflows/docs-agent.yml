@@ -1,6 +1,11 @@
 name: Docs Agent
 
 on:
+  # Nightly maintenance across every component with a runner block, at
+  # 07:00 UTC (US night). Components whose source (plugins/<component>/,
+  # excluding docs/) did not change on main in the last 24 hours are skipped.
+  schedule:
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       component:
@@ -31,22 +36,43 @@ jobs:
     permissions:
       contents: read
     outputs:
-      config: ${{ steps.config.outputs.config }}
+      matrix: ${{ steps.config.outputs.matrix }}
+      has_components: ${{ steps.config.outputs.has_components }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+        with:
+          # Full history so scheduled runs can see the last 24 hours on main.
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install platform map parser
         run: python -m pip install PyYAML==6.0.3
-      - name: Resolve component configuration
+      - name: Resolve component matrix
         id: config
         env:
+          EVENT: ${{ github.event_name }}
           COMPONENT: ${{ inputs.component }}
-        run: python plugins/extrachill-docs/scripts/docs-agent-config.py "$COMPONENT" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "$EVENT" = "schedule" ]; then
+            python plugins/extrachill-docs/scripts/docs-agent-config.py --event schedule >> "$GITHUB_OUTPUT"
+          else
+            python plugins/extrachill-docs/scripts/docs-agent-config.py --event workflow_dispatch "$COMPONENT" >> "$GITHUB_OUTPUT"
+          fi
 
   docs-agent:
     needs: config
+    # An empty matrix (no component source changed) skips this job cleanly.
+    if: needs.config.outputs.has_components == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.config.outputs.matrix) }}
+    # One run per component at a time; a later run waits instead of racing
+    # the same docs_branch PR.
+    concurrency:
+      group: docs-agent-${{ matrix.component }}
+      cancel-in-progress: false
     # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs;
     # 1f576e6 adds the optional PUBLISH_TOKEN (Automattic/docs-agent#184);
     # 07f990b runs on WP Codebox v0.33.4, which fails loudly on lost writes
@@ -61,28 +87,35 @@ jobs:
     # docs_scope, and runs on WP Codebox v0.33.7: the docs branch is used as
     # given and workspace_git_status/diff work (Automattic/docs-agent#192,
     # Automattic/wp-codebox#2592); 4ec7594 keeps documented values the source
-    # reads from settings, such as fee rates (Automattic/docs-agent#193, #194).
+    # reads from settings, such as fee rates (Automattic/docs-agent#193, #194);
+    # ee333d5 accepts GitHub App publish credentials and runs on WP Codebox
+    # v0.34.0, which mints the app installation token (Automattic/docs-agent#196,
+    # Automattic/wp-codebox#2596).
     # Runner guide: plugins/extrachill-docs/docs/docs-agent-runner.md
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@4ec75944fe9802d9706f8c18ab866403c7d993f9
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@ee333d5af3fcf94e986da85b902a612da985f974
     with:
-      audience: ${{ fromJSON(needs.config.outputs.config).audience }}
-      run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
-      base_ref: ${{ fromJSON(needs.config.outputs.config).base_ref }}
-      docs_branch: ${{ fromJSON(needs.config.outputs.config).docs_branch }}
-      docs_scope: ${{ inputs.component }}
-      writable_paths: ${{ fromJSON(needs.config.outputs.config).writable_paths }}
-      context_repositories: ${{ toJSON(fromJSON(needs.config.outputs.config).context_repositories) }}
-      bootstrap_contract: ${{ toJSON(fromJSON(needs.config.outputs.config).bootstrap_contract) }}
-      source_delta: ${{ toJSON(fromJSON(needs.config.outputs.config).source_delta) }}
-      drift_checks: ${{ toJSON(fromJSON(needs.config.outputs.config).drift_checks) }}
-      prompt: ${{ fromJSON(needs.config.outputs.config).prompt }}
-      model: ${{ fromJSON(needs.config.outputs.config).model }}
-      max_turns: ${{ fromJSON(needs.config.outputs.config).max_turns }}
-      dry_run: ${{ inputs.dry_run }}
+      audience: ${{ matrix.config.audience }}
+      run_kind: ${{ matrix.config.run_kind }}
+      base_ref: ${{ matrix.config.base_ref }}
+      docs_branch: ${{ matrix.config.docs_branch }}
+      docs_scope: ${{ matrix.component }}
+      writable_paths: ${{ matrix.config.writable_paths }}
+      context_repositories: ${{ toJSON(matrix.config.context_repositories) }}
+      bootstrap_contract: ${{ toJSON(matrix.config.bootstrap_contract) }}
+      source_delta: ${{ toJSON(matrix.config.source_delta) }}
+      drift_checks: ${{ toJSON(matrix.config.drift_checks) }}
+      prompt: ${{ matrix.config.prompt }}
+      model: ${{ matrix.config.model }}
+      max_turns: ${{ matrix.config.max_turns }}
+      # Scheduled runs are live; manual dispatch honors dry_run (default true).
+      dry_run: ${{ github.event_name != 'schedule' && inputs.dry_run }}
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       EXTERNAL_PACKAGE_SOURCE_POLICY: ${{ secrets.DOCS_AGENT_EXTERNAL_PACKAGE_SOURCE_POLICY }}
-      # Fine-grained PAT (machine account, this repo only). PRs opened with
-      # github.token never trigger pull_request CI; unset falls back to it.
-      PUBLISH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+      # Publish docs PRs as the homeboy-ci GitHub App: PRs opened with
+      # github.token never trigger pull_request CI and are authored by
+      # github-actions[bot]. WP Codebox mints the installation token in the
+      # agent job; if the app secrets are unavailable it falls back to github.token.
+      PUBLISH_APP_ID: ${{ secrets.HOMEBOY_APP_ID }}
+      PUBLISH_APP_PRIVATE_KEY: ${{ secrets.HOMEBOY_APP_PRIVATE_KEY }}

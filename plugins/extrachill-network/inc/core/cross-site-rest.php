@@ -416,7 +416,12 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 			$is_timeout
 				? sprintf( 'Cross-site request to %s %s timed out after %s seconds: %s', $site_key, $path, $timeout, $message )
 				: sprintf( 'Cross-site request to %s %s failed: %s', $site_key, $path, $message ),
-			array( 'status' => $is_timeout ? 504 : 502, 'site_key' => $site_key, 'path' => $path, 'timeout' => $timeout )
+			array(
+				'status'   => $is_timeout ? 504 : 502,
+				'site_key' => $site_key,
+				'path'     => $path,
+				'timeout'  => $timeout,
+			)
 		);
 	}
 
@@ -428,7 +433,11 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 	if ( $status_code >= 400 ) {
 		$error_message   = 'Cross-site request failed';
 		$error_code      = 'ec_cross_site_error';
-		$error_data      = array( 'status' => $status_code, 'site_key' => $site_key, 'path' => $path );
+		$error_data      = array(
+			'status'   => $status_code,
+			'site_key' => $site_key,
+			'path'     => $path,
+		);
 		$has_target_code = false;
 
 		if ( is_array( $decoded ) ) {

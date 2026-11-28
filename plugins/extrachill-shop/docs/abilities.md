@@ -1,6 +1,6 @@
 # Extra Chill Shop abilities
 
-Extra Chill Shop registers 29 abilities, all in the `extrachill-shop` category ("Shop operations: orders, products, shipping, Stripe Connect, and taxonomy counts"). They cover seller products and images, seller orders and refunds, shipping addresses and Shippo labels, Stripe Connect onboarding, seller-settled event tickets, shop manager seller selection, a public product taxonomy count, and operator-only tools for running the shop. Every file registers on `wp_abilities_api_init`; `inc/abilities/register.php` loads them and registers the category.
+Extra Chill Shop registers 30 abilities, all in the `extrachill-shop` category ("Shop operations: orders, products, shipping, Stripe Connect, and taxonomy counts"). They cover seller products and images, seller orders and refunds, shipping addresses and Shippo labels, Stripe Connect onboarding, seller-settled event tickets, shop manager seller selection, a public product taxonomy count, and operator-only tools for running the shop. Every file registers on `wp_abilities_api_init`; `inc/abilities/register.php` loads them and registers the category.
 
 The abilities are the domain layer. `extrachill-api` routes, `wp extrachill shop` commands, the shop manager block (through core `/wp-abilities/v1/abilities/<name>/run`) and other network sites execute them.
 
@@ -204,11 +204,20 @@ The [seller shop manager](shop-manager.md) doc explains how the manager uses the
 ### `extrachill/start-ticket-checkout`
 
 - **Purpose:** Start a seller-settled Stripe Checkout session for event tickets.
-- **Input:** `event` (integer, required, minimum 1), `quantity` (integer, required, 1–10), `name` (string, required, 1–200 characters), `email` (string, required, email format), `terms_accepted` (boolean; must be true or the ability returns the `terms_required` error).
+- **Input:** `event` (integer, required, minimum 1), `quantity` (integer, required, 1–10), `name` (string, required, 1–200 characters), `email` (string, required, email format), `terms_accepted` (boolean; must be true or the ability returns the `terms_required` error), `ticket_type` (string, optional when the show sells one type, max 40), `code` (string, optional, max 32, case-insensitive).
 - **Output:** `{ checkout_url, session_id }`.
 - **Permission:** `__return_true`. Admission (Turnstile and rate limiting) is enforced by the API route, not by the ability.
 - **Exposure:** `show_in_rest` **false**, so the core ability REST runner can't reach it. Route `POST /extrachill/v1/events/tickets/checkout` runs it locally ([ticket checkout route](../../extrachill-api/docs/routes/events/ticket-checkout.md)).
-- **Side effects:** Reads the offer from the Events ability `extrachill/get-event-ticket-offer` and requires an open sale, enough remaining inventory and a seller who can receive payments. Creates a pending WooCommerce ticket order with the amounts and Terms consent. Creates a Stripe Checkout Session on the seller's connected account with an application fee; the session expires after 30 minutes. Stores the session ID as the order reference. If Stripe fails, the order is deleted.
+- **Side effects:** Reads the offer from the Events ability `extrachill/get-event-ticket-offer` (with the code) and requires an open sale, a buyable chosen type, enough remaining inventory for the show and the type after holds, a code that applies to the type and has uses left (`ticket_code_invalid`, `ticket_code_not_applicable`, `ticket_code_used_up`, `ticket_code_free`, `ticket_type_unavailable`), and a seller who can receive payments. Charges the type's discounted `unit_price_minor`; fees use the discounted subtotal. The order stores the type, code and discount. Creates a pending WooCommerce ticket order with the amounts and Terms consent. Creates a Stripe Checkout Session on the seller's connected account with an application fee; the session expires after 30 minutes. Stores the session ID as the order reference. If Stripe fails, the order is deleted.
+
+### `extrachill/get-event-ticket-holds`
+
+- **Purpose:** Report how many tickets for an event are held in open ticket checkouts.
+- **Input:** `event` (integer, required, minimum 1).
+- **Output:** `{ held, by_type }`: `held` (integer, minimum 0) and `by_type`, held tickets per ticket type ID (orders with no type count as `general`). Counts only, no order or buyer details.
+- **Permission:** `__return_true`.
+- **Exposure:** `show_in_rest` true, read-only and idempotent. The Events event page reads it across sites through `/wp-abilities/v1` and caches the count for 60 seconds, so "N remaining" and the quantity limit leave out held tickets. Checkout start still enforces holds on its own.
+- **Side effects:** None. Counts pending ticket orders whose hold hasn't expired (`extrachill_shop_held_ticket_quantities()`).
 
 ### `extrachill/refund-ticket-order`
 
@@ -227,6 +236,15 @@ The [seller shop manager](shop-manager.md) doc explains how the manager uses the
 - **Permission:** `extrachill_shop_event_ticket_refund_permission`: reads the show's ticket offer from Events and requires the user to manage the offer's seller.
 - **Exposure:** `show_in_rest` true. Called cross-site through `/wp-abilities/v1` by the Events ability `extrachill/cancel-show-ticket-sales` (`plugins/extrachill-events/inc/Abilities/TicketSalesAbilities.php`). No `extrachill/v1` route or CLI command was found.
 - **Side effects:** Runs `extrachill/refund-ticket-order` logic for each order, with the same Stripe refunds and pass revocation. Refunded orders drop out of the query, so a re-run only processes what is left.
+
+### `extrachill/get-event-ticket-order-report`
+
+- **Purpose:** Every paid ticket order for one show, for its sales report and door list export (extrachill#1746). Orders that took money are included: paid, completed, on hold (disputed) and refunded. Unpaid, expired and failed checkouts are left out.
+- **Input:** `event_id` (integer, required, minimum 1). No other properties.
+- **Output:** `{ orders }`, oldest first. Each order: `order_reference`, `name`, `email`, `ticket_type` (`''` on orders from before ticket types), `code` (`''` for none), `quantity`, `subtotal_minor` (tickets after any code discount), `service_fee_minor`, `discount_minor`, `total_minor` (what the buyer paid), `fees_minor` (Extra Chill's application fee; 0 on a refunded order, whose fee came back to the seller), `refunded_minor` (the whole total on a refunded order, else any partial refund), `currency` and `state`.
+- **Permission:** `extrachill_shop_event_ticket_refund_permission`: reads the show's ticket offer from Events and requires the user to manage the offer's seller. Buyer emails and money stay with seller managers.
+- **Exposure:** `show_in_rest` true, read-only and idempotent. Called cross-site through `/wp-abilities/v1` as the current user by the Events ability `extrachill/get-show-ticket-report` and the door list CSV export (`plugins/extrachill-events/inc/Abilities/ShowTicketReportAbilities.php`). No `extrachill/v1` route or CLI command.
+- **Side effects:** None.
 
 ### `extrachill/list-my-ticket-orders`
 
@@ -272,6 +290,15 @@ These abilities read and recover across all sellers. They are for shop operators
 - **Permission:** Operator permission.
 - **Exposure:** `show_in_rest` true. `wp extrachill shop webhook replay` (`WebhookCommand.php`).
 - **Side effects:** Calls the Stripe API (`Event::retrieve`) and runs `extrachill_shop_route_webhook_event()`. That runs whatever the handler does for the event type (order, refund, dispute, ticket and email updates). Handlers are meant to be idempotent.
+
+### `extrachill/get-commerce-fee-override`, `extrachill/set-commerce-fee-override`, `extrachill/clear-commerce-fee-override`
+
+- **Purpose:** Read, set or clear the commerce fee override of a seller or one event. Rates resolve network setting → seller → event, field by field ([Fee overrides](tickets.md#fee-overrides)).
+- **Input:** `scope` (`event` | `seller`, required), `event_id` (integer, for `event`), `seller` (object, for `seller`). Set also takes `fees` (object, required): any of `merch_percent`, `ticket_percent`, `ticket_buyer_fee_per_ticket_minor`, `ticket_buyer_fee_flat_minor`, `ticket_buyer_fee_percent`, `processing_percent`, `processing_fixed_minor`. A number overrides the field; `null` stops overriding it. Fields not given are unchanged.
+- **Output:** `{ scope, event_id, seller, override, global, resolved }`. For an event, `seller` is the event's ticket seller and `resolved` includes that seller's override, as checkout does.
+- **Permission:** `manage_network_options` (network admins). Shop operators (`manage_woocommerce`) and sellers are refused.
+- **Exposure:** `show_in_rest` true. `wp extrachill shop fees get|set|clear` (`FeesCommand.php`).
+- **Side effects:** Set and clear write the Shop blog option or the event post meta. Only checkouts started afterwards are affected.
 
 ### `extrachill/shop-retry-priority-boost`
 

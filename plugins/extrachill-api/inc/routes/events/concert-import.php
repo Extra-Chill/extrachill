@@ -94,6 +94,7 @@ function extrachill_api_register_concert_import_routes() {
 }
 
 function extrachill_api_handle_concert_import_sources( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/list-concert-import-sources' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-users plugin is required.', array( 'status' => 500 ) );

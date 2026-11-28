@@ -125,6 +125,7 @@ class Test_Auth_Routes extends WP_UnitTestCase {
 		$this->assertSame( array( 'apple-token', '550e8400-e29b-41d4-a716-446655440000', extrachill_api_auth_apple_options( $request ) ), $GLOBALS['apple_service_call'] );
 
 		$GLOBALS['apple_service_result'] = new WP_Error( 'invalid_apple_token', 'Invalid token.', array( 'status' => 401 ) );
+
 		$response = rest_get_server()->dispatch( $request );
 		$this->assertSame( 401, $response->get_status() );
 		$this->assertSame( 'invalid_apple_token', $response->get_data()['code'] );
@@ -147,6 +148,7 @@ class Test_Auth_Routes extends WP_UnitTestCase {
 	 */
 	private function set_apple_configured( bool $configured ): void {
 		$GLOBALS['apple_configured'] = $configured;
+
 		$options = array(
 			'extrachill_apple_bundle_id'   => 'com.extrachill.app',
 			'extrachill_apple_client_id'   => 'com.extrachill.web',

@@ -237,8 +237,11 @@ class NetworkMediaAbilities {
 
 			$query = new \WP_Query( $query_args );
 
+			/** @var \WP_Post[] $attachments No `fields` arg, so WP_Query returns post objects. */
+			$attachments = $query->posts;
+
 			$items = array();
-			foreach ( $query->posts as $attachment ) {
+			foreach ( $attachments as $attachment ) {
 				$item = $this->normaliseAttachment( $attachment->ID );
 				if ( null !== $item ) {
 					$items[] = $item;
@@ -321,10 +324,6 @@ class NetworkMediaAbilities {
 				0
 			);
 
-			if ( is_wp_error( $attachment_id ) ) {
-				return $attachment_id;
-			}
-
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 			$metadata = wp_generate_attachment_metadata( $attachment_id, $handled['file'] );
 			wp_update_attachment_metadata( $attachment_id, $metadata );
@@ -369,7 +368,8 @@ class NetworkMediaAbilities {
 		$media_type    = $mime_segments[0];
 		$full_url      = (string) wp_get_attachment_url( $attachment_id );
 		$preview       = wp_get_attachment_image_src( $attachment_id, 'medium' );
-		$metadata      = wp_get_attachment_metadata( $attachment_id );
+		/** @var array<string, mixed>|false $metadata Non-image attachments carry no width/height. */
+		$metadata = wp_get_attachment_metadata( $attachment_id );
 
 		return array(
 			'id'         => $attachment_id,

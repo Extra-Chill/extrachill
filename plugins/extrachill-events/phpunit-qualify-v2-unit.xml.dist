@@ -60,6 +60,9 @@
 			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPerkBackfillTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
+			<!-- Pure-PHP host screen test with host-panel and door-row fixtures
+			     (extrachill#1702); runs in phpunit-rsvp-perks-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/GuestCheckInTest.php</exclude>
 			<exclude>tests/Unit/Core/VenueCalendarFeedSyncTest.php</exclude>
 			<exclude>tests/Unit/Core/VenueCalendarFeedTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>

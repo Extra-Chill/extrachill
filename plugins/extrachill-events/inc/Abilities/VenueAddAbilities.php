@@ -11,6 +11,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
+use ExtraChillEvents\Core\DataMachineFlowGateway;
 use ExtraChillEvents\Core\FlowLocationGuard;
 use ExtraChillEvents\Core\TeamAuthorization;
 
@@ -19,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once dirname( __DIR__ ) . '/Core/TeamAuthorization.php';
+require_once dirname( __DIR__ ) . '/Core/DataMachineFlowGateway.php';
+require_once dirname( __DIR__ ) . '/Core/EventSourceHandler.php';
 
 class VenueAddAbilities {
 
@@ -33,6 +36,14 @@ class VenueAddAbilities {
 	private const DEFAULT_POST_AUTHOR = 32;
 
 	private static bool $registered = false;
+
+	/**
+	 * Data Machine gateway. Runs flow writes as the system once this
+	 * ability's own events-staff permission check has passed.
+	 *
+	 * @var DataMachineFlowGateway|null
+	 */
+	private ?DataMachineFlowGateway $flow_gateway = null;
 
 	public function __construct() {
 		if ( ! self::$registered ) {
@@ -53,51 +64,53 @@ class VenueAddAbilities {
 						'type'       => 'object',
 						'required'   => array( 'name', 'url' ),
 						'properties' => array(
-							'pipeline_id'   => array(
+							'handler_slug'   => array( 'type' => 'string' ),
+							'handler_config' => array( 'type' => 'object' ),
+							'pipeline_id'    => array(
 								'type'        => 'integer',
 								'description' => 'Pipeline ID for the city this venue belongs to. Optional when location is given; disambiguates a city with more than one pipeline. One of pipeline_id or location is required.',
 							),
-							'location'      => array(
+							'location'       => array(
 								'type'        => array( 'integer', 'string' ),
 								'description' => 'City this venue belongs to: location term ID, slug, or exact name (e.g. "Charleston"). Resolves the city event pipeline when pipeline_id is omitted. One of pipeline_id or location is required.',
 							),
-							'name'          => array(
+							'name'           => array(
 								'type'        => 'string',
 								'description' => 'Venue name, e.g. "Exit/In" or "The Station Inn".',
 							),
-							'venue_term_id' => array(
+							'venue_term_id'  => array(
 								'type'        => 'integer',
 								'description' => 'Existing canonical venue term ID. Optional; prevents name-based duplication for known venues.',
 							),
-							'url'           => array(
+							'url'            => array(
 								'type'        => 'string',
 								'description' => 'Venue events page URL (the page the scraper will hit).',
 							),
-							'address'       => array(
+							'address'        => array(
 								'type'        => 'string',
 								'description' => 'Venue street address. Optional — used for geocoding.',
 							),
-							'city'          => array(
+							'city'           => array(
 								'type'        => 'string',
 								'description' => 'Venue city name. Optional — derived from pipeline if not provided.',
 							),
-							'state'         => array(
+							'state'          => array(
 								'type'        => 'string',
 								'description' => 'Venue state. Optional.',
 							),
-							'zip'           => array(
+							'zip'            => array(
 								'type'        => 'string',
 								'description' => 'Venue zip code. Optional.',
 							),
-							'website'       => array(
+							'website'        => array(
 								'type'        => 'string',
 								'description' => 'Venue homepage URL (may differ from events page URL). Optional.',
 							),
-							'interval'      => array(
+							'interval'       => array(
 								'type'        => 'string',
 								'description' => 'Scheduling interval. Defaults to "daily".',
 							),
-							'dry_run'       => array(
+							'dry_run'        => array(
 								'type'        => 'boolean',
 								'description' => 'Preview what would be created without making changes.',
 							),
@@ -157,6 +170,19 @@ class VenueAddAbilities {
 			if ( ! $known_term || is_wp_error( $known_term ) ) {
 				return new \WP_Error( 'venue_not_found', 'The supplied canonical venue term was not found.', array( 'status' => 404 ) );
 			}
+		}
+
+		$source = ! empty( $input['handler_slug'] )
+			? array(
+				'handler_slug'   => sanitize_key( $input['handler_slug'] ),
+				'handler_config' => (array) ( $input['handler_config'] ?? array() ),
+			)
+			: \ExtraChillEvents\Core\EventSourceHandler::resolve( $url );
+		if ( is_wp_error( $source ) ) {
+			return $source;
+		}
+		if ( \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ) {
+			$interval = 'daily';
 		}
 
 		$requested_location = null;
@@ -223,18 +249,32 @@ class VenueAddAbilities {
 		}
 
 		// Step 1: Create or find venue taxonomy term.
-		$venue_term_id = $venue_term_id > 0 ? $venue_term_id : $this->ensureVenueTerm( $name );
+		$venue_term_id = $venue_term_id > 0 ? $venue_term_id : $this->ensureVenueTerm(
+			$name,
+			array(
+				'address' => $address,
+				'city'    => $city,
+				'state'   => $state,
+				'zip'     => $zip,
+				'website' => $website,
+			)
+		);
 		if ( ! $venue_term_id ) {
 			return new \WP_Error( 'venue_term_failed', sprintf( 'Failed to create venue term for "%s".', $name ), array( 'status' => 500 ) );
 		}
 
-		// Step 2: Create the flow.
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
+		if ( \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) && ! get_term_meta( $venue_term_id, '_venue_instagram', true ) ) {
+			update_term_meta( $venue_term_id, '_venue_instagram', $source['handler_config']['username'] ?? '' );
+		}
+
+		// Step 2: Create the flow. The gateway runs it as the system: this
+		// ability's permission callback is the authorization boundary.
+		$gateway = $this->flowGateway();
+		if ( ! $gateway->is_available( 'datamachine/create-flow' ) ) {
 			return new \WP_Error( 'missing_ability', 'Data Machine create-flow ability not available.', array( 'status' => 500 ) );
 		}
 
-		$flow_result = $flow_ability->execute(
+		$flow_result = $gateway->create_flow(
 			array(
 				'pipeline_id'       => $pipeline_id,
 				'flow_name'         => $name,
@@ -248,13 +288,13 @@ class VenueAddAbilities {
 			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
 		}
 
-		$flow_id = $flow_result['flow_id'] ?? null;
+		$flow_id = is_array( $flow_result ) ? (int) ( $flow_result['flow_id'] ?? 0 ) : 0;
 		if ( ! $flow_id ) {
 			return new \WP_Error( 'flow_no_id', 'Flow was created but no flow_id returned.', array( 'status' => 500 ) );
 		}
 
 		// Step 3: Patch flow steps with handler configs.
-		$this->patchFlowSteps(
+		$patched = $this->patchFlowSteps(
 			$flow_id,
 			$name,
 			$url,
@@ -264,8 +304,19 @@ class VenueAddAbilities {
 			$state,
 			$zip,
 			$website,
-			$location_term
+			$location_term,
+			$source
 		);
+		if ( is_wp_error( $patched ) ) {
+			$patched->add_data(
+				array(
+					'status'        => 500,
+					'flow_id'       => $flow_id,
+					'venue_term_id' => $venue_term_id,
+				)
+			);
+			return $patched;
+		}
 
 		return array(
 			'message'       => sprintf( 'Venue "%s" added to pipeline "%s".', $name, $pipeline_name ),
@@ -601,47 +652,81 @@ class VenueAddAbilities {
 	}
 
 	/**
-	 * Ensure a venue taxonomy term exists.
+	 * Find or create the canonical venue term.
+	 *
+	 * Delegates to DME's canonical venue dedup, which matches on name plus
+	 * address/city evidence, so adding a venue reuses an existing same-name,
+	 * same-place term instead of minting a near-duplicate. A bare name lookup
+	 * would attach the wrong term when two venues share a name. DME is a hard
+	 * dependency (Requires Plugins), so there is no name-only fallback: an
+	 * unavailable resolver or an ambiguous match yields null and the caller
+	 * reports venue_term_failed.
+	 *
+	 * @param string $name       Venue name.
+	 * @param array  $venue_data Venue evidence: address, city, state, zip, website.
+	 * @return int|null Term ID, or null when no single venue could be resolved.
 	 */
-	private function ensureVenueTerm( string $name ): ?int {
-		$existing = get_term_by( 'name', $name, 'venue' );
-		if ( $existing ) {
-			return (int) $existing->term_id;
+	private function ensureVenueTerm( string $name, array $venue_data = array() ): ?int {
+		if ( ! class_exists( \DataMachineEvents\Core\Venue_Taxonomy::class ) ) {
+			return null;
 		}
 
-		$result = wp_insert_term( $name, 'venue' );
-		if ( is_wp_error( $result ) ) {
-			// Term may have been created with different casing.
-			$existing = get_term_by( 'slug', sanitize_title( $name ), 'venue' );
-			return $existing ? (int) $existing->term_id : null;
+		$venue_data = array_filter(
+			array_map( 'strval', $venue_data ),
+			static function ( $value ) {
+				return '' !== $value;
+			}
+		);
+
+		$result  = \DataMachineEvents\Core\Venue_Taxonomy::find_or_create_venue( $name, $venue_data );
+		$term_id = (int) ( $result['term_id'] ?? 0 );
+
+		return $term_id > 0 ? $term_id : null;
+	}
+
+	/**
+	 * Active Data Machine gateway (lazily built so reflection-built test
+	 * instances work).
+	 */
+	private function flowGateway(): DataMachineFlowGateway {
+		if ( null === $this->flow_gateway ) {
+			$this->flow_gateway = new DataMachineFlowGateway();
 		}
 
-		return (int) $result['term_id'];
+		return $this->flow_gateway;
+	}
+
+	/**
+	 * Swap the Data Machine gateway (tests only).
+	 *
+	 * @param DataMachineFlowGateway|null $gateway Gateway instance, or null for the default.
+	 */
+	public function setFlowGateway( ?DataMachineFlowGateway $gateway ): void {
+		$this->flow_gateway = $gateway;
 	}
 
 	/**
 	 * Patch flow steps with venue-specific handler configs.
+	 *
+	 * Reads and writes go through Data Machine's flow abilities
+	 * (`datamachine/get-flows`, `datamachine/update-flow-step`) via the
+	 * gateway; nothing writes the flows table directly.
+	 *
+	 * @return true|\WP_Error
 	 */
-	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term ): void {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$flow = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
-		);
-
+	private function patchFlowSteps( int $flow_id, string $venue_name, string $source_url, int $venue_term_id, string $address, string $city, string $state, string $zip, string $website, string $location_term, array $source ) {
+		$gateway = $this->flowGateway();
+		$flow    = $gateway->get_flow( $flow_id );
 		if ( ! $flow ) {
-			return;
+			return new \WP_Error( 'flow_not_found', sprintf( 'Flow %d was created but could not be read back for configuration.', $flow_id ) );
 		}
 
-		$config = json_decode( $flow['flow_config'], true );
-		if ( ! is_array( $config ) ) {
-			return;
-		}
+		$config = $flow['flow_config'];
 
 		foreach ( $config as $step_id => &$step ) {
+			if ( ! is_array( $step ) ) {
+				continue;
+			}
 			$step_type = $step['step_type'] ?? '';
 
 			if ( 'event_import' === $step_type ) {
@@ -668,28 +753,27 @@ class VenueAddAbilities {
 					$handler_config['venue_website'] = $website;
 				}
 
-				$step['handler_slugs']   = array( 'universal_web_scraper' );
-				$step['handler_configs'] = array( 'universal_web_scraper' => $handler_config );
-				$step['enabled']         = true;
+				$handler_config          = \ExtraChillEvents\Core\EventSourceHandler::is_web( $source ) ? array_merge( $handler_config, $source['handler_config'] ) : $source['handler_config'];
+				$step['handler_slugs']   = array( $source['handler_slug'] );
+				$step['handler_configs'] = array( $source['handler_slug'] => $handler_config );
 			}
 
 			if ( 'upsert' === $step_type ) {
+				// Only fields upsert_event declares: Data Machine rejects
+				// undeclared keys (venue/category/post_tag selections). The
+				// venue term is carried by the scraper's `venue` config.
 				$step['handler_slugs']   = array( 'upsert_event' );
 				$step['handler_configs'] = array(
 					'upsert_event' => array(
 						'post_status'                 => 'publish',
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
-						'taxonomy_venue_selection'    => (string) $venue_term_id,
-						'taxonomy_category_selection' => 'skip',
-						'taxonomy_post_tag_selection' => 'skip',
 						'taxonomy_location_selection' => $location_term,
 						'taxonomy_festival_selection' => 'ai_decides',
 						'taxonomy_artist_selection'   => 'ai_decides',
 						'taxonomy_promoter_selection' => 'skip',
 					),
 				);
-				$step['enabled']         = true;
 			}
 
 			if ( 'ai' === $step_type ) {
@@ -698,7 +782,7 @@ class VenueAddAbilities {
 				// taxonomy + scraper handler config); universal processing policy
 				// lives in the agent SOUL. A human only adds a prompt here when the
 				// venue has a genuine quirk worth a per-flow delta.
-				$step['user_message'] = '';
+				$step['user_message'] = \ExtraChillEvents\Core\EventSourceHandler::is_social( $source ) ? \ExtraChillEvents\Core\EventSourceHandler::EVENT_POLICY : '';
 			}
 		}
 		unset( $step );
@@ -726,11 +810,55 @@ class VenueAddAbilities {
 			}
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
-		$wpdb->update(
-			$table,
-			array( 'flow_config' => wp_json_encode( $config ) ),
-			array( 'flow_id' => $flow_id )
+		foreach ( $config as $step_id => $step ) {
+			$update = self::flowStepUpdate( (string) $step_id, is_array( $step ) ? $step : array() );
+			if ( null === $update ) {
+				continue;
+			}
+
+			$result = $gateway->update_flow_step( $update );
+			if ( is_wp_error( $result ) ) {
+				return new \WP_Error( 'flow_step_update_failed', sprintf( 'Failed to configure flow step %s: %s', $step_id, $result->get_error_message() ) );
+			}
+			if ( ! is_array( $result ) || empty( $result['success'] ) ) {
+				$error = is_array( $result ) ? (string) ( $result['error'] ?? '' ) : '';
+				return new \WP_Error( 'flow_step_update_failed', sprintf( 'Failed to configure flow step %s.%s', $step_id, '' !== $error ? ' ' . $error : '' ) );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Build the `datamachine/update-flow-step` input for one configured step.
+	 *
+	 * @param string $flow_step_id Flow step ID.
+	 * @param array  $step         Desired step config.
+	 * @return array|null Update input, or null when the step needs no write.
+	 */
+	private static function flowStepUpdate( string $flow_step_id, array $step ): ?array {
+		$step_type = $step['step_type'] ?? '';
+
+		if ( 'ai' === $step_type ) {
+			return array(
+				'flow_step_id' => $flow_step_id,
+				'user_message' => (string) ( $step['user_message'] ?? '' ),
+			);
+		}
+
+		if ( 'event_import' !== $step_type && 'upsert' !== $step_type ) {
+			return null;
+		}
+
+		$slug = (string) ( $step['handler_slugs'][0] ?? '' );
+		if ( '' === $slug ) {
+			return null;
+		}
+
+		return array(
+			'flow_step_id'   => $flow_step_id,
+			'handler_slug'   => $slug,
+			'handler_config' => is_array( $step['handler_configs'][ $slug ] ?? null ) ? $step['handler_configs'][ $slug ] : array(),
 		);
 	}
 }
