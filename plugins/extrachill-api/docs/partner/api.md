@@ -90,7 +90,7 @@ The example's `schema` is abbreviated; render the complete object returned by th
 | `timezone` | string | IANA venue timezone, such as `America/New_York`; use it for display. |
 | `performers` | array of strings | Performer names. |
 | `price` | string or null | Display price, such as `$10`; not a numeric checkout amount. |
-| `image` | URL string or null | Event image. |
+| `image` | URL string or null | Featured flyer when allowed; otherwise the schema image, if available. When the flyer is used and `schema` is present, the flyer appears first in `schema.image`. |
 | `excerpt` | plain-text string or null | Short event description; not HTML. |
 | `status` | string | Schema.org event status, such as `EventScheduled`. |
 | `ticket` | object | Ticket action described below. |
@@ -101,7 +101,7 @@ The example's `schema` is abbreviated; render the complete object returned by th
 | Field | Type | Meaning |
 |---|---|---|
 | `url` | URL string or null | Buy/action destination. Omit the button when null. |
-| `label` | string | Button text, such as `Get Tickets`. |
+| `label` | string | Button text, such as `Get Tickets` or `RSVP`. Free events with an external ticket link use `RSVP`; the action still points to the Extra Chill event page. |
 | `kind` | string | One of `checkout`, `external`, `info`, or `none`. |
 
 **Use `ticket.url` as-is.** Non-null ticket URLs always route back through Extra Chill: to our checkout or a first-party redirect for outside ticket sellers. Do not replace them with a seller's direct URL or construct checkout URLs yourself.

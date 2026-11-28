@@ -159,7 +159,9 @@ final class PartnerVenueEvents {
 		$offer   = is_array( $offer ) && ! empty( $offer['enabled'] ) ? $offer : null;
 		$ticket  = self::ticket( $url, $status, $attrs, $offer );
 		$schema  = self::execute( 'extrachill/event-schema', array( 'post_id' => $post_id ) );
-		$schema  = is_array( $schema ) ? self::partner_schema( $schema, $ticket['url'] ) : null;
+		$flyer   = get_the_post_thumbnail_url( $post_id, 'full' );
+		$flyer   = is_string( $flyer ) && '' !== $flyer && self::is_allowed_url( $flyer ) ? $flyer : null;
+		$schema  = is_array( $schema ) ? self::partner_schema( $schema, $ticket['url'], $flyer ) : null;
 		$excerpt = self::text( (string) get_the_excerpt( $post ) );
 
 		return array(
@@ -171,7 +173,7 @@ final class PartnerVenueEvents {
 			'timezone'   => $timezone,
 			'performers' => self::performers( $schema, $attrs ),
 			'price'      => self::price( $attrs, $offer ),
-			'image'      => self::image( $schema, $post_id ),
+			'image'      => self::image( $schema, $flyer ),
 			'excerpt'    => '' === $excerpt ? null : $excerpt,
 			'status'     => $status,
 			'ticket'     => $ticket,
@@ -182,7 +184,8 @@ final class PartnerVenueEvents {
 	/**
 	 * Partner projection of the event page's JSON-LD entity.
 	 *
-	 * The page entity is reused unchanged except for outbound links. Its
+	 * An allowed featured flyer goes first in `image`, matching the display
+	 * image while retaining the page entity's other allowed images. The page's
 	 * `offers.url` is the seller destination (e.g. an Eventbrite page) because
 	 * on our own page that is the correct offer URL; on a partner site the
 	 * contract routes buyers and crawlers back through Extra Chill, so every
@@ -193,10 +196,20 @@ final class PartnerVenueEvents {
 	 *
 	 * @param array       $schema     Event entity from `extrachill/event-schema`.
 	 * @param string|null $ticket_url Partner `ticket.url`.
+	 * @param string|null $flyer      Allowed featured image URL, if present.
 	 */
-	private static function partner_schema( array $schema, ?string $ticket_url ): array {
+	private static function partner_schema( array $schema, ?string $ticket_url, ?string $flyer ): array {
 		if ( array_key_exists( 'offers', $schema ) ) {
 			$schema['offers'] = self::route_offers( $schema['offers'], $ticket_url );
+		}
+
+		if ( null !== $flyer ) {
+			$images = $schema['image'] ?? array();
+			if ( ! is_array( $images ) || ! self::is_list( $images ) ) {
+				$images = array( $images );
+			}
+			$images          = array_filter( $images, static fn( $image ) => '' !== $image && $flyer !== $image );
+			$schema['image'] = array_merge( array( $flyer ), $images );
 		}
 
 		return self::strip_offsite_urls( $schema );
@@ -330,9 +343,11 @@ final class PartnerVenueEvents {
 				);
 			}
 		} elseif ( '' !== trim( (string) ( $attrs['ticketUrl'] ?? '' ) ) ) {
+			$price   = strtolower( trim( (string) ( $attrs['price'] ?? '' ) ) );
+			$is_free = in_array( $price, array( 'free', '$0', '0', '$0.00', '' ), true );
 			return array(
 				'url'   => $url,
-				'label' => 'Get Tickets',
+				'label' => $is_free ? 'RSVP' : 'Get Tickets',
 				'kind'  => 'external',
 			);
 		}
@@ -392,18 +407,19 @@ final class PartnerVenueEvents {
 	}
 
 	/**
-	 * Event image, matching the JSON-LD image when present.
+	 * Event image: featured flyer first, falling back to the JSON-LD image.
 	 *
-	 * @param array|null $schema  Event entity.
-	 * @param int        $post_id Event post ID.
+	 * @param array|null  $schema Event entity.
+	 * @param string|null $flyer  Allowed featured image URL, if present.
 	 */
-	private static function image( ?array $schema, int $post_id ): ?string {
+	private static function image( ?array $schema, ?string $flyer ): ?string {
+		if ( null !== $flyer ) {
+			return $flyer;
+		}
+
 		$image = $schema['image'] ?? null;
 		if ( is_array( $image ) ) {
 			$image = $image[0] ?? ( $image['url'] ?? null );
-		}
-		if ( ! is_string( $image ) || '' === $image ) {
-			$image = get_the_post_thumbnail_url( $post_id, 'full' );
 		}
 
 		return is_string( $image ) && '' !== $image && self::is_allowed_url( $image ) ? $image : null;

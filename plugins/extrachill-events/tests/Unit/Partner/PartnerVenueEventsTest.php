@@ -31,7 +31,7 @@ final class PartnerVenueEventsTest extends TestCase {
 		);
 		$GLOBALS['partner_event_data']    = array(
 			101 => array( 'performer' => 'Fallback Band', 'price' => '$10', 'ticketUrl' => 'https://seller.example/buy?aff=1' ),
-			102 => array( 'performer' => 'Solo Act' ),
+			102 => array( 'performer' => 'Solo Act', 'ticketUrl' => 'https://seller.example/rsvp' ),
 			103 => array( 'eventStatus' => 'EventCancelled', 'ticketUrl' => 'https://seller.example/x' ),
 			104 => array(),
 		);
@@ -195,6 +195,7 @@ final class PartnerVenueEventsTest extends TestCase {
 		$this->assertSame( array( 'Solo Act' ), $b['performers'] );
 		$this->assertSame( '$12.50', $b['price'] );
 		$this->assertSame( 'https://events.extrachill.com/thumb-102.jpg', $b['image'], 'no schema image: featured image' );
+		$this->assertSame( array( $b['image'] ), $b['schema']['image'] );
 		$this->assertNull( $b['excerpt'] );
 		$this->assertSame( array( 'url' => 'https://events.extrachill.com/events/show-b/', 'label' => 'Get Tickets', 'kind' => 'checkout' ), $b['ticket'] );
 
@@ -214,6 +215,39 @@ final class PartnerVenueEventsTest extends TestCase {
 		$GLOBALS['partner_event_data'][101] = array();
 		$a                                  = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
 		$this->assertSame( array( 'url' => 'https://events.extrachill.com/events/show-a/', 'label' => 'Event Details', 'kind' => 'info' ), $a['ticket'] );
+	}
+
+	/**
+	 * @dataProvider free_external_prices
+	 */
+	public function test_free_external_ticket_labels_the_event_page_as_rsvp( string $price ): void {
+		$GLOBALS['partner_event_data'][101]['price'] = $price;
+		$event                                       = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
+
+		$this->assertSame( array( 'url' => $event['url'], 'label' => 'RSVP', 'kind' => 'external' ), $event['ticket'] );
+	}
+
+	public static function free_external_prices(): array {
+		return array(
+			'free (case and whitespace)' => array( '  fReE  ' ),
+			'dollar zero'                => array( '$0' ),
+			'bare zero'                  => array( '0' ),
+			'zero dollars and cents'     => array( '$0.00' ),
+			'empty'                      => array( '' ),
+		);
+	}
+
+	public function test_schema_performer_list_projects_individual_names_in_order(): void {
+		$GLOBALS['partner_event_data'][101]['performer'] = 'Pixel Chix, Bruissierre, Dr. Primate, Poster Grrrl';
+		$GLOBALS['partner_schemas'][101]['performer']    = array(
+			array( '@type' => 'MusicGroup', 'name' => 'Pixel Chix' ),
+			array( '@type' => 'MusicGroup', 'name' => 'Bruissierre' ),
+			array( '@type' => 'MusicGroup', 'name' => 'Dr. Primate' ),
+			array( '@type' => 'MusicGroup', 'name' => 'Poster Grrrl' ),
+		);
+		$event = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
+
+		$this->assertSame( array( 'Pixel Chix', 'Bruissierre', 'Dr. Primate', 'Poster Grrrl' ), $event['performers'] );
 	}
 
 	public function test_limit_caps_events(): void {
@@ -328,6 +362,35 @@ final class PartnerVenueEventsTest extends TestCase {
 			),
 			$a['schema']['offers']
 		);
+	}
+
+	public function test_featured_flyer_precedes_the_schema_card_in_display_and_json_ld(): void {
+		$card                               = $GLOBALS['partner_schemas'][101]['image'];
+		$flyer                              = 'https://events.extrachill.com/flyer-101.jpg';
+		$GLOBALS['partner_thumbnails'][101] = $flyer;
+		$event                              = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
+
+		$this->assertSame( $flyer, $event['image'] );
+		$this->assertSame( array( $flyer, $card ), $event['schema']['image'] );
+	}
+
+	public function test_partner_schema_moves_the_flyer_to_the_front_without_duplicating_it(): void {
+		$card                                    = $GLOBALS['partner_schemas'][101]['image'];
+		$flyer                                   = 'https://events.extrachill.com/flyer-101.jpg';
+		$GLOBALS['partner_thumbnails'][101]       = $flyer;
+		$GLOBALS['partner_schemas'][101]['image'] = array( $card, $flyer, 'https://cdn.seller.example/poster.jpg' );
+		$event                                   = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
+
+		$this->assertSame( array( $flyer, $card ), $event['schema']['image'] );
+	}
+
+	public function test_offsite_flyer_falls_back_to_the_allowed_schema_image(): void {
+		$card                               = $GLOBALS['partner_schemas'][101]['image'];
+		$GLOBALS['partner_thumbnails'][101] = 'https://cdn.seller.example/poster.jpg';
+		$event                              = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
+
+		$this->assertSame( $card, $event['image'] );
+		$this->assertSame( $card, $event['schema']['image'] );
 	}
 
 	public function test_offsite_schema_image_is_not_published(): void {
