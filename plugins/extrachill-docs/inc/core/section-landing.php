@@ -19,7 +19,7 @@ function extrachill_docs_get_section_landing(): ?array {
 
 	$page = get_queried_object();
 	if ( ! $page instanceof WP_Post
-		|| $page->ID !== get_the_ID()
+		|| get_the_ID() !== $page->ID
 		|| 0 !== (int) $page->post_parent
 		|| 'login' === $page->post_name
 		|| post_password_required( $page )
@@ -83,7 +83,7 @@ function extrachill_docs_render_section_landing(): void {
 		<?php endif; ?>
 		<ul class="docs-section-articles">
 			<?php foreach ( $section['articles'] as $article ) : ?>
-				<li><a href="<?php echo esc_url( get_permalink( $article ) ); ?>"><?php echo esc_html( get_the_title( $article ) ); ?></a></li>
+				<li><a href="<?php echo esc_url( (string) get_permalink( $article ) ); ?>"><?php echo esc_html( get_the_title( $article ) ); ?></a></li>
 			<?php endforeach; ?>
 		</ul>
 	</div>
