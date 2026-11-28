@@ -59,14 +59,16 @@ Start at page 1. While `has_more` is `true`, request `page + 1` with the same fi
 
 Use `id` to update an existing event instead of creating a new record when it moves. A multi-day event can appear under several dates with the same `id`; use the date group as well if you're storing individual calendar entries.
 
-## Attribution and tickets
+## Fair use
 
-Credit Extra Chill by linking each listing to its supplied `permalink`. When `source.url` is present, also link to the original listing, using `source.name` as the label if available.
+**Attribute each listing.** Credit Extra Chill by linking each listing to its supplied `permalink`. When `source.url` is present, also link to the original listing, using `source.name` as the label if available.
+
+**Use the feed in your own app or directory.** Don't resell the data or republish it as a competing bulk feed.
 
 Use a non-null `ticket_url` exactly as returned. A `ticket_ref` is a reference for Extra Chill's on-site ticket redirect, not a public ticket URL. If you receive a `ticket_ref` instead of a `ticket_url`, link to the supplied `permalink` and let Extra Chill handle the ticket click. Don't rewrite ticket links or references, resolve them in bulk, or substitute a seller's direct URL. `source.url` is for attribution, not ticketing.
 
-## Polling and caching
+**Cache for at least five minutes.** Successful anonymous GET responses send `Cache-Control: public, max-age=300`. Poll from a shared server-side job rather than fetching on every visitor's page load. Cache each page by its full set of query parameters and refresh it no more than once every five minutes. Start with a 15-minute interval and fetch only the pages and filters you need.
 
-Poll from a shared server-side job rather than fetching on every visitor's page load. Cache each page by its full set of query parameters and respect any cache headers the server sends. Start with a refresh every 15 minutes or less often, and fetch only the pages and filters you need.
+**Identify your client.** Send a descriptive `User-Agent` with a contact URL or email, for example `JammingClub/1.0 (+https://jammingclub.com)`.
 
-Treat non-2xx responses as errors, not empty calendars. On `429` or transient server errors, honor `Retry-After` when present and back off before retrying. Keep serving your last successful snapshot during a temporary outage.
+**Respect the rate limit.** Anonymous requests are limited to 120 per minute per IP across all pages and filters. If you receive `429 Too Many Requests`, wait at least the number of seconds in `Retry-After` before retrying. Treat non-2xx responses as errors, not empty calendars, and keep serving your last successful snapshot while backing off.
