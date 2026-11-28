@@ -20,6 +20,10 @@ function absint( $value ) {
 
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {}
 
+function apply_filters( $hook, $value, ...$args ) {
+	return $value;
+}
+
 function wp_parse_args( $args, $defaults ) {
 	return array_merge( $defaults, $args );
 }
