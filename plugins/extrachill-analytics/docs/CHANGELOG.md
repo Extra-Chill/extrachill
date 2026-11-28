@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-11-28
+
+### Added
+- track events calendar queries
+
+### Fixed
+- count opted-out browser clicks as human
+
+## [0.49.10] - 2026-11-26
+
+### Fixed
+- classify cookieless account outcomes using verified accounts
+
 ## [0.49.9] - 2026-11-24
 
 ### Fixed

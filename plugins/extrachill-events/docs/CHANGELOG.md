@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.143.0] - 2026-11-28
+
+### Added
+- track events calendar queries
+- add event type filtering to the public calendar feed
+
+## [0.142.2] - 2026-11-27
+
+### Changed
+- get the managed PHPUnit baseline green
+
+## [0.142.1] - 2026-11-26
+
+### Changed
+- fix pre-existing ESLint errors on main
+
+## [0.142.0] - 2026-11-26
+
+### Added
+- keyed partner-scoped venue events API for partner websites
+
+## [0.141.2] - 2026-11-26
+
+### Fixed
+- restore market report analytics and exclude empty regions
+
+## [0.141.1] - 2026-11-26
+
+### Fixed
+- Instagram sources publish directly like web flows
+
+## [0.141.0] - 2026-11-26
+
+### Added
+- resolve event sources through handler URL claims, incl. Instagram
+
+## [0.140.2] - 2026-11-25
+
+### Fixed
+- run venue/source Data Machine calls through the flow gateway
+
 ## [0.140.1] - 2026-11-23
 
 ### Changed

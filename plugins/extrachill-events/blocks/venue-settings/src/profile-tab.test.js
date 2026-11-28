@@ -37,7 +37,7 @@ jest.mock( '@extrachill/components', () => {
 				children
 			),
 	};
-} );
+}, { virtual: true } );
 
 const profile = ( extra = {} ) => ( {
 	term_id: 1524,

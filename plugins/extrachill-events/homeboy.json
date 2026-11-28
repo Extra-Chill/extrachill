@@ -30,6 +30,11 @@
         "wp_codebox_phpunit_bootstrap_mode": "managed",
         "wp_codebox_phpunit_suites": [
           {
+            "name": "partner-key-unit",
+            "config": "phpunit-partner-key-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "managed-wordpress",
             "config": "phpunit-managed.xml.dist",
             "runtime": "sandbox"

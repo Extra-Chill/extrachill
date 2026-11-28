@@ -60,6 +60,7 @@ class MarketReportAbilities {
 					'type'       => 'object',
 					'properties' => array(
 						'success'   => array( 'type' => 'boolean' ),
+						'coverage'  => array( 'type' => 'object' ),
 						'locations' => array(
 							'type'  => 'array',
 							'items' => array(
@@ -83,8 +84,8 @@ class MarketReportAbilities {
 									'ga'                => array(
 										'type'       => 'object',
 										'properties' => array(
-											'sessions'  => array( 'type' => 'integer' ),
-											'pageviews' => array( 'type' => 'integer' ),
+											'sessions'  => array( 'type' => array( 'integer', 'null' ) ),
+											'pageviews' => array( 'type' => array( 'integer', 'null' ) ),
 											'archive'   => $this->demandSchema( false ),
 											'events'    => $this->demandSchema( false ),
 										),
@@ -92,9 +93,9 @@ class MarketReportAbilities {
 									'gsc'               => array(
 										'type'       => 'object',
 										'properties' => array(
-											'clicks'      => array( 'type' => 'integer' ),
-											'impressions' => array( 'type' => 'integer' ),
-											'position'    => array( 'type' => 'number' ),
+											'clicks'      => array( 'type' => array( 'integer', 'null' ) ),
+											'impressions' => array( 'type' => array( 'integer', 'null' ) ),
+											'position'    => array( 'type' => array( 'number', 'null' ) ),
 											'archive'     => $this->demandSchema( true ),
 											'events'      => $this->demandSchema( true ),
 										),
@@ -189,9 +190,9 @@ class MarketReportAbilities {
 				'total'          => 0,
 			);
 
-			$ga = $ga_data[ $slug ] ?? $this->emptyDemand( false );
+			$ga = $this->applyCoverage( $ga_data[ $slug ] ?? $this->emptyDemand( false ), $ga_rows['coverage'] );
 
-			$gsc = $gsc_data[ $slug ] ?? $this->emptyDemand( true );
+			$gsc = $this->applyCoverage( $gsc_data[ $slug ] ?? $this->emptyDemand( true ), $gsc_rows['coverage'] );
 
 			// Opportunity score: markets with high impressions/traffic but few venue scrapers.
 			$opportunity = $this->calculateOpportunityScore( $events, $venues, $flows, $ga, $gsc );
@@ -233,6 +234,10 @@ class MarketReportAbilities {
 		return array(
 			'success'   => true,
 			'locations' => $results,
+			'coverage'  => array(
+				'ga'  => $ga_rows['coverage'],
+				'gsc' => $gsc_rows['coverage'],
+			),
 			'summary'   => array(
 				'total_locations' => count( $locations ),
 				'total_events'    => $total_events,
@@ -243,7 +248,7 @@ class MarketReportAbilities {
 	}
 
 	/**
-	 * Get city-level location terms (leaf nodes with parent != 0).
+	 * Get market terms, excluding empty regional parents.
 	 *
 	 * @param string|null $slug_filter Optional slug to filter to.
 	 * @return array Array of WP_Term objects.
@@ -255,18 +260,21 @@ class MarketReportAbilities {
 			'fields'     => 'all',
 		);
 
-		if ( $slug_filter ) {
-			$args['slug'] = $slug_filter;
-		}
-
 		$terms = get_terms( $args );
 
 		if ( is_wp_error( $terms ) ) {
 			return array();
 		}
 
-		// Only city-level terms (has a parent).
-		return array_filter( $terms, fn( $t ) => (int) $t->parent > 0 );
+		// Inspect the full hierarchy even when filtering to one slug. Empty
+		// parent terms are regional roll-ups, not city opportunities.
+		$parents = array_fill_keys( array_map( fn( $term ) => (int) $term->parent, $terms ), true );
+		return array_filter(
+			$terms,
+			fn( $t ) => (int) $t->parent > 0
+				&& ( ! $slug_filter || $t->slug === $slug_filter )
+				&& ( (int) $t->count > 0 || ! isset( $parents[ (int) $t->term_id ] ) )
+		);
 	}
 
 	/**
@@ -488,7 +496,7 @@ class MarketReportAbilities {
 	private function demandSchema( bool $search ): array {
 		$properties = array();
 		foreach ( $this->emptyDemand( $search, false ) as $key => $value ) {
-			$properties[ $key ] = array( 'type' => 'position' === $key ? 'number' : 'integer' );
+			$properties[ $key ] = array( 'type' => array( 'position' === $key ? 'number' : 'integer', 'null' ) );
 		}
 		return array(
 			'type'       => 'object',
@@ -504,23 +512,33 @@ class MarketReportAbilities {
 	 * @return array Rows grouped by source.
 	 */
 	private function getDemandRows( int $days, bool $search ): array {
-		$rows    = array(
+		$rows             = array(
 			'archive' => array(),
 			'events'  => array(),
 		);
-		$ability = wp_get_ability( $search ? 'datamachine/google-search-console' : 'datamachine/google-analytics' );
+		$ability          = wp_get_ability( $search ? 'datamachine/google-search-console' : 'datamachine/google-analytics' );
+		$rows['coverage'] = array_fill_keys(
+			array( 'archive', 'events' ),
+			array(
+				'status'  => 'unavailable',
+				'message' => 'Analytics ability not registered.',
+			)
+		);
 		if ( ! $ability ) {
 			return $rows;
 		}
+		$schema = $ability->get_input_schema();
+		$limit  = (int) ( $schema['properties']['limit']['maximum'] ?? $schema['properties']['limit']['default'] ?? 1000 );
+		$start  = strtotime( "-{$days} days" );
 		foreach ( array(
 			'archive' => '/location/',
 			'events'  => '/events/',
 		) as $source => $path ) {
 			$args = array(
 				'action'     => 'page_stats',
-				'start_date' => gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ),
+				'start_date' => gmdate( 'Y-m-d', false === $start ? null : $start ),
 				'end_date'   => gmdate( 'Y-m-d' ),
-				'limit'      => 25000,
+				'limit'      => $limit,
 			);
 			if ( $search ) {
 				$args['url_filter'] = 'events.extrachill.com' . $path;
@@ -529,10 +547,20 @@ class MarketReportAbilities {
 				$args['page_filter'] = $path;
 			}
 			$result = $ability->execute( $args );
-			if ( ! is_wp_error( $result ) && ! empty( $result['success'] ) ) {
+			if ( is_wp_error( $result ) || empty( $result['success'] ) ) {
+				$rows['coverage'][ $source ] = array(
+					'status'  => 'unavailable',
+					'message' => is_wp_error( $result ) ? $result->get_error_message() : ( $result['message'] ?? 'Analytics request failed.' ),
+				);
+			} else {
+				$rows['coverage'][ $source ] = array(
+					'status' => count( $result['results'] ?? array() ) >= $limit ? 'limited' : 'available',
+					'limit'  => $limit,
+				);
 				foreach ( $result['results'] ?? array() as $row ) {
 					$keys              = $row['keys'] ?? '';
-					$row['path']       = wp_parse_url( $row['pagePath'] ?? ( is_array( $keys ) ? ( $keys[0] ?? '' ) : $keys ), PHP_URL_PATH ) ?: '';
+					$path              = wp_parse_url( $row['pagePath'] ?? ( is_array( $keys ) ? ( $keys[0] ?? '' ) : $keys ), PHP_URL_PATH );
+					$row['path']       = is_string( $path ) ? $path : '';
 					$rows[ $source ][] = $row;
 				}
 			}
@@ -651,7 +679,8 @@ class MarketReportAbilities {
 	 */
 	private function aggregateDemand( array $rows, array $markets, bool $search ): array {
 		$data = array();
-		foreach ( $rows as $source => $source_rows ) {
+		foreach ( array( 'archive', 'events' ) as $source ) {
+			$source_rows = $rows[ $source ];
 			foreach ( $source_rows as $row ) {
 				$slugs = 'events' === $source
 					? array_keys( $markets[ $this->eventSlug( $row['path'] ) ?? '' ] ?? array() )
@@ -676,6 +705,26 @@ class MarketReportAbilities {
 						unset( $metrics );
 					}
 				}
+			}
+		}
+		return $data;
+	}
+
+	/**
+	 * Preserve measured zeroes, but never represent a failed request as zero.
+	 *
+	 * @param array $data Aggregated metrics.
+	 * @param array $coverage Coverage by source.
+	 * @return array Metrics with unavailable sources and totals set to null.
+	 */
+	private function applyCoverage( array $data, array $coverage ): array {
+		foreach ( $coverage as $source => $details ) {
+			if ( 'unavailable' !== $details['status'] ) {
+				continue;
+			}
+			foreach ( $data[ $source ] as $metric => $value ) {
+				$data[ $source ][ $metric ] = null;
+				$data[ $metric ]            = null;
 			}
 		}
 		return $data;
@@ -718,9 +767,10 @@ class MarketReportAbilities {
 	 * @return float Opportunity score.
 	 */
 	private function calculateOpportunityScore( int $events, int $venues, array $flows, array $ga, array $gsc ): float {
-		$scrapers    = $flows['venue_scrapers'];
-		$sessions    = $ga['sessions'];
-		$impressions = $gsc['impressions'];
+		$scrapers = $flows['venue_scrapers'];
+		// Rank on the available signals; coverage identifies missing analytics.
+		$sessions    = $ga['sessions'] ?? 0;
+		$impressions = $gsc['impressions'] ?? 0;
 
 		// Demand signal: weighted combination of traffic + search interest + existing events.
 		$demand = ( $sessions * 5 ) + ( $impressions * 0.5 ) + ( $events * 0.1 );

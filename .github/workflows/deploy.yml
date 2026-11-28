@@ -417,7 +417,7 @@ jobs:
 
       - name: Set up Node.js for the network rig gate
         if: steps.release_set.outputs.component_count != '0' && steps.plan.outputs.gate_bypassed != 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
 
@@ -570,7 +570,7 @@ jobs:
 
       - name: Upload network rig gate evidence
         if: always() && (steps.gate.outcome == 'success' || steps.gate.outcome == 'failure')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: network-gate-evidence-${{ github.run_id }}
           path: |
@@ -833,7 +833,7 @@ jobs:
 
       - name: Upload deploy evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deploy-evidence-${{ github.run_id }}
           path: ${{ env.HOMEBOY_OUTPUT_DIR }}

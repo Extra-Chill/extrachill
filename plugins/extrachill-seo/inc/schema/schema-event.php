@@ -648,6 +648,49 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 }
 
 /**
+ * Public seam: the standalone Event entity our own event page emits.
+ *
+ * Returns exactly what `ec_seo_emit_event_schema()` appends to the page
+ * graph for this post (same builder, same entity-decoding boundary as
+ * `ec_seo_get_schema_graph()`), plus `@context` so the entity can be
+ * emitted on its own, e.g. on a partner venue's website. Fixes to
+ * `ec_seo_build_event_schema()` therefore reach every consumer.
+ *
+ * Events live on the events site. When called from another blog this
+ * switches there for the read and always restores the caller's blog. Note
+ * that site-scoped plugins (data-machine-events) are not bootstrapped by
+ * switch_to_blog(), so callers that need venue enrichment should run on the
+ * events site (the partner REST route does, via route affinity).
+ *
+ * @param int $post_id Event post ID.
+ * @return array|null Event entity with `@context`, or null when the post is
+ *                    not a published event with a start date.
+ */
+function ec_seo_get_event_schema( int $post_id ): ?array {
+	$build = static function () use ( $post_id ): ?array {
+		$post = $post_id > 0 ? get_post( $post_id ) : null;
+		if ( ! ( $post instanceof \WP_Post ) || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return null;
+		}
+
+		$attrs = ec_seo_extract_event_details_block( $post->post_content );
+		if ( empty( $attrs ) || empty( $attrs['startDate'] ) ) {
+			return null;
+		}
+
+		$event = ec_seo_build_event_schema( $post, $attrs );
+		if ( null === $event ) {
+			return null;
+		}
+
+		return array_merge( array( '@context' => 'https://schema.org' ), ec_seo_normalize_schema_values( $event ) );
+	};
+
+	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	return function_exists( 'ec_with_blog' ) ? ec_with_blog( $events_blog, $build ) : $build();
+}
+
+/**
  * Append Event schema to the graph on single event posts.
  *
  * @param array $graph Current schema graph.

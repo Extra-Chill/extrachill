@@ -60,6 +60,8 @@ final class AbilitiesProvider {
 				'VenueOnboardingAbilities',
 				'DoorAccessAbilities',
 				'VenueCalendarFeedAbilities',
+				'VenuePartnerKeyAbilities',
+				'PartnerVenueEventsAbilities',
 				'VenueProfileAbilities',
 				'VenueGraphicsAbilities',
 				'ManagedVenueVoicesAbilities',
