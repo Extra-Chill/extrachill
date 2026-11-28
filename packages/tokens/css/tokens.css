@@ -26,6 +26,13 @@
     --error-color: #dc3232;
     --success-color: #28a745;
     --button-text-color: #fff;
+    --button-primary-text-color: #0a0a0a;
+    --button-primary-hover-bg: #00aec7;
+    --button-on-bright-text-color: #0a0a0a;
+    --button-secondary-hover-bg: #6ab312;
+    --button-success-hover-bg: #219638;
+    --button-danger-text-color: #fff;
+    --button-danger-hover-bg: #b82525;
     --header-background: #000;
     --header-text-color: #fff;
     --notice-bg: #f3f3f0;

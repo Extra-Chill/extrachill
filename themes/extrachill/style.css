@@ -742,7 +742,7 @@ a.author.url.fn, .forum-meta a {
 .error-404 .search-wrap button svg {
 	width: 1em;
 	height: 1em;
-	fill: var(--button-text-color);
+	fill: currentColor;
 }
 
 /* 404 Error Links */
@@ -1131,7 +1131,7 @@ body.sticky-header #masthead {
 .header-search-panel .search-wrap button svg {
     width: 1em;
     height: 1em;
-    fill: var(--button-text-color);
+    fill: currentColor;
 }
 
 /* Search scope toggle (This site / Entire network) */
@@ -1635,7 +1635,6 @@ button.button-1, button.button-2, button.button-3, button.button-danger, button.
   text-decoration: none;
   transition: background-color 0.3s ease;
   line-height: 1.4;
-  color: var(--button-text-color);
 }
 
 .button-1,
@@ -1643,13 +1642,15 @@ a.button-1,
 input.button-1,
 button.button-1 {
   background-color: var(--accent-3);
+  color: var(--button-primary-text-color);
 }
 
 .button-1:hover,
 a.button-1:hover,
 input.button-1:hover,
 button.button-1:hover {
-  background-color: var(--link-color-hover);
+  background-color: var(--button-primary-hover-bg);
+  color: var(--button-primary-text-color);
   text-decoration: none;
 }
 
@@ -1658,13 +1659,15 @@ a.button-2,
 input.button-2,
 button.button-2 {
   background-color: var(--accent);
+  color: var(--button-on-bright-text-color);
 }
 
 .button-2:hover,
 a.button-2:hover,
 input.button-2:hover,
 button.button-2:hover {
-  background-color: var(--accent-hover);
+  background-color: var(--button-secondary-hover-bg);
+  color: var(--button-on-bright-text-color);
 }
 
 .button-3,
@@ -1673,7 +1676,7 @@ input.button-3,
 button.button-3 {
   background-color: var(--card-background);
   border: 1px solid var(--border-color);
-  color: var(--muted-text);
+  color: var(--text-color);
 }
 
 .button-3:hover,
@@ -1681,6 +1684,7 @@ a.button-3:hover,
 input.button-3:hover,
 button.button-3:hover {
   background-color: var(--border-color);
+  color: var(--text-color);
 }
 
 .button-danger,
@@ -1688,15 +1692,15 @@ a.button-danger,
 input.button-danger,
 button.button-danger {
   background-color: var(--error-color);
-  color: var(--button-text-color);
+  color: var(--button-danger-text-color);
 }
 
 .button-danger:hover,
 a.button-danger:hover,
 input.button-danger:hover,
 button.button-danger:hover {
-  background-color: var(--error-color);
-  opacity: 0.8;
+  background-color: var(--button-danger-hover-bg);
+  color: var(--button-danger-text-color);
 }
 
 /* Positive confirmations, e.g. door Check in and Checked in (extrachill#1246). */
@@ -1705,15 +1709,15 @@ a.button-success,
 input.button-success,
 button.button-success {
   background-color: var(--success-color);
-  color: var(--button-text-color);
+  color: var(--button-on-bright-text-color);
 }
 
-.button-success:hover,
-a.button-success:hover,
-input.button-success:hover,
-button.button-success:hover {
-  background-color: var(--success-color);
-  opacity: 0.8;
+.button-success:not(:disabled):hover,
+a.button-success:not(:disabled):hover,
+input.button-success:not(:disabled):hover,
+button.button-success:not(:disabled):hover {
+  background-color: var(--button-success-hover-bg);
+  color: var(--button-on-bright-text-color);
 }
 
 .button-success:disabled,

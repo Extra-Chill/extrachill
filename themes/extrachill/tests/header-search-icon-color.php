@@ -46,11 +46,13 @@ require_search_icon_declaration( $css, '.search-icon:focus svg', 'fill', 'var(--
 require_search_icon_declaration( $css, '.search-icon.menu-open svg', 'transform', 'rotate(45deg)' );
 
 /*
- * The submit button has no .search-icon class: its SVG keeps the shared icon
- * fill and button text color rather than receiving the header-specific color.
+ * The submit button has no .search-icon class: its SVG follows the primary
+ * button text color rather than receiving the header-specific color.
  */
 require_search_icon_declaration( $css, '.ec-icon', 'fill', 'currentColor' );
-require_search_icon_declaration( $css, 'button.button-1', 'color', 'var(--button-text-color)' );
+require_search_icon_declaration( $css, '.header-search-panel .search-wrap button svg', 'fill', 'currentColor' );
+require_search_icon_declaration( $css, '.error-404 .search-wrap button svg', 'fill', 'currentColor' );
+require_search_icon_declaration( $css, 'button.button-1', 'color', 'var(--button-primary-text-color)' );
 
 $templates = array(
 	'inc/header/header-search.php'      => 'search-icon header-right-icon',
@@ -64,4 +66,4 @@ foreach ( $templates as $path => $classes ) {
 	}
 }
 
-echo "Header search icon follows header text, preserves interactions, and leaves submit button colors intact.\n";
+echo "Header search icon follows header text and preserves interactions; submit icons follow primary button text.\n";

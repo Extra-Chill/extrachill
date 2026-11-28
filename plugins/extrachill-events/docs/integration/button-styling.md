@@ -143,9 +143,9 @@ Theme's primary blue accent button for important actions:
 - Call-to-action buttons
 
 **Visual Characteristics:**
-- Blue accent background color
-- White text
-- Hover and focus states
+- Cyan background with dark text in light mode; blue background with white text in dark mode
+- Hover stays in the same color family and keeps at least 4.5:1 text contrast
+- Keyboard focus styling
 - High visual prominence
 
 ### button-3 (Neutral)

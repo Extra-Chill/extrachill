@@ -120,6 +120,34 @@ export const colors: Record< ColorTokenKey, ColorToken > = {
 		dark: '#fff',
 		description: 'Button text on accent backgrounds',
 	},
+	buttonPrimaryTextColor: {
+		cssVar: '--button-primary-text-color',
+		...tokensJson.categories.color['button-primary-text-color'],
+	},
+	buttonPrimaryHoverBg: {
+		cssVar: '--button-primary-hover-bg',
+		...tokensJson.categories.color['button-primary-hover-bg'],
+	},
+	buttonOnBrightTextColor: {
+		cssVar: '--button-on-bright-text-color',
+		...tokensJson.categories.color['button-on-bright-text-color'],
+	},
+	buttonSecondaryHoverBg: {
+		cssVar: '--button-secondary-hover-bg',
+		...tokensJson.categories.color['button-secondary-hover-bg'],
+	},
+	buttonSuccessHoverBg: {
+		cssVar: '--button-success-hover-bg',
+		...tokensJson.categories.color['button-success-hover-bg'],
+	},
+	buttonDangerTextColor: {
+		cssVar: '--button-danger-text-color',
+		...tokensJson.categories.color['button-danger-text-color'],
+	},
+	buttonDangerHoverBg: {
+		cssVar: '--button-danger-hover-bg',
+		...tokensJson.categories.color['button-danger-hover-bg'],
+	},
 	headerBackground: {
 		cssVar: '--header-background',
 		light: '#000',
