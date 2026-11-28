@@ -388,7 +388,7 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 		}
 		if ( 'venue' === $scope ) {
 			$only_venue = reset( $venue_terms );
-			if ( ! $only_venue instanceof WP_Term || (int) $only_venue->term_id !== (int) $location->term_id ) {
+			if ( (int) $only_venue->term_id !== (int) $location->term_id ) {
 				continue;
 			}
 		} else {
@@ -636,7 +636,7 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 
 	$actor_id = absint( ec_get_network_bot_user_id() );
 	$link     = extrachill_events_local_scene_digest_tracked_url( get_term_link( $location ), $scope );
-	if ( ! $actor_id || is_wp_error( $link ) || ! wp_http_validate_url( $link ) ) {
+	if ( ! $actor_id || ! wp_http_validate_url( $link ) ) {
 		return array(
 			'status' => 'failed',
 			'reason' => 'invalid_delivery_context',
