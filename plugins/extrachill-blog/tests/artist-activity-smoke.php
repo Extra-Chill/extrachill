@@ -2,7 +2,7 @@
 /**
  * Focused coverage for artist activity ordering and item validation.
  *
- * Run with: php tests/artist-activity.php
+ * Run with: php tests/artist-activity-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ . '/' );
