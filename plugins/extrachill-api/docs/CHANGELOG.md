@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.62.1] - 2026-11-28
+
+### Fixed
+- prefer partner flyers and label free external tickets RSVP
+
 ## [0.62.0] - 2026-11-28
 
 ### Added
