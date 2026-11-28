@@ -110,6 +110,26 @@ function extrachill_api_register_events_calendar_route() {
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_calendar_handler( WP_REST_Request $request ) {
+	// The on-site Data Machine Events calendar block fetches /datamachine/v1/events/calendar,
+	// not this route. No browser-header exemption is needed.
+	$anonymous = ! is_user_logged_in();
+	if ( $anonymous ) {
+		// WordPress also dispatches implicit HEAD requests to this GET handler.
+		$admission = extrachill_api_check_public_read_rate_limit( $request, 'events_calendar', 120 );
+		if ( is_wp_error( $admission ) ) {
+			$data = $admission->get_error_data();
+			if ( 429 !== $data['status'] ) {
+				return $admission;
+			}
+
+			// WordPress doesn't send headers stored in WP_Error data.
+			$response = rest_convert_error_to_response( $admission );
+			$response->header( 'Retry-After', $data['headers']['Retry-After'] );
+			$response->header( 'Cache-Control', 'no-store' );
+			return $response;
+		}
+	}
+
 	$ability = wp_get_ability( 'extrachill/events-calendar' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );
@@ -130,7 +150,12 @@ function extrachill_api_events_calendar_handler( WP_REST_Request $request ) {
 		return $result;
 	}
 
-	return rest_ensure_response( extrachill_api_gate_calendar_ticket_urls( $result ) );
+	$response = rest_ensure_response( extrachill_api_gate_calendar_ticket_urls( $result ) );
+	if ( $response instanceof WP_REST_Response && $anonymous && 'GET' === $request->get_method() ) {
+		$response->header( 'Cache-Control', 'public, max-age=300' );
+	}
+
+	return $response;
 }
 
 /**
