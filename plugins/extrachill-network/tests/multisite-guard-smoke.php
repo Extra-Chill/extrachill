@@ -17,10 +17,10 @@ function multisite_guard_assert( $condition, $message ) {
 	echo "PASS: {$message}\n";
 }
 
-function multisite_guard_run_probe( $mode ) {
+function multisite_guard_run_probe( $mode, $host = 'artist.extrachill.com' ) {
 	$command = escapeshellarg( PHP_BINARY ) . ' '
 		. escapeshellarg( __DIR__ . '/MultisiteGuardProbe.php' ) . ' '
-		. escapeshellarg( $mode );
+		. escapeshellarg( $mode ) . ' ' . escapeshellarg( $host );
 
 	exec( $command, $output, $exit_code );
 
@@ -62,5 +62,9 @@ multisite_guard_assert(
 	'multisite: every provider reaches its normal-path status unchanged (administration skipped outside wp-admin, as designed)'
 );
 multisite_guard_assert( false === $multisite['notice_registered'], 'multisite: the multisite-required admin notice is never registered' );
+
+$link = multisite_guard_run_probe( 'multisite', 'extrachill.link' );
+multisite_guard_assert( '' === $link['early_cookie_domain'], 'Link Pages defines a host-only cookie domain before plugins_loaded' );
+multisite_guard_assert( null === $multisite['early_cookie_domain'], 'Network hosts leave the cookie domain to WordPress core' );
 
 fwrite( STDOUT, "Multisite guard checks passed.\n" );

@@ -6,8 +6,8 @@
  *
  * Returns the Link Page editor configuration for the authenticated user
  * (owner adapter, identities, fonts, and the adapter scripts to load). The
- * extrachill.link /edit shell calls this with a wp-native bearer token.
- * Thin adapter over the extrachill-link-pages ability.
+ * extrachill.link /edit shell uses its local WordPress cookie and REST nonce;
+ * route affinity dispatches to the artist site to load the owner adapter.
  *
  * @package ExtraChillAPI
  */

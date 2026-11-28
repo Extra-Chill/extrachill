@@ -483,10 +483,9 @@ function ec_link_page_apply_host_features( $projection, $owned, $context ) {
 		 *
 		 * Callbacks should return an array; any other value is discarded.
 		 *
-		 * @param array|mixed $endpoints       `permissions_url` (GET, bearer
-		 *                                     token, returns {can_edit,
-		 *                                     manage_url}) and optional
-		 *                                     `handoff_url`. Default none.
+		 * @param array|mixed $endpoints       `permissions_url` (same-origin REST GET),
+		 *                                     `session_url` (returns a REST nonce),
+		 *                                     and optional `handoff_url` and `network_url`.
 		 * @param int         $link_page_id    Link Page ID.
 		 * @param string      $owner_reference Normalized owner reference.
 		 */
@@ -494,9 +493,11 @@ function ec_link_page_apply_host_features( $projection, $owned, $context ) {
 		$permissions = is_array( $endpoints ) ? esc_url_raw( (string) ( $endpoints['permissions_url'] ?? '' ), array( 'http', 'https' ) ) : '';
 		if ( '' !== $permissions ) {
 			$attributes['data-extrch-permissions-api-url'] = $permissions;
-			$handoff                                       = esc_url_raw( (string) ( $endpoints['handoff_url'] ?? '' ), array( 'http', 'https' ) );
-			if ( '' !== $handoff ) {
-				$attributes['data-extrch-token-handoff-url'] = $handoff;
+			foreach ( array( 'session_url' => 'session-url', 'handoff_url' => 'session-handoff-url', 'network_url' => 'network-url' ) as $key => $attribute ) {
+				$url = esc_url_raw( (string) ( $endpoints[ $key ] ?? '' ), array( 'http', 'https' ) );
+				if ( '' !== $url ) {
+					$attributes[ 'data-extrch-' . $attribute ] = $url;
+				}
 			}
 			$projection['_features']['edit'] = true;
 		}

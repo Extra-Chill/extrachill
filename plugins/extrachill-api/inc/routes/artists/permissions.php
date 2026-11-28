@@ -45,14 +45,8 @@ function extrachill_api_register_artist_permissions_route() {
 /**
  * Check artist permissions via ability.
  *
- * Auth model: the extrachill.link edit button sends a wp-native bearer token in
- * the Authorization header (NOT a cross-site cookie), resolved network-wide by
- * the wp-native determine_current_user filter. WordPress core's default REST
- * CORS handling (rest_send_cors_headers + rest_handle_options_request) already
- * echoes the request Origin into Access-Control-Allow-Origin and lists
- * Authorization in Access-Control-Allow-Headers, so the cross-origin GET and its
- * OPTIONS preflight from extrachill.link succeed without any extra headers here.
- * The legacy SameSite=None cross-site cookie path is no longer used by this flow.
+ * The public edit button calls the local REST API with its cookie session and
+ * nonce. Route affinity forwards the authenticated user to the artist site.
  *
  * @param WP_REST_Request $request The request object.
  * @return WP_REST_Response|WP_Error The response object.

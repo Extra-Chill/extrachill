@@ -181,6 +181,23 @@ class Test_Browser_Handoff_Two_Factor extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0, extrachill_users_current_session_two_factor_time( $user_id ) );
 	}
 
+	public function test_shared_handoff_helper_creates_a_valid_wordpress_cookie(): void {
+		$user = self::factory()->user->create_and_get();
+		$cookie = '';
+		$capture = static function ( $value ) use ( &$cookie ) {
+			$cookie = $value;
+		};
+		add_action( 'set_logged_in_cookie', $capture );
+		try {
+			$this->assertTrue( extrachill_users_establish_browser_handoff_session( $user, 0 ) );
+			$this->assertNotEmpty( $cookie );
+			wp_set_current_user( 0 );
+			$this->assertSame( $user->ID, wp_validate_auth_cookie( $cookie, 'logged_in' ) );
+		} finally {
+			remove_action( 'set_logged_in_cookie', $capture );
+		}
+	}
+
 	public function test_cookie_session_reports_two_factors_own_time(): void {
 		$user_id = self::factory()->user->create();
 		wp_set_current_user( $user_id );

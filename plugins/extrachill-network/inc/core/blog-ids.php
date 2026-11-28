@@ -117,6 +117,11 @@ if ( ! function_exists( 'ec_with_blog' ) ) {
 	}
 }
 
+/** Canonical public Link Pages hostname. */
+function ec_network_link_page_public_host() {
+	return 'extrachill.link';
+}
+
 /**
  * Map of domains to blog IDs for routing.
  * Includes the dedicated Link Pages site at extrachill.link.
@@ -125,18 +130,18 @@ if ( ! function_exists( 'ec_with_blog' ) ) {
  */
 function ec_get_domain_map() {
 	return array(
-		'extrachill.com'            => EC_BLOG_ID_MAIN,
-		'community.extrachill.com'  => EC_BLOG_ID_COMMUNITY,
-		'shop.extrachill.com'       => EC_BLOG_ID_SHOP,
-		'artist.extrachill.com'     => EC_BLOG_ID_ARTIST,
-		'events.extrachill.com'     => EC_BLOG_ID_EVENTS,
-		'newsletter.extrachill.com' => EC_BLOG_ID_NEWSLETTER,
-		'docs.extrachill.com'       => EC_BLOG_ID_DOCS,
-		'wire.extrachill.com'       => EC_BLOG_ID_WIRE,
-		'studio.extrachill.com'     => EC_BLOG_ID_STUDIO,
-		'extrachill.link'           => EC_BLOG_ID_LINK_PAGES,
-		'www.extrachill.link'       => EC_BLOG_ID_LINK_PAGES,
-		'auth.extrachill.com'       => EC_BLOG_ID_AUTH,
+		'extrachill.com'                            => EC_BLOG_ID_MAIN,
+		'community.extrachill.com'                  => EC_BLOG_ID_COMMUNITY,
+		'shop.extrachill.com'                       => EC_BLOG_ID_SHOP,
+		'artist.extrachill.com'                     => EC_BLOG_ID_ARTIST,
+		'events.extrachill.com'                     => EC_BLOG_ID_EVENTS,
+		'newsletter.extrachill.com'                 => EC_BLOG_ID_NEWSLETTER,
+		'docs.extrachill.com'                       => EC_BLOG_ID_DOCS,
+		'wire.extrachill.com'                       => EC_BLOG_ID_WIRE,
+		'studio.extrachill.com'                     => EC_BLOG_ID_STUDIO,
+		ec_network_link_page_public_host()          => EC_BLOG_ID_LINK_PAGES,
+		'www.' . ec_network_link_page_public_host() => EC_BLOG_ID_LINK_PAGES,
+		'auth.extrachill.com'                       => EC_BLOG_ID_AUTH,
 	);
 }
 

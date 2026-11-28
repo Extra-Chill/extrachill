@@ -1,343 +1,91 @@
-/**
- * Link Page edit button (bearer-token auth).
- *
- * Renders no server-side HTML. The host site supplies two body attributes:
- * `data-extrch-permissions-api-url` (GET with a bearer token, returns
- * `{can_edit, manage_url}`) and `data-extrch-token-handoff-url` (a one-time
- * redirect that returns a token in the URL fragment). Bearer tokens are used
- * because the public Link Page host may not share the auth cookie domain.
- * Anonymous or unauthorized visitors get no button and no DOM.
- *
- * The handoff is a full top-level navigation, so it only runs when there is a
- * signal the visitor may be an editor: they arrived from the host site's
- * network, this browser has received an edit token before, or the host has
- * primed a first-party `ec_link_editor=1` hint cookie for a signed-in owner.
- * Everyone else loads the page once with no cross-site redirect.
- */
+/** Keep the public HTML cacheable; discover edit access via a local session. */
 ( function () {
 	'use strict';
 
-	const TOKEN_STORAGE_KEY = 'ecLinkEditToken';
-	// Marker so an anonymous visitor only round-trips through the mint handoff
-	// once per browser tab session instead of redirecting on every page view.
-	const HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
-	// Persistent marker: this browser has received an edit token before, so a
-	// handoff is worth a redirect once the short-lived token expires.
-	const KNOWN_EDITOR_KEY = 'ecLinkEditKnownEditor';
+	const ATTEMPT = 'ecLinkEditHandoffAttempted';
+	const KNOWN_EDITOR = 'ecLinkEditKnownEditor';
 
-	/**
-	 * Whether this browser has ever received an edit token.
-	 *
-	 * @return {boolean} True when a token was received here before.
-	 */
-	function isKnownEditor() {
-		try {
-			return window.localStorage.getItem( KNOWN_EDITOR_KEY ) === '1';
-		} catch {
+	function cameFromNetwork( networkUrl ) {
+		if ( ! networkUrl || ! document.referrer ) {
 			return false;
 		}
+		const network = new URL( networkUrl ).hostname;
+		const from = new URL( document.referrer ).hostname;
+		return from === network || from.endsWith( '.' + network );
 	}
 
-	/**
-	 * Whether the host primed this browser for a signed-in owner.
-	 *
-	 * @return {boolean} True when the hint cookie is present.
-	 */
-	function hasEditorHint() {
-		return /(?:^|;\s*)ec_link_editor=1(?:;|$)/.test(
-			document.cookie || ''
-		);
-	}
-
-	/**
-	 * Forget editor signals after a handoff proves the visitor is signed out.
-	 *
-	 * @return {void}
-	 */
-	function forgetEditor() {
-		try {
-			window.localStorage.removeItem( KNOWN_EDITOR_KEY );
-		} catch {}
-		document.cookie = 'ec_link_editor=; Max-Age=0; Path=/; SameSite=Lax';
-	}
-
-	/**
-	 * Remember that this browser belongs to someone who can receive tokens.
-	 *
-	 * @return {void}
-	 */
-	function markKnownEditor() {
-		try {
-			window.localStorage.setItem( KNOWN_EDITOR_KEY, '1' );
-		} catch {}
-	}
-
-	/**
-	 * Whether the referrer is the host site or a sibling on its parent domain
-	 * (e.g. the handoff host's network), i.e. the visitor may be signed in.
-	 *
-	 * @param {string} handoffUrl Handoff URL on the host site.
-	 * @param {string} referrer   document.referrer.
-	 * @return {boolean} True when the referrer is on the host's network.
-	 */
-	function cameFromHostNetwork( handoffUrl, referrer ) {
-		if ( ! handoffUrl || ! referrer ) {
-			return false;
-		}
-		try {
-			const hostname = new URL( handoffUrl ).hostname;
-			const from = new URL( referrer ).hostname;
-			const labels = hostname.split( '.' );
-			const parent =
-				labels.length > 2 ? labels.slice( 1 ).join( '.' ) : hostname;
-			return (
-				from === hostname ||
-				from === parent ||
-				from.slice( -( parent.length + 1 ) ) === '.' + parent
-			);
-		} catch {
-			return false;
-		}
-	}
-
-	/**
-	 * Read a non-expired cached token from localStorage.
-	 *
-	 * @return {string|null} The token string, or null if absent/expired.
-	 */
-	function getStoredToken() {
-		try {
-			const raw = window.localStorage.getItem( TOKEN_STORAGE_KEY );
-			if ( ! raw ) {
-				return null;
-			}
-			const parsed = JSON.parse( raw );
-			if ( ! parsed || ! parsed.token || ! parsed.expiresAt ) {
-				return null;
-			}
-			// Treat as expired a little early to avoid using a token that dies
-			// mid-request. wp-native access tokens live ~15 minutes.
-			if ( Date.now() >= parsed.expiresAt - 5000 ) {
-				window.localStorage.removeItem( TOKEN_STORAGE_KEY );
-				return null;
-			}
-			return parsed.token;
-		} catch {
-			return null;
-		}
-	}
-
-	/**
-	 * Persist a token with a client-side expiry (~15 min, matching wp-native).
-	 *
-	 * @param {string} token The plaintext access token.
-	 * @return {void}
-	 */
-	function storeToken( token ) {
-		try {
-			window.localStorage.setItem(
-				TOKEN_STORAGE_KEY,
-				JSON.stringify( {
-					token,
-					// 15 minutes; the server is the source of truth and a 401
-					// will clear it early if it dies sooner.
-					expiresAt: Date.now() + 15 * 60 * 1000,
-				} )
-			);
-		} catch {
-			// localStorage unavailable (private mode quotas etc.) — the button
-			// just won't render. Non-fatal.
-		}
-	}
-
-	/**
-	 * Clear the cached token.
-	 *
-	 * @return {void}
-	 */
-	function clearStoredToken() {
-		try {
-			window.localStorage.removeItem( TOKEN_STORAGE_KEY );
-		} catch {}
-	}
-
-	/**
-	 * Parse the token (or the tokenless marker) out of the URL fragment left by
-	 * the mint handoff redirect, then scrub the fragment from the address bar.
-	 *
-	 * @return {{token: (string|null), attempted: boolean}} Parsed token (null when absent) and whether a handoff was attempted.
-	 */
-	function consumeFragmentToken() {
-		const result = { token: null, attempted: false };
-		const hash = window.location.hash || '';
-		if ( ! hash || hash.length < 2 ) {
-			return result;
-		}
-
-		const fragment = hash.charAt( 0 ) === '#' ? hash.substring( 1 ) : hash;
-		const params = new URLSearchParams( fragment );
-
-		if ( params.has( 'ec_link_token' ) ) {
-			result.token = params.get( 'ec_link_token' );
-			result.attempted = true;
-		} else if ( params.has( 'ec_link_token_none' ) ) {
-			// Handoff ran and the visitor was not logged in.
-			result.attempted = true;
-		} else {
-			return result;
-		}
-
-		// Scrub our keys from the fragment, preserving any unrelated fragment.
-		params.delete( 'ec_link_token' );
-		params.delete( 'ec_link_token_none' );
-		const remaining = params.toString();
-		const cleanUrl =
-			window.location.pathname +
-			window.location.search +
-			( remaining ? '#' + remaining : '' );
-		try {
-			window.history.replaceState( null, '', cleanUrl );
-		} catch {
-			// history API unavailable — leave the URL as-is.
-		}
-
-		return result;
-	}
-
-	/**
-	 * Redirect to the mint handoff endpoint on the host site, which mints a
-	 * short-lived token (if the visitor is logged in there) and 302s back with
-	 * the token in the fragment. Guarded by a per-session marker so anonymous
-	 * visitors only round-trip once.
-	 *
-	 * @param {string} handoffUrl Base handoff URL from the body data attribute.
-	 * @return {void}
-	 */
-	function attemptHandoff( handoffUrl ) {
+	function maybeSignIn( handoffUrl, networkUrl ) {
 		if ( ! handoffUrl ) {
 			return;
 		}
 		try {
-			if ( window.sessionStorage.getItem( HANDOFF_ATTEMPTED_KEY ) ) {
+			if ( window.sessionStorage.getItem( ATTEMPT ) ) {
+				window.localStorage.removeItem( KNOWN_EDITOR );
+				document.cookie = 'ec_link_editor=; Max-Age=0; Path=/; SameSite=Lax';
 				return;
 			}
-			window.sessionStorage.setItem( HANDOFF_ATTEMPTED_KEY, '1' );
+			if (
+				window.localStorage.getItem( KNOWN_EDITOR ) !== '1' &&
+				! /(?:^|;\s*)ec_link_editor=1(?:;|$)/.test( document.cookie ) &&
+				! cameFromNetwork( networkUrl )
+			) {
+				return;
+			}
+			window.sessionStorage.setItem( ATTEMPT, '1' );
+			const url = new URL( handoffUrl );
+			url.searchParams.set( 'return', window.location.origin + window.location.pathname );
+			window.location.assign( url.href );
 		} catch {
-			// sessionStorage unavailable — fall through; without the guard we'd
-			// risk a redirect loop, so bail rather than redirect.
-			return;
+			// Without a working loop guard, don't attempt automatic sign-in.
 		}
-
-		const returnUrl = window.location.href.split( '#' )[ 0 ];
-		const separator = handoffUrl.indexOf( '?' ) === -1 ? '?' : '&';
-		const destination =
-			handoffUrl +
-			separator +
-			'return=' +
-			encodeURIComponent( returnUrl );
-		window.location.assign( destination );
 	}
 
-	/**
-	 * Call the permissions endpoint with a bearer token and render the button if
-	 * authorized. On 401 (token expired/invalid) clears the cached token.
-	 *
-	 * @param {string} apiUrl The permissions endpoint URL.
-	 * @param {string} token  The bearer access token.
-	 * @return {void}
-	 */
-	function checkPermission( apiUrl, token ) {
-		fetch( apiUrl, {
-			method: 'GET',
-			headers: {
-				Authorization: 'Bearer ' + token,
-			},
-		} )
-			.then( function ( response ) {
-				if ( response.status === 401 ) {
-					clearStoredToken();
-					return null;
-				}
-				if ( ! response.ok ) {
-					return null;
-				}
-				return response.json();
-			} )
-			.then( function ( data ) {
-				if ( ! data || data.can_edit !== true || ! data.manage_url ) {
-					return;
-				}
-				renderEditButton( data.manage_url );
-			} )
-			.catch( function () {} );
-	}
-
-	/**
-	 * Render the fixed-position edit button.
-	 *
-	 * @param {string} manageUrl URL to the link page management interface.
-	 * @return {void}
-	 */
-	function renderEditButton( manageUrl ) {
-		if ( document.querySelector( '.extrch-link-page-edit-btn' ) ) {
+	async function init() {
+		const data = document.body.dataset;
+		if ( ! data.extrchSessionUrl || ! data.extrchPermissionsApiUrl ) {
 			return;
 		}
-
-		const editButton = document.createElement( 'a' );
-		editButton.href = manageUrl;
-		editButton.className = 'extrch-link-page-edit-btn';
-		editButton.setAttribute( 'aria-label', 'Edit link page' );
-		editButton.innerHTML = '<i class="fas fa-pencil-alt"></i>';
-
-		document.body.appendChild( editButton );
-	}
-
-	/**
-	 * Orchestrate the edit-button auth flow.
-	 *
-	 * @return {void}
-	 */
-	function init() {
-		const body = document.body;
-		if ( ! body || ! body.dataset ) {
-			return;
-		}
-
-		const apiUrl = body.dataset.extrchPermissionsApiUrl || '';
-		const handoffUrl = body.dataset.extrchTokenHandoffUrl || '';
-		if ( ! apiUrl ) {
-			return;
-		}
-
-		// 1. If we just came back from the mint handoff, capture the token.
-		const fragment = consumeFragmentToken();
-		if ( fragment.token ) {
-			storeToken( fragment.token );
-			markKnownEditor();
-		}
-
-		// 2. Use a cached/just-captured token if we have one.
-		const token = getStoredToken();
-		if ( token ) {
-			checkPermission( apiUrl, token );
-			return;
-		}
-
-		// 3. No token. If the handoff already ran this session (including the
-		//    tokenless "not logged in" return), stop — anonymous visitor.
-		if ( fragment.attempted ) {
-			forgetEditor();
-			return;
-		}
-
-		// 4. Bootstrap a token via the one-time handoff redirect, but only for
-		//    likely editors. Anonymous visitors never leave the page.
-		if (
-			isKnownEditor() ||
-			hasEditorHint() ||
-			cameFromHostNetwork( handoffUrl, document.referrer || '' )
-		) {
-			attemptHandoff( handoffUrl );
+		try {
+			const sessionUrl = new URL( data.extrchSessionUrl );
+			const permissionsUrl = new URL( data.extrchPermissionsApiUrl );
+			if ( sessionUrl.origin !== window.location.origin || permissionsUrl.origin !== window.location.origin ) {
+				return;
+			}
+			const session = await fetch( sessionUrl.href, { credentials: 'same-origin', cache: 'no-store' } );
+			if ( session.status === 401 ) {
+				maybeSignIn( data.extrchSessionHandoffUrl, data.extrchNetworkUrl );
+				return;
+			}
+			if ( ! session.ok ) {
+				return;
+			}
+			const { nonce } = await session.json();
+			const response = await fetch( permissionsUrl.href, {
+				credentials: 'same-origin',
+				cache: 'no-store',
+				headers: { 'X-WP-Nonce': nonce },
+			} );
+			if ( ! response.ok ) {
+				return;
+			}
+			const permission = await response.json();
+			if ( permission.can_edit !== true || ! permission.manage_url ) {
+				return;
+			}
+			const editUrl = new URL( permission.manage_url );
+			if ( editUrl.origin !== window.location.origin ) {
+				return;
+			}
+			const button = document.createElement( 'a' );
+			button.href = editUrl.href;
+			button.className = 'extrch-link-page-edit-btn';
+			button.setAttribute( 'aria-label', 'Edit link page' );
+			button.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+			document.body.appendChild( button );
+			window.sessionStorage.removeItem( ATTEMPT );
+			window.localStorage.setItem( KNOWN_EDITOR, '1' );
+		} catch {
+			// Public Link Pages work even if editor discovery is unavailable.
 		}
 	}
 

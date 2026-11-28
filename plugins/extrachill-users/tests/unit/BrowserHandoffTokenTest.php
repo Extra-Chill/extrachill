@@ -180,6 +180,16 @@ class Browser_Handoff_Test_Cache {
 }
 
 class Test_Browser_Handoff_Token extends WP_UnitTestCase {
+	public function test_browser_bound_handoff_carries_only_the_state_hash_and_cannot_be_replayed(): void {
+		$state = str_repeat( 'A', 64 );
+		$token = extrachill_users_create_browser_handoff_token( 42, 'https://extrachill.link/edit', hash( 'sha256', $state ) );
+		$payload = extrachill_users_consume_browser_handoff_token( $token );
+		$this->assertIsArray( $payload );
+		$this->assertSame( hash( 'sha256', $state ), $payload['browser_state_hash'] );
+		$this->assertNotContains( $state, $payload );
+		$this->assertWPError( extrachill_users_consume_browser_handoff_token( $token ) );
+	}
+
 
 	/** @var mixed */
 	private $original_cache;

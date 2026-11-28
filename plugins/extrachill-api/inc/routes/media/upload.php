@@ -133,7 +133,10 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 			);
 		}
 
-		if ( ! ec_can_manage_artist( $user_id, $target_id ) ) {
+		$allowed = static function () use ( $user_id, $target_id ) {
+			return ec_can_manage_artist( $user_id, $target_id );
+		};
+		if ( ! extrachill_api_media_on_artist_blog( $allowed ) ) {
 			return new WP_Error(
 				'rest_forbidden',
 				'You do not have permission to manage this artist.',
@@ -172,6 +175,19 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 			}
 		}
 	}
+
+	if ( in_array( $context, array( 'artist_profile', 'artist_header' ), true ) ) {
+		return extrachill_api_media_on_artist_blog( static function () use ( $request ) {
+			return extrachill_api_media_store_upload( $request );
+		} );
+	}
+	return extrachill_api_media_store_upload( $request );
+}
+
+/** Store the upload in the already-resolved attachment blog. */
+function extrachill_api_media_store_upload( WP_REST_Request $request ) {
+	$context   = $request->get_param( 'context' );
+	$target_id = $request->get_param( 'target_id' );
 
 	// Get uploaded file
 	$files = $request->get_file_params();
@@ -300,17 +316,8 @@ function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 
 		case 'link_page_profile':
 		case 'link_page_background':
-			$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/save-link-page-settings' ) : null;
-			if ( ! $ability ) {
-				return new WP_Error( 'ability_not_found', 'Link Page settings ability is unavailable.', array( 'status' => 500 ) );
-			}
 			$field  = 'link_page_profile' === $context ? 'profile_image_id' : 'background_image_id';
-			$result = $ability->execute(
-				array(
-					'artist_id' => $target_id,
-					$field      => $attachment_id,
-				)
-			);
+			$result = extrachill_api_media_link_page_ability( 'save-link-page-settings', array( 'artist_id' => $target_id, $field => $attachment_id ) );
 			/* Retain previous media: it may still be referenced by other content. */
 			return is_wp_error( $result ) ? $result : null;
 
@@ -333,6 +340,34 @@ function extrachill_api_media_refresh_avatar_snapshot( $user_id ) {
 	}
 }
 
+/** Run an artist post or permission operation in the owning blog context. */
+function extrachill_api_media_on_artist_blog( callable $callback ) {
+	return function_exists( 'ec_with_blog' ) && function_exists( 'ec_get_blog_id' )
+		? ec_with_blog( (int) ec_get_blog_id( 'artist' ), $callback )
+		: $callback();
+}
+
+/** Execute an artist ability while keeping Link Page attachments on their storage blog. */
+function extrachill_api_media_link_page_ability( string $name, array $input ) {
+	$ability_name = 'extrachill/' . $name;
+	$ability      = function_exists( 'wp_has_ability' ) && wp_has_ability( $ability_name ) ? wp_get_ability( $ability_name ) : null;
+	if ( $ability ) {
+		return extrachill_api_media_on_artist_blog( static function () use ( $ability, $input ) {
+			return $ability->execute( $input );
+		} );
+	}
+	if ( function_exists( 'ec_cross_site_rest_request_http' ) ) {
+		$read = 'get-link-page-data' === $name;
+		return ec_cross_site_rest_request_http(
+			'artist',
+			$read ? 'GET' : 'POST',
+			'/wp-abilities/v1/abilities/extrachill/' . $name . '/run',
+			array( ( $read ? 'query' : 'body' ) => array( 'input' => $input ) )
+		);
+	}
+	return new WP_Error( 'ability_not_found', 'Link Page media ability is unavailable.', array( 'status' => 500 ) );
+}
+
 /**
  * Handle media deletion (DELETE)
  */
@@ -346,11 +381,7 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 		}
 		return ec_with_link_page_storage_blog(
 			static function () use ( $context, $target_id ) {
-				$read = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-link-page-data' ) : null;
-				if ( ! $read ) {
-					return new WP_Error( 'ability_not_found', 'Link Page read ability is unavailable.', array( 'status' => 500 ) );
-				}
-				$data = $read->execute( array( 'artist_id' => $target_id ) );
+				$data = extrachill_api_media_link_page_ability( 'get-link-page-data', array( 'artist_id' => $target_id ) );
 				if ( is_wp_error( $data ) ) {
 					return $data;
 				}
@@ -375,8 +406,16 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	// Product images delete from shop site
+	if ( in_array( $context, array( 'artist_profile', 'artist_header' ), true ) ) {
+		return extrachill_api_media_on_artist_blog( static function () use ( $context, $target_id ) {
+			return extrachill_api_media_delete_assignment( $context, $target_id );
+		} );
+	}
+	return extrachill_api_media_delete_assignment( $context, $target_id );
+}
 
+/** Clear and delete an attachment in its owning blog context. */
+function extrachill_api_media_delete_assignment( $context, $target_id ) {
 	// Get current attachment ID and clear assignment
 	$attachment_id = extrachill_api_media_unassign( $context, $target_id );
 	if ( is_wp_error( $attachment_id ) ) {

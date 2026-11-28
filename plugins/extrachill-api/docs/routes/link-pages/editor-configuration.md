@@ -4,7 +4,7 @@
 
 **Source:** `inc/routes/link-pages/editor-configuration.php`.
 
-**Permission callback:** `is_user_logged_in`; owner ability applies Link Page access checks. Used by the extrachill.link edit shell with WordPress-native bearer authentication.
+**Permission callback:** `is_user_logged_in`; owner ability applies Link Page access checks. The extrachill.link editor uses its local WordPress cookie and REST nonce. REST route affinity loads the adapter on the artist site.
 
 **Parameters:** optional `link_page_id` integer, default 0, sanitized with `absint` and cast to integer.
 

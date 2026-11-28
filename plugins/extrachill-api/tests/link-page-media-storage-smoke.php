@@ -88,6 +88,7 @@ function ec_save_link_page( $target, $data ) {
 	if ( 'throw' === $GLOBALS['mode'] ) { throw new RuntimeException( 'Save failed' ); }
 	return 'save_error' === $GLOBALS['mode'] ? new WP_Error( 'save_failed' ) : $data;
 }
+function wp_has_ability( $name ) { return ! $GLOBALS['missing']; }
 function wp_get_ability( $name ) {
 	if ( $GLOBALS['missing'] ) { return null; }
 	return new class( $name ) {

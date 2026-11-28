@@ -149,6 +149,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$map = extrachill_api_add_artist_route_affinity( array() );
 
 		$this->assertSame( 'artist', $map['/extrachill/v1/admin/artist-relationships'] );
+		$this->assertSame( 'artist', $map['/extrachill/v1/link-pages/editor-configuration'] );
 		$this->assertSame( 'events', $map['/extrachill/v1/event-submissions'] );
 		$this->assertSame( 'events', $map['/extrachill/v1/partner/'] );
 		$this->assertSame( 'studio', $map['/extrachill/v1/giveaway/'] );

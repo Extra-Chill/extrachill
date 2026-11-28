@@ -32,6 +32,7 @@ function extrachill_api_add_artist_route_affinity( $affinity_map ) {
 	$affinity_map['/extrachill/v1/giveaway/']                  = 'studio';
 	$affinity_map['/extrachill/v1/instagram/']                 = 'studio';
 	$affinity_map['/extrachill/v1/artists/']                   = 'artist';
+	$affinity_map['/extrachill/v1/link-pages/editor-configuration'] = 'artist';
 
 	return $affinity_map;
 }

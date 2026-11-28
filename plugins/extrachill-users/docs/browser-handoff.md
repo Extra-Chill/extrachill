@@ -6,9 +6,9 @@ The browser handoff system lets a user authenticate in a non-browser client (e.g
 
 ### Token creation
 
-- Function: `extrachill_users_create_browser_handoff_token( int $user_id, string $redirect_url ): string`
+- Function: `extrachill_users_create_browser_handoff_token( int $user_id, string $redirect_url, string $browser_state_hash = '' ): string`
 - File: `inc/auth-tokens/browser-handoff-token.php`
-- Storage: `set_site_transient( 'ec_browser_handoff_' . $token, $payload, 60 )`
+- Storage: `set_site_transient( 'ec_browser_handoff_' . hash( 'sha256', $token ), $payload, 60 )`
 - Payload:
   - `user_id` (int)
   - `redirect_url` (string)
@@ -39,11 +39,11 @@ The handler:
 2. Validates the redirect host:
    - Allows `extrachill.com` and `*.extrachill.com`
    - Rejects hosts containing `extrachill.link`
-3. Sets the WordPress auth cookies (`wp_set_auth_cookie( $user_id, false )`).
+3. Establishes a WordPress session, requiring proof that the original session passed 2FA for members who use it.
 4. Adds the redirect host to `allowed_redirect_hosts` for the current request.
 5. Redirects to the requested URL via `wp_safe_redirect()`.
 
 ## Notes
 
 - Tokens expire after **60 seconds**.
-- The cookie is **non-persistent** (`remember = false`) for the handoff cookie set.
+- The handler creates a remembered WordPress session. Browser-bound tokens are rejected by the app endpoint; the [Link Pages SSO](../../extrachill-network/docs/cross-domain-auth.md) validates its initiating browser's state before calling the same session helper.

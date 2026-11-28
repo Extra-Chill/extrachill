@@ -93,7 +93,9 @@ function esc_html__( $text, $domain = 'default' ) {
 	return $text;
 }
 
+$_SERVER['HTTP_HOST'] = $argv[2] ?? 'artist.extrachill.com';
 require dirname( __DIR__ ) . '/extrachill-network.php';
+$early_cookie_domain = defined( 'COOKIE_DOMAIN' ) ? COOKIE_DOMAIN : null;
 
 // Simulate the plugins_loaded hook WordPress would fire.
 extrachill_network_init();
@@ -117,6 +119,7 @@ $providers = $GLOBALS['extrachill_network_feature_providers'] ?? array();
 echo wp_json_encode(
 	array(
 		'foundation_booted'                 => function_exists( 'ec_send_email' ),
+		'early_cookie_domain'              => $early_cookie_domain,
 		'blog_ids_loaded'                   => function_exists( 'ec_get_blog_id' ),
 		'provider_count'                    => count( $providers ),
 		'provider_statuses'                 => array_map(

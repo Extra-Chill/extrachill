@@ -1,16 +1,10 @@
 <?php
 /**
- * Cross-origin write headers for the extrachill.link editor.
+ * Compatibility for cross-origin REST clients using wp.apiFetch.
  *
- * The Link Page editor runs on extrachill.link and saves to the artist site's
- * REST API with a bearer token (see extrachill-link-token-handoff.php). Its
- * saves go through wp.apiFetch, whose built-in httpV1 middleware sends every
- * PUT, PATCH and DELETE as a POST carrying an X-HTTP-Method-Override header.
- * WordPress core honours that header server-side (WP_REST_Server::serve_request)
- * but does not list it in the default Access-Control-Allow-Headers, so the
- * browser rejects the CORS preflight and no editor save ever reaches the
- * server: links, socials and profile info all fail with "Could not get a valid
- * response from the server."
+ * Its httpV1 middleware sends PUT, PATCH and DELETE as POST with the
+ * X-HTTP-Method-Override header. Same-origin Link Page editing no longer
+ * needs this allowance.
  *
  * Allowing the header only widens which request headers an already-allowed
  * origin may send; which origins are allowed is unchanged.

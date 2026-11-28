@@ -2,7 +2,6 @@
  * WordPress dependencies
  */
 import { createElement } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
@@ -30,13 +29,6 @@ const read = async ( artistId ) => {
 		socials: socials.social_links || [],
 	};
 };
-
-const saveBio = ( artistId, bio ) =>
-	apiFetch( {
-		path: '/wp-abilities/v1/abilities/extrachill/save-link-page-settings/run',
-		method: 'POST',
-		data: { input: { artist_id: artistId, bio } },
-	} );
 
 const countLinks = ( sections ) =>
 	( sections || [] ).reduce(
@@ -96,7 +88,7 @@ const save = async ( artistId, draft, { dirtyAreas = [] } = {} ) => {
 		);
 	}
 	if (
-		[ 'links', 'styles', 'settings', 'background' ].some( ( area ) =>
+		[ 'links', 'styles', 'settings', 'background', 'bio' ].some( ( area ) =>
 			dirty.has( area )
 		)
 	) {
@@ -116,10 +108,10 @@ const save = async ( artistId, draft, { dirtyAreas = [] } = {} ) => {
 		if ( dirty.has( 'background' ) ) {
 			pageChanges.background_image_id = draft.page.backgroundImageId;
 		}
+		if ( dirty.has( 'bio' ) ) {
+			pageChanges.bio = draft.page.bio;
+		}
 		tasks.push( updateLinks( artistId, pageChanges ) );
-	}
-	if ( dirty.has( 'bio' ) ) {
-		tasks.push( saveBio( artistId, draft.page.bio ) );
 	}
 	if ( dirty.has( 'socials' ) ) {
 		tasks.push(

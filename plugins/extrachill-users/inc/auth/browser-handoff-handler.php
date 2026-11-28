@@ -44,10 +44,13 @@ function extrachill_users_handle_browser_handoff() {
 		exit;
 	}
 
-	$user_id      = (int) $payload['user_id'];
-	$redirect_url = (string) $payload['redirect_url'];
+	if ( ! empty( $payload['browser_state_hash'] ) ) {
+		status_header( 400 );
+		exit;
+	}
 
-	$user = get_user_by( 'id', $user_id );
+	$redirect_url = (string) $payload['redirect_url'];
+	$user         = get_user_by( 'id', (int) $payload['user_id'] );
 	if ( ! $user ) {
 		status_header( 401 );
 		exit;
@@ -89,20 +92,34 @@ function extrachill_users_handle_browser_handoff() {
 		}
 	);
 
-	$verified_at = isset( $payload['two_factor_verified_at'] ) ? (int) $payload['two_factor_verified_at'] : 0;
-	if ( ! extrachill_users_two_factor_prepare_browser_handoff( $user, $verified_at ) ) {
+	if ( ! extrachill_users_establish_browser_handoff_session( $user, (int) ( $payload['two_factor_verified_at'] ?? 0 ) ) ) {
 		// A Two Factor member whose app session never passed 2FA signs in on
 		// our login page, which asks for the code, then lands on the page.
 		wp_safe_redirect( extrachill_users_browser_handoff_login_url( $redirect_url ) );
 		exit;
 	}
 
+	wp_safe_redirect( $redirect_url );
+	exit;
+}
+
+/**
+ * Establish a session after the caller validates a consumed handoff payload.
+ *
+ * @param WP_User $user User from the validated token.
+ * @param int     $verified_at Two-factor verification timestamp from the token.
+ * @return bool Whether authentication succeeded.
+ */
+function extrachill_users_establish_browser_handoff_session( WP_User $user, int $verified_at ): bool {
+	$user_id = (int) $user->ID;
+	if ( ! extrachill_users_two_factor_prepare_browser_handoff( $user, $verified_at ) ) {
+		return false;
+	}
+
 	wp_set_current_user( $user_id, $user->user_login );
 	wp_set_auth_cookie( $user_id, true );
 	do_action( 'wp_login', $user->user_login, $user );
-
-	wp_safe_redirect( $redirect_url );
-	exit;
+	return true;
 }
 
 /**

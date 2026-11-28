@@ -1,187 +1,67 @@
-/**
- * External dependencies
- */
 const fs = require( 'node:fs' );
 const vm = require( 'node:vm' );
 const assert = require( 'node:assert/strict' );
 
-const source = fs.readFileSync(
-	__dirname + '/../../assets/js/link-page-edit-button.js',
-	'utf8'
-);
-const HANDOFF =
-	'https://artist.example.com/wp-admin/admin-post.php?action=ec_link_token_handoff';
+const source = fs.readFileSync( __dirname + '/../../assets/js/link-page-edit-button.js', 'utf8' );
+const origin = 'https://links.example';
 
-function store( initial = {} ) {
-	const data = { ...initial };
-	return {
-		data,
-		getItem: ( key ) => ( key in data ? data[ key ] : null ),
-		setItem: ( key, value ) => {
-			data[ key ] = String( value );
-		},
-		removeItem: ( key ) => {
-			delete data[ key ];
-		},
-	};
-}
-
-function run( {
-	referrer = '',
-	hash = '',
-	local = {},
-	session = {},
-	cookie = '',
-} = {} ) {
+async function run( { referrer = '', status = 401, cookie = '', attempted = false, canEdit = true } = {} ) {
+	const requests = [];
 	const navigations = [];
-	const fetches = [];
-	const localStorage = store( local );
-	const sessionStorage = store( session );
-	const location = {
-		hash,
-		href: 'https://links.example/band' + hash,
-		pathname: '/band',
-		search: '',
-		assign: ( url ) => navigations.push( url ),
-	};
-	const window = {
-		localStorage,
-		sessionStorage,
-		location,
-		history: { replaceState() {} },
-	};
+	const buttons = [];
 	const document = {
 		readyState: 'complete',
 		referrer,
 		cookie,
 		body: {
 			dataset: {
-				extrchPermissionsApiUrl:
-					'https://artist.example.com/wp-json/perm',
-				extrchTokenHandoffUrl: HANDOFF,
+				extrchPermissionsApiUrl: origin + '/permissions',
+				extrchSessionUrl: origin + '/session',
+				extrchSessionHandoffUrl: origin + '/handoff',
+				extrchNetworkUrl: 'https://example.com/',
 			},
-			appendChild() {},
+			appendChild: ( button ) => buttons.push( button ),
 		},
-		querySelector: () => null,
 		createElement: () => ( { setAttribute() {} } ),
 	};
-	const fetch = ( url, options ) => {
-		fetches.push( { url, options } );
-		return new Promise( () => {} );
+	const window = {
+		location: { origin, pathname: '/band', assign: ( url ) => navigations.push( url ) },
+		sessionStorage: { getItem: () => attempted ? '1' : null, setItem() {}, removeItem() {} },
+		localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
 	};
-	vm.runInNewContext( source, {
-		window,
-		document,
-		fetch,
-		URL,
-		URLSearchParams,
-		Date,
-		JSON,
-	} );
-	return { navigations, fetches, localStorage, sessionStorage, document };
+	const fetch = async ( url, options ) => {
+		requests.push( { url, options } );
+		return url.endsWith( '/session' )
+			? { status, ok: status === 200, json: async () => ( { nonce: 'rest-nonce' } ) }
+			: { ok: true, json: async () => ( { can_edit: canEdit, manage_url: origin + '/edit?link_page=42' } ) };
+	};
+	vm.runInNewContext( source, { window, document, fetch, URL } );
+	await new Promise( setImmediate );
+	return { requests, navigations, buttons };
 }
 
-// Anonymous visitor from anywhere off-network: one page load, no redirect.
-for ( const referrer of [
-	'',
-	'https://www.instagram.com/',
-	'https://l.facebook.com/',
-	'https://links.example/other',
-] ) {
-	const r = run( { referrer } );
-	assert.equal(
-		r.navigations.length,
-		0,
-		'no handoff redirect for referrer ' + JSON.stringify( referrer )
-	);
-	assert.equal(
-		r.sessionStorage.getItem( 'ecLinkEditHandoffAttempted' ),
-		null
-	);
+async function verify() {
+	for ( const referrer of [ '', 'https://other.example/', 'https://example.com.evil.net/' ] ) {
+		const result = await run( { referrer } );
+		assert.equal( result.navigations.length, 0 );
+		assert.equal( result.requests.length, 1 );
+		assert.equal( result.buttons.length, 0 );
+	}
+	const referrer = 'https://artist.example.com/manage/';
+	const result = await run( { referrer } );
+	assert.equal( new URL( result.navigations[ 0 ] ).searchParams.get( 'return' ), origin + '/band' );
+	assert.equal( ( await run( { referrer, attempted: true } ) ).navigations.length, 0 );
+	assert.equal( ( await run( { cookie: 'ec_link_editor=1' } ) ).navigations.length, 1 );
+	assert.equal( ( await run( { cookie: 'not_ec_link_editor=1' } ) ).navigations.length, 0 );
+	const signedIn = await run( { status: 200 } );
+	assert.equal( signedIn.requests[ 1 ].options.credentials, 'same-origin' );
+	assert.equal( signedIn.requests[ 1 ].options.headers[ 'X-WP-Nonce' ], 'rest-nonce' );
+	assert.equal( signedIn.buttons[ 0 ].href, origin + '/edit?link_page=42' );
+	assert.equal( signedIn.navigations.length, 0 );
+	assert.equal( ( await run( { status: 200, canEdit: false } ) ).buttons.length, 0 );
 }
 
-// Lookalike domains are not the host network.
-assert.equal(
-	run( { referrer: 'https://evilexample.com/' } ).navigations.length,
-	0
-);
-assert.equal(
-	run( { referrer: 'https://example.com.evil.net/' } ).navigations.length,
-	0
-);
-
-// Arriving from the host site or its network: handoff once per session.
-for ( const referrer of [
-	'https://artist.example.com/manage/',
-	'https://example.com/',
-	'https://community.example.com/x',
-] ) {
-	const r = run( { referrer } );
-	assert.equal( r.navigations.length, 1, 'handoff for ' + referrer );
-	assert.ok( r.navigations[ 0 ].startsWith( HANDOFF + '&return=' ) );
-	assert.equal(
-		run( { referrer, session: { ecLinkEditHandoffAttempted: '1' } } )
-			.navigations.length,
-		0,
-		'once per session'
-	);
-}
-
-// Token returned by the handoff: stored, browser remembered, permission checked, no redirect.
-const back = run( { hash: '#ec_link_token=abc' } );
-assert.equal( back.navigations.length, 0 );
-assert.equal( back.localStorage.getItem( 'ecLinkEditKnownEditor' ), '1' );
-assert.equal( back.fetches[ 0 ].options.headers.Authorization, 'Bearer abc' );
-
-// Tokenless return (not signed in): no loop, not remembered as an editor.
-const none = run( {
-	hash: '#ec_link_token_none=1',
-	referrer: 'https://artist.example.com/',
+verify().catch( ( error ) => {
+	console.error( error );
+	process.exitCode = 1;
 } );
-assert.equal( none.navigations.length, 0 );
-assert.equal( none.localStorage.getItem( 'ecLinkEditKnownEditor' ), null );
-
-// Known editor whose token expired: handoff again, from any referrer.
-assert.equal(
-	run( {
-		referrer: 'https://www.instagram.com/',
-		local: { ecLinkEditKnownEditor: '1' },
-	} ).navigations.length,
-	1
-);
-
-// Host-primed hint cookie (signed-in artist opening their page directly): handoff.
-assert.equal(
-	run( { cookie: 'a=b; ec_link_editor=1' } ).navigations.length,
-	1
-);
-assert.equal(
-	run( { cookie: 'not_ec_link_editor=1' } ).navigations.length,
-	0,
-	'cookie name must match exactly'
-);
-
-// Tokenless return forgets every editor signal so signed-out browsers stop redirecting.
-const out = run( {
-	hash: '#ec_link_token_none=1',
-	local: { ecLinkEditKnownEditor: '1' },
-	cookie: 'ec_link_editor=1',
-} );
-assert.equal( out.navigations.length, 0 );
-assert.equal( out.localStorage.getItem( 'ecLinkEditKnownEditor' ), null );
-assert.match( out.document.cookie, /^ec_link_editor=; Max-Age=0/ );
-
-// Valid cached token: no redirect, straight to the permission check.
-const cached = run( {
-	local: {
-		ecLinkEditToken: JSON.stringify( {
-			token: 't',
-			expiresAt: Date.now() + 600000,
-		} ),
-	},
-} );
-assert.equal( cached.navigations.length, 0 );
-assert.equal( cached.fetches.length, 1 );
-
-// eslint-disable-next-line no-console
-console.log( 'edit-button handoff tests passed' );
