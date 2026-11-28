@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.14.1] - 2026-11-28
+
+### Fixed
+- render managed section landing pages from code
+
 ## [0.14.0] - 2026-11-28
 
 ### Added
