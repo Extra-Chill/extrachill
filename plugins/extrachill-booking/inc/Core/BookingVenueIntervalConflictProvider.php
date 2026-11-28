@@ -41,6 +41,18 @@ class BookingVenueIntervalConflictProvider {
 		return $conflicts;
 	}
 
+	/**
+	 * Read the current database error after the latest query.
+	 *
+	 * Reading through a call keeps each check bound to the query that just ran.
+	 *
+	 * @phpstan-impure
+	 */
+	private function last_database_error(): string {
+		global $wpdb;
+		return (string) $wpdb->last_error;
+	}
+
 	private function find_booking_conflict( int $venue_id, string $start_at, string $end_at, int $post_id, int $excluded_booking_id, array $candidate_intervals ) {
 		/** @var \wpdb $wpdb */
 		global $wpdb;
@@ -57,11 +69,11 @@ class BookingVenueIntervalConflictProvider {
 		$booking_exact_sql = implode( ' OR ', $booking_exact );
 		$bookings          = BookingSchema::bookings_table();
 		if ( $post_id > 0 ) {
-			$linked = $wpdb->get_row( $wpdb->prepare( "SELECT id, venue_term_id, space_key, performance_start_at, performance_end_at, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE event_id = %d AND status = 'confirmed' LIMIT 1", $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A linked booking may not be silently detached by moving its event.
+			$linked = $wpdb->get_row( $wpdb->prepare( "SELECT id, venue_term_id, space_key, performance_start_at, performance_end_at, 'confirmed_booking' AS conflict_type FROM %i WHERE event_id = %d AND status = 'confirmed' LIMIT 1", $bookings, $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A linked booking may not be silently detached by moving its event.
 			if ( '' !== (string) $wpdb->last_error ) {
 				return new \WP_Error(
 					'canonical_event_booking_conflict_check_failed',
-					__( 'The event-linked booking could not be checked safely.', 'extrachill-events' ),
+					__( 'The event-linked booking could not be checked safely.', 'extrachill-booking' ),
 					array(
 						'status'         => 503,
 						'database_error' => $wpdb->last_error,
@@ -82,12 +94,12 @@ class BookingVenueIntervalConflictProvider {
 			}
 		}
 		$holds       = BookingSchema::holds_table();
-		$hold_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id ), $exact_values );
-		$row         = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, space_key, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND NOT (booking_id = %d AND ({$hold_exact_sql})) LIMIT 1", $hold_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array while the stable venue-wide lock is held.
+		$hold_values = array_merge( array( $holds, $venue_id, $end_at, $start_at, $excluded_booking_id ), $exact_values );
+		$row         = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, space_key, 'hold' AS conflict_type FROM %i WHERE venue_term_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND NOT (booking_id = %d AND ({$hold_exact_sql})) LIMIT 1", $hold_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array while the stable venue-wide lock is held.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error(
 				'canonical_event_booking_conflict_check_failed',
-				__( 'Venue booking holds could not be checked safely.', 'extrachill-events' ),
+				__( 'Venue booking holds could not be checked safely.', 'extrachill-booking' ),
 				array(
 					'status'         => 503,
 					'database_error' => $wpdb->last_error,
@@ -98,12 +110,12 @@ class BookingVenueIntervalConflictProvider {
 			return $row;
 		}
 
-		$booking_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id, $post_id ), $exact_values );
-		$row            = $wpdb->get_row( $wpdb->prepare( "SELECT id, space_key, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE venue_term_id = %d AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND NOT ((id = %d OR event_id = %d) AND ({$booking_exact_sql})) LIMIT 1", $booking_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array; only an exact originating booking is exempt.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$booking_values = array_merge( array( $bookings, $venue_id, $end_at, $start_at, $excluded_booking_id, $post_id ), $exact_values );
+		$row            = $wpdb->get_row( $wpdb->prepare( "SELECT id, space_key, 'confirmed_booking' AS conflict_type FROM %i WHERE venue_term_id = %d AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND NOT ((id = %d OR event_id = %d) AND ({$booking_exact_sql})) LIMIT 1", $booking_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array; only an exact originating booking is exempt.
+		if ( '' !== $this->last_database_error() ) {
 			return new \WP_Error(
 				'canonical_event_booking_conflict_check_failed',
-				__( 'Confirmed venue bookings could not be checked safely.', 'extrachill-events' ),
+				__( 'Confirmed venue bookings could not be checked safely.', 'extrachill-booking' ),
 				array(
 					'status'         => 503,
 					'database_error' => $wpdb->last_error,

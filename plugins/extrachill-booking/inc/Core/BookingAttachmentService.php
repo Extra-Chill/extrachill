@@ -70,7 +70,7 @@ class BookingAttachmentService {
 		$resolved            = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
 		$this->provider      = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
 			? $resolved
-			: new \WP_Error( 'booking_private_storage_invalid_provider', __( 'The private booking file provider is invalid.', 'extrachill-events' ), array( 'status' => 503 ) );
+			: new \WP_Error( 'booking_private_storage_invalid_provider', __( 'The private booking file provider is invalid.', 'extrachill-booking' ), array( 'status' => 503 ) );
 	}
 
 	/**
@@ -141,23 +141,26 @@ class BookingAttachmentService {
 	 * @param bool   $claimed    Whether the provider claim was persisted.
 	 */
 	private function attach_locked( array $booking, array $normalized, string $claim_key, bool &$claimed, bool $trusted_admission = false ) {
+		if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+			return $this->provider;
+		}
 		$metadata = $this->provider->claim( $normalized['storage_reference'], $claim_key, $normalized['purpose'] );
 		if ( is_wp_error( $metadata ) ) {
 			return $metadata;
 		}
 		$claimed = true;
 		if ( ! is_array( $metadata ) ) {
-			return new \WP_Error( 'booking_private_storage_invalid_response', __( 'Private storage returned invalid attachment metadata.', 'extrachill-events' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'booking_private_storage_invalid_response', __( 'Private storage returned invalid attachment metadata.', 'extrachill-booking' ), array( 'status' => 502 ) );
 		}
 		$validated = $this->policy->validate( $metadata, $normalized['purpose'] );
 		if ( is_wp_error( $validated ) ) {
 			return $validated;
 		}
 		if ( BookingAttachmentPolicy::requires_malware_scan( $validated['mime_type'] ) && 'clean' !== ( $metadata['scan_status'] ?? '' ) ) {
-			return new \WP_Error( 'booking_private_scan_required', __( 'This document type requires an approved malware scanner before attachment.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return new \WP_Error( 'booking_private_scan_required', __( 'This document type requires an approved malware scanner before attachment.', 'extrachill-booking' ), array( 'status' => 503 ) );
 		}
 		if ( $this->policy->is_default_denied_filename( $validated['original_filename'] ) ) {
-			return new \WP_Error( 'booking_tax_document_denied', __( 'Tax identity documents require an approved secure vault and are not accepted here.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_tax_document_denied', __( 'Tax identity documents require an approved secure vault and are not accepted here.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 
 		$data                 = array_merge( $normalized, $validated );
@@ -171,7 +174,7 @@ class BookingAttachmentService {
 			return $attachment;
 		}
 		if ( 'active' !== $attachment['state'] ) {
-			return new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer active.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer active.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( $trusted_admission ) {
 			return $attachment;
@@ -203,7 +206,7 @@ class BookingAttachmentService {
 			return $prior;
 		}
 		if ( 'active' !== $prior['state'] ) {
-			return new \WP_Error( 'booking_attachment_inactive', __( 'Only active attachments can be replaced.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_inactive', __( 'Only active attachments can be replaced.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$input['purpose']                = $input['purpose'] ?? $prior['purpose'];
 		$input['replaces_attachment_id'] = $prior['id'];
@@ -252,7 +255,7 @@ class BookingAttachmentService {
 			return is_wp_error( $abandoned )
 				? new \WP_Error(
 					'booking_attachment_replacement_compensation_failed',
-					__( 'Attachment replacement failed and its new reference requires operator recovery.', 'extrachill-events' ),
+					__( 'Attachment replacement failed and its new reference requires operator recovery.', 'extrachill-booking' ),
 					array(
 						'cause'        => $retired->get_error_code(),
 						'compensation' => $abandoned->get_error_code(),
@@ -286,7 +289,7 @@ class BookingAttachmentService {
 			$booking,
 			$actor_id,
 			$attachment['storage_reference'],
-			function () use ( $attachment, $attachment_id, $booking_id, $actor_id ) {
+			function () use ( $attachment_id, $booking_id, $actor_id ) {
 				$retired = $this->attachments->retire( $attachment_id, 'deleted' );
 				if ( is_wp_error( $retired ) ) {
 					return $retired;
@@ -322,7 +325,7 @@ class BookingAttachmentService {
 		$legal_hold     = $policy['legal_hold_callback'] ?? null;
 		$actor_id       = absint( $policy['actor_id'] ?? get_current_user_id() );
 		if ( $retention_days < 1 || ! is_callable( $legal_hold ) || $actor_id < 1 ) {
-			return new \WP_Error( 'booking_attachment_cleanup_policy_required', __( 'Destructive cleanup requires an explicit approved retention and legal-hold policy.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return new \WP_Error( 'booking_attachment_cleanup_policy_required', __( 'Destructive cleanup requires an explicit approved retention and legal-hold policy.', 'extrachill-booking' ), array( 'status' => 503 ) );
 		}
 		$cutoff     = gmdate( 'Y-m-d H:i:s', time() - ( $retention_days * DAY_IN_SECONDS ) );
 		$candidates = $this->attachments->list_retired_before( $cutoff );
@@ -352,10 +355,10 @@ class BookingAttachmentService {
 				function () use ( $reference, $legal_hold, $bookings ) {
 					$locked = $this->attachments->list_by_storage_reference( $reference, true );
 					if ( is_wp_error( $locked ) || empty( $locked ) ) {
-						return is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_attachment_cleanup_uncertain', __( 'Cleanup found no authoritative attachment references.', 'extrachill-events' ) );
+						return is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_attachment_cleanup_uncertain', __( 'Cleanup found no authoritative attachment references.', 'extrachill-booking' ) );
 					}
 					if ( ! $this->same_booking_set( $locked, $bookings ) ) {
-						return new \WP_Error( 'booking_attachment_cleanup_retry_required', __( 'Attachment references changed while cleanup was acquiring locks.', 'extrachill-events' ) );
+						return new \WP_Error( 'booking_attachment_cleanup_retry_required', __( 'Attachment references changed while cleanup was acquiring locks.', 'extrachill-booking' ) );
 					}
 					foreach ( $locked as $attachment ) {
 						$booking = $bookings[ $attachment['booking_id'] ];
@@ -438,9 +441,12 @@ class BookingAttachmentService {
 							);
 						}
 					}
+					if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+						return $this->provider;
+					}
 					$retired = $this->provider->retire( $reference );
 					if ( true !== $retired ) {
-						return is_wp_error( $retired ) ? $retired : new \WP_Error( 'booking_private_retirement_uncertain', __( 'Private object retirement could not be confirmed.', 'extrachill-events' ) );
+						return is_wp_error( $retired ) ? $retired : new \WP_Error( 'booking_private_retirement_uncertain', __( 'Private object retirement could not be confirmed.', 'extrachill-booking' ) );
 					}
 					foreach ( $locked as $attachment ) {
 						$marked = $this->attachments->retire( $attachment['id'], 'purged' );
@@ -456,7 +462,7 @@ class BookingAttachmentService {
 			}
 			if ( is_array( $result ) && ! empty( $result['cancelled'] ) ) {
 				if ( ! empty( $result['error'] ) ) {
-					return new \WP_Error( $result['error'], __( 'Attachment cleanup was cancelled before byte retirement.', 'extrachill-events' ) );
+					return new \WP_Error( $result['error'], __( 'Attachment cleanup was cancelled before byte retirement.', 'extrachill-booking' ) );
 				}
 				continue;
 			}
@@ -487,7 +493,7 @@ class BookingAttachmentService {
 		$claim_cursor       = isset( $continuation['claims'] ) && is_string( $continuation['claims'] ) ? $continuation['claims'] : null;
 		$replacement_cursor = absint( $continuation['replacements'] ?? 0 );
 		if ( $actor_id < 1 || $minimum_age < HOUR_IN_SECONDS ) {
-			return new \WP_Error( 'booking_attachment_reconciliation_policy_required', __( 'Reconciliation requires an explicit actor and minimum crash-age policy.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_reconciliation_policy_required', __( 'Reconciliation requires an explicit actor and minimum crash-age policy.', 'extrachill-booking' ) );
 		}
 		$inspection = $this->provider->inspect_claims( $claim_cursor );
 		if ( is_wp_error( $inspection ) ) {
@@ -541,10 +547,16 @@ class BookingAttachmentService {
 					}
 					foreach ( $current as $attachment ) {
 						if ( hash_equals( (string) $claim['claim_key'], $this->claim_key( $attachment['booking_id'], $attachment['idempotency_key'] ) ) ) {
-							return new \WP_Error( 'booking_attachment_reconciliation_changed', __( 'The claim gained a database reference during reconciliation.', 'extrachill-events' ) );
+							return new \WP_Error( 'booking_attachment_reconciliation_changed', __( 'The claim gained a database reference during reconciliation.', 'extrachill-booking' ) );
 						}
 					}
-					return $repair ? $this->provider->release_claim( (string) $claim['storage_reference'], (string) $claim['claim_key'] ) : true;
+					if ( ! $repair ) {
+						return true;
+					}
+					if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+						return $this->provider;
+					}
+					return $this->provider->release_claim( (string) $claim['storage_reference'], (string) $claim['claim_key'] );
 				}
 			);
 			if ( is_wp_error( $result ) ) {
@@ -596,7 +608,7 @@ class BookingAttachmentService {
 					$current_prior = $this->attachments->get_for_booking( $prior['booking_id'], $prior['id'] );
 					$current_new   = $this->attachments->get_for_booking( $replacement['booking_id'], $replacement['id'] );
 					if ( is_wp_error( $current_prior ) || is_wp_error( $current_new ) || 'active' !== $current_prior['state'] || 'active' !== $current_new['state'] ) {
-						return new \WP_Error( 'booking_attachment_reconciliation_changed', __( 'The replacement changed during reconciliation.', 'extrachill-events' ) );
+						return new \WP_Error( 'booking_attachment_reconciliation_changed', __( 'The replacement changed during reconciliation.', 'extrachill-booking' ) );
 					}
 					if ( ! $repair ) {
 						return true;
@@ -662,7 +674,7 @@ class BookingAttachmentService {
 			return $attachment;
 		}
 		if ( 'active' !== $attachment['state'] ) {
-			return new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-events' ), array( 'status' => 410 ) );
+			return new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-booking' ), array( 'status' => 410 ) );
 		}
 		$actor_id = null === $actor_id ? get_current_user_id() : $actor_id;
 		$booking  = $this->booking( $booking_id );
@@ -677,13 +689,16 @@ class BookingAttachmentService {
 			function () use ( $attachment, $booking, $actor_id, $correlation_id ) {
 				$current = $this->attachments->get_for_booking( $booking['id'], $attachment['id'] );
 				if ( is_wp_error( $current ) || 'active' !== $current['state'] ) {
-					return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-events' ), array( 'status' => 410 ) );
+					return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-booking' ), array( 'status' => 410 ) );
 				}
 				$delivery = $this->deliveries->issue( $correlation_id, $booking['id'], $current['id'], $actor_id, $current['byte_size'] );
 				if ( is_wp_error( $delivery ) ) {
 					return $delivery;
 				}
-				$claim_key  = $this->claim_key( $booking['id'], $current['idempotency_key'] );
+				$claim_key = $this->claim_key( $booking['id'], $current['idempotency_key'] );
+				if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+					return $this->provider;
+				}
 				$descriptor = $this->provider->download_descriptor( $current['storage_reference'], $current['public_id'], $actor_id, $current['purpose'], $claim_key, $correlation_id );
 				if ( is_wp_error( $descriptor ) ) {
 					return $descriptor;
@@ -705,7 +720,7 @@ class BookingAttachmentService {
 			return $descriptor;
 		}
 		if ( ! is_array( $descriptor ) || empty( $descriptor['stream_token'] ) || ! is_string( $descriptor['stream_token'] ) || empty( $descriptor['expires_at'] ) || ! is_string( $descriptor['expires_at'] ) ) {
-			return new \WP_Error( 'booking_private_storage_invalid_response', __( 'Private storage did not return a secure stream handoff.', 'extrachill-events' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'booking_private_storage_invalid_response', __( 'Private storage did not return a secure stream handoff.', 'extrachill-booking' ), array( 'status' => 502 ) );
 		}
 		return array(
 			'stream_token'   => $descriptor['stream_token'],
@@ -740,11 +755,14 @@ class BookingAttachmentService {
 			function () use ( $booking, $attachment_id, $stream_token, $actor_id, $correlation_id, &$opened ) {
 				$attachment = $this->attachments->get_for_booking( $booking['id'], $attachment_id );
 				if ( is_wp_error( $attachment ) || 'active' !== $attachment['state'] ) {
-					return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-events' ), array( 'status' => 410 ) );
+					return is_wp_error( $attachment ) ? $attachment : new \WP_Error( 'booking_attachment_inactive', __( 'The attachment is no longer downloadable.', 'extrachill-booking' ), array( 'status' => 410 ) );
 				}
 				$delivery = $this->deliveries->get( $correlation_id, true );
 				if ( is_wp_error( $delivery ) || ! $this->deliveries->matches( $delivery, $booking['id'], $attachment_id, $actor_id ) ) {
 					return is_wp_error( $delivery ) ? $delivery : $this->deliveries->invalid_binding();
+				}
+				if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+					return $this->provider;
 				}
 				$opened = $this->provider->open_stream( $stream_token, $attachment['public_id'], $actor_id, $attachment['purpose'], $correlation_id );
 				if ( is_wp_error( $opened ) ) {
@@ -776,17 +794,17 @@ class BookingAttachmentService {
 	/** Record one immutable transport outcome after consumption. */
 	public function record_delivery_outcome( int $booking_id, int $attachment_id, string $correlation_id, string $outcome, int $bytes_sent, int $actor_id ) {
 		if ( ! wp_is_uuid( $correlation_id, 4 ) || ! in_array( $outcome, BookingAttachmentDeliveryRepository::OUTCOMES, true ) || $bytes_sent < 0 || ( 'partial' === $outcome && $bytes_sent < 1 ) || ( in_array( $outcome, array( 'failed', 'interrupted' ), true ) && 0 !== $bytes_sent ) ) {
-			return new \WP_Error( 'booking_attachment_delivery_outcome_invalid', __( 'The attachment delivery outcome is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_attachment_delivery_outcome_invalid', __( 'The attachment delivery outcome is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$attachment = $this->attachments->get_for_booking( $booking_id, $attachment_id );
 		if ( is_wp_error( $attachment ) ) {
 			return $attachment;
 		}
 		if ( $bytes_sent > $attachment['byte_size'] ) {
-			return new \WP_Error( 'booking_attachment_delivery_bytes_invalid', __( 'The attachment delivery byte count is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_attachment_delivery_bytes_invalid', __( 'The attachment delivery byte count is invalid.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ( 'completed' === $outcome && $bytes_sent !== $attachment['byte_size'] ) || ( 'partial' === $outcome && $bytes_sent >= $attachment['byte_size'] ) ) {
-			return new \WP_Error( 'booking_attachment_delivery_bytes_incomplete', __( 'Completed delivery requires the full expected byte length.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_delivery_bytes_incomplete', __( 'Completed delivery requires the full expected byte length.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$booking = $this->booking( $booking_id );
 		if ( is_wp_error( $booking ) ) {
@@ -833,7 +851,7 @@ class BookingAttachmentService {
 		}
 		$allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id );
 		if ( true !== $allowed ) {
-			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		$rows = $this->deliveries->list_for_booking( $booking_id, $limit );
 		return is_wp_error( $rows ) ? $rows : array_map( array( $this->deliveries, 'present' ), $rows );
@@ -845,7 +863,7 @@ class BookingAttachmentService {
 		$minimum_age = absint( $policy['minimum_age'] ?? 0 );
 		$repair      = true === ( $policy['repair'] ?? false );
 		if ( $actor_id < 1 || $minimum_age < HOUR_IN_SECONDS ) {
-			return new \WP_Error( 'booking_attachment_delivery_reconciliation_policy_required', __( 'Delivery reconciliation requires an explicit actor and minimum age.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_reconciliation_policy_required', __( 'Delivery reconciliation requires an explicit actor and minimum age.', 'extrachill-booking' ) );
 		}
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $minimum_age );
 		$rows   = $this->deliveries->list_stale( $cutoff );
@@ -912,7 +930,7 @@ class BookingAttachmentService {
 		$actor_id       = absint( $policy['actor_id'] ?? 0 );
 		$retention_days = absint( $policy['retention_days'] ?? 0 );
 		if ( $actor_id < 1 || $retention_days < 30 ) {
-			return new \WP_Error( 'booking_attachment_delivery_retention_policy_required', __( 'Delivery retention requires an explicit actor and at least 30 days.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_retention_policy_required', __( 'Delivery retention requires an explicit actor and at least 30 days.', 'extrachill-booking' ) );
 		}
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( $retention_days * DAY_IN_SECONDS ) );
 		$rows   = $this->deliveries->list_terminal_before( $cutoff );
@@ -933,7 +951,7 @@ class BookingAttachmentService {
 				function () use ( $delivery, $cutoff ) {
 					$current = $this->deliveries->get( $delivery['correlation_id'], true );
 					if ( ! is_array( $current ) || 'terminal' !== $current['state'] || $current['terminal_at'] >= $cutoff ) {
-						return new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'The delivery correlation changed during retention cleanup.', 'extrachill-events' ) );
+						return new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'The delivery correlation changed during retention cleanup.', 'extrachill-booking' ) );
 					}
 					return $this->deliveries->delete_terminal( $current );
 				}
@@ -957,7 +975,7 @@ class BookingAttachmentService {
 	 */
 	private function booking( int $booking_id, bool $include_reservations = false ) {
 		$booking = $this->bookings->get( $booking_id, $include_reservations );
-		return is_wp_error( $booking ) || is_array( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+		return is_wp_error( $booking ) || is_array( $booking ) ? $booking : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -969,21 +987,21 @@ class BookingAttachmentService {
 	private function normalize_input( array $input, array $booking ) {
 		$type = sanitize_key( (string) ( $input['uploader_type'] ?? '' ) );
 		if ( ! in_array( $type, BookingAttachmentPolicy::UPLOADERS, true ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_uploader', __( 'The attachment uploader attribution is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_uploader', __( 'The attachment uploader attribution is invalid.', 'extrachill-booking' ) );
 		}
 		$user_id = empty( $input['uploader_user_id'] ) ? null : absint( $input['uploader_user_id'] );
 		if ( ( 'user' === $type ) !== ( null !== $user_id ) ) {
-			return new \WP_Error( 'invalid_booking_attachment_uploader', __( 'Authenticated uploads require a user identity and anonymous uploads must not claim one.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_uploader', __( 'Authenticated uploads require a user identity and anonymous uploads must not claim one.', 'extrachill-booking' ) );
 		}
 		$term_id    = empty( $input['artist_term_id'] ) ? $booking['artist_term_id'] : absint( $input['artist_term_id'] );
 		$profile_id = empty( $input['artist_profile_id'] ) ? $booking['artist_profile_id'] : absint( $input['artist_profile_id'] );
 		if ( $term_id !== $booking['artist_term_id'] || $profile_id !== $booking['artist_profile_id'] ) {
-			return new \WP_Error( 'booking_attachment_artist_mismatch', __( 'Attachment artist identity must match the booking.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_artist_mismatch', __( 'Attachment artist identity must match the booking.', 'extrachill-booking' ) );
 		}
 		$reference = sanitize_text_field( (string) ( $input['storage_reference'] ?? '' ) );
 		$key       = sanitize_text_field( (string) ( $input['idempotency_key'] ?? '' ) );
 		if ( 1 !== preg_match( '/^[A-Za-z0-9:_-]{24,191}$/', $reference ) || '' === $key || strlen( $key ) > 191 ) {
-			return new \WP_Error( 'invalid_booking_attachment_reference', __( 'Opaque storage and idempotency references are required.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_attachment_reference', __( 'Opaque storage and idempotency references are required.', 'extrachill-booking' ) );
 		}
 		return array(
 			'booking_id'             => $booking['id'],
@@ -1022,9 +1040,9 @@ class BookingAttachmentService {
 			return true;
 		}
 		if ( null === $booking['artist_term_id'] && null === $booking['artist_profile_id'] ) {
-			return new \WP_Error( 'booking_attachment_artist_unresolved', __( 'Attachment reuse requires a canonical artist identity.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'booking_attachment_artist_unresolved', __( 'Attachment reuse requires a canonical artist identity.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
-		return new \WP_Error( 'booking_attachment_reuse_forbidden', __( 'Cross-booking reuse is disabled until canonical artist authority can be proven.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'booking_attachment_reuse_forbidden', __( 'Cross-booking reuse is disabled until canonical artist authority can be proven.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	/**
@@ -1035,7 +1053,7 @@ class BookingAttachmentService {
 	private function request_hash( array $data ): string {
 		unset( $data['request_hash'] );
 		ksort( $data );
-		return hash_hmac( 'sha256', wp_json_encode( $data ), wp_salt( 'auth' ) );
+		return hash_hmac( 'sha256', (string) wp_json_encode( $data ), wp_salt( 'auth' ) );
 	}
 
 	/**
@@ -1064,7 +1082,7 @@ class BookingAttachmentService {
 		if ( isset( $uncertain_locks[ $name ] ) ) {
 			return new \WP_Error(
 				'booking_attachment_reference_lock_uncertain',
-				__( 'This connection has an unresolved private attachment lock.', 'extrachill-events' ),
+				__( 'This connection has an unresolved private attachment lock.', 'extrachill-booking' ),
 				array(
 					'lock_uncertain' => true,
 					'lock_name'      => $name,
@@ -1074,7 +1092,7 @@ class BookingAttachmentService {
 		}
 		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-store object serialization.
 		if ( '' !== (string) $wpdb->last_error || 1 !== (int) $acquired ) {
-			return new \WP_Error( 'booking_attachment_reference_lock_failed', __( 'The private attachment reference could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_reference_lock_failed', __( 'The private attachment reference could not be locked.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return $name;
 	}
@@ -1089,11 +1107,11 @@ class BookingAttachmentService {
 		try {
 			$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases cross-store object serialization.
 		} catch ( \Throwable $throwable ) {
-			return new \WP_Error( 'booking_attachment_reference_unlock_failed', __( 'The private attachment reference lock release could not be confirmed.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
+			return new \WP_Error( 'booking_attachment_reference_unlock_failed', __( 'The private attachment reference lock release could not be confirmed.', 'extrachill-booking' ), array( 'exception' => get_class( $throwable ) ) );
 		}
 		return 1 === (int) $released && '' === (string) $wpdb->last_error
 			? true
-			: new \WP_Error( 'booking_attachment_reference_unlock_failed', __( 'The private attachment reference lock release could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			: new \WP_Error( 'booking_attachment_reference_unlock_failed', __( 'The private attachment reference lock release could not be confirmed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 	}
 
 	/**
@@ -1148,7 +1166,7 @@ class BookingAttachmentService {
 				return $this->quarantine_connection(
 					new \WP_Error(
 						'booking_attachment_reference_unlock_uncertain',
-						is_wp_error( $result ) ? __( 'The attachment operation failed and its connection lock release is uncertain.', 'extrachill-events' ) : __( 'The attachment operation committed but its connection lock release is uncertain.', 'extrachill-events' ),
+						is_wp_error( $result ) ? __( 'The attachment operation failed and its connection lock release is uncertain.', 'extrachill-booking' ) : __( 'The attachment operation committed but its connection lock release is uncertain.', 'extrachill-booking' ),
 						array(
 							'committed'      => ! is_wp_error( $result ),
 							'lock_uncertain' => true,
@@ -1161,16 +1179,6 @@ class BookingAttachmentService {
 			}
 		}
 		return $result;
-	}
-
-	/**
-	 * Lock the current booking and venue membership range, then reauthorize.
-	 *
-	 * @param array    $booking  Previously resolved booking.
-	 * @param int|null $actor_id Acting user, or null for a trusted admission adapter.
-	 */
-	private function lock_and_authorize( array $booking, ?int $actor_id ) {
-		return $this->lock_and_authorize_many( array( $booking['id'] => $booking ), $actor_id );
 	}
 
 	/**
@@ -1191,7 +1199,7 @@ class BookingAttachmentService {
 		foreach ( $venue_ids as $venue_id ) {
 			$rows = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
 			if ( is_wp_error( $rows ) ) {
-				return new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), $rows->get_error_data() );
+				return new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-booking' ), $rows->get_error_data() );
 			}
 			$locked_memberships[ $venue_id ] = (array) $rows;
 		}
@@ -1200,7 +1208,7 @@ class BookingAttachmentService {
 		foreach ( $bookings as $booking ) {
 			$locked = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$bookings_table} WHERE id = %d FOR UPDATE", $booking['id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Global order locks bookings after all authority ranges.
 			if ( '' !== (string) $wpdb->last_error || ! is_array( $locked ) || (int) $locked['venue_term_id'] !== (int) $booking['venue_term_id'] ) {
-				return new \WP_Error( 'booking_attachment_booking_lock_failed', __( 'The booking could not be locked for attachment authorization.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+				return new \WP_Error( 'booking_attachment_booking_lock_failed', __( 'The booking could not be locked for attachment authorization.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 			}
 		}
 		if ( null === $actor_id ) {
@@ -1209,7 +1217,7 @@ class BookingAttachmentService {
 		foreach ( $venue_ids as $venue_id ) {
 			$allowed = ( $this->authorization )( 'ec_access_venue', $venue_id, $actor_id, $locked_memberships[ $venue_id ] );
 			if ( true !== $allowed ) {
-				return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+				return is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 			}
 		}
 		return true;
@@ -1225,7 +1233,7 @@ class BookingAttachmentService {
 		foreach ( $references as $attachment ) {
 			$booking = $this->bookings->get( $attachment['booking_id'] );
 			if ( is_wp_error( $booking ) || ! is_array( $booking ) ) {
-				return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_attachment_reference_booking_missing', __( 'An attachment reference has no authoritative booking.', 'extrachill-events' ) );
+				return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_attachment_reference_booking_missing', __( 'An attachment reference has no authoritative booking.', 'extrachill-booking' ) );
 			}
 			$bookings[ $booking['id'] ] = $booking;
 		}
@@ -1284,6 +1292,9 @@ class BookingAttachmentService {
 			$actor_id,
 			$reference,
 			function () use ( $reference, $claim_key ) {
+				if ( ! $this->provider instanceof BookingPrivateFileProvider ) {
+					return $this->provider;
+				}
 				return $this->provider->release_claim( $reference, $claim_key );
 			}
 		);
@@ -1291,7 +1302,7 @@ class BookingAttachmentService {
 			? $cause
 			: new \WP_Error(
 				'booking_attachment_claim_compensation_failed',
-				__( 'The attachment failed and its private claim requires operator recovery.', 'extrachill-events' ),
+				__( 'The attachment failed and its private claim requires operator recovery.', 'extrachill-booking' ),
 				array(
 					'cause'        => $cause->get_error_code(),
 					'compensation' => is_wp_error( $released ) ? $released->get_error_code() : 'unconfirmed',
@@ -1373,15 +1384,15 @@ class BookingAttachmentService {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Coordinates private metadata and audit writes.
 			$started = $wpdb->query( 'START TRANSACTION' );
 		} catch ( \Throwable $throwable ) {
-			return new \WP_Error( 'booking_attachment_transaction_exception', __( 'The attachment transaction failed unexpectedly.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
+			return new \WP_Error( 'booking_attachment_transaction_exception', __( 'The attachment transaction failed unexpectedly.', 'extrachill-booking' ), array( 'exception' => get_class( $throwable ) ) );
 		}
 		if ( false === $started ) {
-			return new \WP_Error( 'booking_attachment_transaction_failed', __( 'The attachment transaction could not start.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_transaction_failed', __( 'The attachment transaction could not start.', 'extrachill-booking' ) );
 		}
 		try {
 			$result = $callback();
 		} catch ( \Throwable $throwable ) {
-			return $this->rollback_transaction( new \WP_Error( 'booking_attachment_transaction_exception', __( 'The attachment transaction failed unexpectedly.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) ) );
+			return $this->rollback_transaction( new \WP_Error( 'booking_attachment_transaction_exception', __( 'The attachment transaction failed unexpectedly.', 'extrachill-booking' ), array( 'exception' => get_class( $throwable ) ) ) );
 		}
 		if ( is_wp_error( $result ) ) {
 			return $this->rollback_transaction( $result );
@@ -1403,7 +1414,7 @@ class BookingAttachmentService {
 			}
 			$error = new \WP_Error(
 				'booking_attachment_transaction_commit_uncertain',
-				__( 'The attachment transaction outcome could not be confirmed.', 'extrachill-events' ),
+				__( 'The attachment transaction outcome could not be confirmed.', 'extrachill-booking' ),
 				array(
 					'database_error'     => $commit_error,
 					'rollback_confirmed' => false !== $rolled_back,
@@ -1433,7 +1444,7 @@ class BookingAttachmentService {
 		return $this->quarantine_connection(
 			new \WP_Error(
 				'booking_attachment_transaction_rollback_failed',
-				__( 'The attachment transaction could not be rolled back.', 'extrachill-events' ),
+				__( 'The attachment transaction could not be rolled back.', 'extrachill-booking' ),
 				array(
 					'cause'          => $cause->get_error_code(),
 					'database_error' => $wpdb->last_error,
@@ -1453,7 +1464,7 @@ class BookingAttachmentService {
 		$GLOBALS['extrachill_events_booking_database_connection_quarantined'] = true;
 		$closed = false;
 		try {
-			$closed = method_exists( $wpdb, 'close' ) && true === $wpdb->close();
+			$closed = is_object( $wpdb ) && method_exists( $wpdb, 'close' ) && true === $wpdb->close();
 		} catch ( \Throwable $throwable ) {
 			unset( $throwable );
 		}
@@ -1480,7 +1491,7 @@ class BookingAttachmentService {
 	private function connection_quarantined_error(): \WP_Error {
 		return new \WP_Error(
 			'booking_attachment_database_connection_quarantined',
-			__( 'The database connection is unavailable after an uncertain attachment operation.', 'extrachill-events' ),
+			__( 'The database connection is unavailable after an uncertain attachment operation.', 'extrachill-booking' ),
 			array(
 				'connection_quarantined' => true,
 				'recovery'               => 'abort_request_and_reconcile',

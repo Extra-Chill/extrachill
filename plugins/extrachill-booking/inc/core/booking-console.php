@@ -42,7 +42,7 @@ function ec_events_resolve_booking_console_destination( array $booking, array $r
 	$venue_term_id = absint( $booking['venue_term_id'] ?? 0 );
 	$booking_id    = absint( $booking['id'] ?? 0 );
 	if ( $venue_term_id < 1 || $booking_id < 1 || empty( $recipient_ids ) ) {
-		return new WP_Error( 'booking_notification_destination_uncertain', __( 'The booking management destination could not be authorized.', 'extrachill-events' ) );
+		return new WP_Error( 'booking_notification_destination_uncertain', __( 'The booking management destination could not be authorized.', 'extrachill-booking' ) );
 	}
 
 	$locked_active = array();
@@ -54,7 +54,7 @@ function ec_events_resolve_booking_console_destination( array $booking, array $r
 
 	foreach ( array_unique( array_map( 'absint', $recipient_ids ) ) as $recipient_id ) {
 		if ( $recipient_id < 1 || empty( $locked_active[ $recipient_id ] ) || ! user_can( $recipient_id, 'ec_access_venue', $venue_term_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
-			return new WP_Error( 'booking_notification_destination_forbidden', __( 'A booking notification recipient no longer has venue access.', 'extrachill-events' ) );
+			return new WP_Error( 'booking_notification_destination_forbidden', __( 'A booking notification recipient no longer has venue access.', 'extrachill-booking' ) );
 		}
 	}
 
@@ -144,7 +144,7 @@ function ec_events_add_manage_events_avatar_item( array $items, int $user_id ): 
 	}
 	$items[] = array(
 		'id'       => 'manage_events',
-		'label'    => __( 'Manage Events', 'extrachill-events' ),
+		'label'    => __( 'Manage Events', 'extrachill-booking' ),
 		'url'      => ec_events_get_booking_console_url( 0 ),
 		'priority' => 45,
 	);
@@ -173,7 +173,7 @@ function ec_events_add_events_workspace_header_item( array $items ): array {
 	if ( current_user_can( 'manage_options' ) || ec_events_user_has_managed_identity( $user_id ) ) {
 		$items[] = array(
 			'url'      => $workspace_url,
-			'label'    => __( 'Manage Events', 'extrachill-events' ),
+			'label'    => __( 'Manage Events', 'extrachill-booking' ),
 			'priority' => 8,
 		);
 	}
@@ -198,25 +198,25 @@ function ec_events_get_venue_workspace_action_for_state( int $venue_term_id, str
 	if ( 'logged_out' === $state ) {
 		return array(
 			'url'   => wp_login_url( $workspace_url ),
-			'label' => __( 'Sign in to claim or manage', 'extrachill-events' ),
+			'label' => __( 'Sign in to claim or manage', 'extrachill-booking' ),
 		);
 	}
 	if ( 'administrator' === $state ) {
 		return array(
 			'url'   => ec_events_get_venue_claim_review_url( $venue_term_id ),
-			'label' => __( 'Review venue claims', 'extrachill-events' ),
+			'label' => __( 'Review venue claims', 'extrachill-booking' ),
 		);
 	}
 	if ( 'member' === $state ) {
 		return array(
 			'url'   => $workspace_url,
-			'label' => __( 'Manage Venue', 'extrachill-events' ),
+			'label' => __( 'Manage Venue', 'extrachill-booking' ),
 		);
 	}
 	if ( 'non_member' === $state ) {
 		return array(
 			'url'   => $workspace_url,
-			'label' => __( 'Claim or request access', 'extrachill-events' ),
+			'label' => __( 'Claim or request access', 'extrachill-booking' ),
 		);
 	}
 
@@ -273,9 +273,9 @@ function ec_events_render_venue_archive_workspace_action(): void {
 	}
 	?>
 	<details class="venue-workspace-disclosure" data-venue-workspace-action>
-		<summary><?php esc_html_e( 'Own or manage this venue?', 'extrachill-events' ); ?></summary>
+		<summary><?php esc_html_e( 'Own or manage this venue?', 'extrachill-booking' ); ?></summary>
 		<div class="venue-workspace-disclosure__content">
-			<p><?php esc_html_e( 'Venue operators can manage inquiries, calendar details, and team access.', 'extrachill-events' ); ?></p>
+			<p><?php esc_html_e( 'Venue operators can manage inquiries, calendar details, and team access.', 'extrachill-booking' ); ?></p>
 			<a class="button-3 button-small" href="<?php echo esc_url( $action['url'] ); ?>"><?php echo esc_html( $action['label'] ); ?></a>
 		</div>
 	</details>

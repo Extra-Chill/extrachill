@@ -16,6 +16,7 @@ use ExtraChillEvents\Core\BookingSchema;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
+require_once __DIR__ . '/Support/EventTypeTaxonomyStub.php';
 
 final class BookingConversionAbilityFake {
 	public $calls = array();
@@ -32,6 +33,7 @@ final class BookingConversionAbilityFake {
 final class BookingEventConversionTest extends BookingTestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test_filters'] = array();
+		unset( $GLOBALS['ec_test_event_type_vocabulary'] );
 		$GLOBALS['ec_artist_test'] = array(
 			'blog_id'         => 7,
 			'stack'           => array(),
@@ -388,6 +390,30 @@ final class BookingEventConversionTest extends BookingTestCase {
 
 		$this->assertIsArray( $this->service()->convert( $booking['id'], 1, 12 ) );
 		$this->assertSame( 'Event', $ability->calls[0]['event']['eventType'] );
+	}
+
+	/**
+	 * Regression: DME validates eventType against the active vocabulary's term
+	 * names. On Extra Chill that vocabulary is replaced (Concert ... Other), so
+	 * sending the Schema.org type (MusicEvent/Event) was rejected with
+	 * ability_invalid_input and every booking conversion failed.
+	 */
+	public function test_event_type_resolves_to_replaced_site_vocabulary_names(): void {
+		$GLOBALS['ec_test_event_type_vocabulary'] = array(
+			array( 'name' => 'Concert', 'slug' => 'concert', 'schema_type' => 'MusicEvent', 'default' => false ),
+			array( 'name' => 'DJ Set', 'slug' => 'dj-set', 'schema_type' => 'MusicEvent', 'default' => false ),
+			array( 'name' => 'Karaoke', 'slug' => 'karaoke', 'schema_type' => 'Event', 'default' => false ),
+			array( 'name' => 'Other', 'slug' => 'other', 'schema_type' => 'Event', 'default' => true ),
+		);
+		$ability = $GLOBALS['ec_artist_test']['ability_objects']['data-machine-events/upsert-event'];
+		foreach ( array( null => 'Concert', 'Concert' => 'Concert', 'Market' => 'Other', 'other' => 'Other' ) as $intake => $expected ) {
+			$fields  = '' === $intake ? array() : array( 'event_type' => $intake );
+			$booking = $this->booking( array( 'intake' => array( 'fields' => $fields ) ) );
+			$this->assertIsArray( $this->service()->convert( $booking['id'], 1, 12 ) );
+			$sent = end( $ability->calls )['event']['eventType'];
+			$this->assertSame( $expected, $sent, 'intake event_type: ' . var_export( $intake, true ) );
+			$this->assertContains( $sent, \DataMachineEvents\Core\Event_Type_Taxonomy::get_vocabulary_names() );
+		}
 	}
 
 	public function test_recovers_production_created_event_by_source_identity_without_duplication(): void {

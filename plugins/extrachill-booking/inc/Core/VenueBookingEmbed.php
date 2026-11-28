@@ -67,7 +67,7 @@ final class VenueBookingEmbed {
 			status_header( 403 );
 			nocache_headers();
 			self::send_headers();
-			wp_die( esc_html__( 'This venue booking embed is not authorized for that website.', 'extrachill-events' ), esc_html__( 'Booking embed unavailable', 'extrachill-events' ), array( 'response' => 403 ) );
+			wp_die( esc_html__( 'This venue booking embed is not authorized for that website.', 'extrachill-booking' ), esc_html__( 'Booking embed unavailable', 'extrachill-booking' ), array( 'response' => 403 ) );
 		}
 
 		self::$context = array(

@@ -28,7 +28,7 @@ class BookingAttachmentDeliveryRepository {
 	public function issue( string $correlation_id, int $booking_id, int $attachment_id, int $actor_id, int $expected_bytes ) {
 		global $wpdb;
 		if ( ! wp_is_uuid( $correlation_id, 4 ) || $booking_id < 1 || $attachment_id < 1 || $actor_id < 1 || $expected_bytes < 1 ) {
-			return new \WP_Error( 'booking_attachment_delivery_invalid', __( 'The attachment delivery correlation is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_invalid', __( 'The attachment delivery correlation is invalid.', 'extrachill-booking' ) );
 		}
 		$now = gmdate( 'Y-m-d H:i:s' );
 		$row = array(
@@ -47,7 +47,7 @@ class BookingAttachmentDeliveryRepository {
 		);
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private operational ledger write.
 		if ( false === $wpdb->insert( BookingSchema::attachment_deliveries_table(), $row ) ) {
-			return new \WP_Error( 'booking_attachment_delivery_issue_failed', __( 'The attachment delivery correlation could not be saved.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_delivery_issue_failed', __( 'The attachment delivery correlation could not be saved.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return $this->get( $correlation_id );
 	}
@@ -64,7 +64,7 @@ class BookingAttachmentDeliveryRepository {
 		$lock  = $for_update ? ' FOR UPDATE' : '';
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE correlation_id = %s LIMIT 1{$lock}", $correlation_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'The attachment delivery correlation could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'The attachment delivery correlation could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $row ) : null;
 	}
@@ -77,7 +77,7 @@ class BookingAttachmentDeliveryRepository {
 	public function consume( array $delivery ) {
 		global $wpdb;
 		if ( 'issued' !== $delivery['state'] ) {
-			return new \WP_Error( 'booking_attachment_delivery_replayed', __( 'The attachment delivery correlation was already consumed.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_delivery_replayed', __( 'The attachment delivery correlation was already consumed.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$now = gmdate( 'Y-m-d H:i:s' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact compare-and-swap consumption boundary.
@@ -97,7 +97,7 @@ class BookingAttachmentDeliveryRepository {
 			? $this->get( $delivery['correlation_id'] )
 			: new \WP_Error(
 				'booking_attachment_delivery_replayed',
-				__( 'The attachment delivery correlation was already consumed.', 'extrachill-events' ),
+				__( 'The attachment delivery correlation was already consumed.', 'extrachill-booking' ),
 				array(
 					'status'         => 409,
 					'database_error' => $wpdb->last_error,
@@ -115,18 +115,18 @@ class BookingAttachmentDeliveryRepository {
 	public function complete( array $delivery, string $outcome, int $bytes_sent ) {
 		global $wpdb;
 		if ( ! in_array( $outcome, self::OUTCOMES, true ) || $bytes_sent < 0 ) {
-			return new \WP_Error( 'booking_attachment_delivery_outcome_invalid', __( 'The attachment delivery outcome is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_outcome_invalid', __( 'The attachment delivery outcome is invalid.', 'extrachill-booking' ) );
 		}
 		if ( ( 'completed' === $outcome && $bytes_sent !== $delivery['expected_bytes'] ) || ( 'partial' === $outcome && ( $bytes_sent < 1 || $bytes_sent >= $delivery['expected_bytes'] ) ) ) {
-			return new \WP_Error( 'booking_attachment_delivery_bytes_incomplete', __( 'The attachment delivery byte count does not match its terminal outcome.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_delivery_bytes_incomplete', __( 'The attachment delivery byte count does not match its terminal outcome.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( 'terminal' === $delivery['state'] ) {
 			return $delivery['outcome'] === $outcome && $delivery['bytes_sent'] === $bytes_sent
 				? $delivery
-				: new \WP_Error( 'booking_attachment_delivery_outcome_conflict', __( 'The attachment delivery already has a different terminal outcome.', 'extrachill-events' ), array( 'status' => 409 ) );
+				: new \WP_Error( 'booking_attachment_delivery_outcome_conflict', __( 'The attachment delivery already has a different terminal outcome.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( 'consumed' !== $delivery['state'] ) {
-			return new \WP_Error( 'booking_attachment_delivery_not_consumed', __( 'The attachment delivery was not consumed before its outcome.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_attachment_delivery_not_consumed', __( 'The attachment delivery was not consumed before its outcome.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$now = gmdate( 'Y-m-d H:i:s' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact immutable terminal compare-and-swap.
@@ -152,7 +152,7 @@ class BookingAttachmentDeliveryRepository {
 			? $current
 			: new \WP_Error(
 				'booking_attachment_delivery_outcome_conflict',
-				__( 'The attachment delivery outcome changed concurrently.', 'extrachill-events' ),
+				__( 'The attachment delivery outcome changed concurrently.', 'extrachill-booking' ),
 				array(
 					'status'         => 409,
 					'database_error' => $wpdb->last_error,
@@ -168,7 +168,7 @@ class BookingAttachmentDeliveryRepository {
 	public function interrupt_stale( array $delivery ) {
 		global $wpdb;
 		if ( ! in_array( $delivery['state'], array( 'issued', 'consumed' ), true ) ) {
-			return new \WP_Error( 'booking_attachment_delivery_reconciliation_conflict', __( 'The attachment delivery is no longer stale.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_reconciliation_conflict', __( 'The attachment delivery is no longer stale.', 'extrachill-booking' ) );
 		}
 		$now = gmdate( 'Y-m-d H:i:s' );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit stale-delivery reconciliation.
@@ -188,7 +188,7 @@ class BookingAttachmentDeliveryRepository {
 		);
 		return 1 === $updated
 			? $this->get( $delivery['correlation_id'] )
-			: new \WP_Error( 'booking_attachment_delivery_reconciliation_conflict', __( 'The attachment delivery changed during reconciliation.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			: new \WP_Error( 'booking_attachment_delivery_reconciliation_conflict', __( 'The attachment delivery changed during reconciliation.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 	}
 
 	/**
@@ -203,7 +203,7 @@ class BookingAttachmentDeliveryRepository {
 		$limit = max( 1, min( 100, $limit ) );
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE booking_id = %d ORDER BY issued_at DESC, id DESC LIMIT %d", $booking_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded private diagnostics page.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Attachment delivery diagnostics could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Attachment delivery diagnostics could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return array_map( array( $this, 'hydrate' ), (array) $rows );
 	}
@@ -218,7 +218,7 @@ class BookingAttachmentDeliveryRepository {
 		$table = BookingSchema::attachment_deliveries_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE state IN ('issued', 'consumed') AND updated_at < %s ORDER BY id ASC LIMIT 250", $cutoff ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded reconciliation candidates.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Stale attachment deliveries could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Stale attachment deliveries could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return array_map( array( $this, 'hydrate' ), (array) $rows );
 	}
@@ -233,7 +233,7 @@ class BookingAttachmentDeliveryRepository {
 		$table = BookingSchema::attachment_deliveries_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE state = 'terminal' AND terminal_at < %s ORDER BY id ASC LIMIT 250", $cutoff ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded retention candidates.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Attachment delivery retention candidates could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( 'booking_attachment_delivery_read_failed', __( 'Attachment delivery retention candidates could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return array_map( array( $this, 'hydrate' ), (array) $rows );
 	}
@@ -246,7 +246,7 @@ class BookingAttachmentDeliveryRepository {
 	public function delete_terminal( array $delivery ) {
 		global $wpdb;
 		if ( 'terminal' !== $delivery['state'] ) {
-			return new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'Only terminal delivery correlations can be retained out.', 'extrachill-events' ) );
+			return new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'Only terminal delivery correlations can be retained out.', 'extrachill-booking' ) );
 		}
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit policy-gated operational retention.
 		$deleted = $wpdb->delete(
@@ -256,7 +256,7 @@ class BookingAttachmentDeliveryRepository {
 				'state'          => 'terminal',
 			)
 		);
-		return 1 === $deleted ? true : new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'The delivery correlation changed before retention cleanup.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		return 1 === $deleted ? true : new \WP_Error( 'booking_attachment_delivery_retention_conflict', __( 'The delivery correlation changed before retention cleanup.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 	}
 
 	/**
@@ -273,7 +273,7 @@ class BookingAttachmentDeliveryRepository {
 
 	/** Return a generic binding error without disclosing which field mismatched. */
 	public function invalid_binding(): \WP_Error {
-		return new \WP_Error( 'booking_attachment_delivery_invalid', __( 'The attachment delivery correlation is invalid.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return new \WP_Error( 'booking_attachment_delivery_invalid', __( 'The attachment delivery correlation is invalid.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	/**

@@ -40,8 +40,8 @@ class VenueBookingHoldAbilities {
 		wp_register_ability(
 			'extrachill/create-booking-hold',
 			array(
-				'label'               => __( 'Create Booking Hold', 'extrachill-events' ),
-				'description'         => __( 'Create a venue-space hold from a booking persisted selection.', 'extrachill-events' ),
+				'label'               => __( 'Create Booking Hold', 'extrachill-booking' ),
+				'description'         => __( 'Create a venue-space hold from a booking persisted selection.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->create_schema(),
 				'output_schema'       => array(
@@ -64,8 +64,8 @@ class VenueBookingHoldAbilities {
 		wp_register_ability(
 			'extrachill/release-booking-hold',
 			array(
-				'label'               => __( 'Release Booking Hold', 'extrachill-events' ),
-				'description'         => __( 'Release an active booking hold at an expected hold version.', 'extrachill-events' ),
+				'label'               => __( 'Release Booking Hold', 'extrachill-booking' ),
+				'description'         => __( 'Release an active booking hold at an expected hold version.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->release_schema(),
 				'output_schema'       => $this->hold_schema(),
@@ -77,8 +77,8 @@ class VenueBookingHoldAbilities {
 		wp_register_ability(
 			'extrachill/list-booking-holds',
 			array(
-				'label'               => __( 'List Booking Holds', 'extrachill-events' ),
-				'description'         => __( 'List bounded booking holds for one authorized venue.', 'extrachill-events' ),
+				'label'               => __( 'List Booking Holds', 'extrachill-booking' ),
+				'description'         => __( 'List bounded booking holds for one authorized venue.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->list_schema(),
 				'output_schema'       => array(
@@ -109,14 +109,14 @@ class VenueBookingHoldAbilities {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
 			? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	public function can_access_hold( array $input ) {
 		$hold = $this->holds->get( absint( $input['hold_id'] ?? 0 ) );
 		return is_array( $hold )
 			? ( $this->authorization )( 'ec_access_venue', $hold['venue_term_id'], get_current_user_id() )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	public function can_access_venue( array $input ) {

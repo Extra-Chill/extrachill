@@ -112,8 +112,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/create-booking-inquiry',
 			array(
-				'label'               => __( 'Create Booking Inquiry', 'extrachill-events' ),
-				'description'         => __( 'Submit an idempotent venue booking inquiry without creating a WordPress user.', 'extrachill-events' ),
+				'label'               => __( 'Create Booking Inquiry', 'extrachill-booking' ),
+				'description'         => __( 'Submit an idempotent venue booking inquiry without creating a WordPress user.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->inquiry_schema(),
 				'output_schema'       => $this->inquiry_receipt_schema(),
@@ -133,8 +133,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/check-booking-availability',
 			array(
-				'label'               => __( 'Check Booking Availability', 'extrachill-events' ),
-				'description'         => __( 'Return only whether a requested venue-space interval is filled by a confirmed booking or canonical published event.', 'extrachill-events' ),
+				'label'               => __( 'Check Booking Availability', 'extrachill-booking' ),
+				'description'         => __( 'Return only whether a requested venue-space interval is filled by a confirmed booking or canonical published event.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->availability_schema(),
 				'output_schema'       => array(
@@ -159,8 +159,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/list-venue-bookings',
 			array(
-				'label'               => __( 'List Venue Bookings', 'extrachill-events' ),
-				'description'         => __( 'List bounded bookings for one authorized venue.', 'extrachill-events' ),
+				'label'               => __( 'List Venue Bookings', 'extrachill-booking' ),
+				'description'         => __( 'List bounded bookings for one authorized venue.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->list_schema(),
 				'output_schema'       => array(
@@ -195,8 +195,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/get-venue-booking',
 			array(
-				'label'               => __( 'Get Venue Booking', 'extrachill-events' ),
-				'description'         => __( 'Get one booking within the operator\'s exact venue scope.', 'extrachill-events' ),
+				'label'               => __( 'Get Venue Booking', 'extrachill-booking' ),
+				'description'         => __( 'Get one booking within the operator\'s exact venue scope.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $booking_id_input,
 				'output_schema'       => $this->booking_schema(),
@@ -216,8 +216,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/get-venue-booking-activity',
 			array(
-				'label'               => __( 'Get Venue Booking Activity', 'extrachill-events' ),
-				'description'         => __( 'Get the authoritative activity and event synchronization state for one authorized booking.', 'extrachill-events' ),
+				'label'               => __( 'Get Venue Booking Activity', 'extrachill-booking' ),
+				'description'         => __( 'Get the authoritative activity and event synchronization state for one authorized booking.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $booking_id_input,
 				'output_schema'       => $this->activity_schema(),
@@ -237,8 +237,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/transition-venue-booking',
 			array(
-				'label'               => __( 'Transition Venue Booking', 'extrachill-events' ),
-				'description'         => __( 'Apply an explicit booking lifecycle transition at an expected version.', 'extrachill-events' ),
+				'label'               => __( 'Transition Venue Booking', 'extrachill-booking' ),
+				'description'         => __( 'Apply an explicit booking lifecycle transition at an expected version.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -280,8 +280,8 @@ class VenueBookingAbilities {
 		wp_register_ability(
 			'extrachill/bind-venue-booking-artist',
 			array(
-				'label'               => __( 'Bind Venue Booking Artist', 'extrachill-events' ),
-				'description'         => __( 'Bind an unresolved booking to existing canonical artist identities.', 'extrachill-events' ),
+				'label'               => __( 'Bind Venue Booking Artist', 'extrachill-booking' ),
+				'description'         => __( 'Bind an unresolved booking to existing canonical artist identities.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -416,7 +416,7 @@ class VenueBookingAbilities {
 			if ( ! $sync_ability ) {
 				return new \WP_Error(
 					'booking_event_sync_unavailable',
-					__( 'Booking event synchronization is unavailable.', 'extrachill-events' ),
+					__( 'Booking event synchronization is unavailable.', 'extrachill-booking' ),
 					array(
 						'status'    => 503,
 						'retryable' => true,
@@ -479,7 +479,7 @@ class VenueBookingAbilities {
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		if ( ! is_array( $booking ) ) {
-			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 		}
 		return ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() );
 	}
@@ -994,14 +994,5 @@ class VenueBookingAbilities {
 	public function present( array $booking ): array {
 		unset( $booking['inquiry_idempotency_key'], $booking['inquiry_request_hash'], $booking['admission_owner_token'] );
 		return $booking;
-	}
-
-	/** Present only immutable public submission fields. */
-	private function present_receipt( array $booking ): array {
-		return array(
-			'public_id'     => $booking['public_id'],
-			'venue_term_id' => $booking['venue_term_id'],
-			'submitted_at'  => $booking['created_at'],
-		);
 	}
 }

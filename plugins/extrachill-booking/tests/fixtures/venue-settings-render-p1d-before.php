@@ -40,9 +40,9 @@ if ( ! is_user_logged_in() ) {
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 		<div class="ec-block-shell ec-block-shell--depth-0">
 			<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-				<h1><?php esc_html_e( 'Venue settings', 'extrachill-events' ); ?></h1>
-				<p><?php esc_html_e( 'Sign in to manage a venue or request access to an unclaimed profile.', 'extrachill-events' ); ?></p>
-				<a class="button-1" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Sign in', 'extrachill-events' ); ?></a>
+				<h1><?php esc_html_e( 'Venue settings', 'extrachill-booking' ); ?></h1>
+				<p><?php esc_html_e( 'Sign in to manage a venue or request access to an unclaimed profile.', 'extrachill-booking' ); ?></p>
+				<a class="button-1" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Sign in', 'extrachill-booking' ); ?></a>
 			</div>
 		</div>
 	</div>
@@ -54,7 +54,7 @@ if ( ! VenueSchema::is_ready() ) {
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 		<div class="ec-inline-status ec-inline-status--error" role="alert">
-			<?php esc_html_e( 'Venue management is temporarily unavailable. Please try again later.', 'extrachill-events' ); ?>
+			<?php esc_html_e( 'Venue management is temporarily unavailable. Please try again later.', 'extrachill-booking' ); ?>
 		</div>
 	</div>
 	<?php
@@ -217,7 +217,7 @@ $context['link_page_editor_available'] = $editor_available;
 	<div class="ec-venue-settings__root" data-context-id="<?php echo esc_attr( $context_id ); ?>">
 		<div class="ec-block-shell ec-block-shell--depth-0" aria-busy="true">
 			<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-				<p><?php esc_html_e( 'Loading venue settings...', 'extrachill-events' ); ?></p>
+				<p><?php esc_html_e( 'Loading venue settings...', 'extrachill-booking' ); ?></p>
 			</div>
 		</div>
 	</div>

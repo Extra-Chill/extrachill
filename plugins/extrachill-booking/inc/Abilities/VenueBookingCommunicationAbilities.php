@@ -41,8 +41,8 @@ class VenueBookingCommunicationAbilities {
 		wp_register_ability(
 			'extrachill/send-booking-message',
 			array(
-				'label'               => __( 'Send Booking Message', 'extrachill-events' ),
-				'description'         => __( 'Record and delegate an immediate booking message or lifecycle-aware reminder.', 'extrachill-events' ),
+				'label'               => __( 'Send Booking Message', 'extrachill-booking' ),
+				'description'         => __( 'Record and delegate an immediate booking message or lifecycle-aware reminder.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->message_input_schema(),
 				'output_schema'       => array(
@@ -57,8 +57,8 @@ class VenueBookingCommunicationAbilities {
 		wp_register_ability(
 			'extrachill/list-booking-communications',
 			array(
-				'label'               => __( 'List Booking Communications', 'extrachill-events' ),
-				'description'         => __( 'Read the authorized durable correspondence ledger for one booking.', 'extrachill-events' ),
+				'label'               => __( 'List Booking Communications', 'extrachill-booking' ),
+				'description'         => __( 'Read the authorized durable correspondence ledger for one booking.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->booking_id_schema(),
 				'output_schema'       => array(
@@ -74,8 +74,8 @@ class VenueBookingCommunicationAbilities {
 		wp_register_ability(
 			'extrachill/reconcile-booking-message',
 			array(
-				'label'               => __( 'Reconcile Booking Message', 'extrachill-events' ),
-				'description'         => __( 'Recover a missing queued or scheduled receipt from exact Action Scheduler evidence without claiming delivery.', 'extrachill-events' ),
+				'label'               => __( 'Reconcile Booking Message', 'extrachill-booking' ),
+				'description'         => __( 'Recover a missing queued or scheduled receipt from exact Action Scheduler evidence without claiming delivery.', 'extrachill-booking' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $this->intent_id_schema(),
 				'output_schema'       => array(
@@ -94,7 +94,7 @@ class VenueBookingCommunicationAbilities {
 		unset( $input['approval'] );
 		if ( 'required' === $approval ) {
 			if ( ! class_exists( '\DataMachine\Engine\AI\Actions\PendingActionHelper' ) ) {
-				return new \WP_Error( 'booking_message_approval_unavailable', __( 'The approval substrate is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+				return new \WP_Error( 'booking_message_approval_unavailable', __( 'The approval substrate is unavailable.', 'extrachill-booking' ), array( 'status' => 503 ) );
 			}
 			return \DataMachine\Engine\AI\Actions\PendingActionHelper::stage(
 				array(
@@ -147,14 +147,14 @@ class VenueBookingCommunicationAbilities {
 
 	public function can_access_booking( array $input ) {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
-		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		return is_array( $booking ) ? ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], get_current_user_id() ) : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	public function can_access_intent( array $input ) {
 		$intent = ( new \ExtraChillEvents\Core\BookingActivityRepository() )->get( absint( $input['intent_id'] ?? 0 ) );
 		return is_array( $intent ) && 'booking_message_requested' === $intent['kind']
 			? $this->can_access_booking( array( 'booking_id' => $intent['booking_id'] ) )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function message_input_schema(): array {

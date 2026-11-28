@@ -107,7 +107,7 @@ class BookingLifecycle {
 		unset( $data['space_key'], $data['performance_start_at'], $data['performance_end_at'], $data['production'], $data['deal'], $data['confirmed_deal'] );
 		$key = (string) ( $data['idempotency_key'] ?? '' );
 		if ( '' === $key || '' === $owner_token || BookingInquiryAdmissionService::canonical_idempotency_key( $key ) !== $key ) {
-			return new \WP_Error( 'booking_idempotency_key_required', __( 'Inquiry creation requires an idempotency key.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_idempotency_key_required', __( 'Inquiry creation requires an idempotency key.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$venue_id = absint( $data['venue_term_id'] ?? 0 );
 		$hash     = $this->request_hash( $data, $actor_id, $fingerprint_context );
@@ -124,7 +124,7 @@ class BookingLifecycle {
 		}
 		$venue = get_term( $venue_id, 'venue' );
 		if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy ) {
-			return new \WP_Error( 'invalid_booking_config_venue', __( 'A valid Events venue term is required.', 'extrachill-events' ) );
+			return new \WP_Error( 'invalid_booking_config_venue', __( 'A valid Events venue term is required.', 'extrachill-booking' ) );
 		}
 		$started = $this->begin();
 		if ( is_wp_error( $started ) ) {
@@ -133,7 +133,7 @@ class BookingLifecycle {
 		global $wpdb;
 		$locked_venue = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->terms} WHERE term_id = %d FOR UPDATE", $venue_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes inquiry admission with config updates.
 		if ( '' !== (string) $wpdb->last_error || $venue_id !== (int) $locked_venue ) {
-			return $this->rollback( new \WP_Error( 'booking_inquiry_venue_lock_failed', __( 'The venue booking admission state could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) );
+			return $this->rollback( new \WP_Error( 'booking_inquiry_venue_lock_failed', __( 'The venue booking admission state could not be locked.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) );
 		}
 		wp_cache_delete( $venue_id, 'term_meta' );
 		$config = $this->config->get( $venue_id );
@@ -143,10 +143,10 @@ class BookingLifecycle {
 		// Runtime wpdb can report an error independently of the test double's declared default.
 		// @phpstan-ignore notIdentical.alwaysFalse
 		if ( '' !== (string) $wpdb->last_error ) {
-			return $this->rollback( new \WP_Error( 'booking_inquiry_config_read_failed', __( 'The venue booking admission state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) );
+			return $this->rollback( new \WP_Error( 'booking_inquiry_config_read_failed', __( 'The venue booking admission state could not be read.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) );
 		}
 		if ( empty( $config['enabled'] ) ) {
-			return $this->rollback( new \WP_Error( 'booking_inquiry_admission_disabled', __( 'This venue is not accepting booking inquiries.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+			return $this->rollback( new \WP_Error( 'booking_inquiry_admission_disabled', __( 'This venue is not accepting booking inquiries.', 'extrachill-booking' ), array( 'status' => 403 ) ) );
 		}
 		$intake = $this->validate_public_intake( $data['intake'] ?? array(), $config );
 		if ( is_wp_error( $intake ) ) {
@@ -178,7 +178,7 @@ class BookingLifecycle {
 			}
 			return is_array( $winner )
 				? $this->resolve_retry( $winner, $hash )
-				: new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+				: new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-booking' ), array( 'database_error' => $database_error ) );
 		}
 		if ( is_wp_error( $booking ) ) {
 			return $this->rollback( $booking );
@@ -190,23 +190,23 @@ class BookingLifecycle {
 	/** Validate the revision, consent, and configured public field values. */
 	private function validate_public_intake( $intake, array $config ) {
 		if ( ! is_array( $intake ) ) {
-			return new \WP_Error( 'booking_inquiry_invalid_intake', __( 'A valid booking inquiry is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_inquiry_invalid_intake', __( 'A valid booking inquiry is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		// Existing operator and integration callers predate the public projection.
 		if ( ! array_key_exists( 'config_revision', $intake ) ) {
 			return $intake;
 		}
 		if ( (int) ( $intake['config_revision'] ?? -1 ) !== (int) $config['revision'] ) {
-			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$message = sanitize_textarea_field( (string) ( $intake['message'] ?? '' ) );
 		if ( '' === $message || mb_strlen( $message ) > 10000 ) {
-			return new \WP_Error( 'booking_inquiry_message_invalid', __( 'Tell the venue about the proposed performance.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_inquiry_message_invalid', __( 'Tell the venue about the proposed performance.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$submitted_consent = is_array( $intake['consent'] ?? null ) ? $intake['consent'] : array();
 		$consent           = $config['consent'];
 		if ( ( $submitted_consent['id'] ?? '' ) !== $consent['id'] || (int) ( $submitted_consent['version'] ?? 0 ) !== (int) $consent['version'] || ( $consent['required'] && true !== ( $submitted_consent['accepted'] ?? false ) ) ) {
-			return new \WP_Error( 'booking_inquiry_consent_invalid', __( 'Current booking consent is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_inquiry_consent_invalid', __( 'Current booking consent is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		$values     = is_array( $intake['fields'] ?? null ) ? $intake['fields'] : array();
 		$normalized = array();
@@ -227,7 +227,7 @@ class BookingLifecycle {
 				if ( '' !== (string) $value && ( '' === $sanitized || ! in_array( $scheme, array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) ) {
 					return new \WP_Error(
 						'booking_inquiry_field_invalid',
-						__( 'A configured booking field is invalid.', 'extrachill-events' ),
+						__( 'A configured booking field is invalid.', 'extrachill-booking' ),
 						array(
 							'status' => 400,
 							'field'  => $field['key'],
@@ -241,7 +241,7 @@ class BookingLifecycle {
 			if ( $field['required'] && '' === $value ) {
 				return new \WP_Error(
 					'booking_inquiry_field_required',
-					__( 'A required booking field is missing.', 'extrachill-events' ),
+					__( 'A required booking field is missing.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field['key'],
@@ -251,7 +251,7 @@ class BookingLifecycle {
 			if ( 'select' === $field['type'] && '' !== $value && ! in_array( $value, $field['options'], true ) ) {
 				return new \WP_Error(
 					'booking_inquiry_field_invalid',
-					__( 'A configured booking field is invalid.', 'extrachill-events' ),
+					__( 'A configured booking field is invalid.', 'extrachill-booking' ),
 					array(
 						'status' => 400,
 						'field'  => $field['key'],
@@ -298,7 +298,7 @@ class BookingLifecycle {
 		}
 		$locked = $this->bookings->get_for_update( (int) ( $booking['id'] ?? 0 ), true );
 		if ( ! is_array( $locked ) || empty( $locked['inquiry_idempotency_key'] ) ) {
-			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_inquiry_publication_invalid', __( 'The admitted inquiry could not be published.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_inquiry_publication_invalid', __( 'The admitted inquiry could not be published.', 'extrachill-booking' ) ) );
 		}
 		$key      = 'inquiry:' . $locked['inquiry_idempotency_key'];
 		$existing = $this->activity->find_by_idempotency( $locked['id'], $key );
@@ -316,7 +316,7 @@ class BookingLifecycle {
 		$owner_token = $booking['admission_owner_token'] ?? null;
 		$version     = (int) ( $booking['version'] ?? 0 );
 		if ( 'admission_pending' !== $locked['status'] || empty( $locked['admission_owner_token'] ) || $owner_token !== $locked['admission_owner_token'] || $version !== (int) $locked['version'] ) {
-			return $this->rollback( new \WP_Error( 'booking_inquiry_publication_invalid', __( 'Only the owned inquiry reservation can be published.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_inquiry_publication_invalid', __( 'Only the owned inquiry reservation can be published.', 'extrachill-booking' ) ) );
 		}
 		$locked = $this->bookings->publish_admission( $locked );
 		if ( is_wp_error( $locked ) ) {
@@ -357,7 +357,7 @@ class BookingLifecycle {
 		}
 		$current = $this->bookings->get_for_update( (int) $booking['id'], true );
 		if ( ! is_array( $current ) || 'admission_pending' !== $current['status'] || ( $current['admission_owner_token'] ?? null ) !== ( $booking['admission_owner_token'] ?? null ) || (int) $current['version'] !== (int) $booking['version'] ) {
-			return $this->rollback( new \WP_Error( 'booking_inquiry_compensation_invalid', __( 'The inquiry reservation changed before compensation.', 'extrachill-events' ) ) );
+			return $this->rollback( new \WP_Error( 'booking_inquiry_compensation_invalid', __( 'The inquiry reservation changed before compensation.', 'extrachill-booking' ) ) );
 		}
 		$activity = $this->activity->discard_for_booking( (int) $booking['id'] );
 		$discard  = is_wp_error( $activity ) ? $activity : $this->bookings->discard_inquiry( $current );
@@ -379,7 +379,7 @@ class BookingLifecycle {
 	public function bind_artist( int $booking_id, $artist_term_id, $artist_profile_id, int $expected_version, int $actor_id ) {
 		$current = $this->bookings->get( $booking_id );
 		if ( is_wp_error( $current ) || null === $current ) {
-			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		$current = $this->holds->reconcile_booking( $current );
 		if ( is_wp_error( $current ) ) {
@@ -391,10 +391,10 @@ class BookingLifecycle {
 		$term_id    = null === $artist_term_id ? null : absint( $artist_term_id );
 		$profile_id = null === $artist_profile_id ? null : absint( $artist_profile_id );
 		if ( null === $term_id && null === $profile_id ) {
-			return new \WP_Error( 'booking_artist_binding_required', __( 'An artist term or profile is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'booking_artist_binding_required', __( 'An artist term or profile is required.', 'extrachill-booking' ), array( 'status' => 400 ) );
 		}
 		if ( ( $current['artist_term_id'] && null !== $term_id && $current['artist_term_id'] !== $term_id ) || ( $current['artist_profile_id'] && null !== $profile_id && $current['artist_profile_id'] !== $profile_id ) ) {
-			return new \WP_Error( 'booking_artist_already_bound', __( 'Existing booking artist bindings cannot be replaced implicitly.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_artist_already_bound', __( 'Existing booking artist bindings cannot be replaced implicitly.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		$started = $this->begin_authorized( $current, $actor_id );
 		if ( is_wp_error( $started ) ) {
@@ -402,7 +402,7 @@ class BookingLifecycle {
 		}
 		$locked = $this->bookings->get_for_update( $booking_id );
 		if ( ! is_array( $locked ) ) {
-			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) ) );
 		}
 		if ( (int) $locked['version'] !== $expected_version ) {
 			return $this->rollback( $this->version_conflict( $locked ) );
@@ -412,10 +412,10 @@ class BookingLifecycle {
 			return $this->rollback( $conversion );
 		}
 		if ( null !== $locked['event_id'] ) {
-			return $this->rollback( new \WP_Error( 'booking_event_artist_frozen', __( 'Public event performer identity is frozen; use the event correction path to synchronize artist changes.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'booking_event_artist_frozen', __( 'Public event performer identity is frozen; use the event correction path to synchronize artist changes.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		if ( ( $locked['artist_term_id'] && null !== $term_id && $locked['artist_term_id'] !== $term_id ) || ( $locked['artist_profile_id'] && null !== $profile_id && $locked['artist_profile_id'] !== $profile_id ) ) {
-			return $this->rollback( new \WP_Error( 'booking_artist_already_bound', __( 'Existing booking artist bindings cannot be replaced implicitly.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( new \WP_Error( 'booking_artist_already_bound', __( 'Existing booking artist bindings cannot be replaced implicitly.', 'extrachill-booking' ), array( 'status' => 409 ) ) );
 		}
 		$changes = array();
 		if ( null !== $term_id ) {
@@ -460,7 +460,7 @@ class BookingLifecycle {
 	public function transition( int $booking_id, string $to_status, int $expected_version, int $actor_id, ?string $note = null ) {
 		$current = $this->bookings->get( $booking_id );
 		if ( is_wp_error( $current ) || null === $current ) {
-			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+			return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) );
 		}
 		$current = $this->holds->reconcile_booking( $current );
 		if ( is_wp_error( $current ) ) {
@@ -494,16 +494,16 @@ class BookingLifecycle {
 	 */
 	private static function status_label( string $status ): string {
 		$labels = array(
-			'submitted'    => __( 'submitted', 'extrachill-events' ),
-			'needs_info'   => __( 'needs info', 'extrachill-events' ),
-			'under_review' => __( 'under review', 'extrachill-events' ),
-			'negotiating'  => __( 'negotiating', 'extrachill-events' ),
-			'held'         => __( 'held', 'extrachill-events' ),
-			'confirmed'    => __( 'confirmed', 'extrachill-events' ),
-			'declined'     => __( 'declined', 'extrachill-events' ),
-			'withdrawn'    => __( 'withdrawn', 'extrachill-events' ),
-			'cancelled'    => __( 'cancelled', 'extrachill-events' ),
-			'completed'    => __( 'completed', 'extrachill-events' ),
+			'submitted'    => __( 'submitted', 'extrachill-booking' ),
+			'needs_info'   => __( 'needs info', 'extrachill-booking' ),
+			'under_review' => __( 'under review', 'extrachill-booking' ),
+			'negotiating'  => __( 'negotiating', 'extrachill-booking' ),
+			'held'         => __( 'held', 'extrachill-booking' ),
+			'confirmed'    => __( 'confirmed', 'extrachill-booking' ),
+			'declined'     => __( 'declined', 'extrachill-booking' ),
+			'withdrawn'    => __( 'withdrawn', 'extrachill-booking' ),
+			'cancelled'    => __( 'cancelled', 'extrachill-booking' ),
+			'completed'    => __( 'completed', 'extrachill-booking' ),
 		);
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : $status;
 	}
@@ -532,13 +532,13 @@ class BookingLifecycle {
 				$available
 					? sprintf(
 						/* translators: 1: current booking status, 2: comma-separated list of available statuses. */
-						__( 'This booking is %1$s, so it cannot move there yet. You can move it to %2$s.', 'extrachill-events' ),
+						__( 'This booking is %1$s, so it cannot move there yet. You can move it to %2$s.', 'extrachill-booking' ),
 						self::status_label( $from_status ),
 						self::status_list( $available )
 					)
 					: sprintf(
 						/* translators: %s: current booking status. */
-						__( 'This booking is %s and cannot be changed any further.', 'extrachill-events' ),
+						__( 'This booking is %s and cannot be changed any further.', 'extrachill-booking' ),
 						self::status_label( $from_status )
 					),
 				array(
@@ -549,18 +549,18 @@ class BookingLifecycle {
 			);
 		}
 		if ( 'held' === $to_status && ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) ) {
-			return new \WP_Error( 'booking_hold_selection_required', __( 'Save the set time and space for this booking before holding the date.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_hold_selection_required', __( 'Save the set time and space for this booking before holding the date.', 'extrachill-booking' ), array( 'status' => 409 ) );
 		}
 		if ( 'confirmed' === $to_status ) {
 			if ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) {
-				return new \WP_Error( 'booking_confirmation_selection_required', __( 'Save the set time and space for this booking before confirming the show.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_confirmation_selection_required', __( 'Save the set time and space for this booking before confirming the show.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			if ( empty( $booking['deal']['data'] ) ) {
-				return new \WP_Error( 'booking_confirmation_deal_required', __( 'Add the agreed deal terms before confirming the show.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_confirmation_deal_required', __( 'Add the agreed deal terms before confirming the show.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			$normalized_deal = BookingMutationService::normalize_deal_document( $booking['deal']['data'] );
 			if ( is_wp_error( $normalized_deal ) || ! BookingMutationService::documents_equal( $normalized_deal, $booking['deal']['data'] ) ) {
-				return new \WP_Error( 'booking_confirmation_deal_invalid', __( 'Confirmation requires a normalized complete draft deal.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_confirmation_deal_invalid', __( 'Confirmation requires a normalized complete draft deal.', 'extrachill-booking' ), array( 'status' => 409 ) );
 			}
 			return true;
 		}
@@ -585,7 +585,7 @@ class BookingLifecycle {
 		}
 		$locked = $this->bookings->get_for_update( $current['id'] );
 		if ( ! is_array( $locked ) ) {
-			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) ) );
+			return $this->rollback( is_wp_error( $locked ) ? $locked : new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) ) );
 		}
 		if ( (int) $locked['version'] !== $expected_version ) {
 			return $this->rollback( $this->version_conflict( $locked ) );
@@ -617,15 +617,15 @@ class BookingLifecycle {
 		$query    = "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE id = %d AND version = %d'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Internal columns and current-prefix table.
 		$result   = $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
 		if ( false === $result ) {
-			return $this->rollback( new \WP_Error( 'booking_update_failed', __( 'The booking could not be updated.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) );
+			return $this->rollback( new \WP_Error( 'booking_update_failed', __( 'The booking could not be updated.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) ) );
 		}
 		if ( 0 === $result ) {
 			$latest = $this->bookings->get( $current['id'] );
 			$error  = null === $latest
-				? new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) )
+				? new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-booking' ) )
 				: new \WP_Error(
 					'booking_version_conflict',
-					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ),
 					array(
 						'status'          => 409,
 						'current_version' => is_array( $latest ) ? $latest['version'] : null,
@@ -662,7 +662,7 @@ class BookingLifecycle {
 			return $state;
 		}
 		return $state['pending']
-			? new \WP_Error( 'booking_event_conversion_pending', __( 'The booking cannot change while event conversion is pending.', 'extrachill-events' ), array( 'status' => 409 ) )
+			? new \WP_Error( 'booking_event_conversion_pending', __( 'The booking cannot change while event conversion is pending.', 'extrachill-booking' ), array( 'status' => 409 ) )
 			: true;
 	}
 
@@ -671,7 +671,7 @@ class BookingLifecycle {
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
 		return false === $wpdb->query( 'START TRANSACTION' )
-			? new \WP_Error( 'booking_transaction_start_failed', __( 'The booking transaction could not be started.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) )
+			? new \WP_Error( 'booking_transaction_start_failed', __( 'The booking transaction could not be started.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) )
 			: true;
 	}
 
@@ -682,7 +682,7 @@ class BookingLifecycle {
 		if ( false !== $wpdb->query( 'COMMIT' ) ) {
 			return true;
 		}
-		return new \WP_Error( 'booking_transaction_commit_uncertain', __( 'The booking transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		return new \WP_Error( 'booking_transaction_commit_uncertain', __( 'The booking transaction outcome could not be confirmed.', 'extrachill-booking' ), array( 'database_error' => $wpdb->last_error ) );
 	}
 
 	/**
@@ -696,7 +696,7 @@ class BookingLifecycle {
 		if ( false === $wpdb->query( 'ROLLBACK' ) ) {
 			return new \WP_Error(
 				'booking_transaction_rollback_failed',
-				__( 'The booking transaction could not be rolled back.', 'extrachill-events' ),
+				__( 'The booking transaction could not be rolled back.', 'extrachill-booking' ),
 				array(
 					'database_error' => $wpdb->last_error,
 					'cause'          => $cause->get_error_code(),
@@ -714,7 +714,7 @@ class BookingLifecycle {
 	private function version_conflict( array $current ): \WP_Error {
 		return new \WP_Error(
 			'booking_version_conflict',
-			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-booking' ),
 			array(
 				'status'          => 409,
 				'current_version' => $current['version'],
@@ -736,11 +736,11 @@ class BookingLifecycle {
 		}
 		$locked = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
 		if ( is_wp_error( $locked ) ) {
-			return $this->rollback( new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), $locked->get_error_data() ) );
+			return $this->rollback( new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-booking' ), $locked->get_error_data() ) );
 		}
 		$actor_allowed = ( $this->authorization )( 'ec_access_venue', $booking['venue_term_id'], $actor_id, (array) $locked );
 		if ( true !== $actor_allowed ) {
-			return $this->rollback( is_wp_error( $actor_allowed ) ? $actor_allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );
+			return $this->rollback( is_wp_error( $actor_allowed ) ? $actor_allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) ) );
 		}
 		return true;
 	}
@@ -755,7 +755,7 @@ class BookingLifecycle {
 		$stored_hash = (string) ( $booking['inquiry_request_hash'] ?? '' );
 		return 64 === strlen( $stored_hash ) && hash_equals( $stored_hash, $request_hash )
 			? $booking
-			: new \WP_Error( 'booking_idempotency_conflict', __( 'The idempotency key was already used for a different request.', 'extrachill-events' ), array( 'status' => 409 ) );
+			: new \WP_Error( 'booking_idempotency_conflict', __( 'The idempotency key was already used for a different request.', 'extrachill-booking' ), array( 'status' => 409 ) );
 	}
 
 	/**
@@ -776,7 +776,7 @@ class BookingLifecycle {
 		}
 		$json = wp_json_encode( $payload );
 		return false === $json
-			? new \WP_Error( 'booking_request_hash_failed', __( 'The booking request could not be fingerprinted.', 'extrachill-events' ) )
+			? new \WP_Error( 'booking_request_hash_failed', __( 'The booking request could not be fingerprinted.', 'extrachill-booking' ) )
 			: hash_hmac( 'sha256', $json, wp_salt( 'auth' ) );
 	}
 

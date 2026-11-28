@@ -99,11 +99,12 @@ class BookingSchema {
 		global $wpdb;
 		$schema_lock = null;
 		$lock_guard  = null;
-		if ( isset( $wpdb->dbh ) && $wpdb->dbh instanceof \mysqli ) {
-			$schema_lock = 'ec_booking_schema_' . substr( hash( 'sha256', (string) DB_NAME . "\0" . $wpdb->prefix ), 0, 40 );
+		$connection  = $wpdb->dbh ?? null;
+		if ( $connection instanceof \mysqli ) {
+			$schema_lock = 'ec_booking_schema_' . substr( hash( 'sha256', ( defined( 'DB_NAME' ) ? (string) DB_NAME : '' ) . "\0" . $wpdb->prefix ), 0, 40 );
 			$acquired    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 30)', $schema_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes concurrent installers for this site prefix.
 			if ( 1 !== (int) $acquired ) {
-				return new \WP_Error( 'booking_schema_lock_failed', __( 'The booking schema installer could not acquire its site lock.', 'extrachill-events' ) );
+				return new \WP_Error( 'booking_schema_lock_failed', __( 'The booking schema installer could not acquire its site lock.', 'extrachill-booking' ) );
 			}
 			$lock_guard = new class( $wpdb, $schema_lock ) {
 				/** Database session holding the advisory lock.
@@ -525,7 +526,7 @@ class BookingSchema {
 		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $communication_state_error || '' !== $attachments_error || '' !== $deliveries_error || '' !== $holds_error || '' !== $ticket_sources_error || '' !== $sales_reports_error || '' !== $sales_resolutions_error || '' !== $settlements_error || '' !== $show_settlements_error || '' !== $show_actions_error ) {
 			$error = new \WP_Error(
 				'booking_schema_dbdelta_failed',
-				__( 'The booking schema could not be reconciled.', 'extrachill-events' ),
+				__( 'The booking schema could not be reconciled.', 'extrachill-booking' ),
 				array(
 					'bookings_error'            => $bookings_error,
 					'activity_error'            => $activity_error,
@@ -584,22 +585,22 @@ class BookingSchema {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation health cannot be cached.
 			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect the booking tables.', 'extrachill-events' ), $table );
+				return self::database_error( __( 'Could not inspect the booking tables.', 'extrachill-booking' ), $table );
 			}
 			if ( $found !== $table ) {
-				return new \WP_Error( 'booking_schema_table_missing', __( 'A required booking table is missing.', 'extrachill-events' ), array( 'table' => $table ) );
+				return new \WP_Error( 'booking_schema_table_missing', __( 'A required booking table is missing.', 'extrachill-booking' ), array( 'table' => $table ) );
 			}
 			if ( isset( $contract['engine'] ) ) {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation health cannot be cached.
 				$status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table ), ARRAY_A );
-				if ( '' !== (string) $wpdb->last_error ) {
-					return self::database_error( __( 'Could not inspect the booking table engine.', 'extrachill-events' ), $table );
+				if ( '' !== self::last_database_error() ) {
+					return self::database_error( __( 'Could not inspect the booking table engine.', 'extrachill-booking' ), $table );
 				}
 				$engine = strtolower( (string) ( $status['Engine'] ?? '' ) );
 				if ( $contract['engine'] !== $engine ) {
 					return new \WP_Error(
 						'booking_schema_engine_invalid',
-						__( 'A booking table does not use the required transactional engine.', 'extrachill-events' ),
+						__( 'A booking table does not use the required transactional engine.', 'extrachill-booking' ),
 						array(
 							'table'    => $table,
 							'expected' => $contract['engine'],
@@ -610,8 +611,8 @@ class BookingSchema {
 			}
 
 			$columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
-			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect booking columns.', 'extrachill-events' ), $table );
+			if ( '' !== self::last_database_error() ) {
+				return self::database_error( __( 'Could not inspect booking columns.', 'extrachill-booking' ), $table );
 			}
 			$found_columns = array();
 			foreach ( (array) $columns as $column ) {
@@ -621,7 +622,7 @@ class BookingSchema {
 				if ( ! isset( $found_columns[ $name ] ) ) {
 					return new \WP_Error(
 						'booking_schema_columns_missing',
-						__( 'A required booking column is missing.', 'extrachill-events' ),
+						__( 'A required booking column is missing.', 'extrachill-booking' ),
 						array(
 							'table'  => $table,
 							'column' => $name,
@@ -632,7 +633,7 @@ class BookingSchema {
 					if ( $required_value !== $found_columns[ $name ][ $attribute ] ) {
 						return new \WP_Error(
 							'booking_schema_column_invalid',
-							__( 'A required booking column has incompatible attributes.', 'extrachill-events' ),
+							__( 'A required booking column has incompatible attributes.', 'extrachill-booking' ),
 							array(
 								'table'     => $table,
 								'column'    => $name,
@@ -648,7 +649,7 @@ class BookingSchema {
 				if ( isset( $found_columns[ $name ] ) ) {
 					return new \WP_Error(
 						'booking_schema_obsolete_column_present',
-						__( 'An obsolete booking column is still present.', 'extrachill-events' ),
+						__( 'An obsolete booking column is still present.', 'extrachill-booking' ),
 						array(
 							'table'  => $table,
 							'column' => $name,
@@ -658,15 +659,15 @@ class BookingSchema {
 			}
 
 			$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
-			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect booking indexes.', 'extrachill-events' ), $table );
+			if ( '' !== self::last_database_error() ) {
+				return self::database_error( __( 'Could not inspect booking indexes.', 'extrachill-booking' ), $table );
 			}
 			$found_indexes = self::normalize_indexes( (array) $indexes );
 			foreach ( $contract['absent_indexes'] ?? array() as $name ) {
 				if ( isset( $found_indexes[ $name ] ) ) {
 					return new \WP_Error(
 						'booking_schema_obsolete_index_present',
-						__( 'An obsolete booking index is still present.', 'extrachill-events' ),
+						__( 'An obsolete booking index is still present.', 'extrachill-booking' ),
 						array(
 							'table' => $table,
 							'index' => $name,
@@ -678,7 +679,7 @@ class BookingSchema {
 				if ( ! isset( $found_indexes[ $name ] ) || $required_index !== $found_indexes[ $name ] ) {
 					return new \WP_Error(
 						'booking_schema_index_missing',
-						__( 'A required booking index is missing or invalid.', 'extrachill-events' ),
+						__( 'A required booking index is missing or invalid.', 'extrachill-booking' ),
 						array(
 							'table'      => $table,
 							'index'      => $name,
@@ -696,6 +697,18 @@ class BookingSchema {
 		return true === self::health();
 	}
 
+	/**
+	 * Read the current database error after the latest query.
+	 *
+	 * Reading through a call keeps each check bound to the query that just ran.
+	 *
+	 * @phpstan-impure
+	 */
+	private static function last_database_error(): string {
+		global $wpdb;
+		return (string) $wpdb->last_error;
+	}
+
 	/** Drop only required same-name indexes whose definitions block dbDelta repair. */
 	private static function drop_conflicting_indexes() {
 		global $wpdb;
@@ -704,14 +717,14 @@ class BookingSchema {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation repair cannot be cached.
 			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
 			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect booking tables before repair.', 'extrachill-events' ), $table );
+				return self::database_error( __( 'Could not inspect booking tables before repair.', 'extrachill-booking' ), $table );
 			}
 			if ( $found !== $table ) {
 				continue;
 			}
 			$indexes = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
-			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect booking indexes before repair.', 'extrachill-events' ), $table );
+			if ( '' !== self::last_database_error() ) {
+				return self::database_error( __( 'Could not inspect booking indexes before repair.', 'extrachill-booking' ), $table );
 			}
 			$found_indexes = self::normalize_indexes( (array) $indexes );
 			foreach ( $contract['indexes'] as $name => $required_index ) {
@@ -728,7 +741,7 @@ class BookingSchema {
 				if ( false === $result ) {
 					return new \WP_Error(
 						'booking_schema_index_repair_failed',
-						__( 'A malformed booking index could not be removed for repair.', 'extrachill-events' ),
+						__( 'A malformed booking index could not be removed for repair.', 'extrachill-booking' ),
 						array(
 							'table'          => $table,
 							'index'          => $name,
@@ -752,7 +765,7 @@ class BookingSchema {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation repair cannot be cached.
 			$status = $wpdb->get_row( $wpdb->prepare( 'SHOW TABLE STATUS WHERE Name = %s', $table ), ARRAY_A );
 			if ( '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not inspect the booking table engine for repair.', 'extrachill-events' ), $table );
+				return self::database_error( __( 'Could not inspect the booking table engine for repair.', 'extrachill-booking' ), $table );
 			}
 			if ( ! is_array( $status ) ) {
 				continue;
@@ -765,7 +778,7 @@ class BookingSchema {
 			if ( false === $result ) {
 				return new \WP_Error(
 					'booking_schema_engine_repair_failed',
-					__( 'A booking table could not be converted to its required transactional engine.', 'extrachill-events' ),
+					__( 'A booking table could not be converted to its required transactional engine.', 'extrachill-booking' ),
 					array(
 						'table'          => $table,
 						'engine'         => $contract['engine'],
@@ -784,28 +797,28 @@ class BookingSchema {
 		$table = self::bookings_table();
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
 		if ( $found !== $table ) {
-			return '' === (string) $wpdb->last_error ? true : self::database_error( __( 'Could not inspect retired booking assignment storage.', 'extrachill-events' ), $table );
+			return '' === (string) $wpdb->last_error ? true : self::database_error( __( 'Could not inspect retired booking assignment storage.', 'extrachill-booking' ), $table );
 		}
 
 		$indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect retired booking assignment indexes.', 'extrachill-events' ), $table );
+			return self::database_error( __( 'Could not inspect retired booking assignment indexes.', 'extrachill-booking' ), $table );
 		}
 		if ( isset( $indexes['assignee_status'] ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `assignee_status`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private index under the installer lock.
 			$current = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes completed removal from failure.
-			if ( '' !== (string) $wpdb->last_error || isset( $current['assignee_status'] ) ) {
-				return self::database_error( __( 'Could not remove the retired booking assignment index.', 'extrachill-events' ), $table );
+			if ( '' !== self::last_database_error() || isset( $current['assignee_status'] ) ) {
+				return self::database_error( __( 'Could not remove the retired booking assignment index.', 'extrachill-booking' ), $table );
 			}
 		}
 
 		$columns = array_column( (array) $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ), 'Field' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit private schema migration.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect retired booking assignment columns.', 'extrachill-events' ), $table );
+		if ( '' !== self::last_database_error() ) {
+			return self::database_error( __( 'Could not inspect retired booking assignment columns.', 'extrachill-booking' ), $table );
 		}
 		if ( in_array( 'assignee_user_id', $columns, true ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP COLUMN `assignee_user_id`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private column under the installer lock.
 			$current = array_column( (array) $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ), 'Field' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes completed removal from failure.
-			if ( '' !== (string) $wpdb->last_error || in_array( 'assignee_user_id', $current, true ) ) {
-				return self::database_error( __( 'Could not remove the retired booking assignment column.', 'extrachill-events' ), $table );
+			if ( '' !== self::last_database_error() || in_array( 'assignee_user_id', $current, true ) ) {
+				return self::database_error( __( 'Could not remove the retired booking assignment column.', 'extrachill-booking' ), $table );
 			}
 		}
 		return true;
@@ -815,7 +828,8 @@ class BookingSchema {
 	private static function migrate_v13_ticket_provenance() {
 		global $wpdb;
 
-		if ( ! isset( $wpdb->dbh ) || ! $wpdb->dbh instanceof \mysqli || version_compare( (string) get_option( self::VERSION_OPTION, '0' ), '14', '>=' ) ) {
+		$connection = $wpdb->dbh ?? null;
+		if ( ! $connection instanceof \mysqli || version_compare( (string) get_option( self::VERSION_OPTION, '0' ), '14', '>=' ) ) {
 			return true;
 		}
 		$tables = array(
@@ -851,14 +865,14 @@ class BookingSchema {
 					continue;
 				}
 				if ( false === $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN {$definition}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Fixed internal migration definitions.
-					return self::database_error( __( 'Could not add ticket provenance storage.', 'extrachill-events' ), $table );
+					return self::database_error( __( 'Could not add ticket provenance storage.', 'extrachill-booking' ), $table );
 				}
 			}
 			if ( false === $wpdb->query( "UPDATE `{$table}` SET {$migration['backfill']} WHERE {$migration['where']}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deterministic in-place identity hash backfill.
-				return self::database_error( __( 'Could not backfill lossless ticket identity hashes.', 'extrachill-events' ), $table );
+				return self::database_error( __( 'Could not backfill lossless ticket identity hashes.', 'extrachill-booking' ), $table );
 			}
 			if ( false === $wpdb->query( "ALTER TABLE `{$table}` MODIFY COLUMN {$migration['final']}" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Makes the completed identity migration mandatory.
-				return self::database_error( __( 'Could not finalize ticket identity hash storage.', 'extrachill-events' ), $table );
+				return self::database_error( __( 'Could not finalize ticket identity hash storage.', 'extrachill-booking' ), $table );
 			}
 		}
 		return true;

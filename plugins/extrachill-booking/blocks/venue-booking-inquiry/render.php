@@ -101,7 +101,7 @@ $public_config = array(
 		'receiptRecovery' => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries/follow-through/receipt-recovery' ),
 	),
 	'restNonce'            => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
-	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
+	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-booking' ) ) ),
 	'minDate'              => $canonical['min_date'],
 	'allowedWeekdays'      => array_values( array_map( 'intval', (array) ( $booking_config['allowed_weekdays'] ?? array() ) ) ),
 	'revision'             => (int) $booking_config['revision'],
@@ -133,7 +133,7 @@ $wrapper_attributes = get_block_wrapper_attributes( $wrapper_extra );
 		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 			echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
 		} else {
-			esc_html_e( 'Security challenge unavailable. Please contact the venue directly.', 'extrachill-events' );
+			esc_html_e( 'Security challenge unavailable. Please contact the venue directly.', 'extrachill-booking' );
 		}
 		?>
 	</div>

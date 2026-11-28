@@ -16,6 +16,6 @@ define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', getenv( 'WP_TESTS_PHPUNIT_POLYFILLS_P
 define( 'WPLANG', '' );
 define( 'WP_DEBUG', true );
 
-$table_prefix = 'wptests_';
+$table_prefix = 'wptests_'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- The WordPress test suite reads its table prefix from this config global.
 
 define( 'ABSPATH', rtrim( getenv( 'WP_CORE_DIR' ), '/\\' ) . '/' );

@@ -79,10 +79,10 @@ class TicketSettlementAbilities {
 			'properties' => array( 'recorded' => array( 'type' => 'boolean' ) ),
 			'required'   => array( 'recorded' ),
 		), 'record_checkout', 'can_record_checkout', false, true );
-		$this->register_ability( 'extrachill/register-booking-ticket-source', __( 'Register Booking Ticket Source', 'extrachill-events' ), $this->source_input_schema(), $this->source_schema(), 'register_source', 'can_manage_booking_finances', false, true );
+		$this->register_ability( 'extrachill/register-booking-ticket-source', __( 'Register Booking Ticket Source', 'extrachill-booking' ), $this->source_input_schema(), $this->source_schema(), 'register_source', 'can_manage_booking_finances', false, true );
 		$this->register_ability(
 			'extrachill/list-booking-ticket-sources',
-			__( 'List Booking Ticket Sources', 'extrachill-events' ),
+			__( 'List Booking Ticket Sources', 'extrachill-booking' ),
 			$this->booking_page_schema(),
 			array(
 				'type'     => 'array',
@@ -94,10 +94,10 @@ class TicketSettlementAbilities {
 			true,
 			true
 		);
-		$this->register_ability( 'extrachill/record-booking-ticket-sales', __( 'Record Booking Ticket Sales', 'extrachill-events' ), $this->report_input_schema(), $this->report_schema(), 'record_sales', 'can_access_booking', false, true );
+		$this->register_ability( 'extrachill/record-booking-ticket-sales', __( 'Record Booking Ticket Sales', 'extrachill-booking' ), $this->report_input_schema(), $this->report_schema(), 'record_sales', 'can_access_booking', false, true );
 		$this->register_ability(
 			'extrachill/import-booking-ticket-sales-csv',
-			__( 'Import Booking Ticket Sales CSV', 'extrachill-events' ),
+			__( 'Import Booking Ticket Sales CSV', 'extrachill-booking' ),
 			$this->csv_import_schema(),
 			array(
 				'type'     => 'array',
@@ -111,7 +111,7 @@ class TicketSettlementAbilities {
 		);
 		$this->register_ability(
 			'extrachill/list-booking-ticket-sales',
-			__( 'List Booking Ticket Sales', 'extrachill-events' ),
+			__( 'List Booking Ticket Sales', 'extrachill-booking' ),
 			$this->booking_page_schema(),
 			array(
 				'type'     => 'array',
@@ -123,12 +123,12 @@ class TicketSettlementAbilities {
 			true,
 			true
 		);
-		$this->register_ability( 'extrachill/calculate-booking-settlement', __( 'Calculate Booking Settlement', 'extrachill-events' ), $this->calculation_input_schema(), $this->calculation_schema(), 'calculate', 'can_access_booking', true, true );
-		$this->register_ability( 'extrachill/diagnose-booking-ticket-sales', __( 'Diagnose Booking Ticket Sales', 'extrachill-events' ), $this->booking_page_schema(), $this->diagnostics_schema(), 'diagnostics', 'can_access_booking', true, true );
-		$this->register_ability( 'extrachill/resolve-booking-ticket-sales', __( 'Resolve Booking Ticket Sales', 'extrachill-events' ), $this->resolution_input_schema(), $this->resolution_schema(), 'resolve', 'can_manage_booking_finances', false, true );
-		$this->register_ability( 'extrachill/finalize-booking-settlement', __( 'Finalize Booking Settlement', 'extrachill-events' ), $this->finalize_input_schema(), $this->settlement_schema(), 'finalize', 'can_manage_booking_finances', false, true );
-		$this->register_ability( 'extrachill/mark-booking-settlement-paid', __( 'Mark Booking Settlement Paid', 'extrachill-events' ), $this->terminal_input_schema( 'payment_reference' ), $this->settlement_schema(), 'mark_paid', 'can_manage_booking_finances', false, false );
-		$this->register_ability( 'extrachill/void-booking-settlement', __( 'Void Booking Settlement', 'extrachill-events' ), $this->terminal_input_schema( 'reason' ), $this->settlement_schema(), 'void_settlement', 'can_manage_booking_finances', false, false );
+		$this->register_ability( 'extrachill/calculate-booking-settlement', __( 'Calculate Booking Settlement', 'extrachill-booking' ), $this->calculation_input_schema(), $this->calculation_schema(), 'calculate', 'can_access_booking', true, true );
+		$this->register_ability( 'extrachill/diagnose-booking-ticket-sales', __( 'Diagnose Booking Ticket Sales', 'extrachill-booking' ), $this->booking_page_schema(), $this->diagnostics_schema(), 'diagnostics', 'can_access_booking', true, true );
+		$this->register_ability( 'extrachill/resolve-booking-ticket-sales', __( 'Resolve Booking Ticket Sales', 'extrachill-booking' ), $this->resolution_input_schema(), $this->resolution_schema(), 'resolve', 'can_manage_booking_finances', false, true );
+		$this->register_ability( 'extrachill/finalize-booking-settlement', __( 'Finalize Booking Settlement', 'extrachill-booking' ), $this->finalize_input_schema(), $this->settlement_schema(), 'finalize', 'can_manage_booking_finances', false, true );
+		$this->register_ability( 'extrachill/mark-booking-settlement-paid', __( 'Mark Booking Settlement Paid', 'extrachill-booking' ), $this->terminal_input_schema( 'payment_reference' ), $this->settlement_schema(), 'mark_paid', 'can_manage_booking_finances', false, false );
+		$this->register_ability( 'extrachill/void-booking-settlement', __( 'Void Booking Settlement', 'extrachill-booking' ), $this->terminal_input_schema( 'reason' ), $this->settlement_schema(), 'void_settlement', 'can_manage_booking_finances', false, false );
 	}
 
 	private function register_ability( string $name, string $label, array $input, array $output, string $execute, string $permission, bool $is_readonly, bool $idempotent ): void {
@@ -239,7 +239,7 @@ class TicketSettlementAbilities {
 		$booking = $this->bookings->get( absint( $input['booking_id'] ?? 0 ) );
 		return is_array( $booking )
 			? ( $this->authorization )( $action, $booking['venue_term_id'], get_current_user_id() )
-			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) );
+			: new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-booking' ), array( 'status' => 403 ) );
 	}
 
 	private function report_input_schema(): array {

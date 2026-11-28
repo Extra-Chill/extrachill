@@ -40,7 +40,7 @@ foreach (
 ) {
 	$file = $dme_directory . $relative_path;
 	if ( ! is_file( $file ) ) {
-		throw new RuntimeException( 'The native hold proof requires the current DME public overlap contract: ' . $relative_path );
+		throw new RuntimeException( 'The native hold proof requires the current DME public overlap contract: ' . $relative_path ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI test bootstrap failure, never rendered as HTML.
 	}
 	require_once $file;
 }
