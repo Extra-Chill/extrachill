@@ -60,7 +60,6 @@ function ec_get_permission_is_admin( $data ) {
  */
 // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- permission-callback signature parity; request data unused for this check.
 function ec_get_permission_can_create_artists( $data ) {
-	// @phpstan-ignore phpstan.function.notFound (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	return ec_can_create_artist_profiles( get_current_user_id() );
 }
 

@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const actionButtons = document.querySelectorAll('[data-action-button]');
 
         actionButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
+            button.addEventListener('click', function() {
                 const originalText = this.textContent;
                 this.textContent = 'Loading...';
                 this.disabled = true;
@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.style.color = '';
                     }, 2000);
                 } catch (err) {
+                    // eslint-disable-next-line no-console -- Intentional diagnostic before falling back.
                     console.warn('Failed to copy text:', err);
                     const textArea = document.createElement('textarea');
                     textArea.value = textToCopy;
@@ -111,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             this.style.color = '';
                         }, 2000);
                     } catch (fallbackErr) {
+                        // eslint-disable-next-line no-console -- Intentional diagnostic when both copy paths fail.
                         console.error('Fallback copy failed:', fallbackErr);
                     }
 

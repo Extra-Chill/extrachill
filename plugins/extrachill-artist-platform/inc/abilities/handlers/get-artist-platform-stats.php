@@ -74,7 +74,7 @@ function extrachill_artist_platform_ability_get_artist_platform_stats( array $in
 		// Total published link pages. Queried through the storage blog helper
 		// when available: after cutover, Link Pages live on the dedicated Link
 		// Pages site, not the Artist blog this function has already switched to.
-		$link_page_query_args = array(
+		$link_page_query_args    = array(
 			'post_type'      => extrachill_artist_platform_link_page_post_type(),
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,

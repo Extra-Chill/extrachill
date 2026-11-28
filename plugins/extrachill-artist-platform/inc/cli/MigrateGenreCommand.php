@@ -112,10 +112,10 @@ class EC_CLI_MigrateGenreCommand {
 		$rows = self::collect_rows();
 		if ( is_wp_error( $rows ) ) {
 			WP_CLI::error( $rows->get_error_message() );
+			return; // WP_CLI::error() exits; this keeps $rows narrowed to an array below.
 		}
 
 		$table_rows = array();
-		// @phpstan-ignore phpstan.foreach.nonIterable (WP_CLI::error() above terminates; $rows is an array here.)
 		foreach ( $rows as $row ) {
 			$table_rows[] = array(
 				'profile_id' => $row['profile_id'],
@@ -130,9 +130,8 @@ class EC_CLI_MigrateGenreCommand {
 			\WP_CLI\Utils\format_items( $format, $table_rows, array( 'profile_id', 'name', 'input', 'resolved', 'status' ) );
 		}
 
-		$resolved_rows = array_values(
+		$resolved_rows   = array_values(
 			array_filter(
-				// @phpstan-ignore phpstan.argument.type (WP_CLI::error() above terminates; $rows is an array here.)
 				$rows,
 				static function ( $row ) {
 					return 'resolved' === $row['status'];
@@ -141,7 +140,6 @@ class EC_CLI_MigrateGenreCommand {
 		);
 		$unresolved_rows = array_values(
 			array_filter(
-				// @phpstan-ignore phpstan.argument.type (WP_CLI::error() above terminates; $rows is an array here.)
 				$rows,
 				static function ( $row ) {
 					return 'unresolved' === $row['status'];
@@ -152,7 +150,6 @@ class EC_CLI_MigrateGenreCommand {
 		WP_CLI::log(
 			sprintf(
 				'%d profile(s) with legacy _genre meta: %d resolved, %d unresolved.',
-				// @phpstan-ignore phpstan.argument.type (WP_CLI::error() above terminates; $rows is an array here.)
 				count( $rows ),
 				count( $resolved_rows ),
 				count( $unresolved_rows )

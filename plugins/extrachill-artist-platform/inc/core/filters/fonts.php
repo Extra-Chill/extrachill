@@ -197,7 +197,8 @@ class ExtraChillArtistPlatform_Fonts {
 			return "'" . $font_value . "', " . self::DEFAULT_FONT_STACK;
 		}
 
-		return ( $font_value ? $font_value : self::DEFAULT_FONT_STACK );
+		// Any empty value already returned through the wrapping fallback above.
+		return $font_value;
 	}
 
 	/**
@@ -278,7 +279,7 @@ class ExtraChillArtistPlatform_Fonts {
 	 * Follows same dynamic pattern as Google Font loading.
 	 *
 	 * @since 1.1.0
-	 * @param array $font_values Array of selected font values
+	 * @param mixed $font_values Array of selected font values (non-arrays yield an empty string)
 	 * @return string CSS @font-face definitions for local fonts
 	 */
 	public function get_local_fonts_css( $font_values ) {

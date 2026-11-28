@@ -26,10 +26,10 @@
 (function () {
     'use strict';
 
-    var TOKEN_STORAGE_KEY = 'ecLinkEditToken';
+    const TOKEN_STORAGE_KEY = 'ecLinkEditToken';
     // Marker so an anonymous visitor only round-trips through the mint handoff
     // once per browser tab session instead of redirecting on every page view.
-    var HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
+    const HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
 
     /**
      * Read a non-expired cached token from localStorage.
@@ -38,11 +38,11 @@
      */
     function getStoredToken() {
         try {
-            var raw = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+            const raw = window.localStorage.getItem(TOKEN_STORAGE_KEY);
             if (!raw) {
                 return null;
             }
-            var parsed = JSON.parse(raw);
+            const parsed = JSON.parse(raw);
             if (!parsed || !parsed.token || !parsed.expiresAt) {
                 return null;
             }
@@ -53,7 +53,7 @@
                 return null;
             }
             return parsed.token;
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -69,13 +69,13 @@
             window.localStorage.setItem(
                 TOKEN_STORAGE_KEY,
                 JSON.stringify({
-                    token: token,
+                    token,
                     // 15 minutes; the server is the source of truth and a 401
                     // will clear it early if it dies sooner.
                     expiresAt: Date.now() + (15 * 60 * 1000)
                 })
             );
-        } catch (e) {
+        } catch {
             // localStorage unavailable (private mode quotas etc.) — the button
             // just won't render. Non-fatal.
         }
@@ -89,24 +89,24 @@
     function clearStoredToken() {
         try {
             window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-        } catch (e) {}
+        } catch {}
     }
 
     /**
      * Parse the token (or the tokenless marker) out of the URL fragment left by
      * the mint handoff redirect, then scrub the fragment from the address bar.
      *
-     * @return {{token: (string|null), attempted: boolean}}
+     * @return {{token: (string|null), attempted: boolean}} Parsed token and whether a handoff was attempted.
      */
     function consumeFragmentToken() {
-        var result = { token: null, attempted: false };
-        var hash = window.location.hash || '';
+        const result = { token: null, attempted: false };
+        const hash = window.location.hash || '';
         if (!hash || hash.length < 2) {
             return result;
         }
 
-        var fragment = hash.charAt(0) === '#' ? hash.substring(1) : hash;
-        var params = new URLSearchParams(fragment);
+        const fragment = hash.charAt(0) === '#' ? hash.substring(1) : hash;
+        const params = new URLSearchParams(fragment);
 
         if (params.has('ec_link_token')) {
             result.token = params.get('ec_link_token');
@@ -121,11 +121,11 @@
         // Scrub our keys from the fragment, preserving any unrelated fragment.
         params.delete('ec_link_token');
         params.delete('ec_link_token_none');
-        var remaining = params.toString();
-        var cleanUrl = window.location.pathname + window.location.search + (remaining ? '#' + remaining : '');
+        const remaining = params.toString();
+        const cleanUrl = window.location.pathname + window.location.search + (remaining ? '#' + remaining : '');
         try {
             window.history.replaceState(null, '', cleanUrl);
-        } catch (e) {
+        } catch {
             // history API unavailable — leave the URL as-is.
         }
 
@@ -150,15 +150,15 @@
                 return;
             }
             window.sessionStorage.setItem(HANDOFF_ATTEMPTED_KEY, '1');
-        } catch (e) {
+        } catch {
             // sessionStorage unavailable — fall through; without the guard we'd
             // risk a redirect loop, so bail rather than redirect.
             return;
         }
 
-        var returnUrl = window.location.href.split('#')[0];
-        var separator = handoffUrl.indexOf('?') === -1 ? '?' : '&';
-        var destination = handoffUrl + separator + 'return=' + encodeURIComponent(returnUrl);
+        const returnUrl = window.location.href.split('#')[0];
+        const separator = handoffUrl.indexOf('?') === -1 ? '?' : '&';
+        const destination = handoffUrl + separator + 'return=' + encodeURIComponent(returnUrl);
         window.location.assign(destination);
     }
 
@@ -207,7 +207,7 @@
             return;
         }
 
-        var editButton = document.createElement('a');
+        const editButton = document.createElement('a');
         editButton.href = manageUrl;
         editButton.className = 'extrch-link-page-edit-btn';
         editButton.setAttribute('aria-label', 'Edit link page');
@@ -222,25 +222,25 @@
      * @return {void}
      */
     function init() {
-        var body = document.body;
+        const body = document.body;
         if (!body || !body.dataset) {
             return;
         }
 
-        var apiUrl = body.dataset.extrchPermissionsApiUrl || '';
-        var handoffUrl = body.dataset.extrchTokenHandoffUrl || '';
+        const apiUrl = body.dataset.extrchPermissionsApiUrl || '';
+        const handoffUrl = body.dataset.extrchTokenHandoffUrl || '';
         if (!apiUrl) {
             return;
         }
 
         // 1. If we just came back from the mint handoff, capture the token.
-        var fragment = consumeFragmentToken();
+        const fragment = consumeFragmentToken();
         if (fragment.token) {
             storeToken(fragment.token);
         }
 
         // 2. Use a cached/just-captured token if we have one.
-        var token = getStoredToken();
+        const token = getStoredToken();
         if (token) {
             checkPermission(apiUrl, token);
             return;

@@ -51,30 +51,3 @@ function extrachill_artist_get_subscription_description( $artist_id, $link_page_
  * NOTE: Subscription settings saving is now handled by centralized save system
  * in inc/core/actions/save.php - this file only provides helper functions.
  */
-
-/**
- * Check if subscription feature is enabled for a link page
- *
- * @param int $link_page_id The link page ID
- * @return bool True if subscription is enabled, false if disabled
- */
-function extrachill_artist_is_subscription_enabled( $link_page_id ) {
-	$display_mode = extrachill_artist_get_subscription_display_mode( $link_page_id );
-	return 'disabled' !== $display_mode;
-}
-
-/**
- * Get current subscription settings for display in advanced tab
- *
- * @param int    $link_page_id The link page ID
- * @param string $artist_name  Optional artist name for default description
- * @return array Array containing all subscription settings
- */
-function extrachill_artist_get_subscription_settings( $link_page_id, $artist_name = '' ) {
-	return array(
-		'display_mode'    => extrachill_artist_get_subscription_display_mode( $link_page_id ),
-		'description'     => extrachill_artist_get_subscription_description( $link_page_id, $artist_name ),
-		'available_modes' => extrachill_artist_get_subscription_display_options(),
-		'is_enabled'      => extrachill_artist_is_subscription_enabled( $link_page_id ),
-	);
-}

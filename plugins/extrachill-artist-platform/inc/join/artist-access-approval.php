@@ -49,11 +49,11 @@ add_action( 'template_redirect', 'ec_artist_access_approval_page_redirect' );
  *
  * @param string  $redirect_to           Default redirect URL
  * @param string  $requested_redirect_to Requested redirect URL
- * @param WP_User $user                  User object
+ * @param WP_User|WP_Error $user         User object, or WP_Error when login failed
  * @return string Modified redirect URL
  */
 function ec_artist_access_approval_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
-	if ( ! isset( $user->ID ) || $user->ID <= 0 ) {
+	if ( ! $user instanceof WP_User || $user->ID <= 0 ) {
 		return $redirect_to;
 	}
 

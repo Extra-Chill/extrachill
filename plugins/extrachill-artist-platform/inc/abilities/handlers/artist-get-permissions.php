@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input { @type int $id Artist profile post ID. }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_get_permissions( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_get_permissions( array $input ) {
 	$artist_id       = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$current_user_id = extrachill_artist_platform_ability_acting_user_id();
 	$can_edit        = false;
@@ -27,7 +27,7 @@ function extrachill_artist_platform_ability_artist_get_permissions( array $input
 		return new WP_Error( 'missing_id', 'id is required.' );
 	}
 
-	if ( $artist_id && $current_user_id && function_exists( 'ec_user_can' ) && ec_user_can(
+	if ( $current_user_id && function_exists( 'ec_user_can' ) && ec_user_can(
 		'manage_artist',
 		array(
 			'artist_id' => $artist_id,

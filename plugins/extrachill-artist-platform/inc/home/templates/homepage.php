@@ -8,7 +8,9 @@
  * @package ExtraChillArtistPlatform
  */
 
-extrachill_breadcrumbs();
+if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+	extrachill_breadcrumbs();
+}
 ?>
 
 <article class="artist-platform-homepage">

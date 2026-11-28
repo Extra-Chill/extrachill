@@ -41,7 +41,7 @@ function extrachill_artist_platform_resolve_external_artist( $name, $profile_id 
 		}
 	}
 	if ( $profile_id && ! $term_id ) {
-		$term_id = (int) $profile['term_id'];
+		$term_id = (int) ( $profile['term_id'] ?? 0 );
 		$term    = $term_id ? ec_artist_binding_read_term( $term_id, $blog_ids['main'] ) : array();
 		if ( empty( $term ) ) {
 			$term_id = 0;
@@ -51,6 +51,7 @@ function extrachill_artist_platform_resolve_external_artist( $name, $profile_id 
 	if ( ! $term_id && $slug ) {
 		switch_to_blog( $blog_ids['main'] );
 		try {
+			/** @var \WP_Term|\WP_Error|false $matched_term get_term() inside get_term_by() is filterable. */
 			$matched_term = get_term_by( 'slug', $slug, 'artist' );
 			$term_id      = $matched_term && ! is_wp_error( $matched_term ) ? (int) $matched_term->term_id : 0;
 			$term         = $term_id ? ec_artist_binding_read_term( $term_id, $blog_ids['main'] ) : array();
@@ -101,7 +102,7 @@ function extrachill_artist_platform_resolve_external_artist( $name, $profile_id 
 		if ( empty( $profile ) || $profile['slug'] !== $slug ) {
 			return new WP_Error( 'conflicting_artist_identity', __( 'The resolved artist profile does not match the submitted artist name.', 'extrachill-artist-platform' ) );
 		}
-		$profile_term_id = (int) ( $profile['term_id'] ?? 0 );
+		$profile_term_id = (int) $profile['term_id'];
 		if ( $term_id && $profile_term_id && $term_id !== $profile_term_id ) {
 			return new WP_Error( 'conflicting_artist_identity', __( 'The resolved artist profile is bound to a different artist term.', 'extrachill-artist-platform' ) );
 		}
@@ -112,7 +113,7 @@ function extrachill_artist_platform_resolve_external_artist( $name, $profile_id 
 		if ( empty( $term ) || $term['slug'] !== $slug ) {
 			return new WP_Error( 'conflicting_artist_identity', __( 'The resolved artist term does not match the submitted artist name.', 'extrachill-artist-platform' ) );
 		}
-		$term_profile_id = (int) ( $term['profile_id'] ?? 0 );
+		$term_profile_id = (int) $term['profile_id'];
 		if ( $profile_id && $term_profile_id && $profile_id !== $term_profile_id ) {
 			return new WP_Error( 'conflicting_artist_identity', __( 'The resolved artist term is bound to a different artist profile.', 'extrachill-artist-platform' ) );
 		}
@@ -358,7 +359,7 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 		'membership'  => array( 'state' => $managed ? 'managed' : ( $profile_id || $term_id ? 'request_required' : 'not_applicable' ) ),
 		'claim'       => array(
 			'required' => $unclaimed,
-			'delivery' => $unclaimed ? ( 'not_required' === $claim_delivery ? 'previously_provisioned' : $claim_delivery ) : 'not_required',
+			'delivery' => $unclaimed ? $claim_delivery : 'not_required',
 		),
 		'link_page'   => array(
 			'state' => 'unavailable',
