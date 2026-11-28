@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.47.3] - 2026-11-28
+
+### Fixed
+- render network dropdown experiment without duplicate crumb, symmetric exposure, v3
+
 ## [2.47.2] - 2026-11-25
 
 ### Fixed
