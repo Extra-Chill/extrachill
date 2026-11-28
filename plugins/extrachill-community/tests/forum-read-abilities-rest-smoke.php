@@ -166,6 +166,9 @@ function forum_read_filter_posts( $args ) {
 				if ( ! empty( $args['author__not_in'] ) && in_array( (int) $post->post_author, array_map( 'intval', $args['author__not_in'] ), true ) ) {
 					return false;
 				}
+				if ( ! empty( $args['post__in'] ) && ! in_array( (int) $post->ID, array_map( 'intval', $args['post__in'] ), true ) ) {
+					return false;
+				}
 				if ( ! empty( $args['post_parent__in'] ) && ! in_array( (int) $post->post_parent, array_map( 'intval', $args['post_parent__in'] ), true ) ) {
 					return false;
 				}

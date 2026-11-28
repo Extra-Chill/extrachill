@@ -7,7 +7,7 @@
  * @package ExtraChillCommunity
  */
 
-if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+if ( ! defined( 'ABSPATH' ) || ! defined( 'WP_CLI' ) ) {
 	exit( 1 );
 }
 

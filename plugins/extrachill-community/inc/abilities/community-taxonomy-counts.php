@@ -89,6 +89,12 @@ function extrachill_community_ability_community_taxonomy_counts( array $input ):
 		return null;
 	}
 
+	/**
+	 * The final get_term() call inside get_term_by() runs the `get_term` filters,
+	 * which may return a WP_Error.
+	 *
+	 * @var WP_Term|WP_Error|false $term
+	 */
 	$term = get_term_by( 'slug', $slug, $taxonomy );
 	if ( ! $term || is_wp_error( $term ) ) {
 		return null;

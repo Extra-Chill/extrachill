@@ -154,13 +154,12 @@ function extrachill_create_community_pages() {
 			)
 		);
 
-		if ( ! is_wp_error($page_id) ) {
-			$created_page_ids[] = $page_id;
+		// wp_insert_post() without $wp_error = true always returns an int.
+		$created_page_ids[] = $page_id;
 
-			// Assign template if not default
-			if ( 'default' !== $page_data['template'] ) {
-				update_post_meta($page_id, '_wp_page_template', $page_data['template']);
-			}
+		// Assign template if not default
+		if ( 'default' !== $page_data['template'] ) {
+			update_post_meta($page_id, '_wp_page_template', $page_data['template']);
 		}
 	}
 

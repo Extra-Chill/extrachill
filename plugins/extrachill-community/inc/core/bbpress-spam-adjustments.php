@@ -39,7 +39,7 @@ function ec_content_has_only_trusted_links($content) {
 	}
 
 	foreach ( $matches[0] as $url ) {
-		$domain     = parse_url($url, PHP_URL_HOST);
+		$domain     = (string) wp_parse_url($url, PHP_URL_HOST);
 		$is_trusted = false;
 
 		foreach ( $trusted_domains as $trusted_domain ) {

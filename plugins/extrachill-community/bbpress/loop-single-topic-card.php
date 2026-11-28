@@ -18,7 +18,7 @@ if ( ! $topic_id ) {
 
 ?>
 
-<div id="bbp-topic-card-<?php echo esc_attr( $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-full-width-panel<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
+<div id="bbp-topic-card-<?php echo esc_attr( (string) $topic_id ); ?>" class="bbp-topic-card ec-surface-card ec-mobile-full-width-panel<?php echo ( bbp_is_topic_sticky( $topic_id ) ? ' bbp-topic-card-sticky' : '' ); ?>">
 	<div class="bbp-topic-info">
 		<?php do_action( 'bbp_theme_before_topic_title' ); ?>
 		<div class="topic-card-header-area">
@@ -52,10 +52,10 @@ if ( ! $topic_id ) {
 	<div class="bbp-topic-stats">
 		<span class="topic-views"><?php echo esc_html( number_format( ec_get_post_views( $topic_id ) ) ); ?> views</span>
 		<div class="bbp-topic-voice-count">
-			<?php echo esc_html( bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
+			<?php echo esc_html( (string) bbp_get_topic_voice_count( $topic_id ) ); ?> Voices
 		</div>
 		<div class="bbp-topic-reply-count">
-			<?php echo esc_html( bbp_show_lead_topic() ? bbp_get_topic_reply_count( $topic_id ) : bbp_get_topic_post_count( $topic_id ) ); ?> Replies
+			<?php echo esc_html( (string) ( bbp_show_lead_topic() ? bbp_get_topic_reply_count( $topic_id ) : bbp_get_topic_post_count( $topic_id ) ) ); ?> Replies
 		</div>
 	</div>
 
@@ -105,4 +105,4 @@ if ( ! $topic_id ) {
 		endif;
 		?>
 	</div>
-</div><!-- #bbp-topic-card-<?php echo esc_attr( $topic_id ); ?> -->
+</div><!-- #bbp-topic-card-<?php echo esc_attr( (string) $topic_id ); ?> -->

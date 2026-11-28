@@ -27,7 +27,7 @@ if ( ! empty( $about_description ) ) :
 	?>
 <div class="bbp-user-profile-card ec-about-card">
 	<h3><?php esc_html_e( 'About', 'extra-chill-community' ); ?></h3>
-	<p class="bbp-user-description"><?php echo wp_kses_post( bbp_rel_nofollow( $about_description ) ); ?></p>
+	<p class="bbp-user-description"><?php echo wp_kses_post( bbp_rel_nofollow( (string) $about_description ) ); ?></p>
 </div>
 <?php endif; ?>
 
