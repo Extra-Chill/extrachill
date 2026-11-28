@@ -24,8 +24,8 @@ check_partner_docs( 'docs/partner' === $partners[0]['docs_subpath'], 'Non-user s
 
 $plan = extrachill_docs_plan_plugin_docs( $map, dirname( __DIR__, 2 ), 'plugins/extrachill-api' );
 $names = array_column( $plan, 'path' );
-$expected = array_map( static fn( $name ) => 'plugins/extrachill-api/docs/partner/' . $name . '.md', array( 'api', 'custom-builds', 'index', 'wordpress-plugin' ) );
-check_partner_docs( $expected === $names, 'Exactly four direct Markdown pages planned' );
+$expected = array_map( static fn( $name ) => 'plugins/extrachill-api/docs/partner/' . $name . '.md', array( 'api', 'custom-builds', 'index', 'public-calendar-feed', 'wordpress-plugin' ) );
+check_partner_docs( $expected === $names, 'All direct Markdown pages, including the public calendar feed, are planned' );
 foreach ( $plan as $row ) {
 	check_partner_docs( 'publish' === $row['action'], 'Page is publishable' );
 	check_partner_docs( 'partner-websites' === $row['parent_slug'], 'Partner parent slug' );
