@@ -32,7 +32,7 @@ interface EditProps {
 export default function Edit( { attributes, setAttributes }: EditProps ) {
 	const { headline, description, deniedMessage } = attributes;
 	const blockProps = useBlockProps( { className: 'ec-studio-editor' } );
-	const tabs = getStudioTabs();
+	const tabs = getStudioTabs( { canBuildFonts: true } );
 
 	return (
 		<>

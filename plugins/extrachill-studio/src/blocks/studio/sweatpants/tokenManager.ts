@@ -6,8 +6,7 @@
  * lifetime of the page. Re-mints automatically when the cached token is
  * within `EXPIRY_BUFFER_SECONDS` of expiry (clock skew protection).
  *
- * The token does NOT cross between tabs — it's minted lazily on the first
- * sweatpants call from the Transcribe tab.
+ * Each client caches its own token so a tab only receives the scopes it needs.
  *
  * @package
  */
@@ -26,15 +25,8 @@ import type { SweatpantsToken } from './types';
 // against the live `/wp-json/` discovery on studio.extrachill.com.
 const TOKEN_ABILITY_PATH =
 	'/wp-abilities/v1/abilities/extrachill/sweatpants-token/run';
-// `callback:write` lets sweatpants sign and POST a completion callback
-// back to our REST endpoint when the job finishes — this is how the user
-// gets an email + draft post without keeping the browser tab open.
-const DEFAULT_SCOPE = 'uploads:write jobs:write jobs:read callback:write';
 const DEFAULT_TTL_SECONDS = 900;
 const EXPIRY_BUFFER_SECONDS = 60;
-
-let cachedToken: SweatpantsToken | null = null;
-let inflight: Promise< SweatpantsToken > | null = null;
 
 /**
  * Returns the current unix time in seconds.
@@ -58,9 +50,10 @@ const tokenIsFresh = (
 /**
  * Mint a new token via the WordPress ability.
  *
+ * @param scope Space-separated scopes requested from the ability.
  * @throws Error if the ability call fails or returns a malformed payload.
  */
-const mintToken = async (): Promise< SweatpantsToken > => {
+const mintToken = async ( scope: string ): Promise< SweatpantsToken > => {
 	// The Abilities API /run controller expects the ability inputs nested
 	// under an `input` key in the POST body — see
 	// class-wp-rest-abilities-v1-run-controller.php::get_input_from_request().
@@ -72,7 +65,7 @@ const mintToken = async (): Promise< SweatpantsToken > => {
 		method: 'POST',
 		data: {
 			input: {
-				scope: DEFAULT_SCOPE,
+				scope,
 				ttl: DEFAULT_TTL_SECONDS,
 			},
 		},
@@ -90,39 +83,33 @@ const mintToken = async (): Promise< SweatpantsToken > => {
 };
 
 /**
- * Get a valid sweatpants bearer token, minting + caching if needed.
- *
- * Concurrent callers share a single in-flight mint promise so we don't
- * thrash the ability with parallel requests during a burst (e.g. file
- * upload + job-create kick off back-to-back).
+ * Cache one token per client and share an in-flight mint across requests.
+ * @param scope Space-separated scopes requested from the ability.
  */
-export const getToken = async (): Promise< SweatpantsToken > => {
-	if ( tokenIsFresh( cachedToken ) ) {
-		return cachedToken;
-	}
+export const createTokenManager = ( scope: string ) => {
+	let cachedToken: SweatpantsToken | null = null;
+	let inflight: Promise< SweatpantsToken > | null = null;
 
-	if ( inflight ) {
-		return inflight;
-	}
-
-	inflight = ( async (): Promise< SweatpantsToken > => {
-		try {
-			const fresh = await mintToken();
-			cachedToken = fresh;
-			return fresh;
-		} finally {
-			inflight = null;
+	const getToken = async (): Promise< SweatpantsToken > => {
+		if ( tokenIsFresh( cachedToken ) ) {
+			return cachedToken;
 		}
-	} )();
+		if ( ! inflight ) {
+			inflight = ( async (): Promise< SweatpantsToken > => {
+				try {
+					cachedToken = await mintToken( scope );
+					return cachedToken;
+				} finally {
+					inflight = null;
+				}
+			} )();
+		}
+		return inflight;
+	};
 
-	return inflight;
-};
+	const invalidateToken = (): void => {
+		cachedToken = null;
+	};
 
-/**
- * Forcibly drop the cached token. Useful when the server returns 401 and
- * we want the next call to re-mint instead of trying the expired token
- * again.
- */
-export const invalidateToken = (): void => {
-	cachedToken = null;
+	return { getToken, invalidateToken };
 };

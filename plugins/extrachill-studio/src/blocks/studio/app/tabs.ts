@@ -18,12 +18,18 @@ export interface StudioTabOptions {
 	 */
 	canBrandSocials?: boolean;
 	canReviewSubmissions?: boolean;
+	/** Whether the user can mint a Sweatpants token for font builds. */
+	canBuildFonts?: boolean;
 }
 
 export const getStudioTabs = (
 	options: StudioTabOptions = {}
 ): StudioTab[] => {
-	const { canBrandSocials = true, canReviewSubmissions = false } = options;
+	const {
+		canBrandSocials = true,
+		canReviewSubmissions = false,
+		canBuildFonts = false,
+	} = options;
 
 	const tabs: StudioTab[] = [
 		{
@@ -50,6 +56,15 @@ export const getStudioTabs = (
 			label: __( 'Transcribe', 'extrachill-studio' ),
 			preview: __(
 				'Transcribe audio with Whisper.',
+				'extrachill-studio'
+			),
+		},
+		{
+			id: 'fonts',
+			pane: 'fonts',
+			label: __( 'Fonts', 'extrachill-studio' ),
+			preview: __(
+				'Build a custom font from a photo of a letter sheet.',
 				'extrachill-studio'
 			),
 		},
@@ -81,9 +96,16 @@ export const getStudioTabs = (
 			id: 'review',
 			pane: 'review',
 			label: __( 'Review', 'extrachill-studio' ),
-			preview: __( 'Read pending article submissions.', 'extrachill-studio' ),
+			preview: __(
+				'Read pending article submissions.',
+				'extrachill-studio'
+			),
 		} );
 	}
 
-	return tabs.filter( ( tab ) => tab.id !== 'socials' || canBrandSocials );
+	return tabs.filter(
+		( tab ) =>
+			( tab.id !== 'socials' || canBrandSocials ) &&
+			( tab.id !== 'fonts' || canBuildFonts )
+	);
 };

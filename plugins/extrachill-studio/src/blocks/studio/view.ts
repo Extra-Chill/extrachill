@@ -21,6 +21,7 @@ import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
 import type { StudioContext, StudioPaneProps } from './types/studio';
 import ComposePane from './tabs/compose';
+import FontsPane from './tabs/fonts';
 import NetworkPane from './tabs/network';
 import ReviewPane from './tabs/review';
 import QrCodesPane from './tabs/qr-codes';
@@ -31,6 +32,7 @@ const ROOT_SELECTOR = '[data-ec-studio-root]';
 
 const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 	compose: ComposePane,
+	fonts: FontsPane,
 	network: NetworkPane,
 	review: ReviewPane,
 	'qr-codes': QrCodesPane,
@@ -39,7 +41,11 @@ const STUDIO_PANES: Record< string, ComponentType< StudioPaneProps > > = {
 };
 
 const StudioApp = ( { context }: { context: StudioContext } ): ReactElement => {
-	const tabs = getStudioTabs( { canBrandSocials: context.canBrandSocials, canReviewSubmissions: context.canReviewSubmissions } );
+	const tabs = getStudioTabs( {
+		canBrandSocials: context.canBrandSocials,
+		canReviewSubmissions: context.canReviewSubmissions,
+		canBuildFonts: context.canBuildFonts,
+	} );
 	const [ activeTab, setActiveTab ] = useState( tabs[ 0 ]?.id || 'compose' );
 	const renderPanel = ( id: string ): ReactElement => {
 		const ActivePane = STUDIO_PANES[ id ] || ComposePane;
@@ -106,6 +112,7 @@ const initRoot = ( root: HTMLElement ): void => {
 		socialPlatforms,
 		canBrandSocials: root.dataset.canBrandSocials === 'true',
 		canReviewSubmissions: root.dataset.canReviewSubmissions === 'true',
+		canBuildFonts: root.dataset.canBuildFonts === 'true',
 		networkSites,
 	};
 

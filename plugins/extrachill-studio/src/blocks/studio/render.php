@@ -44,7 +44,10 @@ if ( ! is_user_logged_in() ) {
 
 $can_review_submissions = function_exists( 'ec_studio_can_review_submissions' ) && ec_studio_can_review_submissions();
 
-if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() && ! $can_review_submissions ) :
+// Match the Sweatpants token ability; review-only access is not enough.
+$can_build_fonts = current_user_can( 'manage_options' ) || ec_is_team_member();
+
+if ( ! $can_build_fonts && ! $can_review_submissions ) :
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
 		<div class="ec-studio-card ec-studio-card--denied notice notice-info">
@@ -134,6 +137,7 @@ $can_brand_socials = current_user_can( 'manage_brand_socials' )
 	data-headline="<?php echo esc_attr( $headline ); ?>"
 	data-description="<?php echo esc_attr( $description ); ?>"
 	data-social-platforms="<?php echo esc_attr( $allowed_platforms_json ); ?>"
+	data-can-build-fonts="<?php echo $can_build_fonts ? 'true' : 'false'; ?>"
 	data-can-review-submissions="<?php echo $can_review_submissions ? 'true' : 'false'; ?>"
 	data-can-brand-socials="<?php echo $can_brand_socials ? 'true' : 'false'; ?>"
 	data-network-sites="<?php echo esc_attr( $network_sites_json ); ?>"

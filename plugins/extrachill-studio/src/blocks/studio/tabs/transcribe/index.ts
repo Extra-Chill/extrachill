@@ -22,7 +22,6 @@ import { __, sprintf } from '@wordpress/i18n';
 import {
 	createElement,
 	useCallback,
-	useEffect,
 	useRef,
 	useState,
 } from '@wordpress/element';
@@ -46,20 +45,17 @@ import {
 /**
  * Internal dependencies
  */
+import { MAX_UPLOAD_BYTES } from '../../sweatpants/client';
+import type { SweatpantsJob } from '../../sweatpants/types';
+import { isTerminal, useJobPolling } from '../../sweatpants/useJobPolling';
 import {
 	createJob,
 	getJob,
 	getResults,
-	MAX_UPLOAD_BYTES,
 	persistTranscriptDraft,
 	uploadAudio,
 } from './client';
-import type {
-	ActiveJob,
-	SweatpantsJobStatus,
-	TranscribeOptions,
-	WhisperModel,
-} from './types';
+import type { ActiveJob, TranscribeOptions, WhisperModel } from './types';
 
 const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -67,27 +63,6 @@ const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as (
 	props: any
 ) => ReactElement;
-
-/** Polling interval while jobs are pending or running (ms). */
-const POLL_INTERVAL_MS = 5000;
-
-/**
- * Interval at which an in-flight job reports elapsed time in the UI.
- *
- * NOTE: polling deliberately does NOT stop while the tab is open.
- *
- * This used to hand off after 90 seconds on the reasoning that the
- * completion email made further polling pointless. That reasoning was
- * wrong in practice (#193): the email depends on sweatpants delivering a
- * callback, and when the callback does not arrive the transcript is never
- * persisted at all. Stopping the poll therefore did not "hand off" — it
- * guaranteed the transcript was lost for any job longer than 90 seconds.
- *
- * The poll is the client's opportunity to persist the transcript itself
- * (see `persistTranscriptDraft` in finalizeJob), so it now runs for as
- * long as the tab is open. It still pauses while the tab is hidden and
- * resumes on `visibilitychange`, so a backgrounded tab costs nothing.
- */
 
 /** Time to flash "Copied" inline feedback after a successful clipboard write. */
 const COPY_FEEDBACK_MS = 2000;
@@ -116,15 +91,6 @@ const DEFAULT_DIARIZE = false;
  * by not asking.
  */
 const REMOVE_FILLERS = true;
-
-const TERMINAL_STATUSES: ReadonlyArray< SweatpantsJobStatus > = [
-	'completed',
-	'failed',
-	'stopped',
-];
-
-const isTerminal = ( status: SweatpantsJobStatus ): boolean =>
-	TERMINAL_STATUSES.includes( status );
 
 /**
  * Pick the best transcript field from the results `content` map.
@@ -250,9 +216,6 @@ const TranscribePane = (): ReactElement => {
 		null
 	);
 
-	const pollTimerRef = useRef< ReturnType< typeof setInterval > | null >(
-		null
-	);
 	const activeJobRef = useRef< ActiveJob | null >( null );
 	activeJobRef.current = activeJob;
 
@@ -328,21 +291,12 @@ const TranscribePane = (): ReactElement => {
 
 	// ── Polling lifecycle ─────────────────────────────────────────────
 
-	const stopPolling = useCallback( (): void => {
-		if ( pollTimerRef.current ) {
-			clearInterval( pollTimerRef.current );
-			pollTimerRef.current = null;
-		}
-	}, [] );
-
 	/**
 	 * Promote the active job into history once it reaches a terminal state.
 	 * Pulls results for completed jobs; pulls error detail for failed jobs.
 	 */
 	const finalizeJob = useCallback(
 		async ( job: ActiveJob ): Promise< void > => {
-			stopPolling();
-
 			if ( job.status === 'completed' ) {
 				setStageMessage(
 					__( 'Fetching transcript…', 'extrachill-studio' )
@@ -432,25 +386,27 @@ const TranscribePane = (): ReactElement => {
 			setStageMessage( '' );
 			setError( failed.error || '' );
 		},
-		[ stopPolling ]
+		[]
 	);
 
-	const pollOnce = useCallback( async (): Promise< void > => {
+	const getActiveJobId = useCallback( () => {
 		const current = activeJobRef.current;
-		if ( ! current || isTerminal( current.status ) ) {
-			return;
-		}
+		return current && ! isTerminal( current.status )
+			? current.jobId
+			: undefined;
+	}, [] );
 
-		// Pause polling while the browser tab is hidden — resume on focus.
-		if (
-			typeof document !== 'undefined' &&
-			document.visibilityState === 'hidden'
-		) {
-			return;
-		}
+	const onJob = useCallback(
+		async ( fresh: SweatpantsJob ): Promise< void > => {
+			const current = activeJobRef.current;
+			if (
+				! current ||
+				current.jobId !== fresh.id ||
+				isTerminal( current.status )
+			) {
+				return;
+			}
 
-		try {
-			const fresh = await getJob( current.jobId );
 			const updated: ActiveJob = {
 				...current,
 				status: fresh.status,
@@ -462,51 +418,25 @@ const TranscribePane = (): ReactElement => {
 			if ( isTerminal( fresh.status ) ) {
 				await finalizeJob( updated );
 			}
-		} catch ( pollErr ) {
-			// Network blip — keep polling, but surface the latest error.
-			setError(
-				( pollErr as Error )?.message ||
-					__( 'Polling failed.', 'extrachill-studio' )
-			);
-		}
-		// No stopPolling() here by design. The poll runs for as long as the
-		// tab is open so it can persist the transcript itself; only a
-		// terminal status (via finalizeJob) ends it.
-	}, [ finalizeJob ] );
+		},
+		[ finalizeJob ]
+	);
 
-	const startPolling = useCallback( (): void => {
-		stopPolling();
-		pollTimerRef.current = setInterval( () => {
-			pollOnce();
-		}, POLL_INTERVAL_MS );
-	}, [ pollOnce, stopPolling ] );
+	const onPollError = useCallback( ( pollErr: unknown ) => {
+		setError(
+			( pollErr as Error )?.message ||
+				__( 'Polling failed.', 'extrachill-studio' )
+		);
+	}, [] );
 
-	// Resume polling when the tab regains focus.
-	useEffect( () => {
-		const onVisibilityChange = (): void => {
-			if (
-				document.visibilityState === 'visible' &&
-				activeJobRef.current &&
-				! isTerminal( activeJobRef.current.status )
-			) {
-				pollOnce();
-			}
-		};
-		document.addEventListener( 'visibilitychange', onVisibilityChange );
-		return () => {
-			document.removeEventListener(
-				'visibilitychange',
-				onVisibilityChange
-			);
-		};
-	}, [ pollOnce ] );
-
-	// Clean up the timer on unmount.
-	useEffect( () => {
-		return () => {
-			stopPolling();
-		};
-	}, [ stopPolling ] );
+	// Keep polling until terminal status so the browser can save the draft
+	// even if the worker's completion callback never arrives (#193).
+	const startPolling = useJobPolling(
+		getJob,
+		getActiveJobId,
+		onJob,
+		onPollError
+	);
 
 	// ── Pipeline ──────────────────────────────────────────────────────
 
@@ -566,9 +496,6 @@ const TranscribePane = (): ReactElement => {
 				)
 			);
 			startPolling();
-
-			// Kick an immediate poll so short jobs flip to "completed" without a 5s wait.
-			pollOnce();
 		} catch ( pipelineErr ) {
 			setStageMessage( '' );
 			setError(
@@ -673,7 +600,7 @@ const TranscribePane = (): ReactElement => {
 						{ className: 'ec-studio-transcribe__file-meta' },
 						formatMB( selectedFile.size )
 					)
-			  )
+				)
 			: h(
 					'div',
 					{ className: 'ec-studio-transcribe__dropzone-prompt' },
@@ -696,7 +623,7 @@ const TranscribePane = (): ReactElement => {
 							'extrachill-studio'
 						)
 					)
-			  )
+				)
 	);
 
 	const diarizeCheckbox = createElement(
@@ -781,7 +708,7 @@ const TranscribePane = (): ReactElement => {
 						InlineStatusView,
 						{ tone: 'info', className: 'ec-studio-message' },
 						stageMessage
-				  )
+					)
 				: null
 		);
 	};
@@ -861,7 +788,7 @@ const TranscribePane = (): ReactElement => {
 								__( 'Error: %s', 'extrachill-studio' ),
 								job.error
 							)
-					  )
+						)
 					: null,
 				createElement(
 					'div',
@@ -928,7 +855,7 @@ const TranscribePane = (): ReactElement => {
 						'pre',
 						{ className: 'ec-studio-transcribe__transcript' },
 						job.transcript
-				  )
+					)
 				: null
 		);
 	};
@@ -965,7 +892,7 @@ const TranscribePane = (): ReactElement => {
 						InlineStatusView,
 						{ tone: 'error', className: 'ec-studio-message' },
 						error
-				  )
+					)
 				: null
 		),
 		renderActiveJob(),
@@ -984,7 +911,7 @@ const TranscribePane = (): ReactElement => {
 						{ className: 'ec-studio-transcribe__history' },
 						...history.map( renderHistoryItem )
 					)
-			  )
+				)
 			: null
 	);
 };

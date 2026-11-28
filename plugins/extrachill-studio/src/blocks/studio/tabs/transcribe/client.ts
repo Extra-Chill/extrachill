@@ -1,13 +1,5 @@
 /**
- * Sweatpants HTTP client for the Transcribe tab.
- *
- * All calls go directly browser → `https://sweatpants.chubes.net` using the
- * HMAC-signed bearer token minted by `tokenManager`. WordPress is NOT in
- * the data path — its only role is minting the token.
- *
- * If the sweatpants base URL ever needs to be configurable per environment
- * (staging, dev), hoist `SWEATPANTS_BASE_URL` to a server-injected value
- * via `render.php` data attributes or `wp_localize_script`.
+ * Audio-transcription job submission and draft persistence.
  *
  * @package
  */
@@ -20,104 +12,25 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import { getToken, invalidateToken } from './tokenManager';
-import type {
-	PersistDraftResponse,
-	SweatpantsJob,
-	SweatpantsJobResults,
-	SweatpantsUpload,
-} from './types';
+import {
+	createOutputDir,
+	createSweatpantsClient,
+	JOB_SCOPE,
+} from '../../sweatpants/client';
+import type { SweatpantsJob } from '../../sweatpants/types';
+import type { PersistDraftResponse, TranscriptionResult } from './types';
 
-/** Single sweatpants worker in production — see the docblock for env-config notes. */
-const SWEATPANTS_BASE_URL = 'https://sweatpants.chubes.net';
+// Transcribe also requests callback material for background draft creation.
+const {
+	getToken,
+	upload: uploadAudio,
+	submitJob,
+	getJob,
+	getResults: getWorkerResults,
+} = createSweatpantsClient( `${ JOB_SCOPE } callback:write` );
 
-/** Sweatpants caps uploads at 500 MB by default. Validate client-side. */
-export const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
-
-/** Module ID for the audio-transcription pipeline on sweatpants. */
-const TRANSCRIPTION_MODULE_ID = 'audio-transcription';
-
-interface RequestOptions {
-	method?: 'GET' | 'POST' | 'DELETE';
-	body?: BodyInit | null;
-	headers?: Record< string, string >;
-}
-
-/**
- * Internal: perform an authorized fetch against sweatpants.
- *
- * On 401, drops the cached token and retries once with a fresh mint —
- * covers the case where the cached token expired mid-flight or the
- * sweatpants secret rotated server-side.
- * @param path
- * @param options
- * @param retried
- */
-const request = async < T >(
-	path: string,
-	options: RequestOptions = {},
-	retried = false
-): Promise< T > => {
-	const token = await getToken();
-	const headers: Record< string, string > = {
-		Authorization: `Bearer ${ token.token }`,
-		...( options.headers || {} ),
-	};
-
-	const response = await globalThis.fetch(
-		`${ SWEATPANTS_BASE_URL }${ path }`,
-		{
-			method: options.method || 'GET',
-			headers,
-			body: options.body ?? null,
-		}
-	);
-
-	if ( response.status === 401 && ! retried ) {
-		invalidateToken();
-		return request< T >( path, options, true );
-	}
-
-	if ( ! response.ok ) {
-		let detail = `${ response.status } ${ response.statusText }`;
-		try {
-			const errorBody = ( await response.json() ) as {
-				error?: string;
-				message?: string;
-			};
-			if ( errorBody?.error || errorBody?.message ) {
-				detail = `${ detail } — ${
-					errorBody.error || errorBody.message
-				}`;
-			}
-		} catch {
-			// Body wasn't JSON; stick with status text.
-		}
-		throw new Error( `Sweatpants ${ path } failed: ${ detail }` );
-	}
-
-	return response.json() as Promise< T >;
-};
-
-/**
- * Upload an audio file directly to sweatpants /uploads.
- *
- * @param file Browser File from a file input or drop event.
- * @return Sweatpants upload metadata, including the `path` we feed to
- *   the audio-transcription module as `audio_path`.
- */
-export const uploadAudio = async (
-	file: File
-): Promise< SweatpantsUpload > => {
-	const formData = new FormData();
-	formData.append( 'file', file, file.name );
-
-	return request< SweatpantsUpload >( '/uploads', {
-		method: 'POST',
-		body: formData,
-		// Don't set Content-Type — the browser sets a multipart boundary.
-	} );
-};
+export { getJob, uploadAudio };
+export const getResults = getWorkerResults< TranscriptionResult >;
 
 interface CreateJobInput {
 	uploadPath: string;
@@ -134,9 +47,8 @@ interface CreateJobInput {
  * The `output_dir` uses a UUID-ish unique-id so multiple concurrent jobs
  * never collide on the sweatpants host.
  *
- * If the cached token carries the `callback:write` scope (it does by
- * default — see tokenManager.DEFAULT_SCOPE), the callback handoff fields
- * from the token-mint response are passed through to sweatpants. The
+ * The callback handoff fields from the `callback:write` token-mint
+ * response are passed through to sweatpants when present. The
  * worker will then sign + POST a completion callback to our REST endpoint
  * when the job finishes, which creates a draft on main extrachill.com and
  * emails the uploader. This is what enables "close the tab, get an email"
@@ -146,19 +58,12 @@ interface CreateJobInput {
 export const createJob = async (
 	input: CreateJobInput
 ): Promise< SweatpantsJob > => {
-	const uniqueId =
-		typeof globalThis.crypto !== 'undefined' &&
-		'randomUUID' in globalThis.crypto
-			? globalThis.crypto.randomUUID()
-			: `job-${ Date.now() }-${ Math.random()
-					.toString( 36 )
-					.slice( 2, 10 ) }`;
-
+	const outputDir = createOutputDir();
 	const token = await getToken();
 
 	const inputs: Record< string, unknown > = {
 		audio_path: input.uploadPath,
-		output_dir: `/var/lib/sweatpants/output/${ uniqueId }`,
+		output_dir: outputDir,
 		model: input.model,
 		diarize: input.diarize,
 		remove_fillers: input.removeFillers,
@@ -183,36 +88,7 @@ export const createJob = async (
 		// "receiver acks → worker deletes audio + outputs".
 	}
 
-	const payload = {
-		module_id: TRANSCRIPTION_MODULE_ID,
-		inputs,
-	};
-
-	return request< SweatpantsJob >( '/jobs', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify( payload ),
-	} );
-};
-
-/**
- * Fetch the latest state for a job.
- * @param jobId
- */
-export const getJob = async ( jobId: string ): Promise< SweatpantsJob > => {
-	return request< SweatpantsJob >( `/jobs/${ encodeURIComponent( jobId ) }` );
-};
-
-/**
- * Fetch the results envelope for a completed job.
- * @param jobId
- */
-export const getResults = async (
-	jobId: string
-): Promise< SweatpantsJobResults > => {
-	return request< SweatpantsJobResults >(
-		`/jobs/${ encodeURIComponent( jobId ) }/results`
-	);
+	return submitJob( { module_id: 'audio-transcription', inputs } );
 };
 
 /**

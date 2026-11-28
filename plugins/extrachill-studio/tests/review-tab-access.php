@@ -62,7 +62,8 @@ check( $blog === 12 && empty( $stack ), 'main context restored' );
 // Render the real block with the minimum WordPress presentation stubs.
 function wp_parse_args( $args, $defaults ) { return array_merge( $defaults, $args ); }
 function get_block_wrapper_attributes( $args ) { return ''; }
-function ec_is_team_member() { return true; }
+$is_team_member = true;
+function ec_is_team_member() { global $is_team_member; return $is_team_member; }
 function is_user_logged_in() { return true; }
 function wp_get_current_user() { return (object) array( 'display_name' => 'Reviewer' ); }
 function get_bloginfo( $key ) { return 'Studio'; }
@@ -78,9 +79,18 @@ ob_start();
 require __DIR__ . '/../src/blocks/studio/render.php';
 $output = ob_get_clean();
 check( str_contains( $output, 'data-can-review-submissions="false"' ) && ! str_contains( $output, 'data-can-review-submissions="true"' ), 'tab hidden without capability: render emits false' );
+check( str_contains( $output, 'data-can-build-fonts="true"' ), 'team members can build fonts' );
+$is_team_member = false;
+$caps = array( 1 => array( 'review_submissions' => true ) );
+ob_start();
+require __DIR__ . '/../src/blocks/studio/render.php';
+$output = ob_get_clean();
+check( str_contains( $output, 'data-can-review-submissions="true"' ) && str_contains( $output, 'data-can-build-fonts="false"' ), 'review-only users cannot build fonts' );
 $tabs = file_get_contents( __DIR__ . '/../src/blocks/studio/app/tabs.ts' );
 check( str_contains( $tabs, 'canReviewSubmissions = false' ) && str_contains( $tabs, 'if ( canReviewSubmissions )' ), 'tab registration defaults closed and is conditional' );
 // Exercise the explicit, network-wide grant/revoke helpers too.
+$is_team_member = true;
+$caps = array();
 function ec_users_get_network_site_ids() { return array( 1, 12 ); }
 function is_super_admin( $id ) { return false; }
 class WP_User {
