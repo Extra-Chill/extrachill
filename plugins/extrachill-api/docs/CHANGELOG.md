@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.62.0] - 2026-11-28
+
+### Added
+- add event type filtering to the public calendar feed
+
 ## [0.61.0] - 2026-11-26
 
 ### Added
