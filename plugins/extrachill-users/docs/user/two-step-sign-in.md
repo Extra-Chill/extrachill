@@ -16,7 +16,7 @@ Sometimes Extra Chill asks you to **Confirm it's you** before a change is saved.
 
 ## Use an Authenticator App
 
-An authenticator app on your phone makes a new 6-digit code every 30 seconds. Google Authenticator, Microsoft Authenticator, 1Password, and Authy all work.
+An authenticator app on your phone makes a new 6-digit code every 30 seconds. Use an authenticator app that can create sign-in codes.
 
 1. In the **Two-step sign-in** section, select **Set up authenticator app**.
 2. Open your authenticator app and add an account. Scan the square code on the screen with your phone. If you are setting up on the same phone, select **Open in authenticator app**, or select **Copy setup key** and paste the key into the app.

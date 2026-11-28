@@ -32,6 +32,9 @@ class TurnstileTest extends WP_UnitTestCase {
 	 */
 	private $rejections = array();
 
+	/** @var int Number of siteverify HTTP calls. */
+	private $verification_count = 0;
+
 	public function set_up() {
 		parent::set_up();
 		add_action(
@@ -68,6 +71,7 @@ class TurnstileTest extends WP_UnitTestCase {
 				if ( false === strpos( (string) $url, 'challenges.cloudflare.com' ) ) {
 					return $preempt;
 				}
+				++$this->verification_count;
 				$this->captured_request_body = $args['body'] ?? null;
 				return array(
 					'headers'  => array(),
@@ -264,6 +268,89 @@ class TurnstileTest extends WP_UnitTestCase {
 		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => true ) ) );
 
 		$this->assertTrue( ec_turnstile_check_request( 'good-token' ) );
+	}
+
+	public function test_rest_allow_header_reuses_successful_verdict() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => true ) ) );
+		// Model single-use tokens: a second siteverify call rejects the token.
+		add_filter(
+			'pre_http_request',
+			function ( $response ) {
+				if ( $this->verification_count > 1 ) {
+					$response['body'] = wp_json_encode( array( 'success' => false ) );
+				}
+				return $response;
+			},
+			11
+		);
+
+		rest_get_server();
+		$permission_calls = 0;
+		$permission       = ec_turnstile_permission_callback();
+		register_rest_route(
+			'turnstile-test/v1',
+			'/submit',
+			array(
+				'methods'             => 'POST',
+				'callback'            => static function () {
+					return new WP_REST_Response( array( 'ok' => true ), 200 );
+				},
+				'permission_callback' => static function ( $request ) use ( $permission, &$permission_calls ) {
+					++$permission_calls;
+					return $permission( $request );
+				},
+				'args'               => array( 'turnstile_response' => array( 'type' => 'string' ) ),
+			)
+		);
+
+		$request = new WP_REST_Request( 'POST', '/turnstile-test/v1/submit' );
+		$request->set_param( 'turnstile_response', 'single-use-token' );
+		$response = rest_do_request( $request );
+		// Internal dispatch does not send headers; run the same filter as serve_request().
+		$this->assertNotFalse( has_filter( 'rest_post_dispatch', 'rest_send_allow_header' ) );
+		$response = apply_filters( 'rest_post_dispatch', $response, rest_get_server(), $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 'POST', $response->get_headers()['Allow'] );
+		$this->assertSame( 2, $permission_calls );
+		$this->assertSame( 1, $this->verification_count );
+		$this->assertSame( array(), $this->rejections );
+	}
+
+	public function test_check_request_caches_failure_and_rejects_only_once() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => false ) ) );
+		$request = new WP_REST_Request( 'POST', '/test' );
+		$request->set_param( 'turnstile_response', 'invalid-single-use-token' );
+
+		$first = ec_turnstile_check_request( $request );
+		$this->assertWPError( $first );
+		$this->assertSame( $first, ec_turnstile_check_request( $request ) );
+		$this->assertSame( 1, $this->verification_count );
+		$this->assertCount( 1, $this->rejections );
+	}
+
+	public function test_check_request_cache_is_scoped_to_request_and_token() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => true ) ) );
+		$request = new WP_REST_Request( 'POST', '/test' );
+		$request->set_param( 'turnstile_response', 'first-token' );
+		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$request->set_param( 'turnstile_response', 'second-token' );
+		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$this->assertTrue( ec_turnstile_check_request( clone $request ) );
+		$this->assertSame( 3, $this->verification_count );
+	}
+
+	public function test_check_request_caches_raw_token_verdict() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => true ) ) );
+		$token = 'raw-cache-test-token';
+		$this->assertTrue( ec_turnstile_check_request( $token ) );
+		$this->assertTrue( ec_turnstile_check_request( $token ) );
+		$this->assertSame( 1, $this->verification_count );
 	}
 
 	public function test_check_request_bypass_returns_true() {

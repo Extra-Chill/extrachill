@@ -693,10 +693,17 @@ function extrachill_analytics_revenue_timeseries_response( $blog_id, $include_al
 		}
 	}
 
+	$ledger_status = extrachill_analytics_revenue_ledger_read_status();
+
 	return array(
 		'success'        => true,
 		'rows'           => count( $points ),
 		'blog_id'        => $blog_id,
+		'source'         => array(
+			'ability'             => EXTRACHILL_ANALYTICS_REVENUE_LEDGER_QUERY_ABILITY,
+			'error'               => $ledger_status['error'],
+			'truncated_snapshots' => $ledger_status['truncated_snapshots'],
+		),
 		'group_by'       => 'timeseries',
 		'window'         => 'revenue arc (per-period, chronological)',
 		'ad_policy'      => $ad_policy,

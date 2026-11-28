@@ -13,7 +13,7 @@
  * Plugin Name: Extra Chill SEO
  * Plugin URI: https://extrachill.com
  * Description: Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives
- * Version: 0.15.1
+ * Version: 0.16.1
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * Network: true
@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants.
-define( 'EXTRACHILL_SEO_VERSION', '0.15.1' );
+define( 'EXTRACHILL_SEO_VERSION', '0.16.1' );
 define( 'EXTRACHILL_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_SEO_URL', plugin_dir_url( __FILE__ ) );
 
@@ -61,6 +61,7 @@ require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-public-api.php';
 
 // Sitemap provider loaded early so the class is defined before wp_loaded registration.
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sparse-terms.php';
+require_once EXTRACHILL_SEO_PATH . 'inc/core/recurring-events.php';
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
 // Sitemap health guardrail: schedules the daily check and registers its cron handler.
@@ -163,6 +164,7 @@ add_action(
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-conversion-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/redirect-opportunities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/sitemap-health-abilities.php';
+		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/event-schema-abilities.php';
 		require_once EXTRACHILL_SEO_PATH . 'inc/abilities/class-seo-abilities.php';
 
 		new \ExtraChill\SEO\Abilities\SEO_Abilities();

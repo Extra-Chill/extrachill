@@ -31,7 +31,7 @@ function extrachill_network_register_artist_discussions_section( $sections ) {
 
 	return $sections;
 }
-add_filter( 'ec_artist_profile_sections', 'extrachill_network_register_artist_discussions_section', 10, 3 );
+add_filter( 'ec_artist_profile_sections', 'extrachill_network_register_artist_discussions_section', 10, 1 );
 
 /**
  * Resolve the bound main-site artist term to its network join key.
@@ -99,7 +99,7 @@ function extrachill_network_get_community_topic_base() {
  *
  * This must run in Community blog context.
  *
- * @param WP_Post $topic     Community topic post.
+ * @param mixed   $topic      Community topic post; anything else yields ''.
  * @param string  $topic_base Verified topic route base.
  * @return string Canonical URL, or an empty string when invalid.
  */
@@ -114,6 +114,7 @@ function extrachill_network_get_community_topic_url( $topic, $topic_base ) {
 		return '';
 	}
 
+	/** @var mixed $site_url Passes through the `site_url` filter. */
 	$site_url = get_site_url( get_current_blog_id() );
 	if ( ! is_string( $site_url ) || '' === $site_url ) {
 		return '';

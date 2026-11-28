@@ -1,83 +1,147 @@
 <?php
 /**
- * Revenue snapshot store.
+ * Revenue ledger store for the ingestion engine.
  *
- * A thin, cohesive wrapper over the existing revenue persistence helpers
- * (`extrachill_analytics_revenue_get_rows()`, `extrachill_analytics_revenue_upsert()`,
- * `extrachill_analytics_revenue_delete_ids()`, and the transaction helpers). It
- * exists for one reason: the ingestion ability's replacement/transaction logic
- * is load-bearing and must be unit-testable, and this repository has no
- * WordPress-DB test scaffold. The store exposes the small set of operations the
- * engine needs behind a duck-typed interface, so the pure decision logic can be
- * exercised against an in-memory fake in tests while production binds to this
- * real `$wpdb`-backed implementation.
+ * Implements the storage contract `extrachill_analytics_revenue_ingest_rows()`
+ * drives (get_snapshot / upsert / delete_ids / begin / commit / rollback /
+ * lock / unlock) on top of the Data Machine Business revenue ledger. Extra
+ * Chill no longer writes its own table: upserts and deletes are buffered for
+ * the open snapshot and `commit()` writes the final snapshot in ONE
+ * `datamachine/revenue-ingest` call, whose (source, account, kind, window)
+ * replace scope is exactly the Extra Chill snapshot (see revenue-ledger.php).
+ * The ledger write is itself atomic, so a failure before commit leaves the
+ * stored snapshot untouched and rollback only discards the buffer.
  *
- * This is NOT a parallel writer: `upsert()` delegates straight to the single
- * existing writer (`extrachill_analytics_revenue_upsert()`), and `get_snapshot()`
- * delegates to the existing reader. There is exactly one persistence
- * implementation; this class only groups the calls the engine makes.
+ * Tests inject an in-memory fake with the same contract.
  *
  * @package ExtraChill\Analytics
- * @since 0.28.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Thin $wpdb-backed revenue store implementing the operations the ingestion
- * engine depends on.
+ * Ledger-backed revenue store.
  */
 final class Extrachill_Analytics_Revenue_Store {
 
 	/**
-	 * Return the existing rows of exactly one snapshot.
+	 * Ingestion mode (replace|additive).
 	 *
-	 * Each row is an object including at least `id` and `slug`. Scoped to one
-	 * (blog_id, period_label, import_batch) so the caller can compute a
-	 * deterministic replace plan that never escapes the snapshot.
+	 * @var string
+	 */
+	private $mode;
+
+	/**
+	 * Ledger source slug.
+	 *
+	 * @var string
+	 */
+	private $source;
+
+	/**
+	 * Rows read for the open snapshot, keyed by ledger id.
+	 *
+	 * @var array<int, \stdClass>
+	 */
+	private $existing = array();
+
+	/**
+	 * Whether the snapshot read was truncated by the query row cap.
+	 *
+	 * @var bool
+	 */
+	private $truncated = false;
+
+	/**
+	 * Buffered upserts keyed by slug.
+	 *
+	 * @var array<string, array>
+	 */
+	private $pending = array();
+
+	/**
+	 * Ledger ids buffered for deletion.
+	 *
+	 * @var array<int, bool>
+	 */
+	private $deleted = array();
+
+	/**
+	 * Last error message.
+	 *
+	 * @var string
+	 */
+	private $last_error = '';
+
+	/**
+	 * Constructor.
+	 *
+	 * @param string $mode   Ingestion mode.
+	 * @param string $source Revenue source slug (ledger source).
+	 */
+	public function __construct( $mode = 'replace', $source = 'mediavine' ) {
+		$this->mode   = 'additive' === $mode ? 'additive' : 'replace';
+		$source       = strtolower( preg_replace( '/[^a-z0-9_.-]/i', '', (string) $source ) );
+		$this->source = '' !== $source ? substr( $source, 0, 64 ) : 'mediavine';
+	}
+
+	/**
+	 * Read the exact snapshot from the ledger.
 	 *
 	 * @param int    $blog_id      Blog ID.
-	 * @param string $period_label Canonical period label.
-	 * @param string $import_batch Snapshot identity / batch label.
-	 * @return array<int, \stdClass> Existing snapshot rows.
+	 * @param string $period_label Period label.
+	 * @param string $import_batch Snapshot identity.
+	 * @return array<int, \stdClass> Rows (each with ->id and ->slug).
 	 */
 	public function get_snapshot( $blog_id, $period_label, $import_batch ) {
-		return extrachill_analytics_revenue_get_rows(
+		$rows = extrachill_analytics_revenue_get_rows(
 			array(
-				'blog_id'      => $blog_id,
-				'period_label' => $period_label,
-				'import_batch' => $import_batch,
+				'blog_id'               => $blog_id,
+				'period_label'          => $period_label,
+				'import_batch'          => $import_batch,
+				'restrict_import_batch' => true,
 			)
 		);
+
+		$status          = extrachill_analytics_revenue_ledger_read_status();
+		$this->truncated = ! empty( $status['truncated_snapshots'] );
+		$this->existing  = array();
+		foreach ( $rows as $row ) {
+			$this->existing[ (int) $row->id ] = $row;
+		}
+
+		return $rows;
 	}
 
 	/**
-	 * Insert or replace one snapshot row.
+	 * Buffer one snapshot row.
 	 *
-	 * Delegates to the single existing writer so there is one persistence path.
-	 *
-	 * @param array $row Record shaped per extrachill_analytics_revenue_upsert().
-	 * @return int|false Inserted/replaced row ID, or false on failure.
+	 * @param array $row Normalized record.
+	 * @return bool
 	 */
 	public function upsert( array $row ) {
-		return extrachill_analytics_revenue_upsert( $row );
+		$this->pending[ isset( $row['slug'] ) ? (string) $row['slug'] : '' ] = $row;
+		return true;
 	}
 
 	/**
-	 * Delete snapshot rows by primary-key ID.
+	 * Buffer stale-row removal (the ledger replace drops absent rows).
 	 *
-	 * @param array<int> $ids Row IDs to delete.
-	 * @return int|false Rows deleted, or false on error.
+	 * @param array<int> $ids Ledger row ids.
+	 * @return bool
 	 */
 	public function delete_ids( array $ids ) {
-		return extrachill_analytics_revenue_delete_ids( $ids );
+		foreach ( $ids as $id ) {
+			$this->deleted[ (int) $id ] = true;
+		}
+		return true;
 	}
 
 	/**
-	 * Acquire a named advisory lock serializing ingestion for one period.
+	 * Acquire the per-period advisory lock.
 	 *
 	 * @param string $name    Lock name.
-	 * @param int    $timeout Seconds to wait.
+	 * @param int    $timeout Seconds.
 	 * @return bool
 	 */
 	public function lock( $name, $timeout = 10 ) {
@@ -85,7 +149,7 @@ final class Extrachill_Analytics_Revenue_Store {
 	}
 
 	/**
-	 * Release a previously acquired advisory lock.
+	 * Release the advisory lock.
 	 *
 	 * @param string $name Lock name.
 	 * @return bool
@@ -95,29 +159,96 @@ final class Extrachill_Analytics_Revenue_Store {
 	}
 
 	/**
-	 * Begin a transaction (no-op on engines without transactions).
+	 * Open a buffered snapshot write.
 	 *
 	 * @return bool
 	 */
 	public function begin() {
-		return extrachill_analytics_revenue_transaction_begin();
+		$this->pending    = array();
+		$this->deleted    = array();
+		$this->last_error = '';
+		return true;
 	}
 
 	/**
-	 * Commit the active transaction.
+	 * Write the final snapshot through datamachine/revenue-ingest.
 	 *
 	 * @return bool
 	 */
 	public function commit() {
-		return extrachill_analytics_revenue_transaction_commit();
+		if ( empty( $this->pending ) ) {
+			$this->last_error = 'No revenue rows to write.';
+			return false;
+		}
+
+		$final = array();
+		foreach ( $this->existing as $id => $row ) {
+			if ( ! isset( $this->deleted[ $id ] ) ) {
+				$final[ (string) $row->slug ] = (array) $row;
+			}
+		}
+		if ( $this->truncated && 'replace' !== $this->mode ) {
+			$this->last_error = 'The existing ledger snapshot exceeds the revenue-query row cap, so an additive merge cannot be verified (fail closed).';
+			return false;
+		}
+		foreach ( $this->pending as $slug => $row ) {
+			$final[ $slug ] = $row;
+		}
+
+		$first = reset( $this->pending );
+		$start = isset( $first['period_start'] ) ? (string) $first['period_start'] : '';
+		$end   = isset( $first['period_end'] ) ? (string) $first['period_end'] : '';
+		if ( ! extrachill_analytics_revenue_is_valid_date( $start ) || ! extrachill_analytics_revenue_is_valid_date( $end ) ) {
+			$this->last_error = 'The revenue ledger requires a dated period (YYYY-MM, YYYY, or explicit period_start/period_end); undated lifetime snapshots cannot be stored.';
+			return false;
+		}
+
+		$rows = array();
+		foreach ( $final as $record ) {
+			$rows[] = extrachill_analytics_revenue_ledger_row_from_record( $record );
+		}
+
+		$batch  = isset( $first['import_batch'] ) ? (string) $first['import_batch'] : '';
+		$result = extrachill_analytics_revenue_ledger_execute(
+			EXTRACHILL_ANALYTICS_REVENUE_LEDGER_INGEST_ABILITY,
+			array(
+				'source'       => $this->source,
+				'account'      => extrachill_analytics_revenue_ledger_account( isset( $first['blog_id'] ) ? (int) $first['blog_id'] : get_current_blog_id(), $batch ),
+				'start_date'   => $start,
+				'end_date'     => $end,
+				'kinds'        => array( EXTRACHILL_ANALYTICS_REVENUE_LEDGER_KIND ),
+				'rows'         => $rows,
+				'import_batch' => '' !== $batch ? substr( $batch, 0, 64 ) : 'extrachill-revenue',
+				'dry_run'      => false,
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			$this->last_error = $result->get_error_message();
+			return false;
+		}
+
+		$this->pending = array();
+		$this->deleted = array();
+		return true;
 	}
 
 	/**
-	 * Roll back the active transaction.
+	 * Discard the buffered snapshot (nothing was written).
 	 *
 	 * @return bool
 	 */
 	public function rollback() {
-		return extrachill_analytics_revenue_transaction_rollback();
+		$this->pending = array();
+		$this->deleted = array();
+		return true;
+	}
+
+	/**
+	 * Last error message from commit().
+	 *
+	 * @return string
+	 */
+	public function last_error() {
+		return $this->last_error;
 	}
 }

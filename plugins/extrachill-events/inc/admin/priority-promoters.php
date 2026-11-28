@@ -214,7 +214,7 @@ function ec_backfill_priority_promoter_events( int $term_id ): int {
 			AND tt.taxonomy = 'promoter'
 			AND tt.term_id = %d
 			AND {$upcoming_sql['where']}",
-		array( $term_id, $now, $now )
+		array_merge( array( $term_id ), array_fill( 0, $upcoming_sql['param_count'], $now ) )
 	);
 
 	$post_ids = array_map( 'intval', (array) $wpdb->get_col( $sql ) );

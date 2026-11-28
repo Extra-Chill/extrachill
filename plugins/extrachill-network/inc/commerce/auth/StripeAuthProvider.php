@@ -21,10 +21,6 @@ final class StripeAuthProvider extends CommerceAuthProvider {
 
 	public const PROVIDER_SLUG = 'ec_stripe';
 
-	public function __construct() {
-		parent::__construct( self::PROVIDER_SLUG );
-	}
-
 	public static function slug(): string {
 		return self::PROVIDER_SLUG;
 	}

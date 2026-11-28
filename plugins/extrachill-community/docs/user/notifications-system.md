@@ -9,7 +9,7 @@ Notifications help you return to conversations that involve you. The bell shows 
 3. Open an item to visit the related conversation. Opening a notification marks it as read; viewing the list alone does not.
 4. Choose **Mark all as read** when you want to clear the unread count.
 
-You may get a notification when someone replies to a topic you are subscribed to, or mentions you in a forum post. These are not alerts for every post. If you turned on the weekly Local Scene digest, you also get a weekly **Your Local Scene weekly picks are ready** notice. See [Notifications and email digests](https://docs.extrachill.com/accounts/notifications-and-digests).
+You may get a notification when someone replies to a topic you are subscribed to, mentions you in a forum post, or starts a topic tagged with an artist or festival you subscribe to. These are not alerts for every post. If you turned on the weekly Local Scene digest, you also get a weekly **Your Local Scene weekly picks are ready** notice. See [Notifications and email digests](https://docs.extrachill.com/accounts/notifications-and-digests).
 
 ## Hear about replies
 

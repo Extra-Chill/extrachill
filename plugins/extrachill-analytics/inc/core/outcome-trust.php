@@ -26,6 +26,12 @@ function extrachill_analytics_conversion_outcome_trust_class( $outcome ) {
 		return 'confirmed_bot';
 	}
 
+	// The owning account was deleted (typically agent or QA verification), so
+	// its authenticated outcomes no longer represent a person on the platform.
+	if ( 'deleted_account' === ( $data['bot_reason'] ?? '' ) ) {
+		return 'deleted_account';
+	}
+
 	if ( extrachill_analytics_conversion_outcome_user_id( $outcome ) > 0 ) {
 		return 'authenticated_server';
 	}

@@ -6,11 +6,11 @@ All paths below are relative to `/wp-json/extrachill/v1`. These GET routes have 
 
 **Source:** `inc/routes/events/calendar.php`.
 
-**Parameters:** optional `page` (integer, minimum 1, default 1); `venue`, `promoter`, `location` (slug strings); `scope` (`today`, `tonight`, `this-weekend`, `this-week`); `lat`, `lng` (numbers); `radius` (integer miles, default 25); `search` (string); `past` (boolean, default false). Only non-null values are forwarded.
+**Parameters:** optional `page` (integer, minimum 1, default 1); `venue`, `promoter`, `location`, `event_type` (slug strings); `scope` (`today`, `tonight`, `this-weekend`, `this-week`); `lat`, `lng` (numbers); `radius` (integer miles, default 25); `search` (string); `past` (boolean, default false). Only non-null values are forwarded.
 
 **Ability:** `extrachill/events-calendar`.
 
-**Response:** `{dates: [{date, label, events: [...]}], total, page, has_more}`. When the hidden `data-machine-events/resolve-ticket-destination` ability identifies an affiliate event, its `ticket_url` becomes null and `ticket_ref` is set to the event ID. Clients use the ticket redirect route rather than a bulk affiliate URL. Non-affiliate URLs, and events whose resolution fails or is unavailable, remain unchanged.
+**Response:** `{dates: [{date, label, events: [...]}], total, page, has_more}`. Each event includes `source` (`{url, name}` when provided upstream, otherwise `null`). When the hidden `data-machine-events/resolve-ticket-destination` ability identifies an affiliate event, its `ticket_url` becomes null and `ticket_ref` is set to the event ID. Clients use the ticket redirect route rather than a bulk affiliate URL. Non-affiliate URLs, and events whose resolution fails or is unavailable, remain unchanged.
 
 ## GET /events/filters
 

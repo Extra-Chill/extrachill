@@ -23,6 +23,7 @@ namespace WP_CLI\Utils {
 
 namespace {
 	use ExtraChill\CLI\Commands\Shop\BoostCommand;
+	use ExtraChill\CLI\Commands\Shop\FeesCommand;
 	use ExtraChill\CLI\Commands\Shop\OrderCommand;
 	use ExtraChill\CLI\Commands\Shop\OrdersCommand;
 	use ExtraChill\CLI\Commands\Shop\SellerCommand;
@@ -46,6 +47,7 @@ namespace {
 					'extrachill shop order'   => OrderCommand::class,
 					'extrachill shop webhook' => WebhookCommand::class,
 					'extrachill shop boost'   => BoostCommand::class,
+					'extrachill shop fees'    => FeesCommand::class,
 				);
 				foreach ( $expected as $command => $class ) {
 					$this->assertSame( $class, $map[ $command ] ?? null, $command );
@@ -178,7 +180,7 @@ namespace {
 
 		require_once dirname( __DIR__ ) . '/inc/OwnerSiteAbility.php';
 		require_once dirname( __DIR__ ) . '/inc/CommandRegistry.php';
-		foreach ( array( 'ShopCommandBase', 'SellersCommand', 'SellerCommand', 'OrdersCommand', 'OrderCommand', 'WebhookCommand', 'BoostCommand' ) as $class ) {
+		foreach ( array( 'ShopCommandBase', 'SellersCommand', 'SellerCommand', 'OrdersCommand', 'OrderCommand', 'WebhookCommand', 'BoostCommand', 'FeesCommand' ) as $class ) {
 			require_once dirname( __DIR__ ) . '/inc/Commands/Shop/' . $class . '.php';
 		}
 
@@ -191,6 +193,7 @@ namespace {
 			'extrachill shop order'   => OrderCommand::class,
 			'extrachill shop webhook' => WebhookCommand::class,
 			'extrachill shop boost'   => BoostCommand::class,
+			'extrachill shop fees'    => FeesCommand::class,
 		) as $command => $class ) {
 			shop_assert( ( $map[ $command ] ?? null ) === $class, "Registry maps {$command}" );
 		}
@@ -412,6 +415,67 @@ namespace {
 			),
 		);
 		shop_expect_error( fn() => ( new BoostCommand() )->retry( array( '77' ), array() ), '1 Priority Boost grant(s) still failing', 'failed grants exit non-zero' );
+
+		// fees get/set/clear: event:<id> or type:id targets, partial fields, inherit, --zero.
+		shop_reset();
+		$fee_fields = array( 'merch_percent', 'ticket_percent', 'ticket_buyer_fee_per_ticket_minor', 'ticket_buyer_fee_flat_minor', 'ticket_buyer_fee_percent', 'processing_percent', 'processing_fixed_minor' );
+		wp_get_ability( 'extrachill/set-commerce-fee-override' )->schema = array(
+			'type'       => 'object',
+			'properties' => array(
+				'fees' => array(
+					'type'       => 'object',
+					'properties' => array_fill_keys( $fee_fields, array( 'type' => array( 'number', 'null' ) ) ),
+				),
+			),
+		);
+		$fee_result = array(
+			'scope'    => 'event',
+			'event_id' => 4521,
+			'seller'   => array(
+				'type' => 'venue',
+				'id'   => 1524,
+			),
+			'override' => array( 'ticket_percent' => 0.0 ),
+			'global'   => array( 'ticket_percent' => 0.0, 'merch_percent' => 10.0 ),
+			'resolved' => array( 'ticket_percent' => 0.0, 'merch_percent' => 10.0 ),
+		);
+		foreach ( array( 'get', 'set', 'clear' ) as $verb ) {
+			$GLOBALS['shop_test_responses'][ 'extrachill/' . $verb . '-commerce-fee-override' ] = $fee_result;
+		}
+		( new FeesCommand() )->get( array( 'event:4521' ), array() );
+		shop_assert( array( array( 'extrachill/get-commerce-fee-override', array( 'scope' => 'event', 'event_id' => 4521 ) ) ) === $GLOBALS['shop_test_calls'], 'fees get passes the event scope' );
+		shop_assert( in_array( 'TABLE(table):field,global,override,resolved:2', WP_CLI::$messages, true ), 'fees get prints global, override and resolved' );
+		shop_reset();
+		( new FeesCommand() )->get( array( 'venue:1524' ), array() );
+		shop_assert( array( 'scope' => 'seller', 'seller' => array( 'type' => 'venue', 'id' => 1524 ) ) === $GLOBALS['shop_test_calls'][0][1], 'fees get passes the seller scope' );
+		shop_expect_error( fn() => ( new FeesCommand() )->get( array( 'event:abc' ), array() ), 'Event ID', 'bad event id errors' );
+		shop_expect_error( fn() => ( new FeesCommand() )->get( array( 'label:5' ), array() ), 'Invalid seller', 'bad seller errors' );
+
+		shop_reset();
+		( new FeesCommand() )->set( array( 'event:4521' ), array( 'zero' => true, 'yes' => true ) );
+		shop_assert( array( 'scope' => 'event', 'event_id' => 4521, 'fees' => array_fill_keys( $fee_fields, 0 ) ) === $GLOBALS['shop_test_calls'][0][1], '--zero sets every field to 0' );
+		shop_assert( 'Success: Fee override saved for event:4521.' === end( WP_CLI::$messages ), 'set reports success' );
+		shop_reset();
+		( new FeesCommand() )->set( array( 'venue:1524' ), array( 'ticket_percent' => '2.5', 'ticket_buyer_fee_flat_minor' => '100', 'merch_percent' => 'inherit', 'yes' => true ) );
+		shop_assert( array( 'ticket_percent' => 2.5, 'ticket_buyer_fee_flat_minor' => 100, 'merch_percent' => null ) === $GLOBALS['shop_test_calls'][0][1]['fees'], 'set passes numbers, cents and inherit' );
+		shop_reset();
+		shop_expect_error( fn() => ( new FeesCommand() )->set( array( 'venue:1524' ), array( 'bogus' => '1', 'yes' => true ) ), 'Unknown fee field --bogus', 'unknown field errors' );
+		shop_expect_error( fn() => ( new FeesCommand() )->set( array( 'venue:1524' ), array( 'merch_percent' => '-1', 'yes' => true ) ), 'at least 0', 'negative value errors' );
+		shop_expect_error( fn() => ( new FeesCommand() )->set( array( 'venue:1524' ), array( 'processing_fixed_minor' => '2.5', 'yes' => true ) ), 'whole number', 'fractional cents error' );
+		shop_expect_error( fn() => ( new FeesCommand() )->set( array( 'venue:1524' ), array( 'yes' => true ) ), 'at least one', 'no fields errors' );
+		shop_assert( array() === $GLOBALS['shop_test_calls'], 'invalid set input never reaches the ability' );
+		WP_CLI::$confirm = false;
+		try {
+			( new FeesCommand() )->set( array( 'event:4521' ), array( 'zero' => true ) );
+			shop_assert( false, 'declined confirmation aborts' );
+		} catch ( ShopCommandTestAborted $aborted ) {
+			unset( $aborted );
+		}
+		shop_assert( array() === $GLOBALS['shop_test_calls'], 'declined set executes nothing' );
+
+		shop_reset();
+		( new FeesCommand() )->clear( array( 'promoter:8' ), array( 'yes' => true ) );
+		shop_assert( array( array( 'extrachill/clear-commerce-fee-override', array( 'scope' => 'seller', 'seller' => array( 'type' => 'promoter', 'id' => 8 ) ) ) ) === $GLOBALS['shop_test_calls'], 'clear passes the target' );
 
 		// Ability errors surface as CLI errors.
 		shop_reset();

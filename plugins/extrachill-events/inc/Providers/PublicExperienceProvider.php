@@ -46,6 +46,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-seo.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/account-market.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/artist-show-signal.php';
 		extrachill_events_init_local_scene_digest();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me-city-grid.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
@@ -62,10 +63,12 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/network-bridge.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/recurring-hub-link.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/scene-digest-offer.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/comments.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest-guest.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-show-updates.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/event-management-authority.php';
@@ -80,6 +83,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/owner-guest-list.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-pass-qr.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-management.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/door-list-export.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/owner-guest-list-management.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-verify-page.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-page.php';

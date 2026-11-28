@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.35.2] - 2026-11-28
+
+### Fixed
+- logged-out upvote links to login instead of a dead control
+- single complete breadcrumb on reply edit
+
+## [1.35.1] - 2026-11-28
+
+### Fixed
+- boot core-dependent smokes from HOMEBOY_WORDPRESS_CORE_ROOT
+
 ## [1.35.0] - 2026-11-17
 
 ### Added

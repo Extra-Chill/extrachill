@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Allow the method-override header wp.apiFetch sends on cross-origin writes.
  *
- * @param string[] $headers Allowed CORS request headers.
+ * @param mixed $headers Allowed CORS request headers (filter value; other callbacks may return a non-array).
  * @return string[]
  */
 function ec_api_allow_method_override_cors_header( $headers ) {

@@ -95,6 +95,25 @@ class LocalSceneDigestGuestRouteTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'utm_source' => 'instagram' ), $this->ability_inputs[0]['utm'] );
 	}
 
+	/** Venue show-updates scope is forwarded only when it is exactly `venue` (extrachill#1724). */
+	public function test_handler_forwards_venue_scope_only() {
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/events/local-scene-digest/guest-subscribe' );
+		$request->set_param( 'location_slug', 'lofi-brewing' );
+		$request->set_param( 'email', 'guest@example.com' );
+		$request->set_param( 'scope', 'venue' );
+		extrachill_api_handle_local_scene_digest_guest( $request );
+
+		$city = new WP_REST_Request( 'POST', '/extrachill/v1/events/local-scene-digest/guest-subscribe' );
+		$city->set_param( 'location_slug', 'charleston' );
+		$city->set_param( 'email', 'guest@example.com' );
+		$city->set_param( 'scope', 'artist' );
+		extrachill_api_handle_local_scene_digest_guest( $city );
+
+		$this->assertSame( 'venue', $this->ability_inputs[0]['scope'] );
+		$this->assertSame( 'lofi-brewing', $this->ability_inputs[0]['location_slug'] );
+		$this->assertArrayNotHasKey( 'scope', $this->ability_inputs[1] );
+	}
+
 	/** Success response is opaque even if the ability returns more. */
 	public function test_success_response_is_opaque() {
 		$this->ability_result = array(

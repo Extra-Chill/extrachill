@@ -191,8 +191,22 @@ final class ArtistUrlImportConfigurationContractTest extends BookingTestCase {
 		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/Abilities/ArtistUrlImportAbilities.php' );
 
 		$this->assertIsString( $source );
-		$this->assertMatchesRegularExpression( '/\$flow_result = \$flow_ability->execute\( \$flow_input \);\s*if \( is_wp_error\( \$flow_result \) \)/', $source );
+		$this->assertMatchesRegularExpression( '/\$flow_result = \$this->flowGateway\(\)->create_flow\( \$flow_input \);\s*if \( is_wp_error\( \$flow_result \) \)/', $source );
 		$this->assertStringContainsString( "is_array( \$run_result ) && isset( \$run_result['events_imported'] )", $source );
+	}
+
+	/**
+	 * The approve ability is the authorization boundary: every Data Machine
+	 * flow/pipeline call goes through the system-elevating gateway, never as
+	 * the caller (extrachill#1810).
+	 */
+	public function test_data_machine_flow_and_pipeline_calls_go_through_gateway(): void {
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/Abilities/ArtistUrlImportAbilities.php' );
+
+		$this->assertIsString( $source );
+		foreach ( array( 'create-flow', 'run-flow', 'create-pipeline', 'get-pipeline-configuration', 'update-step-configuration' ) as $ability ) {
+			$this->assertStringNotContainsString( "wp_get_ability( 'datamachine/" . $ability . "' )", $source, $ability );
+		}
 	}
 
 	/** upsert_event declares no venue, category or post_tag selection; create-flow rejects them. */

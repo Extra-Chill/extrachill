@@ -1,17 +1,8 @@
 <?php
 /** Runtime schema coverage using WordPress core's WP_Ability validator. */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
-	if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
-		fwrite( STDERR, "Usage: php tests/subscription-inventory-wp-ability-schema-smoke.php /path/to/wordpress\n" );
-		exit( 1 );
-	}
-
-	define( 'SHORTINIT', true );
-	define( 'WP_DISABLE_FATAL_ERROR_HANDLER', true );
-	require $wordpress_root . '/wp-load.php';
-}
+// Standalone: loads WordPress core source (HOMEBOY_WORDPRESS_CORE_ROOT) without a database.
+require __DIR__ . '/support/wordpress-core-bootstrap.php';
 
 error_reporting( E_ALL );
 ini_set( 'display_errors', '1' );

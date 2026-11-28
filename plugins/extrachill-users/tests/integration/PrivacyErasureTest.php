@@ -53,7 +53,9 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		$first = extrachill_users_erase_user_data_batch( $user, 2 );
 		$this->assertFalse( $first['done'] );
 		$this->assertSame( 0, $first['failed'] );
-		$this->assertSame( 9, $first['removed'] );
+		// Four tables x 2 rows, plus 2 of the user's 3 owned meta rows: the seeded
+		// import username and the two visibility defaults written on user_register.
+		$this->assertSame( 10, $first['removed'] );
 		$second = extrachill_users_erase_user_data_batch( $user, 2 );
 		$this->assertFalse( $second['done'] ); // Exactly two actor/recipient notifications drained.
 		$retry = extrachill_users_erase_user_data_batch( $user, 2 );
@@ -134,7 +136,9 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		try {
 			$result = extrachill_users_erase_user_data_batch( $user );
 			$this->assertTrue( $result['done'] );
-			$this->assertSame( 5, $result['removed'] );
+			// Four seeded table rows + seeded import username + the two
+			// visibility defaults written on user_register.
+			$this->assertSame( 7, $result['removed'] );
 		} finally {
 			restore_current_blog();
 		}

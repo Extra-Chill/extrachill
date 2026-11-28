@@ -22,6 +22,22 @@ The ExtraChill Analytics plugin provides comprehensive view tracking and analyti
 - **Asset Versioning**: Automatic cache busting using `filemtime()` on all enqueued assets
 - **Conditional Loading**: Frontend tracking loads on eligible public routes, while the admin dashboard loads only on the analytics page
 
+## Beacon authentication
+
+The shared PHP beacon URL builder adds a `wp_rest` nonce as `_wpnonce` only
+for logged-in renders, allowing Core cookie authentication to attribute browser
+events to `user_id`. Anonymous HTML contains no nonce. Extra Chill Cache bypasses
+HTML caching for `wordpress_logged_in_*` cookies, so per-user nonces are not
+served from the public page cache.
+
+If Core rejects an expired/invalid nonce, a late `rest_authentication_errors`
+filter clears the current user and permits anonymous recording **only** for
+POSTs to the explicitly listed public collectors (pageview, click, network,
+CTA, form-submit and content-link). Existing origin, proof, privacy and rate
+checks still apply. Other routes, methods and authentication errors remain
+rejected. This server-side fallback avoids losing sendBeacon events, whose
+responses cannot be inspected for a client-side retry.
+
 ## Requirements
 
 - WordPress Multisite

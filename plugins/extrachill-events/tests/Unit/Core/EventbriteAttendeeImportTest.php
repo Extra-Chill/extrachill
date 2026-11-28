@@ -8,9 +8,18 @@
 // phpcs:disable -- Test doubles and WordPress stubs.
 
 namespace {
+	// Every double is guarded: the default suite also loads the real
+	// inc/core/local-scene-digest.php (extrachill_events_digest_scope) and
+	// other suites' WordPress stubs, so an unguarded redeclare is fatal.
 	foreach ( array(
-		'extrachill_events_perk_enabled' => static fn( $id ) => ! empty( $GLOBALS['eb_perk'] ),
-		'extrachill_cache_purge_post'    => static function ( $id ) { $GLOBALS['eb_purged'][] = $id; },
+		'extrachill_events_perk_enabled'                     => static fn( $id ) => ! empty( $GLOBALS['eb_perk'] ),
+		'extrachill_cache_purge_post'                        => static function ( $id ) { $GLOBALS['eb_purged'][] = $id; },
+		'wp_get_post_terms'                                  => static fn( $id, $taxonomy ) => array( (object) array( 'slug' => 'lofi' ) ),
+		'is_email'                                           => static fn( $email ) => filter_var( $email, FILTER_VALIDATE_EMAIL ),
+		'get_user_by'                                        => static fn( $field, $email ) => 'already@example.com' === $email ? (object) array( 'ID' => 8 ) : false,
+		'extrachill_events_digest_scope'                     => static fn( $scope ) => array( 'entity' => 'venue_show_updates', 'taxonomy' => 'venue' ),
+		'extrachill_users_entity_subscription_status'        => static fn( ...$args ) => array( 'subscribed' => true ),
+		'extrachill_events_guest_subscribe_local_scene_digest' => static function ( ...$args ) { $GLOBALS['eb_requests'][] = $args; return array( 'status' => 'check_inbox' ); },
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['eb_impl'][ $name ] = $impl;
@@ -105,6 +114,24 @@ namespace ExtraChillEvents\Tests\Unit\Core {
 			$second = extrachill_events_import_eventbrite_attendees( 42, $newer, 7 );
 			$this->assertSame( array( 'added' => 1, 'already_listed' => 3, 'skipped' => 1 ), $second );
 			$this->assertCount( 4, $GLOBALS['wpdb']->rows );
+		}
+
+		public function test_venue_list_requires_explicit_consent_columns() {
+			$GLOBALS['eb_requests'] = array();
+			$result = extrachill_events_import_eventbrite_attendees( 42, self::SUMMARY, 7, 'venue_list' );
+			$this->assertSame( 'eventbrite_consent_columns_required', $result->get_error_code() );
+			$this->assertSame( array(), $GLOBALS['eb_requests'] );
+			$this->assertSame( array(), $GLOBALS['wpdb']->rows );
+		}
+
+		public function test_venue_list_filters_consent_and_only_requests_confirmation() {
+			$GLOBALS['eb_perk'] = false; // List import does not require door-list perks.
+			$GLOBALS['eb_requests'] = array();
+			$csv = file_get_contents( dirname( __DIR__, 2 ) . '/fixtures/eventbrite-venue-list.csv' );
+			$result = extrachill_events_import_eventbrite_attendees( 42, $csv, 7, 'venue_list' );
+			$this->assertSame( array( 'imported' => 1, 'skipped_no_consent' => 2, 'skipped_unsubscribed' => 1, 'already_subscribed' => 1, 'skipped_duplicate' => 1, 'failed' => 0 ), $result );
+			$this->assertSame( array( array( 'lofi', 'ada@example.com', array( 'eventbrite_import' => true ), 'venue' ) ), $GLOBALS['eb_requests'] );
+			$this->assertSame( array(), $GLOBALS['wpdb']->rows );
 		}
 
 		public function test_import_needs_a_door_list() {

@@ -17,11 +17,13 @@
  * snapshot and leave totals unchanged.
  *
  * STORAGE OWNERSHIP:
- * Analytics owns persistence, period/snapshot identity, replacement policy,
- * resolution, and mutation validation. It reuses the existing writer
- * (`extrachill_analytics_revenue_upsert()`) and the shared slug resolver
- * (`extrachill_analytics_revenue_resolve_slug()`) — there is still exactly one
- * writer and one resolution path. The ability is agnostic about the Data
+ * Analytics owns period/snapshot identity, replacement policy, resolution, and
+ * mutation validation. It does NOT own storage: the production store
+ * (Extrachill_Analytics_Revenue_Store) writes each final snapshot through
+ * `datamachine/revenue-ingest` into the Data Machine Business revenue ledger,
+ * whose (source, account, kind, window) replace scope is exactly this
+ * snapshot. Resolution stays on the shared slug resolver
+ * (`extrachill_analytics_revenue_resolve_slug()`). The ability is agnostic about the Data
  * Machine Business source ability: callers hand it already-normalized revenue
  * rows plus source provenance.
  *
@@ -157,21 +159,17 @@ function extrachill_analytics_revenue_snapshot_identity( array $args ) {
  * batch counts the ability reports, so the load-bearing logic is fully testable
  * without a database.
  *
- * @param array                                      $records Normalized incoming records, each with at least a `slug`.
- * @param array<int, \stdClass|array<string, mixed>> $existing Existing rows of the target snapshot (objects or arrays with `id`, `slug`).
- * @param string                                     $mode     'replace' or 'additive'.
+ * @param array              $records Normalized incoming records, each with at least a `slug`.
+ * @param array<int, \stdClass|array<string, mixed>> $existing Existing rows of the target snapshot (objects with `id`, `slug`).
+ * @param string             $mode     'replace' or 'additive'.
  * @return array{inserts:array,replaces:array,deletes:array} Plan.
  */
 function extrachill_analytics_revenue_build_ingestion_plan( array $records, array $existing, $mode ) {
 	$existing_by_slug = array();
 	foreach ( $existing as $row ) {
-		if ( is_object( $row ) ) {
-			$slug = isset( $row->slug ) ? (string) $row->slug : '';
-			$id   = isset( $row->id ) ? (int) $row->id : 0;
-		} else {
-			$slug = (string) ( isset( $row['slug'] ) ? $row['slug'] : '' );
-			$id   = (int) ( isset( $row['id'] ) ? $row['id'] : 0 );
-		}
+		$row                       = (array) $row;
+		$slug                      = isset( $row['slug'] ) ? (string) $row['slug'] : '';
+		$id                        = isset( $row['id'] ) ? (int) $row['id'] : 0;
 		$existing_by_slug[ $slug ] = $id;
 	}
 
@@ -517,7 +515,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 			$post_id = (int) $input['post_id'];
 			if ( function_exists( 'get_post' ) ) {
 				$post = get_post( $post_id );
-				$slug = is_object( $post ) ? $post->post_name : trim( (string) strtok( $raw_slug, '?#' ), '/' );
+				$slug = ( $post instanceof WP_Post ) ? $post->post_name : trim( (string) strtok( $raw_slug, '?#' ), '/' );
 			} else {
 				$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
 			}
@@ -674,7 +672,7 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 				$base
 			);
 		}
-		$store = new Extrachill_Analytics_Revenue_Store();
+		$store = new Extrachill_Analytics_Revenue_Store( $mode, $identity['source'] );
 	}
 
 	// Dry run: read exactly this snapshot, plan, and report — mutate nothing.
@@ -759,6 +757,9 @@ function extrachill_analytics_revenue_ingest_rows( array $input_rows, array $arg
 		}
 		if ( null === $op_error && false === $store->commit() ) {
 			$op_error = 'Failed to commit the revenue snapshot.';
+			if ( '' !== (string) $store->last_error() ) {
+				$op_error .= ' ' . $store->last_error();
+			}
 		}
 	} catch ( Throwable $throwable ) {
 		$op_error = 'Revenue ingestion failed: ' . $throwable->getMessage();
@@ -810,7 +811,7 @@ function extrachill_analytics_register_ingest_revenue_ability() {
 		'extrachill/ingest-revenue',
 		array(
 			'label'               => __( 'Ingest Revenue Snapshot', 'extrachill-analytics' ),
-			'description'         => __( 'Idempotently ingest a set of per-URL ad-revenue rows (e.g. a Mediavine period export) into the revenue store with a deterministic snapshot identity. Default mode is deterministic REPLACE: the same source/site/blog/period always lands on the SAME snapshot, updating rows in place and removing only rows that disappeared from that exact snapshot. It never discovers, adopts, or deletes another batch; existing legacy batches require an explicit one-time operator migration or purge outside this runtime ability. REQUIRES non-empty rows — an empty/omitted set never wipes a snapshot. ADDITIVE mode never deletes and requires an explicit, non-colliding snapshot identity plus network-level authorization. Replace authorizes against the TARGET blog (or network). The whole mutation runs in a transaction under a per-period advisory lock; begin/commit failures fail closed. Accepts normalized revenue rows plus source provenance; agnostic about the upstream source ability. Supports dry-run. Owned by analytics: validation, period/snapshot identity, replacement, resolution, and persistence all live here.', 'extrachill-analytics' ),
+			'description'         => __( 'Idempotently ingest a set of per-URL ad-revenue rows (e.g. a Mediavine period export) into the Data Machine Business revenue ledger (via datamachine/revenue-ingest; analytics no longer writes its own table) with a deterministic snapshot identity. Default mode is deterministic REPLACE: the same source/site/blog/period always lands on the SAME snapshot, updating rows in place and removing only rows that disappeared from that exact snapshot. It never discovers, adopts, or deletes another batch; existing legacy batches require an explicit one-time operator migration or purge outside this runtime ability. REQUIRES non-empty rows — an empty/omitted set never wipes a snapshot. ADDITIVE mode never deletes and requires an explicit, non-colliding snapshot identity plus network-level authorization. Replace authorizes against the TARGET blog (or network). The whole mutation runs in a transaction under a per-period advisory lock; begin/commit failures fail closed. Accepts normalized revenue rows plus source provenance; agnostic about the upstream source ability. Supports dry-run. Owned by analytics: validation, period/snapshot identity, replacement and resolution; persistence is the revenue ledger (dated periods only).', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -1030,6 +1031,108 @@ function extrachill_analytics_ability_ingest_revenue( $input ) {
 			'mode'         => $mode,
 			'snapshot'     => isset( $input['snapshot'] ) ? (string) $input['snapshot'] : '',
 			'dry_run'      => ! empty( $input['dry_run'] ),
+		)
+	);
+}
+
+/**
+ * Register the migration + drop abilities.
+ */
+function extrachill_analytics_register_revenue_ledger_migration_abilities() {
+	if ( ! function_exists( 'wp_register_ability' ) ) {
+		return;
+	}
+
+	wp_register_ability(
+		'extrachill/migrate-revenue-ledger',
+		array(
+			'label'               => __( 'Migrate Revenue to Ledger', 'extrachill-analytics' ),
+			'description'         => __( 'One-time copy of the legacy extrachill_analytics_mediavine_revenue table into the Data Machine Business revenue ledger via datamachine/revenue-ingest (source=mediavine, kind=ad_revenue, rates and views in metrics, URL/post attribution in the ledger attribution fields). Dry-run by default; execute=true writes. Reports per-period totals before and after plus parity. Never overwrites an existing ledger snapshot and never drops the legacy table.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'execute' => array(
+						'type'        => 'boolean',
+						'default'     => false,
+						'description' => __( 'Write to the ledger. Default false (dry run: validate through datamachine/revenue-ingest dry_run and report).', 'extrachill-analytics' ),
+					),
+					'blog_id' => array(
+						'type'        => 'integer',
+						'default'     => 0,
+						'minimum'     => 0,
+						'description' => __( 'Restrict to one legacy blog_id. 0 = every blog.', 'extrachill-analytics' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'success, dry_run, legacy_rows, before/after per-period totals (blog_id, period_label, period_start, period_end, rows, views, revenue), parity (holds, matched, mismatched, missing, periods), snapshots (per-snapshot status), undated, truncated, errors.', 'extrachill-analytics' ),
+			),
+			'execute_callback'    => static function ( $input ) {
+				$input = is_array( $input ) ? $input : array();
+				return extrachill_analytics_revenue_migrate_legacy(
+					array(
+						'execute' => ! empty( $input['execute'] ),
+						'blog_id' => isset( $input['blog_id'] ) ? (int) $input['blog_id'] : 0,
+					)
+				);
+			},
+			'permission_callback' => 'extrachill_analytics_revenue_migration_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/drop-legacy-revenue-table',
+		array(
+			'label'               => __( 'Drop Legacy Revenue Table', 'extrachill-analytics' ),
+			'description'         => __( 'Explicitly drop the retired extrachill_analytics_mediavine_revenue table. Dry-run by default; execute=true drops. Refuses unless every dated legacy period has parity in the revenue ledger and, unless allow_undated is set, no undated (all-time) rows remain.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'execute'       => array(
+						'type'        => 'boolean',
+						'default'     => false,
+						'description' => __( 'Drop the table. Default false (report whether the drop would be allowed).', 'extrachill-analytics' ),
+					),
+					'allow_undated' => array(
+						'type'        => 'boolean',
+						'default'     => false,
+						'description' => __( 'Accept losing undated (all-time) legacy rows, which the dated ledger cannot hold.', 'extrachill-analytics' ),
+					),
+				),
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'success, dry_run, dropped, would_drop, refused, reasons, legacy_rows, parity, undated.', 'extrachill-analytics' ),
+			),
+			'execute_callback'    => static function ( $input ) {
+				$input = is_array( $input ) ? $input : array();
+				return extrachill_analytics_revenue_drop_legacy(
+					array(
+						'execute'       => ! empty( $input['execute'] ),
+						'allow_undated' => ! empty( $input['allow_undated'] ),
+					)
+				);
+			},
+			'permission_callback' => 'extrachill_analytics_revenue_migration_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => true,
+				),
+			),
 		)
 	);
 }

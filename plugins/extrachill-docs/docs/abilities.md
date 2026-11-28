@@ -4,7 +4,15 @@ Extra Chill Docs registers three operator abilities, all in the `extrachill-docs
 
 All three use the same permission callback, `extrachill_docs_upsert_doc_page_permission_callback()`. It returns true during WP-Cron and in any WP-CLI process. Otherwise it requires `current_user_can( 'manage_options' )`.
 
-See the [README](../README.md) for the publishing path and deployment sequence.
+See the [README](../README.md) for the publishing path and deployment sequence. The public feedback ability below is separate from these operator abilities.
+
+### `extrachill/docs-feedback-submit`
+
+- **Purpose:** Sends a report from the “Did this help?” form on a published docs child page.
+- **Input:** `post_id` (integer), `message` (required, up to 2,000 characters), `email` (optional for guests), and `turnstile_response`.
+- **Exposure:** `POST /wp-abilities/v1/abilities/extrachill/docs-feedback-submit/run` with JSON `{ "input": { ... } }`. The browser includes the WordPress REST nonce for signed-in readers. Both guests and signed-in readers must pass network Turnstile verification. The ability permits up to five attempts per hour per guest IP or signed-in account.
+- **Output:** `{ success: true }` after `wp_mail()` accepts the report, or a REST error if validation, verification, rate limiting, or mail fails.
+- **Delivery:** Sends plain text to the docs site's `admin_email` by default. The `extrachill_docs_feedback_recipient` filter receives the address and article ID. Reply-To is the signed-in account's email or the guest's optional address.
 
 ### `extrachill-docs/publish-plugin-docs`
 

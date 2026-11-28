@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ec_remove_default_content_on_new_site( $new_site ) {
 	try {
-		switch_to_blog( $new_site->blog_id );
+		switch_to_blog( (int) $new_site->blog_id );
 
 		// Delete "Hello world!" post (always ID 1 on fresh sites).
 		$hello_world = get_post( 1 );
