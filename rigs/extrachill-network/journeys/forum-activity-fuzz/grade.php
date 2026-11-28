@@ -50,11 +50,11 @@ foreach ( $ff_tasks as $ff_id => $ff_task ) {
 }
 
 switch_to_blog( (int) $ff_fixture['blog_id'] );
-$ff_fresh       = get_post( (int) $ff_fixture['fresh_own_reply'] );
-$ff_own_topic   = get_post( (int) $ff_fixture['own_topic'] );
+$ff_fresh       = get_post( (int) ( $ff_fixture['fresh_own_reply'] ?? 0 ) );
+$ff_own_topic   = get_post( (int) ( $ff_fixture['own_topic'] ?? 0 ) );
 $ff_new_topics  = get_posts(
 	array(
-		'post_type'   => bbp_get_topic_post_type(),
+		'post_type'   => 'topic',
 		'author'      => $ff_user_id,
 		'post_status' => 'any',
 		'numberposts' => 10,
@@ -62,7 +62,7 @@ $ff_new_topics  = get_posts(
 );
 $ff_new_replies = get_posts(
 	array(
-		'post_type'   => bbp_get_reply_post_type(),
+		'post_type'   => 'reply',
 		'author'      => $ff_user_id,
 		'post_status' => 'any',
 		'numberposts' => 10,
@@ -86,6 +86,9 @@ $ff_summary = array(
 	'unpin'        => array(),
 	'reached'      => $ff_reached,
 	'state'        => $ff_state,
+	'fixture'      => $ff_fixture,
+	'seed_pending' => (bool) get_site_option( 'ec_rig_forum_fuzz_seed_pending' ),
+	'seed_error'   => get_site_option( 'ec_rig_forum_fuzz_seed_error', null ),
 	'observations' => $ff_observations,
 	'passed'       => count( array_filter( $ff_results, static fn( $r ) => 'pass' === $r['outcome'] ) ),
 	'findings'     => count( array_filter( $ff_results, static fn( $r ) => 'finding' === $r['outcome'] ) ),
