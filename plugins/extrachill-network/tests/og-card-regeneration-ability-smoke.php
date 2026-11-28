@@ -241,6 +241,14 @@ namespace {
 	register_shutdown_function( 'ogr_smoke_rmrf', $GLOBALS['ogr_uploads_base'] );
 }
 
+namespace DataMachine\Abilities\Media {
+	class ImageTemplateAbilities {
+		public static function renderTemplate( array $input ) {
+			return ( new \OgrSmokeImageTemplateAbility() )->execute( $input );
+		}
+	}
+}
+
 // Minimal SystemTask stand-in — same as the content-addressed-cache smoke test.
 namespace DataMachine\Engine\AI\System\Tasks {
 	abstract class SystemTask {

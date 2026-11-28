@@ -6,11 +6,8 @@
  * the Data Machine task machinery (jobs table, undo, CLI surface, admin
  * UI, settings toggle) by extending DataMachine\Engine\AI\System\Tasks\SystemTask.
  *
- * Unlike AI-driven tasks, this one is purely synchronous CPU work (GD
- * rasterization, ~50ms). The OG image filter calls render_for_post()
- * directly so the card is ready by the time the meta tag is emitted —
- * the SystemTask shell exists primarily to plug into the rest of DM's
- * task tooling (CLI run, undo, audit) without reinventing it.
+ * Rendering runs in background tasks, never in the SEO filter. The trusted
+ * internal renderer is independent of the requesting user's permissions.
  *
  * @package ExtraChillNetwork\OgCards
  * @since 1.11.0
@@ -45,7 +42,7 @@ class OgCardGenerationTask extends SystemTask {
 			'description'     => 'Render branded Open Graph cards for posts that lack a featured image.',
 			'setting_key'     => 'og_card_generation_enabled',
 			'default_enabled' => true,
-			'trigger'         => 'On first share/crawler',
+			'trigger'         => 'On publish or card data change',
 			'trigger_type'    => 'event',
 			'supports_run'    => true,
 		);
@@ -59,8 +56,7 @@ class OgCardGenerationTask extends SystemTask {
 	 * Execute card generation for a single post.
 	 *
 	 * Called by the DM job runner (e.g. when triggered via `wp datamachine
-	 * system run og_card_generation --post_id=...`). The synchronous
-	 * filter path bypasses this and calls render_for_post() directly.
+	 * system run og_card_generation --post_id=...`) or the deferred save hook.
 	 *
 	 * @param int   $jobId  Job ID.
 	 * @param array $params { post_id, force? }.
@@ -145,16 +141,9 @@ class OgCardGenerationTask extends SystemTask {
 			);
 		}
 
-		if ( ! function_exists( 'wp_get_ability' ) ) {
-			return array( 'error' => 'Abilities API not available' );
-		}
-
-		$ability = wp_get_ability( 'datamachine/render-image-template' );
-		if ( ! $ability ) {
-			return array( 'error' => 'datamachine/render-image-template ability not registered' );
-		}
-
-		$result = $ability->execute(
+		// Trusted internal call to the same implementation the ability wraps.
+		// Do not bypass or weaken the public ability's permission callback.
+		$result = \DataMachine\Abilities\Media\ImageTemplateAbilities::renderTemplate(
 			array(
 				'template_id' => $inspection['template_id'],
 				'data'        => $inspection['data'],
@@ -169,7 +158,7 @@ class OgCardGenerationTask extends SystemTask {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			return array( 'error' => 'Ability execution failed: ' . $result->get_error_message() );
+			return array( 'error' => 'Image rendering failed: ' . $result->get_error_message() );
 		}
 
 		if ( empty( $result['cached_urls'][0] ) ) {

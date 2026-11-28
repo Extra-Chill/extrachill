@@ -6,8 +6,8 @@
  *   - Brand token bridge (theme tokens → DM image templates)
  *   - Post-type → template registry + per-post-type data resolver
  *   - SystemTask registration with Data Machine
- *   - Lazy-render hook on the extrachill-seo singular OG image filter
- *   - Cache invalidation on post save
+ *   - Cache-only extrachill-seo singular OG image filter
+ *   - Deferred generation on post, metadata and taxonomy changes
  *
  * The feature is opt-in: posts only get cards when their post type is
  * registered in the `extrachill_og_card_template_map` filter and a
@@ -45,9 +45,8 @@ add_filter(
  * Provide the OG card URL for a singular post.
  *
  * Hooks `extrachill_seo_singular_og_image_url` from extrachill-seo. When
- * the post type has an OG template registered, renders + caches the
- * card synchronously and returns the cached URL. Falls back to the
- * existing value when no template is mapped.
+ * a card has been generated, returns its cached URL. Never renders on
+ * a visitor/crawler request; publish/change hooks and backfill own generation.
  *
  * @param string   $existing Existing URL (from earlier filters).
  * @param \WP_Post $post     Queried post.
@@ -70,9 +69,13 @@ add_filter(
 			return $existing;
 		}
 
-		$result = OgCardGenerationTask::render_for_post( $post );
-		if ( ! empty( $result['cached_url'] ) ) {
-			return (string) $result['cached_url'];
+		if ( 'publish' !== $post->post_status || null === template_id_for_post( $post ) ) {
+			return $existing;
+		}
+
+		$inspection = OgCardGenerationTask::inspect_for_post( $post );
+		if ( $inspection['is_current'] ) {
+			return $inspection['existing_url'];
 		}
 
 		return $existing;
@@ -119,40 +122,69 @@ add_filter(
 );
 
 /**
- * Invalidate the cached card when a post is saved.
+ * Coalesce updates into a site-local cron event. Resolve data only after the
+ * write request has finished: importers often save dates/terms after save_post.
+ * Retain the old asset until its replacement has rendered successfully.
  *
- * Compares the current data signature to the stored one and deletes
- * the cache when they differ. The next OG request regenerates lazily.
- *
- * @param int      $post_id Post ID.
- * @param \WP_Post $post    Post object.
- * @param bool     $update  Whether this was an update.
+ * @param int $post_id Post ID.
  * @return void
  */
-add_action(
-	'save_post',
-	function ( $post_id, $post, $update ): void { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- save_post hook contract; third arg unused.
-		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
-			return;
-		}
+function queue_card_generation( int $post_id ): void {
+	if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+		return;
+	}
 
-		if ( ! $post instanceof \WP_Post ) {
-			return;
-		}
+	$post = get_post( $post_id );
+	if ( ! $post || 'publish' !== $post->post_status || null === template_id_for_post( $post ) ) {
+		return;
+	}
 
-		if ( null === template_id_for_post( $post ) ) {
-			return;
-		}
+	$args = array( $post_id );
+	if ( ! wp_next_scheduled( 'extrachill_generate_og_card', $args ) ) {
+		wp_schedule_single_event( time() + 30, 'extrachill_generate_og_card', $args );
+	}
+}
 
-		$current_sig = OgCardGenerationTask::signature_for( resolve_card_data( $post ) );
-		$stored_sig  = (string) get_post_meta( $post_id, OgCardGenerationTask::META_SIGNATURE, true );
+/** Dispatch changed/missing cards through the existing SystemTask machinery. */
+function generate_queued_card( int $post_id ): void {
+	$post = get_post( $post_id );
+	if ( ! $post || 'publish' !== $post->post_status
+		|| ! \DataMachine\Core\PluginSettings::get( 'og_card_generation_enabled', true )
+		|| has_post_thumbnail( $post_id ) ) {
+		return;
+	}
 
-		if ( $current_sig === $stored_sig ) {
-			return;
-		}
+	$inspection = OgCardGenerationTask::inspect_for_post( $post );
+	if ( null === $inspection['template_id'] || empty( $inspection['data'] ) || $inspection['is_current'] ) {
+		return;
+	}
 
-		OgCardGenerationTask::invalidate( $post_id );
-	},
-	20,
-	3
-);
+	$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule( 'og_card_generation', array( 'post_id' => $post_id ) );
+	if ( false === $job_id ) {
+		// A transient scheduler failure must not silently lose a published card.
+		queue_card_generation( $post_id );
+	}
+}
+
+add_action( 'save_post', __NAMESPACE__ . '\\queue_card_generation', 20, 1 );
+add_action( 'extrachill_generate_og_card', __NAMESPACE__ . '\\generate_queued_card', 10, 1 );
+
+foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $hook ) {
+	add_action(
+		$hook,
+		function ( $meta_id, $post_id, $meta_key ): void {
+			// Our own cache writes must not recursively enqueue another render.
+			if ( in_array( $meta_key, array( OgCardGenerationTask::META_URL, OgCardGenerationTask::META_SIGNATURE ), true ) ) {
+				return;
+			}
+			queue_card_generation( (int) $post_id );
+		},
+		20,
+		3
+	);
+}
+add_action( 'set_object_terms', __NAMESPACE__ . '\\queue_card_generation', 20, 1 );
+
+if ( defined( 'WP_CLI' ) && wp_validate_boolean( constant( 'WP_CLI' ) ) ) {
+	require_once __DIR__ . '/backfill-command.php';
+}

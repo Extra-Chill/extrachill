@@ -147,7 +147,7 @@ namespace {
 		if ( 'datamachine/render-image-template' !== $slug ) {
 			return null;
 		}
-		return new OgSmokeImageTemplateAbility();
+		throw new \RuntimeException( 'Anonymous callers cannot execute the public ability' );
 	}
 
 	function is_wp_error( $thing ) {
@@ -169,6 +169,14 @@ namespace {
 	}
 
 	register_shutdown_function( 'og_smoke_rmrf', $GLOBALS['og_smoke_uploads_base'] );
+}
+
+namespace DataMachine\Abilities\Media {
+	class ImageTemplateAbilities {
+		public static function renderTemplate( array $input ) {
+			return ( new \OgSmokeImageTemplateAbility() )->execute( $input );
+		}
+	}
 }
 
 // Minimal SystemTask stand-in: only the two abstract methods the real
