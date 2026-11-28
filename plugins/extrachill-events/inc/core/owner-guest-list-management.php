@@ -1,8 +1,9 @@
 <?php
 /**
- * Owner's guest list panel on the event page (extrachill#1130).
+ * Owner's guest list panel on the host screen (extrachill#1130, #1702).
  *
- * Under a show's host panel, each venue or promoter on the show whose team
+ * In the host tools on a show's /guest-list host screen, under the guest
+ * list panel, each venue or promoter on the show whose team
  * the viewer is on gets "Owner's list for <name>": everyone on the standing
  * list with a copy-able pass link and Remove, plus a name + optional email
  * form. Forms go through admin-post into the owner's-list abilities, which
@@ -55,22 +56,6 @@ function extrachill_events_render_owner_guest_lists( int $event_id ): void {
 }
 
 /**
- * Append the owner's-list panels after the host guest list panel.
- *
- * @param string $content Post content.
- * @return string
- */
-function extrachill_events_append_owner_guest_lists( $content ) {
-	if ( ! function_exists( 'ec_is_events_site' ) || ! ec_is_events_site() || ! is_singular( 'data_machine_events' ) || ! in_the_loop() || ! is_main_query() || ! is_user_logged_in() ) {
-		return $content;
-	}
-	ob_start();
-	extrachill_events_render_owner_guest_lists( (int) get_the_ID() );
-	return $content . ob_get_clean();
-}
-add_filter( 'the_content', 'extrachill_events_append_owner_guest_lists', 19 );
-
-/**
  * Read the owner fields posted by an owner's-list form.
  *
  * @return array{event_id: int, owner_type: string, owner_id: int}
@@ -97,14 +82,16 @@ function extrachill_events_owner_list_nonce_action( string $owner_type, int $own
 }
 
 /**
- * Back to the panel on the event page the form was on.
+ * Back to the panel on the host screen the form was on.
  *
  * @param int   $event_id Event post ID.
  * @param array $args     Extra query args.
  */
 function extrachill_events_owner_list_form_redirect( int $event_id, array $args = array() ): void {
-	$url = $event_id ? (string) get_permalink( $event_id ) : home_url( '/' );
-	wp_safe_redirect( ( $args ? add_query_arg( $args, $url ) : $url ) . '#ec-owner-guest-list' );
+	$url = $event_id
+		? extrachill_events_guest_list_host_tools_url( $event_id, 'ec-owner-guest-list', $args )
+		: home_url( '/' );
+	wp_safe_redirect( $url );
 	exit;
 }
 

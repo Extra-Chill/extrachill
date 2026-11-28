@@ -10,7 +10,7 @@ Choose the password reset option on the sign-in page, enter your account email o
 
 ## Why can I not sign in?
 
-Make sure the email or username is correct and use the sign-in method linked to your account. Try **Sign in with Google** if that is how you normally access your account. If the page says access is blocked or you still cannot sign in, contact Extra Chill support.
+Make sure your username or email address is correct and use the sign-in method linked to your account. Choose **Continue with Google** if you normally use Google. If the page says there have been too many failed attempts, wait 15 minutes before trying again. If you still cannot sign in, contact Extra Chill support.
 
 ## Where can I update my profile and notification choices?
 

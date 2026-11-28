@@ -86,6 +86,8 @@ final class VenueProvider {
 		return array(
 			'VenueMembershipRepository',
 			'TeamAuthorization',
+			'VenuePartnerKey',
+			'PartnerVenueEvents',
 			'TeamCapabilities',
 			'ArtistMappingLock',
 			'ArtistAuthorization',

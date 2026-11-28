@@ -22,8 +22,8 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpcomingFilter' ) ) {
 			$status_clause = $include_status ? " AND ed.post_status = 'publish'" : '';
 			return array(
 				'joins'       => "INNER JOIN wp_datamachine_event_dates ed ON {$join_column} = ed.post_id",
-				'where'       => "(ed.start_datetime >= %s OR ed.end_datetime >= %s){$status_clause}",
-				'param_count' => 2,
+				'where'       => "(ed.effective_end >= %s){$status_clause}",
+				'param_count' => 1,
 			);
 		}
 	}

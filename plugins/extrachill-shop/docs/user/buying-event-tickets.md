@@ -6,11 +6,20 @@ Some shows on the [Extra Chill Events Calendar](https://events.extrachill.com/) 
 
 1. Open the show on the Events Calendar.
 2. Select **Buy tickets**. You'll see the price and, if the show has a limit, how many tickets are left.
-3. Choose a **Quantity**. You can buy up to 10 tickets in one order.
-4. Enter your **Name** and **Email**. The name goes on your passes, and the passes go to that email.
-5. Select **Buy tickets** again to go to the secure payment page.
-6. Check the box to agree to the [Terms of Service](https://extrachill.com/terms-of-service/). You can't buy tickets without it.
-7. Pay on the secure payment page. Your total includes a **Service fee** of $1 per ticket plus the card processing cost. It's listed as its own line before you pay.
+3. If the show sells more than one kind of ticket, like general admission and VIP, pick your **Ticket type**.
+4. Choose a **Quantity**. You can buy up to 10 tickets in one order.
+5. Enter your **Name** and **Email**. The name goes on your passes, and the passes go to that email.
+6. Select **Buy tickets** again to go to the secure payment page.
+7. Check the box to agree to the [Terms of Service](https://extrachill.com/terms-of-service/). You can't buy tickets without it.
+8. Pay on the secure payment page. Your total includes a **Service fee** of $1 per ticket plus the card processing cost. It's listed as its own line before you pay.
+
+## Use a Code
+
+If the venue or promoter gave you a code, enter it under **Have a code?** and select **Apply** before you buy. The new price shows next to the old one. Some codes unlock ticket types you can't see without one.
+
+If you see "That code does not work for this show," check the spelling with whoever gave it to you. A code can also run out once enough tickets have been bought with it.
+
+## Paying
 
 The payment page stays open for 30 minutes. If you close it or run out of time, nothing is charged and you can start over from the event page.
 

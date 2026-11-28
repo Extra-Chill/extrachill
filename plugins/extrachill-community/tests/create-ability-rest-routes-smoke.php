@@ -16,19 +16,8 @@ namespace AgentsAPI\AI {
 }
 
 namespace {
-	// Runs in two contexts: standalone with an explicit WordPress root, and
-	// under the host-smoke backend, which requires this file with WordPress
-	// already loaded. Only bootstrap WordPress when it is not present yet.
-	if ( ! defined( 'ABSPATH' ) ) {
-		$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
-		if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
-			fwrite( STDERR, "Usage: php tests/create-ability-rest-routes-smoke.php /path/to/wordpress\n" );
-			exit( 1 );
-		}
-
-		define( 'SHORTINIT', true );
-		require $wordpress_root . '/wp-load.php';
-	}
+	// Standalone: loads WordPress core source (HOMEBOY_WORDPRESS_CORE_ROOT) without a database.
+	require __DIR__ . '/support/wordpress-core-bootstrap.php';
 
 	if ( ! function_exists( '__' ) ) {
 		function __( $text ) { return $text; }
@@ -85,6 +74,9 @@ namespace {
 
 	function wp_get_ability( $name ) {
 		return $GLOBALS['_rest_voice_abilities'][ $name ] ?? null;
+	}
+	function wp_has_ability( $name ) {
+		return isset( $GLOBALS['_rest_voice_abilities'][ $name ] );
 	}
 
 	function get_current_user_id() { return $GLOBALS['_rest_voice_current_user']; }
@@ -165,6 +157,7 @@ namespace {
 		}
 	}
 
+	require __DIR__ . '/artist-identity-fixture.php';
 	require dirname( __DIR__ ) . '/inc/content/public-voice-contract.php';
 	require dirname( __DIR__ ) . '/inc/content/public-voices.php';
 	require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';

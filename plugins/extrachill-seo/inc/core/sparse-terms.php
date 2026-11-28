@@ -47,7 +47,7 @@ function ec_seo_sparse_exempt_taxonomies(): array {
 /**
  * Whether a term archive is too sparse to index.
  *
- * @param object $term Term with `taxonomy` and `count` properties.
+ * @param mixed $term Term object with `taxonomy` and `count` properties; anything else is not sparse.
  * @return bool
  */
 function ec_seo_is_sparse_term( $term ): bool {
@@ -65,9 +65,9 @@ function ec_seo_is_sparse_term( $term ): bool {
 /**
  * Restrict core taxonomy sitemaps to indexable terms.
  *
- * @param array  $args     WP_Term_Query args.
+ * @param mixed  $args     WP_Term_Query args (filter input; non-arrays pass through).
  * @param string $taxonomy Taxonomy name.
- * @return array
+ * @return mixed
  */
 function ec_seo_sitemap_exclude_sparse_terms( $args, $taxonomy ) {
 	if ( ! is_array( $args ) || in_array( (string) $taxonomy, ec_seo_sparse_exempt_taxonomies(), true ) ) {
@@ -85,10 +85,10 @@ add_filter( 'wp_sitemaps_taxonomies_query_args', __NAMESPACE__ . '\\ec_seo_sitem
 /**
  * Apply the sitemap minimum count to the term query SQL.
  *
- * @param array $clauses    Term query clauses.
+ * @param mixed $clauses    Term query clauses (filter input; non-arrays pass through).
  * @param array $taxonomies Taxonomies.
- * @param array $args       Term query vars.
- * @return array
+ * @param mixed $args       Term query vars.
+ * @return mixed
  */
 function ec_seo_sitemap_min_count_clause( $clauses, $taxonomies, $args ) {
 	if ( ! is_array( $clauses ) || ! is_array( $args ) || empty( $args[ EC_SEO_SITEMAP_MIN_COUNT_ARG ] ) ) {

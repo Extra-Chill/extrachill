@@ -40,6 +40,7 @@ function extrachill_api_register_events_filters_route() {
  * @return WP_REST_Response|WP_Error Response data or error.
  */
 function extrachill_api_events_filters_handler( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/events-filters' );
 	if ( ! $ability ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-events plugin is required.', array( 'status' => 500 ) );

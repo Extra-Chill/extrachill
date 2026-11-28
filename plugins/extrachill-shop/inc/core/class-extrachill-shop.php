@@ -74,6 +74,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/ticket-service-authority.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/tickets.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/account-tickets.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/ticket-reconciliation.php';
 
 		// Stripe Connect integration
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/stripe-connect.php';

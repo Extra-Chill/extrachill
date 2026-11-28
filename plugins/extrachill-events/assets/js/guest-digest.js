@@ -59,6 +59,9 @@
 				email,
 				turnstile_response: tokenField ? tokenField.value : '',
 			};
+			if ( 'venue' === form.dataset.digestScope ) {
+				data.scope = 'venue';
+			}
 			if ( document.referrer ) {
 				data.referrer = document.referrer;
 			}

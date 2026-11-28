@@ -32,7 +32,7 @@ jest.mock( '@extrachill/components', () => {
 	const Wrapper = ( { children } ) =>
 		React.createElement( 'div', null, children );
 	return { ActionRow: Wrapper, InlineStatus: Wrapper };
-} );
+}, { virtual: true } );
 
 const event = ( overrides = {} ) => ( {
 	post_id: 42,

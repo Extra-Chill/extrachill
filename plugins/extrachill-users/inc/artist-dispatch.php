@@ -830,7 +830,8 @@ function ec_users_revoke_artist_dispatch_role( $user_id, $membership_preexisted 
 	$removed = false;
 	$cleaned = false;
 
-	if ( ! $user_id || ! $blog_id || ! is_user_member_of_blog( $user_id, $blog_id ) ) {
+	$is_member = $user_id && $blog_id && is_user_member_of_blog( $user_id, $blog_id );
+	if ( ! $is_member ) {
 		return array(
 			'role_removed'       => false,
 			'membership_removed' => false,

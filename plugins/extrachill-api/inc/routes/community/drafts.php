@@ -61,6 +61,7 @@ function extrachill_api_community_drafts_permission() {
 }
 
 function extrachill_api_community_drafts_sanitize_int( $value, $request, $param ) {
+	unset( $request, $param ); // REST callback signature.
 	return is_numeric( $value ) ? (int) $value : 0;
 }
 

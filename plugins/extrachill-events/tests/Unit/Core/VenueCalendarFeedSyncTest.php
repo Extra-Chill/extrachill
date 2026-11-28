@@ -143,6 +143,51 @@ class VenueCalendarFeedSyncTest extends TestCase {
 		$this->assertSame( 'venue_calendar_feed', VenueCalendarFeed::SOURCE_NAME );
 	}
 
+	/**
+	 * Scope rule 2. The bound venue is pinned by term ID so DME never
+	 * re-resolves it by name; the name and address stay display data.
+	 */
+	public function test_event_payload_pins_the_bound_venue_term_id(): void {
+		$payload = $this->query_args(
+			'event_payload',
+			array(
+				1524,
+				'The Royal American',
+				array(
+					'title'     => 'Late Show',
+					'startDate' => '2026-09-10',
+					'startTime' => '21:00',
+				),
+				array(
+					'venueAddress' => '970 Morrison Dr',
+					'venueCity'    => 'Charleston',
+				),
+			)
+		);
+
+		$this->assertSame( 1524, $payload['venue_term_id'] );
+		$this->assertSame( 'The Royal American', $payload['venue'] );
+		$this->assertSame( '970 Morrison Dr', $payload['venueAddress'] );
+		$this->assertSame( 'Charleston', $payload['venueCity'] );
+	}
+
+	/** Blank feed fields are dropped so they never clear stored event data. */
+	public function test_event_payload_drops_blank_fields_but_keeps_the_venue_term_id(): void {
+		$payload = $this->query_args(
+			'event_payload',
+			array( 1524, 'The Royal American', array( 'title' => 'Late Show' ), array() )
+		);
+
+		$this->assertSame(
+			array(
+				'title'         => 'Late Show',
+				'venue'         => 'The Royal American',
+				'venue_term_id' => 1524,
+			),
+			$payload
+		);
+	}
+
 	public function test_failure_threshold_parks_only_after_repeated_failures(): void {
 		$this->assertGreaterThan( 1, VenueCalendarFeed::MAX_CONSECUTIVE_FAILURES );
 	}

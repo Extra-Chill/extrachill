@@ -24,8 +24,20 @@ const PROFILE_FIELDS = [
 	[ 'country', 'Country' ],
 	[ 'phone', 'Phone' ],
 	[ 'website', 'Website' ],
+	[ 'instagram', 'Instagram' ],
 	[ 'capacity', 'Capacity' ],
 ];
+
+// Optional fields render only when the canonical profile document carries
+// them, so edits are never offered for a field the owner does not expose.
+const OPTIONAL_PROFILE_FIELDS = [ 'instagram' ];
+
+export const visibleProfileFields = ( profile ) =>
+	PROFILE_FIELDS.filter(
+		( [ key ] ) =>
+			! OPTIONAL_PROFILE_FIELDS.includes( key ) ||
+			Object.prototype.hasOwnProperty.call( profile || {}, key )
+	);
 
 const profileInputType = ( key ) => {
 	if ( key === 'website' ) {
@@ -53,41 +65,43 @@ export function ProfileTab( {
 				title="Public venue profile"
 				description="These fields update the canonical Events venue profile."
 			/>
-			{ PROFILE_FIELDS.map( ( [ key, label, required ] ) => (
-				<FieldGroup
-					key={ key }
-					label={ label }
-					htmlFor={ `${ idPrefix }venue-profile-${ key }` }
-					required={ required }
-				>
-					{ key === 'description' ? (
-						<textarea
-							id={ `${ idPrefix }venue-profile-${ key }` }
-							rows="5"
-							value={ profile[ key ] }
-							onChange={ ( event ) =>
-								setProfile( {
-									...profile,
-									[ key ]: event.target.value,
-								} )
-							}
-						/>
-					) : (
-						<input
-							id={ `${ idPrefix }venue-profile-${ key }` }
-							type={ profileInputType( key ) }
-							value={ profile[ key ] }
-							required={ required }
-							onChange={ ( event ) =>
-								setProfile( {
-									...profile,
-									[ key ]: event.target.value,
-								} )
-							}
-						/>
-					) }
-				</FieldGroup>
-			) ) }
+			{ visibleProfileFields( profile ).map(
+				( [ key, label, required ] ) => (
+					<FieldGroup
+						key={ key }
+						label={ label }
+						htmlFor={ `${ idPrefix }venue-profile-${ key }` }
+						required={ required }
+					>
+						{ key === 'description' ? (
+							<textarea
+								id={ `${ idPrefix }venue-profile-${ key }` }
+								rows="5"
+								value={ profile[ key ] }
+								onChange={ ( event ) =>
+									setProfile( {
+										...profile,
+										[ key ]: event.target.value,
+									} )
+								}
+							/>
+						) : (
+							<input
+								id={ `${ idPrefix }venue-profile-${ key }` }
+								type={ profileInputType( key ) }
+								value={ profile[ key ] }
+								required={ required }
+								onChange={ ( event ) =>
+									setProfile( {
+										...profile,
+										[ key ]: event.target.value,
+									} )
+								}
+							/>
+						) }
+					</FieldGroup>
+				)
+			) }
 			<Status state={ status } />
 			<ActionRow>
 				<button

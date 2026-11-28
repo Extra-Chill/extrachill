@@ -1,8 +1,10 @@
 # The events/venues/artists operator adapters call extrachill-events services
 # and the extrachill-network genre resolver, which load on the owner site.
 # The users wp-admin adapter calls the extrachill-users grant API.
+# The calendar queries command uses the guarded analytics report API.
 parameters:
 	scanFiles:
+		- ../extrachill-analytics/inc/core/calendar-query-report.php
 		- ../extrachill-events/inc/core/genre-sync.php
 		- ../extrachill-events/inc/Core/ArtistGenreClassifier.php
 		- ../extrachill-events/inc/Core/EventSourceRampEvaluator.php

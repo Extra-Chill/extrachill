@@ -16,7 +16,9 @@
 		}
 
 		document.addEventListener( 'click', function ( e ) {
-			const upvoteIcon = e.target.closest( '.upvote-icon' );
+			const upvoteIcon = e.target.closest(
+				'.upvote-icon[data-post-id][data-type]'
+			);
 			if ( ! upvoteIcon ) {
 				return;
 			}

@@ -310,3 +310,54 @@ function extrachill_users_entity_subscription_recipients( $producer, $entity_typ
 
 	return $ids;
 }
+
+/**
+ * List the distinct entity slugs that have at least one subscriber.
+ *
+ * Lets an authorized producer walk only the entities with an audience (for
+ * example the venues someone subscribed to) instead of scanning every term
+ * in a large taxonomy. Like recipient resolution, the producer must opt in
+ * through `extrachill_users_entity_subscription_producer_authorized`; the
+ * authorization sees the entity identity without a slug.
+ *
+ * @param string $producer    Producer identifier.
+ * @param string $entity_type Entity type.
+ * @param string $taxonomy    Taxonomy.
+ * @return string[]|WP_Error Sorted, de-duplicated slugs.
+ */
+function extrachill_users_entity_subscription_slugs( $producer, $entity_type, $taxonomy ) {
+	global $wpdb;
+
+	$producer    = sanitize_key( $producer );
+	$entity_type = sanitize_key( $entity_type );
+	$taxonomy    = sanitize_key( $taxonomy );
+	$entities    = apply_filters( 'extrachill_users_entity_subscription_entities', array() );
+	$definition  = $entities[ $entity_type ] ?? null;
+	$expected    = is_array( $definition ) ? sanitize_key( $definition['taxonomy'] ?? '' ) : sanitize_key( $definition );
+	if ( '' === $entity_type || '' === $taxonomy || '' === $expected || $taxonomy !== $expected ) {
+		return new WP_Error( 'invalid_entity_subscription', __( 'A supported entity type and taxonomy are required.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+
+	$entity = array(
+		'entity_type' => $entity_type,
+		'taxonomy'    => $taxonomy,
+		'slug'        => '',
+	);
+	if ( '' === $producer || ! apply_filters( 'extrachill_users_entity_subscription_producer_authorized', false, $producer, $entity, 'notification' ) ) {
+		return new WP_Error( 'entity_subscription_producer_forbidden', __( 'This producer is not authorized to resolve entity subscription recipients.', 'extrachill-users' ), array( 'status' => 403 ) );
+	}
+
+	$table = extrachill_users_entity_subscriptions_table_name();
+	$slugs = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT entity_slug FROM {$table} WHERE entity_type = %s AND taxonomy = %s ORDER BY entity_slug ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- trusted table helper.
+			$entity_type,
+			$taxonomy
+		)
+	);
+	if ( ! is_array( $slugs ) ) {
+		return new WP_Error( 'entity_subscriptions_read_failed', __( 'The subscriptions could not be loaded.', 'extrachill-users' ), array( 'status' => 500 ) );
+	}
+
+	return array_values( array_unique( array_filter( array_map( 'sanitize_title', $slugs ) ) ) );
+}

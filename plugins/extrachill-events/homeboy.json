@@ -30,6 +30,11 @@
         "wp_codebox_phpunit_bootstrap_mode": "managed",
         "wp_codebox_phpunit_suites": [
           {
+            "name": "partner-key-unit",
+            "config": "phpunit-partner-key-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "managed-wordpress",
             "config": "phpunit-managed.xml.dist",
             "runtime": "sandbox"
@@ -190,6 +195,11 @@
             "runtime": "host"
           },
           {
+            "name": "market-report-unit",
+            "config": "phpunit-market-report-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "events-upcoming-counts-unit",
             "config": "phpunit-events-upcoming-counts-unit.xml.dist",
             "runtime": "host"
@@ -202,6 +212,11 @@
           {
             "name": "dme-ability-capabilities-unit",
             "config": "phpunit-dme-ability-capabilities-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "venue-add-unit",
+            "config": "phpunit-venue-add-unit.xml.dist",
             "runtime": "host"
           }
         ],

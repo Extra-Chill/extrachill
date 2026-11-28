@@ -161,9 +161,17 @@ Source: [`core/stories.php`](../inc/core/stories.php). Network owns the shared i
 ### `extrachill/get-ad-policy`
 
 - **Purpose:** Resolve ad-serving policy for a site and request context. Source: [`AdPolicyAbility.php`](../inc/Abilities/AdPolicyAbility.php).
-- **Input:** All optional: `blog_id` (integer), `post_type` (string), `is_front_page`, `is_home`, `is_page`, `is_search`, `is_archive`, `is_singular`, `is_post_type_archive` (booleans).
+- **Input:** All optional: `blog_id`, `post_id` (integers), `post_type` (string), `is_front_page`, `is_home`, `is_page`, `is_search`, `is_archive`, `is_singular`, `is_post_type_archive` (booleans).
 - **Output:** Required `blog_id` (integer), `site_enabled`, `serve_ads`, `integration_available`, `delivery_detected` (booleans), `reason` (string: `enabled`, `site_disabled`, `route_blocked`, `member_benefit`, `integration_unavailable`), `drift` (string: `none`, `enabled_without_delivery`, `disabled_with_delivery`).
 - **Permission:** `__return_true`.
+- **Exposure:** `show_in_rest: true`; extrachill-api route: none found; `wp extrachill` command: none found.
+
+### `extrachill/set-post-ad-free`
+
+- **Purpose:** Turn ads off (or back on) for one post on the current site, for every visitor, by setting the `_extrachill_ad_free` post meta honored by the ad policy. Works for any post type. Source: [`PostAdFreeAbility.php`](../inc/Abilities/PostAdFreeAbility.php).
+- **Input:** Required `post_id` (integer, current site); optional `ad_free` (boolean, default `true`). No other keys.
+- **Output:** Required `post_id` (integer), `ad_free`, `serve_ads` (booleans); `reason` (string). `serve_ads`/`reason` are resolved for a logged-out visitor, so the caller's own benefits (e.g. lifetime membership) never mask the post-level answer.
+- **Permission:** `edit_post` on the target post.
 - **Exposure:** `show_in_rest: true`; extrachill-api route: none found; `wp extrachill` command: none found.
 
 ### `extrachill/get-network-stats`

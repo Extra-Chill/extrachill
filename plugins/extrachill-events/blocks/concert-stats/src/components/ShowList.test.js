@@ -29,7 +29,7 @@ jest.mock( '@extrachill/components', () => {
 	const Wrapper = ( { children } ) =>
 		React.createElement( 'div', null, children );
 	return { ActionRow: Wrapper, InlineStatus: Wrapper };
-} );
+}, { virtual: true } );
 
 jest.mock( './ShowCard', () => ( { show, isOwn, rating } ) => (
 	<div>

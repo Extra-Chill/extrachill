@@ -104,6 +104,7 @@ final class RsvpGuestListRequestsTest extends PHPUnit\Framework\TestCase {
 		);
 
 		$GLOBALS['rsvp_guest_test']['transients']                            = array();
+		$GLOBALS['extrachill_rate_limit_test_counts']                        = array();
 		$GLOBALS['event_management_test']['editable_posts'][ self::HOST_ID ] = array( self::EVENT_ID );
 
 		$GLOBALS['event_management_test']['posts'][ self::EVENT_ID ] = (object) array(
@@ -126,6 +127,7 @@ final class RsvpGuestListRequestsTest extends PHPUnit\Framework\TestCase {
 		unset(
 			$GLOBALS['rsvp_pass_mail_test'],
 			$GLOBALS['rsvp_guest_test']['transients'],
+			$GLOBALS['extrachill_rate_limit_test_counts'],
 			$GLOBALS['event_management_test']['editable_posts'][ self::HOST_ID ],
 			$GLOBALS['event_management_test']['posts'][ self::EVENT_ID ],
 			$GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ]

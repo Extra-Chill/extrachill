@@ -14,8 +14,6 @@ if ( bbp_is_reply_edit() ) : ?>
 
 <div id="bbpress-forums" class="bbpress-wrapper">
 
-	<?php extrachill_breadcrumbs(); ?>
-
 <?php endif; ?>
 
 <?php if ( bbp_current_user_can_access_create_reply_form() ) : ?>
@@ -31,7 +29,9 @@ if ( bbp_is_reply_edit() ) : ?>
 				<legend>
 					<?php
 					$reply_to = bbp_get_form_reply_to();
-					if ( $reply_to ) {
+					if ( bbp_is_reply_edit() ) {
+						esc_html_e( 'Edit Reply', 'extra-chill-community' );
+					} elseif ( $reply_to ) {
 						$reply_author_id = bbp_get_reply_author_id( $reply_to );
 						$reply_author    = get_userdata( $reply_author_id );
 						$username        = $reply_author ? $reply_author->user_nicename : '';

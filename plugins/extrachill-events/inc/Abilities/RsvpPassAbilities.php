@@ -74,6 +74,61 @@ class RsvpPassAbilities {
 		);
 
 		wp_register_ability(
+			'extrachill/get-event-door-list',
+			array(
+				'label'               => __( 'Get Event Door List', 'extrachill-events' ),
+				'description'         => __( 'Get the web door screen check-in rows, including tickets, guests and standing owner lists.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array( 'event_id' => array( 'type' => 'integer' ) ),
+					'required'   => array( 'event_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'rows'       => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'pass_id'       => array( 'type' => 'integer' ),
+									'kind'          => array(
+										'type' => 'string',
+										'enum' => array( 'attendee', 'guest', 'owner_list' ),
+									),
+									'label'         => array( 'type' => 'string' ),
+									'guest_name'    => array( 'type' => 'string' ),
+									'display_name'  => array( 'type' => 'string' ),
+									'source'        => array( 'type' => 'string' ),
+									'source_kind'   => array( 'type' => 'string' ),
+									'ticket_type'   => array( 'type' => 'string' ),
+									'status'        => array( 'type' => 'string' ),
+									'checked_in'    => array( 'type' => 'boolean' ),
+									'checked_in_at' => array( 'type' => 'string' ),
+									'code'          => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'total'      => array( 'type' => 'integer' ),
+						'checked_in' => array( 'type' => 'integer' ),
+					),
+					'required'   => array( 'rows', 'total', 'checked_in' ),
+				),
+				'execute_callback'    => array( $this, 'get_event_door_list' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
 			'extrachill/list-event-door-attendees',
 			array(
 				'label'               => __( 'List Event Door Attendees', 'extrachill-events' ),
@@ -283,7 +338,7 @@ class RsvpPassAbilities {
 			'extrachill/import-eventbrite-attendees',
 			array(
 				'label'               => __( 'Import Eventbrite Attendees', 'extrachill-events' ),
-				'description'         => __( 'Host-only: put the attendees from an Eventbrite attendee report (CSV) on the event door list by name, labeled Eventbrite. Nobody is emailed and no email addresses are stored. Re-importing a newer report only adds new tickets.', 'extrachill-events' ),
+				'description'         => __( 'Host-only CSV import. Default door_list adds names without email. Explicit venue_list sends venue double opt-in confirmations only to organizer-consenting, non-unsubscribed rows; no subscription until confirmation.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -296,15 +351,26 @@ class RsvpPassAbilities {
 							'type'        => 'string',
 							'description' => __( 'Contents of the Eventbrite attendee report CSV.', 'extrachill-events' ),
 						),
+						'mode'     => array(
+							'type'    => 'string',
+							'enum'    => array( 'door_list', 'venue_list' ),
+							'default' => 'door_list',
+						),
 					),
 					'required'   => array( 'event_id', 'csv' ),
 				),
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'added'          => array( 'type' => 'integer' ),
-						'already_listed' => array( 'type' => 'integer' ),
-						'skipped'        => array( 'type' => 'integer' ),
+						'added'                => array( 'type' => 'integer' ),
+						'already_listed'       => array( 'type' => 'integer' ),
+						'skipped'              => array( 'type' => 'integer' ),
+						'imported'             => array( 'type' => 'integer' ),
+						'skipped_no_consent'   => array( 'type' => 'integer' ),
+						'skipped_unsubscribed' => array( 'type' => 'integer' ),
+						'already_subscribed'   => array( 'type' => 'integer' ),
+						'skipped_duplicate'    => array( 'type' => 'integer' ),
+						'failed'               => array( 'type' => 'integer' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'import_eventbrite_attendees' ),
@@ -472,7 +538,8 @@ class RsvpPassAbilities {
 		return extrachill_events_import_eventbrite_attendees(
 			(int) ( $input['event_id'] ?? 0 ),
 			(string) ( $input['csv'] ?? '' ),
-			get_current_user_id()
+			get_current_user_id(),
+			(string) ( $input['mode'] ?? 'door_list' )
 		);
 	}
 
@@ -594,6 +661,23 @@ class RsvpPassAbilities {
 			'code'      => (string) $pass['code'],
 			'perk_text' => function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '',
 			'status'    => (string) $pass['status'],
+		);
+	}
+
+	/**
+	 * Return exactly the check-in rows used by the web door screen.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array
+	 */
+	public function get_event_door_list( array $input ): array {
+		$door_list = extrachill_events_get_door_list_rows( (int) $input['event_id'] );
+		$rows      = extrachill_events_guest_list_door_rows( $door_list['door_rows'] );
+
+		return array(
+			'rows'       => $rows,
+			'total'      => count( $rows ),
+			'checked_in' => count( array_filter( $rows, static fn( array $row ): bool => $row['checked_in'] ) ),
 		);
 	}
 

@@ -28,6 +28,22 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_query_arg' ) ) {
+	/**
+	 * Double for the array form of add_query_arg().
+	 *
+	 * @param array  $args URL arguments.
+	 * @param string $url  URL.
+	 * @return string
+	 */
+	function add_query_arg( $args, $url ) {
+		list( $url, $fragment ) = array_pad( explode( '#', $url, 2 ), 2, null );
+		list( $base, $query )   = array_pad( explode( '?', $url, 2 ), 2, '' );
+		parse_str( $query, $existing );
+		return $base . '?' . http_build_query( array_merge( $existing, $args ) ) . ( null === $fragment ? '' : '#' . $fragment );
+	}
+}
+
 if ( ! function_exists( 'add_action' ) ) {
 	/** Hook registration double. */
 	function add_action() {}
@@ -60,7 +76,7 @@ function su_query( $url ) {
 	return $args;
 }
 
-$su_page = 'https://events.extrachill.com/events/wordpress-meetup-charleston-october-2026';
+$su_page = 'https://events.extrachill.com/events/wordpress-meetup-charleston-october-2026?view=full&utm_source=old&utm_medium=email&utm_campaign=old#details';
 $plain   = 'Extra Chill & WordPress Meetup: "AI" Era';
 
 // Every encoded form a caller can hand us must share the same plain text.
@@ -75,21 +91,32 @@ foreach ( $inputs as $label => $su_title ) {
 	$su_urls  = extrachill_share_urls( $su_page, $su_title );
 	$expected = 'get_the_title' === $label ? "Extra Chill & WordPress Meetup: \u{201C}AI\u{201D} Era" : $plain;
 
+	$tagged = array();
+	foreach ( array( 'native', 'copy_link', 'facebook', 'twitter', 'reddit', 'bluesky', 'email' ) as $destination ) {
+		$tagged[ $destination ] = strtok( $su_page, '?' ) . '?view=full&utm_source=' . $destination . '&utm_medium=share&utm_campaign=share#details';
+	}
+
+	foreach ( array( 'native', 'copy_link' ) as $destination ) {
+		if ( ( $su_urls[ $destination ] ?? null ) !== $tagged[ $destination ] ) {
+			su_fail( "{$label}/{$destination}: direct share URL lost attribution or page context." );
+		}
+	}
+
 	$checks = array(
 		'twitter'  => array(
-			'url'  => $su_page,
+			'url'  => $tagged['twitter'],
 			'text' => $expected,
 		),
 		'reddit'   => array(
-			'url'   => $su_page,
+			'url'   => $tagged['reddit'],
 			'title' => $expected,
 		),
 		'email'    => array(
 			'subject' => $expected,
-			'body'    => 'Check out this: ' . $su_page,
+			'body'    => 'Check out this: ' . $tagged['email'],
 		),
-		'bluesky'  => array( 'text' => $expected . ' ' . $su_page ),
-		'facebook' => array( 'u' => $su_page ),
+		'bluesky'  => array( 'text' => $expected . ' ' . $tagged['bluesky'] ),
+		'facebook' => array( 'u' => $tagged['facebook'] ),
 	);
 
 	foreach ( $checks as $destination => $want ) {
@@ -112,4 +139,4 @@ if ( 0 !== strpos( extrachill_share_urls( $su_page, $plain )['email'], 'mailto:?
 	su_fail( 'Email destination must stay a mailto: URL.' );
 }
 
-echo "Share URLs round-trip plain, stored, and get_the_title() titles without entities or split query strings.\n";
+echo "Share URLs round-trip attributed links and plain or encoded titles without split query strings.\n";

@@ -12,7 +12,8 @@ class WP_Post { public $ID = 7; public $post_status = 'publish'; }
 function get_page_by_path( ...$args ) { return new WP_Post(); }
 function get_post_meta( $id, $key, $single ) { return $GLOBALS['meta'][$id][$key] ?? ''; }
 function update_post_meta( $id, $key, $value ) { $GLOBALS['meta'][$id][$key] = $value; }
-function get_posts( ...$args ) { return array( (object) array( 'ID' => 42 ) ); }
+function get_posts( $args = array() ) { return 'ids' === ( $args['fields'] ?? '' ) ? array( 42 ) : array( (object) array( 'ID' => 42 ) ); }
+function wp_delete_post( $id, $force ) { $GLOBALS['deleted'][] = array( $id, $force ); return true; }
 function extrachill_docs_load_platform_map() {
 	return array(
 		array( 'repo' => 'plugins/public', 'docs_subpath' => 'docs/user', 'parent_slug' => 'help', 'parent_title' => 'Help', 'post_status' => 'publish' ),
@@ -32,15 +33,32 @@ class WP_Markdown_CLI {
 require dirname( __DIR__ ) . '/inc/core/doc-page-helpers.php';
 require dirname( __DIR__ ) . '/inc/abilities/publish-plugin-docs.php';
 require dirname( __DIR__ ) . '/inc/core/mdi-layout.php';
+require dirname( __DIR__ ) . '/inc/core/stray-doc-posts-cleanup.php';
 foreach ( array( 'public', 'team' ) as $component ) {
 	mkdir( WP_PLUGIN_DIR . '/' . $component . '/docs/user', 0777, true );
 	file_put_contents( WP_PLUGIN_DIR . '/' . $component . '/docs/user/start.md', "# Start\n\n[Other](other.md#part)\n" );
+	file_put_contents( WP_PLUGIN_DIR . '/' . $component . '/docs/user/README.md', "# Account help\n" );
 }
 try {
 	extrachill_docs_register_mdi_layout();
 	$p = $GLOBALS['profile'];
 	$paths = $p['enumerate']( WP_PLUGIN_DIR );
-	check( count( $paths ) === 2, 'nested enumeration' );
+	check( count( $paths ) === 2, 'nested enumeration; README.md never enumerated' );
+	foreach ( $paths as $path ) {
+		check( ! str_ends_with( $path, 'README.md' ), 'README.md is not imported' );
+	}
+	$plan    = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), WP_PLUGIN_DIR );
+	$readmes = array_values( array_filter( $plan, static fn( $row ) => str_ends_with( $row['path'] ?? '', 'README.md' ) ) );
+	check( count( $readmes ) === 2 && 'skipped_invalid_filename' === $readmes[0]['action'], 'plan skips README.md' );
+	check( array() === $p['map_source']( 'public/docs/user/README.md' ), 'layout does not map README.md' );
+	check( extrachill_docs_mdi_source( 'plugins/public/docs/user/README.md' ) === null, 'same filename rule as plan' );
+	check( extrachill_docs_is_stray_doc_source_path( 'public/docs/user/README.md' ), 'stray unprefixed README detected' );
+	check( extrachill_docs_is_stray_doc_source_path( 'plugins/team/docs/user/README.md' ), 'stray identity README detected' );
+	check( ! extrachill_docs_is_stray_doc_source_path( 'plugins/public/docs/user/start.md' ), 'real doc is not stray' );
+	check( ! extrachill_docs_is_stray_doc_source_path( 'other/docs/user/README.md' ), 'unmapped repo untouched' );
+	$GLOBALS['meta'][42]['_markdown_source_path'] = 'public/docs/user/README.md';
+	check( array( 42 ) === extrachill_docs_delete_stray_doc_posts() && array( array( 42, true ) ) === $GLOBALS['deleted'], 'stray post force-deleted' );
+	unset( $GLOBALS['meta'][42] );
 	foreach ( $paths as $path ) {
 		$m = $p['map_source']( $path );
 		check( $m['post_parent'] === 7 && $m['post_type'] === 'page' && $m['post_name'] === 'start', 'parent and slug mapping' );
@@ -62,6 +80,7 @@ try {
 } finally {
 	foreach ( array( 'public', 'team' ) as $c ) {
 		unlink( WP_PLUGIN_DIR . '/' . $c . '/docs/user/start.md' );
+		unlink( WP_PLUGIN_DIR . '/' . $c . '/docs/user/README.md' );
 		rmdir( WP_PLUGIN_DIR . '/' . $c . '/docs/user' );
 		rmdir( WP_PLUGIN_DIR . '/' . $c . '/docs' );
 		rmdir( WP_PLUGIN_DIR . '/' . $c );
