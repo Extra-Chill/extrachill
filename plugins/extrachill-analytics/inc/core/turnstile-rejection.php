@@ -126,23 +126,54 @@ function extrachill_analytics_event_has_solver_signature( $event_type, $event_da
 }
 
 /**
- * Reclassify the current visitor when Turnstile rejects their request.
+ * Transient key for a recent verification on the current blog.
  *
- * @param string $error_code Rejection code (not persisted).
+ * @param string $visitor_id Visitor UUID.
+ * @return string
+ */
+function extrachill_analytics_turnstile_verified_key( $visitor_id ) {
+	return 'ec_an_ts_verified_' . md5( get_current_blog_id() . '|' . $visitor_id );
+}
+
+/**
+ * Remember a real Siteverify success for one Turnstile token lifetime.
+ */
+function extrachill_analytics_on_turnstile_verified() {
+	$visitor_id = extrachill_analytics_read_visitor_id();
+	if ( '' !== $visitor_id ) {
+		set_site_transient( extrachill_analytics_turnstile_verified_key( $visitor_id ), true, 5 * MINUTE_IN_SECONDS );
+	}
+}
+add_action( 'extrachill_turnstile_verified', 'extrachill_analytics_on_turnstile_verified' );
+
+/**
+ * Reclassify the current visitor when a rejection is evidence of automation.
+ *
+ * @param string $error_code       Rejection code (not persisted).
  * @param mixed  $request_or_token Rejected request or token (not persisted).
+ * @param array  $error_codes      Cloudflare error codes (not persisted).
  * @return void
  */
-// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,Generic.CodeAnalysis.UnusedFunctionParameter.Found -- extrachill_turnstile_rejected action signature; captcha data is deliberately not persisted.
-function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_token ) {
-	// Keep request-local evidence even when there is no visitor to persist it for.
-	$GLOBALS['extrachill_analytics_bot_evidence'][ get_current_blog_id() ]['request_rejected'] = true;
-	$visitor_id = extrachill_analytics_read_visitor_id();
-	if ( '' === $visitor_id ) {
+function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_token, $error_codes = array() ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Keep the hook's argument order without reading the request or token.
+	if ( is_user_logged_in() ) {
 		return;
 	}
-	extrachill_analytics_flag_visitor_bot( $visitor_id, 'turnstile_rejected' );
+
+	$visitor_id = extrachill_analytics_read_visitor_id();
+	// A replay alone is ambiguous; other failure codes remain evidence.
+	if ( 'turnstile_failed' === $error_code && array( 'timeout-or-duplicate' ) === $error_codes
+		&& '' !== $visitor_id && get_site_transient( extrachill_analytics_turnstile_verified_key( $visitor_id ) )
+	) {
+		return;
+	}
+
+	// Keep request-local evidence even when there is no visitor to persist it for.
+	$GLOBALS['extrachill_analytics_bot_evidence'][ get_current_blog_id() ]['request_rejected'] = true;
+	if ( '' !== $visitor_id ) {
+		extrachill_analytics_flag_visitor_bot( $visitor_id, 'turnstile_rejected' );
+	}
 }
-add_action( 'extrachill_turnstile_rejected', 'extrachill_analytics_on_turnstile_rejected', 10, 2 );
+add_action( 'extrachill_turnstile_rejected', 'extrachill_analytics_on_turnstile_rejected', 10, 3 );
 
 /**
  * Stamp historical events belonging to solver-signature visitors on the same blog.

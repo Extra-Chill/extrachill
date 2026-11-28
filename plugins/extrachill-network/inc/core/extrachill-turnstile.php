@@ -43,8 +43,15 @@ function ec_turnstile_log( $message ) {
  * Verify Cloudflare Turnstile response via API with comprehensive error logging.
  *
  * Filterable via 'extrachill_bypass_turnstile_verification' for dev environments.
+ * Fires 'extrachill_turnstile_verified' only on Siteverify success, without
+ * exposing the token to listeners.
+ *
+ * @param string $response    Response token.
+ * @param array  $error_codes Cloudflare error codes, populated on rejection.
+ * @return bool
  */
-function ec_verify_turnstile_response( $response ) {
+function ec_verify_turnstile_response( $response, &$error_codes = array() ) {
+	$error_codes          = array();
 	$is_local_environment = defined( 'WP_ENVIRONMENT_TYPE' ) && WP_ENVIRONMENT_TYPE === 'local';
 	$bypass               = $is_local_environment || (bool) apply_filters( 'extrachill_bypass_turnstile_verification', false );
 	if ( true === $bypass ) {
@@ -100,11 +107,13 @@ function ec_verify_turnstile_response( $response ) {
 
 	if ( isset( $result['success'] ) && true === $result['success'] ) {
 		ec_turnstile_log( 'ExtraChill Turnstile: Verification successful' );
+		do_action( 'extrachill_turnstile_verified' );
 		return true;
 	}
 
 	if ( isset( $result['error-codes'] ) && is_array( $result['error-codes'] ) ) {
-		ec_turnstile_log( 'ExtraChill Turnstile Verification Failed: ' . implode( ', ', $result['error-codes'] ) );
+		$error_codes = $result['error-codes'];
+		ec_turnstile_log( 'ExtraChill Turnstile Verification Failed: ' . implode( ', ', $error_codes ) );
 	} else {
 		ec_turnstile_log( 'ExtraChill Turnstile Verification Unexpected Response: ' . $response_body );
 	}
@@ -211,8 +220,9 @@ function ec_enqueue_turnstile_script( $handle = 'cloudflare-turnstile' ) {
  *
  * Fires the stable 'extrachill_turnstile_rejected' action once before returning
  * a turnstile_missing_token or turnstile_failed error. Receives the error code
- * (string) and the original WP_REST_Request|string $request_or_token unchanged.
- * Does not fire on bypass, success, or the turnstile_missing configuration error.
+ * (string), the original WP_REST_Request|string $request_or_token unchanged,
+ * and the Cloudflare error codes (array, empty if unavailable). Does not fire
+ * on bypass, success, or the turnstile_missing configuration error.
  *
  * @param WP_REST_Request|string $request_or_token Request object or raw token.
  * @return true|WP_Error True on success, WP_Error on missing/invalid token.
@@ -251,13 +261,14 @@ function ec_turnstile_check_request( $request_or_token ) {
 		return $verdicts[ $cache_key ];
 	}
 
+	$error_codes = array();
 	if ( '' === $token ) {
 		$result = new WP_Error(
 			'turnstile_missing_token',
 			__( 'Security verification required.', 'extrachill-network' ),
 			array( 'status' => 403 )
 		);
-	} elseif ( ! ec_verify_turnstile_response( $token ) ) {
+	} elseif ( ! ec_verify_turnstile_response( $token, $error_codes ) ) {
 		$result = new WP_Error(
 			'turnstile_failed',
 			__( 'Security verification failed. Please try again.', 'extrachill-network' ),
@@ -275,7 +286,7 @@ function ec_turnstile_check_request( $request_or_token ) {
 	}
 
 	if ( is_wp_error( $result ) ) {
-		do_action( 'extrachill_turnstile_rejected', $result->get_error_code(), $request_or_token );
+		do_action( 'extrachill_turnstile_rejected', $result->get_error_code(), $request_or_token, $error_codes );
 	}
 
 	return $result;
