@@ -285,6 +285,8 @@ export interface Artist {
   slug: string;
   bio?: string;
   genre?: string;
+  /** Performer kind; drives the schema.org entity type. Defaults to `music`. */
+  performer_kind?: 'music' | 'comedy';
   avatar_url?: string;
   header_url?: string;
   location?: string;

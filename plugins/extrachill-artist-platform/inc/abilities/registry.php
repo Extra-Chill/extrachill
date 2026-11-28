@@ -471,6 +471,11 @@ function extrachill_artist_platform_register_abilities() {
 						'maxItems'    => 3,
 						'description' => __( 'Genre slugs or names, resolved against the network genre vocabulary (max 3). Unresolvable values are dropped. Empty array clears genres.', 'extrachill-artist-platform' ),
 					),
+					'performer_kind'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'music', 'comedy' ),
+						'description' => __( 'Performer kind: music (bands and musicians) or comedy. Drives the schema.org entity type.', 'extrachill-artist-platform' ),
+					),
 					'profile_image_id' => array(
 						'type'        => 'integer',
 						'description' => __( 'Profile image attachment ID in the artist site media library. 0 to remove.', 'extrachill-artist-platform' ),

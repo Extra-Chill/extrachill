@@ -239,7 +239,7 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 
 	$input = array( 'artist_id' => $request->get_param( 'id' ) );
 
-	$fields = array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id', 'local_scene' );
+	$fields = array( 'name', 'bio', 'local_city', 'genres', 'performer_kind', 'profile_image_id', 'header_image_id', 'local_scene' );
 	foreach ( $fields as $field ) {
 		if ( array_key_exists( $field, $body ) ) {
 			$input[ $field ] = $body[ $field ];

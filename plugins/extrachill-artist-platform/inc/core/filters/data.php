@@ -308,6 +308,7 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 		'bio'               => ( get_post( $artist_id )->post_content ?? '' ),
 		'genres'            => ec_artist_get_genres( $artist_id ),
 		'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
+		'performer_kind'    => ec_artist_get_performer_kind( $artist_id ),
 		'local_city'        => $meta['_local_city'][0] ?? '',
 		'local_scene'       => $meta[ EXTRACHILL_ARTIST_LOCAL_SCENE_META ][0] ?? '',
 		'website_url'       => $meta['_website_url'][0] ?? '',
@@ -346,6 +347,10 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 			$data[ $field_key ] = $overrides[ $field_key ];
 		}
 	}
+	if ( isset( $overrides['performer_kind'] ) ) {
+		$data['performer_kind'] = ec_artist_normalize_performer_kind( $overrides['performer_kind'] );
+	}
+	$data['schema_type'] = ec_artist_performer_kind_schema_type( $data['performer_kind'] );
 
 	return $data;
 }

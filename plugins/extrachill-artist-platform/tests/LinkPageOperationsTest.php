@@ -306,7 +306,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 	 * Build the definition's snapshot exactly as a refresh would, without the
 	 * refresh's MySQL advisory lock.
 	 */
-	private function storeArtistSnapshot(): array {
+	private function storeArtistSnapshot( array $overrides = array() ): array {
 		$definition = \ExtraChillArtistPlatform\Artist_Link_Pages::class;
 		$reference  = $definition::owner_reference( $this->profile_id );
 		$profile_id = $this->profile_id;
@@ -319,6 +319,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		);
 		$snapshot   = $build();
 		$this->assertIsArray( $snapshot );
+		$snapshot = array_merge( $snapshot, $overrides );
 		switch_to_blog( ec_get_link_page_storage_blog_id() );
 		try {
 			update_post_meta( $this->link_page_id, $definition::SNAPSHOT_META_KEY, $snapshot );
@@ -454,6 +455,66 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'Page bio.', $projection['bio'] );
 		$this->assertSame( 'Page bio.', $projection['seo']['description'] );
 		$this->assertSame( 'Artist excerpt.', $projection['seo']['schema'][0]['description'] );
+	}
+
+	public function test_snapshot_carries_the_artist_performer_kind(): void {
+		$this->assertSame( 'music', $this->storeArtistSnapshot()['performer_kind'] );
+
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$this->assertTrue( ec_artist_set_performer_kind( $this->profile_id, 'comedy' ) );
+		} finally {
+			restore_current_blog();
+		}
+		$this->assertSame( 'comedy', $this->storeArtistSnapshot()['performer_kind'] );
+	}
+
+	public function test_music_projection_publishes_music_group_with_genre(): void {
+		$this->seedArtistIdentity();
+		$this->storeArtistSnapshot(
+			array(
+				'genres'         => array( 'Rock' ),
+				'performer_kind' => 'music',
+			)
+		);
+
+		$entity = ec_get_link_page_public_projection( $this->link_page_id )['seo']['schema'][0];
+		$this->assertSame( 'MusicGroup', $entity['@type'] );
+		$this->assertSame( array( 'Rock' ), $entity['genre'] );
+	}
+
+	public function test_comedy_projection_publishes_performing_group_without_genre(): void {
+		$this->seedArtistIdentity();
+		$this->storeArtistSnapshot(
+			array(
+				'genres'         => array( 'Rock' ),
+				'performer_kind' => 'comedy',
+			)
+		);
+
+		$schema = ec_get_link_page_public_projection( $this->link_page_id )['seo']['schema'];
+		switch_to_blog( $this->artist_blog_id() );
+		$profile_url = get_permalink( $this->profile_id );
+		restore_current_blog();
+		$this->assertSame( 'PerformingGroup', $schema[0]['@type'] );
+		$this->assertArrayNotHasKey( 'genre', $schema[0] );
+		// The entity @id fragment is stable across performer kinds.
+		$this->assertSame( $profile_url . '#musicgroup', $schema[0]['@id'] );
+		$this->assertSame( array( '@id' => $profile_url . '#musicgroup' ), $schema[1]['mainEntity'] );
+	}
+
+	public function test_snapshot_without_performer_kind_stays_music_group(): void {
+		$this->seedArtistIdentity();
+		$snapshot = $this->storeArtistSnapshot();
+		unset( $snapshot['performer_kind'] );
+		switch_to_blog( ec_get_link_page_storage_blog_id() );
+		try {
+			update_post_meta( $this->link_page_id, \ExtraChillArtistPlatform\Artist_Link_Pages::SNAPSHOT_META_KEY, $snapshot );
+		} finally {
+			restore_current_blog();
+		}
+
+		$this->assertSame( 'MusicGroup', ec_get_link_page_public_projection( $this->link_page_id )['seo']['schema'][0]['@type'] );
 	}
 
 	public function test_missing_snapshot_fails_closed_without_writing(): void {

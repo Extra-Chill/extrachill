@@ -132,6 +132,7 @@ add_filter( 'ec_get_artist_id', static function ( $value, $input = null ) {
 require_once $artist_root . '/inc/link-pages/runtime-handoff.php';
 require_once $artist_root . '/inc/core/filters/data.php';
 require_once $artist_root . '/inc/core/artist-genres.php';
+require_once $artist_root . '/inc/core/artist-performer-kind.php';
 require_once $artist_root . '/inc/core/filters/create.php';
 require_once $artist_root . '/inc/core/actions/save.php';
 require_once $artist_root . '/inc/core/actions/sync.php';
