@@ -81,7 +81,7 @@ trait FlowHelpers {
 	 * Accepts both raw rows (JSON strings) and decoded flows (arrays).
 	 *
 	 * @param array $row { flow_id, flow_name, flow_config, scheduling_config }
-	 * @return array|null
+	 * @return array{flow_id:int,flow_name:string,source_url:string,handler_slug:string,scheduling_config:array}|null
 	 */
 	private static function extract_web_scraper_meta( array $row ): ?array {
 		$config = self::decode_config( $row['flow_config'] ?? '' );

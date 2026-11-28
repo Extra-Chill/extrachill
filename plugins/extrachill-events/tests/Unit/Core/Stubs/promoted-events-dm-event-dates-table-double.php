@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Classes.DuplicateClassName -- Test doubles mirror WordPress and dependency signatures.
 /**
  * data-machine-events soft-dependency double: EventDatesTable.
  *

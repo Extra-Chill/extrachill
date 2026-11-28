@@ -217,7 +217,7 @@ final class LifecycleProvider {
 	 */
 	private static function acquire_schema_lock( string $lock_name ): bool {
 		global $wpdb;
-		if ( ! is_object( $wpdb ) ) {
+		if ( ! is_object( $wpdb ) || ! method_exists( $wpdb, 'prepare' ) || ! method_exists( $wpdb, 'get_var' ) ) {
 			return false;
 		}
 		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 0)', $lock_name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes concurrent schema installers across the network.

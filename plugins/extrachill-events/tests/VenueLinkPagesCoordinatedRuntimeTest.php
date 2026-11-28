@@ -30,6 +30,8 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$candidates = array(
 			getenv( 'LINK_PAGES_WORKTREE' ),
 			dirname( __DIR__ ) . '/.ci/extrachill-link-pages',
+			// Monorepo sibling: link-pages lives next to this plugin in Extra-Chill/extrachill.
+			dirname( __DIR__, 2 ) . '/extrachill-link-pages',
 			getenv( 'WP_PLUGIN_DIR' ) ? rtrim( getenv( 'WP_PLUGIN_DIR' ), '/' ) . '/extrachill-link-pages' : '',
 		);
 		foreach ( $candidates as $candidate ) {

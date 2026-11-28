@@ -31,14 +31,14 @@ final class RootLocationRepair {
 	/**
 	 * Move relationships, verify a redirect, then delete the duplicate.
 	 *
-	 * @param object $duplicate Duplicate root location term.
-	 * @param object $canonical Canonical hierarchy location term.
+	 * @param object{term_id:int|string} $duplicate Duplicate root location term.
+	 * @param object{term_id:int|string} $canonical Canonical hierarchy location term.
 	 * @return array{status:string,reason:string}
 	 */
 	public function repair( object $duplicate, object $canonical ): array {
 		$redirect = $this->call( 'prepare_redirect', $duplicate, $canonical );
 		if ( is_wp_error( $redirect ) ) {
-			return $this->result( 'blocked', $redirect->get_error_code() );
+			return $this->result( 'blocked', (string) $redirect->get_error_code() );
 		}
 
 		$objects = $this->call( 'get_objects', (int) $duplicate->term_id );
@@ -128,11 +128,12 @@ final class RootLocationRepair {
 	/**
 	 * Restore relationships and remove a redirect created by this run.
 	 *
-	 * @param array  $original    Original relationships by object ID.
-	 * @param object $duplicate   Duplicate root location term.
-	 * @param object $canonical   Canonical hierarchy location term.
-	 * @param int    $redirect_id Redirect created by this run, if any.
-	 * @param string $reason      Failure reason.
+	 * @param array                      $original    Original relationships by object ID.
+	 * @param object{term_id:int|string} $duplicate   Duplicate root location term.
+	 * @param object{term_id:int|string} $canonical   Canonical hierarchy location term.
+	 * @param int                        $redirect_id Redirect created by this run, if any.
+	 * @param string                     $reason      Failure reason.
+	 * @return array{status:string,reason:string}
 	 */
 	private function rollback( array $original, object $duplicate, object $canonical, int $redirect_id, string $reason ): array {
 		$ok = true;
@@ -169,6 +170,7 @@ final class RootLocationRepair {
 	 *
 	 * @param string $status Repair status.
 	 * @param string $reason Machine-readable reason.
+	 * @return array{status:string,reason:string}
 	 */
 	private function result( string $status, string $reason ): array {
 		return array(

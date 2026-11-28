@@ -18,7 +18,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // together with the switch to the Docker provider.
 const PENDING_EXTERNAL_DB = {
   'plugins/extrachill-booking/homeboy.json': '#1622',
-  'plugins/extrachill-events/homeboy.json': '#1622',
 };
 
 const errors = [];

@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,Universal.NamingConventions.NoReservedKeywordParameterNames,WordPress.WP.AlternativeFunctions -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Shared WordPress function stubs for the Core unit tests that run without
  * the managed WordPress runtime.

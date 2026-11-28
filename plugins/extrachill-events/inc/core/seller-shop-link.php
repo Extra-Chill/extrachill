@@ -33,7 +33,7 @@ function extrachill_events_seller_storefront_url( string $type, int $term_id, st
 /**
  * Render the "Shop Merch" link for a venue or promoter archive.
  *
- * @param WP_Term $term Venue or promoter term.
+ * @param mixed $term Venue or promoter term (WP_Term expected).
  */
 function extrachill_events_render_seller_shop_link( $term ): void {
 	if ( ! $term instanceof WP_Term || ! in_array( $term->taxonomy, array( 'venue', 'promoter' ), true ) ) {

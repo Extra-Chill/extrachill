@@ -108,16 +108,17 @@ class ManagedEventFinder {
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Clauses and placeholders are assembled above; table names are internal; every value is a placeholder; live management data.
 		$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) {$from}", $params ) );
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->query_failed() ) {
 			return $this->read_error();
 		}
-		$ids = $total > $skip
-			? $wpdb->get_col( $wpdb->prepare( "SELECT p.ID {$from} ORDER BY ed.start_datetime {$order}, p.ID ASC LIMIT %d OFFSET %d", array_merge( $params, array( $limit, $skip ) ) ) )
-			: array();
+		$ids = array();
+		if ( $total > $skip ) {
+			$ids = $wpdb->get_col( $wpdb->prepare( "SELECT p.ID {$from} ORDER BY ed.start_datetime {$order}, p.ID ASC LIMIT %d OFFSET %d", array_merge( $params, array( $limit, $skip ) ) ) );
+			if ( $this->query_failed() ) {
+				return $this->read_error();
+			}
+		}
 		// phpcs:enable
-		if ( '' !== (string) $wpdb->last_error ) {
-			return $this->read_error();
-		}
 
 		return array(
 			'ids'   => array_map( 'intval', (array) $ids ),
@@ -137,6 +138,16 @@ class ManagedEventFinder {
 		global $wpdb;
 
 		return "EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} tr INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tr.object_id = p.ID AND tt.taxonomy = %s AND tt.term_id IN ( " . implode( ', ', array_fill( 0, $count, '%d' ) ) . ' ) )';
+	}
+
+	/**
+	 * Whether the most recent $wpdb query reported an error.
+	 *
+	 * @phpstan-impure Reads mutable $wpdb state, so results must not be memoized.
+	 */
+	private function query_failed(): bool {
+		global $wpdb;
+		return '' !== (string) $wpdb->last_error;
 	}
 
 	/** Uniform read failure. */

@@ -204,7 +204,7 @@ class VenueRequalifier {
 				'agent_guidance' => '',
 			);
 
-			if ( $dry_run || ! $ability ) {
+			if ( $dry_run ) {
 				$row['action'] = 'would_requalify';
 				$results[]     = $row;
 				continue;

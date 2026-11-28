@@ -87,7 +87,7 @@ function extrachill_events_guest_list_party_cap( int $event_id, array $party ): 
 		return null;
 	}
 
-	return isset( $party['allotment'] ) && null !== $party['allotment'] ? max( 0, (int) $party['allotment'] ) : 0;
+	return isset( $party['allotment'] ) ? max( 0, (int) $party['allotment'] ) : 0;
 }
 
 /**
@@ -106,13 +106,13 @@ function extrachill_events_guest_list_party_summary( int $event_id, array $party
 		'name'            => (string) $party['name'],
 		'email'           => (string) $party['email'],
 		'status'          => (string) $party['status'],
-		'allotment'       => isset( $party['allotment'] ) && null !== $party['allotment'] ? (int) $party['allotment'] : null,
+		'allotment'       => isset( $party['allotment'] ) ? (int) $party['allotment'] : null,
 		'used'            => $used,
 		'spots_left'      => null === $cap ? null : max( 0, $cap - $used ),
 		'created_at'      => (string) ( $party['created_at'] ?? '' ),
 		// Requests and submitted lists (extrachill#1129).
 		'origin'          => (string) ( $party['origin'] ?? GuestListPartiesTable::ORIGIN_INVITE ),
-		'requested_spots' => isset( $party['requested_spots'] ) && null !== $party['requested_spots'] ? (int) $party['requested_spots'] : null,
+		'requested_spots' => isset( $party['requested_spots'] ) ? (int) $party['requested_spots'] : null,
 		'request_note'    => (string) ( $party['request_note'] ?? '' ),
 		'pending_names'   => RsvpPassesTable::count_pending_for_party( $event_id, (int) $party['id'] ),
 	);
@@ -422,7 +422,7 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 	// guest list perk or not.
 	$owners = array();
 	$post   = get_post( $event_id );
-	if ( $post && 'publish' === ( $post->post_status ?? '' ) && function_exists( 'extrachill_events_owner_list_owners_for_event' ) ) {
+	if ( $post && 'publish' === $post->post_status && function_exists( 'extrachill_events_owner_list_owners_for_event' ) ) {
 		foreach ( extrachill_events_owner_list_owners_for_event( $event_id ) as $owner ) {
 			$owners[ $owner['owner_type'] . ':' . $owner['owner_id'] ] = $owner;
 		}

@@ -23,7 +23,7 @@ class VenueOnboardingAbilities {
 	private static bool $registered = false;
 
 	/** Venue onboarding policy service. */
-	private $service;
+	private TeamOnboardingService $service;
 
 	/** Build and hook the onboarding abilities. */
 	public function __construct( ?TeamOnboardingService $service = null ) {

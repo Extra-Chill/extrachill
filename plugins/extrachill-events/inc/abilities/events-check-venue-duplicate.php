@@ -104,9 +104,7 @@ function extrachill_events_ability_check_venue_duplicate( array $input ): array|
 		);
 	}
 
-	if ( ! class_exists( '\DataMachineEvents\Core\Venue_Taxonomy' )
-		|| ! method_exists( '\DataMachineEvents\Core\Venue_Taxonomy', 'resolve_venue_identity' )
-	) {
+	if ( ! class_exists( '\DataMachineEvents\Core\Venue_Taxonomy' ) ) {
 		return new \WP_Error(
 			'ability_unavailable',
 			__( 'Canonical venue identity resolver is not available.', 'extrachill-events' ),

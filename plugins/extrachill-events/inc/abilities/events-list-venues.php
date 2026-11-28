@@ -146,7 +146,7 @@ function extrachill_events_ability_list_venues( array $input ): array|\WP_Error 
 	$location = $input['location'] ?? '';
 	if ( ! empty( $location ) ) {
 		$term = get_term_by( 'slug', sanitize_text_field( $location ), 'location' );
-		if ( $term && ! is_wp_error( $term ) ) {
+		if ( $term ) {
 			$delegate_input['taxonomy'] = 'location';
 			$delegate_input['term_id']  = $term->term_id;
 		}
