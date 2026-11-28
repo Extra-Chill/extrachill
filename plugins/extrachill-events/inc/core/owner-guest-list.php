@@ -146,7 +146,7 @@ function extrachill_events_owner_list_event_is_eligible( array $pass, int $event
 	}
 
 	$post = get_post( $event_id );
-	if ( ! $post || 'data_machine_events' !== $post->post_type || 'publish' !== ( $post->post_status ?? '' ) ) {
+	if ( ! $post || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
 		return false;
 	}
 

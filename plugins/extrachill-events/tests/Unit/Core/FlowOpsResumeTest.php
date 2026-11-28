@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use ExtraChillEvents\Core\FlowOps;
 
 require_once __DIR__ . '/Stubs/flow-gateway-stubs.php';
+require_once __DIR__ . '/Stubs/action-scheduler-store-spy.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/FlowOps.php';
 
 /**
@@ -358,6 +359,37 @@ class FlowOpsResumeTest extends TestCase {
 		$this->assertSame( 'bot_blocked', $scheduling['paused_reason'] );
 		$this->assertArrayNotHasKey( 'stale_flag', $scheduling );
 		$this->assertArrayNotHasKey( 'recheck_action_id', $scheduling );
+	}
+
+	public function test_repause_cancels_only_this_flows_recheck(): void {
+		if ( ! property_exists( '\ActionScheduler', 'cancelled' ) ) {
+			$this->markTestSkipped( 'Needs the Action Scheduler test double; the real library is loaded.' );
+		}
+		\ActionScheduler::$cancelled = array();
+		$this->gateway->seed(
+			113,
+			array(),
+			array(
+				'interval'          => 'manual',
+				'prior_interval'    => 'daily',
+				'paused_reason'     => 'unreachable',
+				'recheck_action_id' => 4242,
+			)
+		);
+
+		$this->assertTrue( FlowOps::pause_flow_by_verdict( 113, 'bot_blocked' ) );
+		$this->assertSame( array( 4242 ), \ActionScheduler::$cancelled );
+	}
+
+	public function test_pause_without_prior_recheck_cancels_nothing(): void {
+		if ( ! property_exists( '\ActionScheduler', 'cancelled' ) ) {
+			$this->markTestSkipped( 'Needs the Action Scheduler test double; the real library is loaded.' );
+		}
+		\ActionScheduler::$cancelled = array();
+		$this->gateway->seed( 114, array(), array( 'interval' => 'daily' ) );
+
+		$this->assertTrue( FlowOps::pause_flow_by_verdict( 114, 'bot_blocked' ) );
+		$this->assertSame( array(), \ActionScheduler::$cancelled );
 	}
 
 	public function test_repause_keeps_original_prior_interval(): void {

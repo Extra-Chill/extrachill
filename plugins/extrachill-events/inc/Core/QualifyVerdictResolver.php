@@ -53,6 +53,15 @@ class QualifyVerdictResolver {
 	private const PLATFORMS_WITHOUT_EXTRACTOR = array();
 
 	/**
+	 * Platforms with no extractor, typed as the configurable list it is.
+	 *
+	 * @return array<int,string>
+	 */
+	private static function platforms_lacking_extractor(): array {
+		return self::PLATFORMS_WITHOUT_EXTRACTOR;
+	}
+
+	/**
 	 * Resolve a fingerprint to a verdict bundle.
 	 *
 	 * @param array $fingerprint Fingerprint payload assembled by the qualify
@@ -222,6 +231,8 @@ class QualifyVerdictResolver {
 	/**
 	 * Build the verdict bundle, attaching the canonical agent guidance for
 	 * the verdict so callers cannot drift.
+	 *
+	 * @return array{verdict: string, events_url: string, improvement_hint: string, agent_guidance: string, event_count: int}
 	 */
 	private static function bundle( string $verdict, string $events_url, string $improvement_hint, int $event_count ): array {
 		return array(
@@ -358,7 +369,7 @@ class QualifyVerdictResolver {
 					break;
 				}
 			}
-			if ( ! $has_extractor || in_array( $platform, self::PLATFORMS_WITHOUT_EXTRACTOR, true ) ) {
+			if ( ! $has_extractor || in_array( $platform, self::platforms_lacking_extractor(), true ) ) {
 				$missing[] = $platform;
 			}
 		}

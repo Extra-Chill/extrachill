@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * @return array|WP_Error
  */
 // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- ability dispatcher signature parity; this listing takes no input.
-function extrachill_artist_platform_ability_admin_list_orphan_artist_relationships( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_admin_list_orphan_artist_relationships( array $input ) {
 	$orphans = ec_get_orphaned_artist_relationships();
 	if ( is_wp_error( $orphans ) ) {
 		return $orphans;

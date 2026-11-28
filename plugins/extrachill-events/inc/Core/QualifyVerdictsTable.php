@@ -329,8 +329,8 @@ class QualifyVerdictsTable {
 			return false;
 		}
 
-		$needed_verdicts = (int) ( $rule['verdicts'] ?? 0 );
-		$needed_hours    = (int) ( $rule['hours'] ?? 0 );
+		$needed_verdicts = (int) $rule['verdicts'];
+		$needed_hours    = (int) $rule['hours'];
 
 		if ( $needed_verdicts < 1 ) {
 			return false;

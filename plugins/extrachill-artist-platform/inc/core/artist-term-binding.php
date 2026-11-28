@@ -417,6 +417,8 @@ function ec_artist_binding_invalidate_slug_caches() {
  * @param int $profile_id    Artist profile post ID.
  * @param int $artist_blog_id Artist blog ID.
  * @return array{id:int,term_id:int,slug:string,title:string,status:string}|array{}
+ *
+ * @phpstan-impure Reads live metadata that binding mutations change between calls.
  */
 function ec_artist_binding_read_profile( $profile_id, $artist_blog_id ) {
 	$profile = array();
@@ -446,6 +448,8 @@ function ec_artist_binding_read_profile( $profile_id, $artist_blog_id ) {
  * @param int $term_id      Artist term ID.
  * @param int $main_blog_id Main blog ID.
  * @return array{id:int,profile_id:int,slug:string,count:int}|array{}
+ *
+ * @phpstan-impure Reads live metadata that binding mutations change between calls.
  */
 function ec_artist_binding_read_term( $term_id, $main_blog_id ) {
 	$artist_term = array();
@@ -473,6 +477,8 @@ function ec_artist_binding_read_term( $term_id, $main_blog_id ) {
  *
  * @param mixed $entity Profile or term data.
  * @return bool
+ *
+ * @phpstan-assert-if-true non-empty-array $entity
  */
 function ec_artist_binding_entity_exists( $entity ) {
 	return is_array( $entity ) && ! empty( $entity );
@@ -598,8 +604,7 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 			restore_current_blog();
 		}
 		$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
-		// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
-		$wrote_profile = ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id;
+		$wrote_profile   = ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id;
 	}
 	if ( 0 === $term['profile_id'] ) {
 		switch_to_blog( $main_blog_id );
@@ -609,12 +614,10 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 			restore_current_blog();
 		}
 		$current_term = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
-		// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
-		$wrote_term = ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id;
+		$wrote_term   = ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id;
 	}
 	$profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
 	$term    = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
-	// @phpstan-ignore phpstan.booleanAnd.alwaysTrue,phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 	if ( ! empty( $profile ) && ! empty( $term ) && (int) $profile['term_id'] === (int) $term_id && (int) $term['profile_id'] === (int) $profile_id ) {
 		switch_to_blog( $main_blog_id );
 		try {
@@ -631,7 +634,6 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
 			ec_artist_binding_delete_profile_meta( (int) $profile_id, (int) $term_id, $blog_ids['artist'] );
 			$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
-			// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 			if ( empty( $current_profile ) || (int) $current_profile['term_id'] !== (int) $term_id ) {
 				break;
 			}
@@ -641,7 +643,6 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
 			ec_artist_binding_delete_term_meta( (int) $term_id, (int) $profile_id, $main_blog_id );
 			$current_term = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
-			// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 			if ( empty( $current_term ) || (int) $current_term['profile_id'] !== (int) $profile_id ) {
 				break;
 			}
@@ -649,7 +650,6 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 	}
 	$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
 	$current_term    = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
-	// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 	if ( ( $wrote_profile && ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id ) || ( $wrote_term && ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id ) ) {
 		ec_set_artist_binding_failure(
 			new WP_Error(
@@ -678,6 +678,8 @@ function ec_set_artist_binding_failure( $failure = null ) {
 
 /**
  * Return the current request's canonical binding failure.
+ *
+ * @phpstan-impure Reads request state that binding mutations set and clear.
  *
  * @return WP_Error|null
  */
@@ -725,24 +727,22 @@ function ec_remove_stale_artist_binding_reference( $side, $object_id, $expected_
 		return false;
 	}
 	$blog_ids = ec_artist_binding_blog_ids();
+	if ( empty( $blog_ids ) ) {
+		// Callers only reach this after resolving the blog IDs themselves.
+		return false;
+	}
 	if ( 'profile' === $side ) {
-		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_profile( $object_id, $blog_ids['artist'] );
 		if ( ! empty( $current ) && (int) $current['term_id'] === (int) $expected_id ) {
-			// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 			ec_artist_binding_delete_profile_meta( $object_id, $expected_id, $blog_ids['artist'] );
 		}
-		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_profile( $object_id, $blog_ids['artist'] );
 		$clean   = empty( $current ) || (int) $current['term_id'] !== (int) $expected_id;
 	} else {
-		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_term( $object_id, $blog_ids['main'] );
 		if ( ! empty( $current ) && (int) $current['profile_id'] === (int) $expected_id ) {
-			// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 			ec_artist_binding_delete_term_meta( $object_id, $expected_id, $blog_ids['main'] );
 		}
-		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_term( $object_id, $blog_ids['main'] );
 		$clean   = empty( $current ) || (int) $current['profile_id'] !== (int) $expected_id;
 	}
@@ -1215,9 +1215,8 @@ function ec_sync_artist_profile_term_binding_locked( $profile_id ) {
 	if ( ec_bind_artist_profile_to_term_locked( $profile_id, $new_term_id, $blog_ids['main'] ) ) {
 		return $new_term_id;
 	}
-	/* @var WP_Error|null $binding_failure A failed metadata write can require manual compensation. */
+	// A failed metadata write can require manual compensation.
 	$binding_failure = ec_get_artist_binding_failure();
-	// @phpstan-ignore phpstan.instanceof.alwaysFalse (the failure getter returns WP_Error on failure at runtime; null-narrowing is an analysis artifact.)
 	if ( $binding_failure instanceof WP_Error ) {
 		return $binding_failure;
 	}
@@ -1234,16 +1233,14 @@ function ec_sync_artist_profile_term_binding_locked( $profile_id ) {
 			if ( $created_term && ! is_wp_error( $created_term ) && 0 === ec_artist_binding_term_count( $created_term ) && 0 === $bound_profile_id ) {
 				$delete_result   = wp_delete_term( $new_term_id, 'artist' );
 				$delete_reported = ! is_wp_error( $delete_result ) && (bool) $delete_result;
-				/* @var mixed $deleted_term The term may disappear after deletion. */
 				ec_artist_binding_invalidate_term_cache( $new_term_id, $blog_ids['main'] );
-				$deleted_term = get_term( $new_term_id, 'artist' );
-				$deleted      = $delete_reported && ( ! $deleted_term || is_wp_error( $deleted_term ) );
-				// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: $deleted tracks wp_delete_term() outcome and may legitimately stay false.)
+				/** @var WP_Term|WP_Error|null $deleted_term The term may disappear after deletion. */
+				$deleted_term          = get_term( $new_term_id, 'artist' );
+				$deleted               = $delete_reported && ( ! $deleted_term || is_wp_error( $deleted_term ) );
 				$delete_state_mismatch = $delete_reported && ! $deleted;
-				// @phpstan-ignore phpstan.booleanAnd.leftAlwaysTrue (defensive: retained so compensation only runs when deletion truly failed.)
 				if ( ! $deleted && ! $delete_state_mismatch ) {
-					/* @var mixed $created_term Re-read because deletion may have changed term state. */
 					ec_artist_binding_invalidate_term_cache( $new_term_id, $blog_ids['main'] );
+					/** @var WP_Term|WP_Error|null $created_term Re-read because deletion may have changed term state. */
 					$created_term     = get_term( $new_term_id, 'artist' );
 					$bound_profile_id = (int) get_term_meta( $new_term_id, '_artist_profile_id', true );
 					if ( $created_term && ! is_wp_error( $created_term ) && 0 === ec_artist_binding_term_count( $created_term ) && 0 === $bound_profile_id ) {
@@ -1286,7 +1283,7 @@ add_action( 'ec_artist_profile_save', 'ec_sync_artist_profile_term_binding', 5, 
  * Acquire and retain canonical serialization through core post deletion.
  *
  * @param mixed   $check        Earlier deletion veto value.
- * @param WP_Post $post         Post being deleted.
+ * @param WP_Post|null $post    Post being deleted (core passes WP_Post; direct hook callers may not).
  * @param bool    $force_delete Whether deletion bypasses trash.
  * @return mixed Null to continue or false to veto safely.
  */
@@ -1294,7 +1291,6 @@ function ec_artist_binding_pre_delete_post( $check, $post, $force_delete ) {
 	// phpcs:enable Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 	ec_set_artist_binding_failure();
 	ec_set_artist_binding_release_failure();
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: hook callers may pass unexpected values.)
 	if ( null !== $check || ! is_object( $post ) || 'artist_profile' !== $post->post_type ) {
 		return $check;
 	}
@@ -1333,11 +1329,10 @@ function ec_artist_binding_pre_delete_post( $check, $post, $force_delete ) {
  * Release a retained delete lock after core deletion has completed.
  *
  * @param int     $profile_id Deleted artist profile ID.
- * @param WP_Post $post       Deleted artist profile.
+ * @param WP_Post|null $post  Deleted artist profile (core passes WP_Post; direct hook callers may not).
  * @return void
  */
 function ec_artist_binding_after_delete_post( $profile_id, $post ) {
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: hook callers may pass unexpected values.)
 	if ( ! is_object( $post ) || 'artist_profile' !== $post->post_type ) {
 		return;
 	}

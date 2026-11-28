@@ -45,14 +45,14 @@ function extrachill_community_forum_points_sources( $sources, $user_id ) {
 	// Topic count (cached sub-transient, busted by cache-invalidation.php).
 	$topic_count = get_transient( 'user_topic_count_' . $user_id );
 	if ( false === $topic_count ) {
-		$topic_count = intval( bbp_get_user_topic_count( $user_id ) ?? 0 );
+		$topic_count = intval( bbp_get_user_topic_count( $user_id ) );
 		set_transient( 'user_topic_count_' . $user_id, $topic_count, HOUR_IN_SECONDS );
 	}
 
 	// Reply count (cached sub-transient, busted by cache-invalidation.php).
 	$reply_count = get_transient( 'user_reply_count_' . $user_id );
 	if ( false === $reply_count ) {
-		$reply_count = intval( bbp_get_user_reply_count( $user_id ) ?? 0 );
+		$reply_count = intval( bbp_get_user_reply_count( $user_id ) );
 		set_transient( 'user_reply_count_' . $user_id, $reply_count, HOUR_IN_SECONDS );
 	}
 

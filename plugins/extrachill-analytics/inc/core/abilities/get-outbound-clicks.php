@@ -134,7 +134,7 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 	);
 
 	if ( $days > 0 ) {
-		$query_args['date_from'] = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+		$query_args['date_from'] = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -281,7 +281,7 @@ function extrachill_analytics_ability_get_outbound_clicks( $input ) {
 		'category'       => $category,
 		'diagnostic'     => $diagnostic,
 		'period'         => $days > 0
-			? gmdate( 'Y-m-d', strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
+			? gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) ) . ' to ' . gmdate( 'Y-m-d' )
 			: 'all time',
 		'note'           => $include_bots ? 'Outbound clicks include bot-stamped rows for diagnostics.' : 'Outbound clicks are limited to events classified as human at the server-owned write boundary. Source and destination URLs are reduced to origin plus path.',
 	);

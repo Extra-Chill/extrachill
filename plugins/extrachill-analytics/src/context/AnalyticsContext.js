@@ -4,6 +4,9 @@
  * Provides shared state for the analytics dashboard.
  */
 
+/**
+ * WordPress dependencies
+ */
 import {
 	createContext,
 	useContext,

@@ -61,7 +61,7 @@ add_filter( 'extrachill_experiment_measurement_eligible', 'extrachill_analytics_
  * persists only the five bounded scalar dimensions supplied by those hooks.
  *
  * @param string $event_type Canonical assignment or exposure event name.
- * @param array  $metadata   Network-validated experiment metadata.
+ * @param mixed  $metadata   Network-validated experiment metadata.
  * @return int|false Event ID, or false when the contract/privacy check fails.
  */
 function extrachill_analytics_record_experiment_event( $event_type, $metadata ) {

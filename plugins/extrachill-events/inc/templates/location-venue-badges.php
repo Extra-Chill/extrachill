@@ -49,8 +49,8 @@ if ( empty( $venue_counts ) || ! is_array( $venue_counts ) ) {
  *
  * @since 0.22.0
  *
- * @param int      $min_events Minimum upcoming event count. Default 3.
- * @param \WP_Term $queried_term       Current location term.
+ * @param int    $min_events   Minimum upcoming event count. Default 3.
+ * @param object $queried_term Current location term (WP_Term on location archives).
  */
 $min_events   = apply_filters( 'extrachill_events_venue_badge_min_count', 3, $queried_term );
 $venue_counts = array_filter(

@@ -18,7 +18,7 @@ final class QualifiedRootLocation {
 	 * @param object        $root             Root candidate.
 	 * @param array<object> $terms            All location terms.
 	 * @param callable|null $hierarchy_filter Optional test seam matching the shared resolver callback.
-	 * @return array{status:string,canonical:?object,reason:string}
+	 * @return array{status:string,canonical:object|null,reason:string}
 	 */
 	public static function match( object $root, array $terms, ?callable $hierarchy_filter = null ): array {
 		if ( 0 !== (int) ( $root->parent ?? 0 ) ) {
@@ -78,6 +78,7 @@ final class QualifiedRootLocation {
 	 * @param string      $status    Classification status.
 	 * @param object|null $canonical Canonical term, when uniquely resolved.
 	 * @param string      $reason    Machine-readable reason.
+	 * @return array{status:string,canonical:object|null,reason:string}
 	 */
 	private static function result( string $status, ?object $canonical, string $reason ): array {
 		return array(

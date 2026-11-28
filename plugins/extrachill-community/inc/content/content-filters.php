@@ -35,13 +35,13 @@ if ( ! defined( 'EXTRACHILL_COMMUNITY_TWEET_OEMBED_FAIL_TTL' ) ) {
 function embed_tweets($content) {
 	static $processed = array();
 
-	$content_hash = md5((string) $content);
+	$content_hash = md5( (string) $content);
 	if ( array_key_exists($content_hash, $processed) ) {
-		return $processed[$content_hash];
+		return $processed[ $content_hash ];
 	}
 
 	// Reserve the slot before resolution so a nested filter call can't re-enter.
-	$processed[$content_hash] = $content;
+	$processed[ $content_hash ] = $content;
 
 	if ( false === stripos($content, 'twitter.com') && false === stripos($content, 'x.com') ) {
 		return $content;
@@ -60,8 +60,8 @@ function embed_tweets($content) {
 		return '<div class="twitter-embed">' . $html . '</div>';
 	};
 
-	$processed[$content_hash] = preg_replace_callback($pattern, $callback, $content);
-	return $processed[$content_hash];
+	$processed[ $content_hash ] = preg_replace_callback($pattern, $callback, $content);
+	return $processed[ $content_hash ];
 }
 
 /**
@@ -92,8 +92,8 @@ function extrachill_community_get_tweet_oembed($tweet_url) {
 		return $cached_html;
 	}
 
-	$oembed_endpoint = 'https://publish.twitter.com/oembed?url=' . urlencode($tweet_url);
-	$response        = wp_remote_get($oembed_endpoint, array('timeout' => 5));
+	$oembed_endpoint = 'https://publish.twitter.com/oembed?url=' . rawurlencode($tweet_url);
+	$response        = wp_remote_get($oembed_endpoint, array( 'timeout' => 5 ));
 
 	$html = false;
 	if ( ! is_wp_error($response) && ! empty($response['body']) ) {
@@ -122,13 +122,13 @@ function strip_img_inline_styles($content) {
 	}
 	$dom = new DOMDocument();
 	libxml_use_internal_errors(true);
-	@$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+	$dom->loadHTML('<?xml encoding="UTF-8">' . $content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 	libxml_clear_errors();
 	$imgs = $dom->getElementsByTagName('img');
 	foreach ( $imgs as $img ) {
 		$img->removeAttribute('style');
 	}
-	$html = $dom->saveHTML();
+	$html = (string) $dom->saveHTML();
 	$html = preg_replace('/^<\?xml[^>]*\?>/', '', $html);
 	$html = preg_replace('/<!--\?xml[^>]*\?-->/', '', $html);
 	$html = preg_replace(array( '/^<!DOCTYPE.+?>/', '/<html>/i', '/<\/html>/i', '/<body>/i', '/<\/body>/i' ), array( '', '', '', '', '' ), $html);
@@ -153,7 +153,7 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 
 	$dom = new DOMDocument();
 	libxml_use_internal_errors(true);
-	@$dom->loadHTML('<?xml encoding="UTF-8"><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+	$dom->loadHTML('<?xml encoding="UTF-8"><div>' . $content . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 	libxml_clear_errors();
 
 	$div = $dom->getElementsByTagName('div')->item(0);
@@ -185,8 +185,12 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 				$xpath         = new DOMXPath($dom);
 				$text_elements = $xpath->query('.//text()', $truncated_node);
 
-				foreach ( $text_elements as $text_element ) {
-					$text_nodes[] = $text_element;
+				if ( false !== $text_elements ) {
+					foreach ( $text_elements as $text_element ) {
+						if ( $text_element instanceof DOMNode ) {
+							$text_nodes[] = $text_element;
+						}
+					}
 				}
 
 				if ( ! empty($text_nodes) ) {
@@ -210,7 +214,7 @@ function extrachill_truncate_html_content($content, $length = 500, $ellipsis = '
 		}
 	}
 
-	$html = $truncated_dom->saveHTML($truncated_div);
+	$html = (string) $truncated_dom->saveHTML($truncated_div);
 	$html = preg_replace('/^<div>/', '', $html);
 	$html = preg_replace('/<\/div>$/', '', $html);
 

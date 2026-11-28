@@ -39,7 +39,7 @@ $cities_response = rest_do_request( $cities_request );
 $cities          = $cities_response->is_error() ? array() : extrachill_events_prepare_location_rows( (array) $cities_response->get_data() );
 
 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public read-only directory search.
-$directory_search = isset( $_GET['search'] ) && is_scalar( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+$directory_search = isset( $_GET['search'] ) && is_scalar( $_GET['search'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['search'] ) ) : '';
 if ( '' !== $directory_search ) {
 	$cities = array_values(
 		array_filter(

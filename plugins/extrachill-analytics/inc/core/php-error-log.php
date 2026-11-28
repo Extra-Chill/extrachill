@@ -154,13 +154,10 @@ function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, 
 
 	$current = null;
 
-	$flush = function () use ( &$current, &$result, $since_ts ) {
-		if ( null === $current ) {
+	$flush = function ( $entry ) use ( &$result, $since_ts ) {
+		if ( null === $entry ) {
 			return;
 		}
-
-		$entry   = $current;
-		$current = null;
 
 		if ( null !== $since_ts && null !== $entry['ts'] && $entry['ts'] < $since_ts ) {
 			return;
@@ -189,7 +186,7 @@ function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, 
 
 		if ( null !== $ts || preg_match( '/^\[/', $line ) ) {
 			// New entry begins at a bracketed line.
-			$flush();
+			$flush( $current );
 			$current = array(
 				'ts'  => $ts,
 				'raw' => rtrim( $line, "\r\n" ),
@@ -203,7 +200,7 @@ function extrachill_analytics_parse_php_error_log( $log_path, $since_ts = null, 
 		}
 	}
 
-	$flush();
+	$flush( $current );
 	fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
 	return $result;

@@ -104,13 +104,20 @@
 			     WordPress the core registry wins, so the double never applies
 			     and the test can only fail here. Runs in phpunit-artist-unit. -->
 			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
+			<!-- Pure-PHP tests on file-level doubles (user_can/get_post shims,
+			     ActionScheduler spy) that real WordPress replaces; they run in
+			     phpunit-rsvp-perks-unit.xml.dist / phpunit-qualify-v2-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/GuestListModeTest.php</exclude>
+			<exclude>tests/Unit/Core/FlowOpsResumeTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
-			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
+			<!-- PriorityBoostAbilityTest doubles ec_cross_site_request_has_service_grant(),
+			     which the real extrachill-network defines here; it runs in
+			     phpunit-qualify-v2-unit.xml.dist. -->
 			<!-- Real-registry output validation for get/set-event-perk (extrachill#1244). -->
 			<file>tests/Unit/Abilities/EventPerkOutputSchemaManagedTest.php</file>
 			<!-- Real-registry output validation for get/update-venue-profile (extrachill#1693). -->

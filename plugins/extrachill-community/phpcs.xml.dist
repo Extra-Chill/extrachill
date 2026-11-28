@@ -19,6 +19,14 @@
 		<properties>
 			<property name="custom_capabilities" type="array">
 				<element value="read_forum"/>
+				<!-- Core bbPress capabilities (see bbp_get_caps_for_role() / bbp_map_*_meta_caps()). -->
+				<element value="moderate"/>
+				<element value="assign_moderators"/>
+				<element value="assign_topic_tags"/>
+				<element value="edit_topic"/>
+				<element value="edit_reply"/>
+				<element value="read_topic"/>
+				<element value="read_reply"/>
 			</property>
 		</properties>
 	</rule>

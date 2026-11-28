@@ -8,6 +8,7 @@ A page that lists upcoming dates for one artist or one venue:
 
 - An artist's tour page
 - A venue's calendar on the venue's own website
+- Some regional gig calendars that list shows at several venues, including festival schedules
 
 The page needs at least two upcoming shows. A page for a single event isn't enough on its own. Use the [event form](https://events.extrachill.com/submit/) for one show.
 
@@ -26,7 +27,7 @@ You'll get an email confirming we received the page.
 The form checks your page right away and tells you if it can't be added. That happens when:
 
 - We found fewer than two upcoming shows on it.
-- It mixes many artists across different venues, so the shows don't belong to one act or one room. Most festival schedules fall into this group.
+- A multi-venue page may not qualify as a usable recurring source. Some multi-venue schedules can still be reviewed, including schedules with festival events; the form checks whether the page can be used.
 - It lists shows at a venue but isn't that venue's own website.
 - It's a ticketing site or an event listing site rather than the artist's or venue's own page.
 - We already add shows from that page.

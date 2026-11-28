@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.62.2] - 2026-11-28
+
+### Fixed
+- rate-limit anonymous calendar feed requests
+
 ## [0.62.1] - 2026-11-28
 
 ### Fixed

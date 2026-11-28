@@ -102,7 +102,7 @@ function extrachill_events_add_events_by_term_taxonomy_context( array $result, a
  */
 function extrachill_events_get_event_term_relationship( int $post_id, string $taxonomy ): ?array {
 	$terms = get_the_terms( $post_id, $taxonomy );
-	if ( empty( $terms ) || is_wp_error( $terms ) || ! isset( $terms[0] ) || ! ( $terms[0] instanceof WP_Term ) ) {
+	if ( empty( $terms ) || is_wp_error( $terms ) || ! isset( $terms[0] ) ) {
 		return null;
 	}
 

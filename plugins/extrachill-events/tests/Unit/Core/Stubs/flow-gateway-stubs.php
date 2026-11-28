@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.DisallowCurlyBraceSyntax,Universal.Namespaces.DisallowDeclarationWithoutName,Universal.Namespaces.OneDeclarationPerFile -- Test doubles mirror WordPress and dependency signatures.
 /**
  * In-memory Data Machine flow gateway for FlowOps tests.
  *

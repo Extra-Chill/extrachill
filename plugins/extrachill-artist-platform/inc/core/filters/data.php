@@ -111,7 +111,6 @@ function ec_is_user_artist_member( $user_id = null, $artist_id = null ) {
 		return false;
 	}
 
-	// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	$user_artist_ids = ec_get_artists_for_user( $user_id );
 	return in_array( (int) $artist_id, $user_artist_ids, true );
 }
@@ -175,7 +174,6 @@ function ec_get_user_artist_profiles( $user_id = null ) {
 		return array();
 	}
 
-	// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	$artist_ids = ec_get_artists_for_user( $user_id );
 	if ( empty( $artist_ids ) ) {
 		return array();

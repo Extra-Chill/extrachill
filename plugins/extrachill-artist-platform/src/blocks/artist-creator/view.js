@@ -1,20 +1,31 @@
+/**
+ * External dependencies
+ */
 import React, { useMemo, useState } from 'react';
+/**
+ * WordPress dependencies
+ */
 import { render } from '@wordpress/element';
 import { ActionRow, FieldGroup, ImagePreview, InlineStatus, MediaField, Panel, PanelHeader } from '@extrachill/components';
+/**
+ * Internal dependencies
+ */
 import { createArtist, uploadMedia } from '../shared/api/client';
 
 const useConfig = () => {
-	const config = window.ecArtistCreatorConfig || {};
 	return useMemo(
-		() => ( {
-			restUrl: config.restUrl,
-			nonce: config.nonce,
-			prefill: config.prefill || {},
-			manageArtistUrl: config.manageArtistUrl || '/manage-artist',
-			createLinkPageUrl: config.createLinkPageUrl || '/manage-link-page',
-			createShopUrl: config.createShopUrl || '',
-		} ),
-		[ config ]
+		() => {
+			const config = window.ecArtistCreatorConfig || {};
+			return {
+				restUrl: config.restUrl,
+				nonce: config.nonce,
+				prefill: config.prefill || {},
+				manageArtistUrl: config.manageArtistUrl || '/manage-artist',
+				createLinkPageUrl: config.createLinkPageUrl || '/manage-link-page',
+				createShopUrl: config.createShopUrl || '',
+			};
+		},
+		[]
 	);
 };
 
@@ -80,7 +91,7 @@ const App = () => {
 						profileImageId: uploadResponse?.attachment_id || null,
 						profileImageFile: null,
 					} ) );
-				} catch ( err ) {
+				} catch {
 					setError( 'Artist created, but image upload failed.' );
 				}
 			}

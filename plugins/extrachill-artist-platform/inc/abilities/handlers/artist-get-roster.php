@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input { @type int $id Artist profile post ID. }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_get_roster( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_get_roster( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 
 	if ( ! $artist_id ) {

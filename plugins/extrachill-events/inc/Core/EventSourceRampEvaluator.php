@@ -35,7 +35,7 @@ class EventSourceRampEvaluator {
 	/**
 	 * Return the policy profiles used by both the evaluator and operator output.
 	 *
-	 * @return array<string,array<string,mixed>>
+	 * @return array<string,array{handler:string,stages:list<int>,thresholds:array<string,array{operator:string,value:int|float}>}>
 	 */
 	public static function profiles(): array {
 		$common = array(
@@ -312,7 +312,7 @@ class EventSourceRampEvaluator {
 		} elseif ( 'min' === $operator ) {
 			$status = $observed >= $threshold ? 'pass' : 'fail';
 		} elseif ( 'range' === $operator ) {
-			$status = $observed >= $threshold[0] && $observed <= $threshold[1] ? 'pass' : 'fail';
+			$status = is_array( $threshold ) && $observed >= $threshold[0] && $observed <= $threshold[1] ? 'pass' : 'fail';
 		} else {
 			$status = $observed <= $threshold ? 'pass' : 'fail';
 		}

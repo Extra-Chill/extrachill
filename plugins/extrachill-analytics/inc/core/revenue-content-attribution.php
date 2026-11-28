@@ -63,7 +63,7 @@ function extrachill_analytics_revenue_normalize_hostname( $value ) {
 
 	$host = rtrim( strtolower( (string) $parts['host'] ), '.' );
 	if ( 0 === strpos( $host, 'www.' ) ) {
-		$host = substr( $host, 4 );
+		$host = (string) substr( $host, 4 );
 	}
 
 	return $host;
@@ -164,18 +164,16 @@ function extrachill_analytics_revenue_resolve_network_paths( array $paths ) {
 		$chunk[] = $requested_path;
 		$bytes  += $path_bytes;
 	}
-	if ( ! empty( $chunk ) ) {
-		$validated = extrachill_analytics_revenue_validate_network_scan( ec_resolve_frontend_paths( $chunk ), $chunk );
-		if ( ! $validated['success'] ) {
-			return array(
-				'success' => false,
-				'results' => array(),
-				'error'   => $validated['error'],
-			);
-		}
-		foreach ( $validated['results'] as $result_path => $result ) {
-			$results[ $result_path ] = $result;
-		}
+	$validated = extrachill_analytics_revenue_validate_network_scan( ec_resolve_frontend_paths( $chunk ), $chunk );
+	if ( ! $validated['success'] ) {
+		return array(
+			'success' => false,
+			'results' => array(),
+			'error'   => $validated['error'],
+		);
+	}
+	foreach ( $validated['results'] as $result_path => $result ) {
+		$results[ $result_path ] = $result;
 	}
 
 	return array(
@@ -254,7 +252,7 @@ function extrachill_analytics_revenue_content_metadata( $blog_id, $post_id ) {
 				'title'          => $post ? (string) $post->post_title : '',
 				'url'            => is_string( $permalink ) ? $permalink : '',
 				'path'           => is_string( $permalink ) ? wp_make_link_relative( $permalink ) : '',
-				'post_type'      => $post && isset( $post->post_type ) ? (string) $post->post_type : '',
+				'post_type'      => $post ? (string) $post->post_type : '',
 				'published_date' => $post ? (string) $post->post_date : '',
 				'categories'     => ( is_array( $terms ) && ! empty( $terms ) ) ? wp_list_pluck( $terms, 'slug' ) : array( 'uncategorized' ),
 				'format'         => extrachill_analytics_classify_format( $post_id ),

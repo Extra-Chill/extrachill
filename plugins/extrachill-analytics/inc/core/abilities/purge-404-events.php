@@ -80,7 +80,7 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at < %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 	}
 
 	if ( $blog_id > 0 ) {
@@ -93,11 +93,7 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 	// Count matching events.
 	// phpcs:disable WordPress.DB.PreparedSQL
 	$count_sql = "SELECT COUNT(*) FROM {$table} WHERE {$where_clause}";
-	if ( ! empty( $values ) ) {
-		$count = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $values ) );
-	} else {
-		$count = (int) $wpdb->get_var( $count_sql );
-	}
+	$count     = (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $values ) );
 
 	if ( $dry_run || 0 === $count ) {
 		return array(
@@ -108,11 +104,7 @@ function extrachill_analytics_ability_purge_404_events( $input ) {
 
 	// Perform deletion.
 	$delete_sql = "DELETE FROM {$table} WHERE {$where_clause}";
-	if ( ! empty( $values ) ) {
-		$wpdb->query( $wpdb->prepare( $delete_sql, $values ) );
-	} else {
-		$wpdb->query( $delete_sql );
-	}
+	$wpdb->query( $wpdb->prepare( $delete_sql, $values ) );
 	// phpcs:enable WordPress.DB.PreparedSQL
 
 	return array(

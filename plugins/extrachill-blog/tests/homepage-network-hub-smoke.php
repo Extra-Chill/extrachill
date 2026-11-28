@@ -2,7 +2,7 @@
 /**
  * Focused tests for homepage bridge URLs and the concise Power explorer.
  *
- * Run: php tests/homepage-network-hub.php
+ * Run: php tests/homepage-network-hub-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ );
@@ -32,6 +32,9 @@ function esc_attr( $text ) {
 }
 function esc_url( $url ) {
 	return htmlspecialchars( $url, ENT_QUOTES );
+}
+function trailingslashit( $value ) {
+	return rtrim( $value, '/\\' ) . '/';
 }
 function home_url( $path = '' ) {
 	return 'https://extrachill.com' . $path;

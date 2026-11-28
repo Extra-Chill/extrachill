@@ -25,7 +25,11 @@ function extrachill_blog_share_card() {
 	?>
 	<div class="share-card">
 		<p>Enjoyed this article? As an independent publication, your shares mean a lot to us. Please consider sharing it with your friends and followers.</p>
-		<?php extrachill_share_button(); ?>
+		<?php
+		if ( function_exists( 'extrachill_share_button' ) ) {
+			extrachill_share_button();
+		}
+		?>
 	</div>
 	<?php
 }

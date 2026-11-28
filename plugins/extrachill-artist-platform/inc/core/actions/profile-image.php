@@ -36,18 +36,22 @@ function ec_artist_materialize_profile_image( $source_blog, $source_id, $candida
 	if ( is_wp_error( $source ) ) {
 		return $source;
 	}
-	if ( (int) $source_blog === get_current_blog_id() ) {
+	if ( get_current_blog_id() === (int) $source_blog ) {
 		return $source_id;
 	}
 	$key = (int) $source_blog . ':' . $source_id;
 	// A copy sent back to its originating blog must resolve to the original.
 	$origin = explode( ':', (string) $source['origin'] );
-	if ( 2 === count( $origin ) && (int) $origin[0] === get_current_blog_id() && wp_attachment_is_image( (int) $origin[1] ) ) {
+	if ( 2 === count( $origin ) && get_current_blog_id() === (int) $origin[0] && wp_attachment_is_image( (int) $origin[1] ) ) {
 		return (int) $origin[1];
 	}
 	$matches = get_posts( array(
-		'post_type' => 'attachment', 'post_status' => 'inherit', 'fields' => 'ids',
-		'posts_per_page' => 1, 'meta_key' => '_ec_source_attachment', 'meta_value' => $key,
+		'post_type'      => 'attachment',
+		'post_status'    => 'inherit',
+		'fields'         => 'ids',
+		'posts_per_page' => 1,
+		'meta_key'       => '_ec_source_attachment',
+		'meta_value'     => $key,
 	) );
 	if ( $matches && wp_attachment_is_image( $matches[0] ) ) {
 		return (int) $matches[0];
@@ -81,7 +85,10 @@ function ec_artist_materialize_profile_image( $source_blog, $source_id, $candida
 		}
 		return new WP_Error( 'profile_image_copy_failed', 'The profile image could not be copied.' );
 	}
-	$id = media_handle_sideload( array( 'name' => wp_basename( $source['file'] ), 'tmp_name' => $temp ), 0, $source['title'] );
+	$id = media_handle_sideload( array(
+		'name'     => wp_basename( $source['file'] ),
+		'tmp_name' => $temp,
+	), 0, $source['title'] );
 	if ( is_wp_error( $id ) ) {
 		wp_delete_file( $temp );
 		return $id;
@@ -109,7 +116,7 @@ function ec_artist_profile_thumbnail( $artist_id, $image_id = null ) {
 function ec_artist_set_profile_image_from_page( $artist_id, $image_id ) {
 	$source_blog = get_current_blog_id();
 	$artist_blog = (int) ec_get_blog_id( 'artist' );
-	$local = ec_with_blog( $artist_blog, static function () use ( $source_blog, $image_id, $artist_id ) {
+	$local       = ec_with_blog( $artist_blog, static function () use ( $source_blog, $image_id, $artist_id ) {
 		return ec_artist_materialize_profile_image( $source_blog, $image_id, get_post_thumbnail_id( $artist_id ) );
 	} );
 	if ( is_wp_error( $local ) ) {

@@ -279,7 +279,7 @@ function extrachill_blog_power_network_map() {
 		<?php endforeach; ?>
 	</div>
 	<?php
-	return trim( ob_get_clean() );
+	return trim( (string) ob_get_clean() );
 }
 
 /**
@@ -319,5 +319,5 @@ function extrachill_blog_power_manifesto_html() {
 
 	</div>
 	<?php
-	return trim( ob_get_clean() );
+	return trim( (string) ob_get_clean() );
 }

@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.CodeAnalysis.UnusedFunctionParameter,Universal.Namespaces.DisallowCurlyBraceSyntax,Universal.Namespaces.DisallowDeclarationWithoutName -- Test doubles mirror WordPress and dependency signatures.
 /**
  * Runtime-faithful stubs for QualifyRecheckHandlerTest.
  *

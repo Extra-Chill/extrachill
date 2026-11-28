@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Track share click via analytics endpoint.
      *
      * @param {string} destination - Share destination (facebook, twitter, etc.)
-     * @param {string} shareUrl - URL being shared
+     * @param {string} shareUrl    - URL being shared
      */
     function trackShare(destination, shareUrl) {
         const endpoint = '/wp-json/extrachill/v1/analytics/click';
@@ -55,13 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentShareUrl = '';
     let currentShareTitle = '';
-    let currentShareType = 'page'; // 'page' or 'link'
     let mainPageProfileImgUrl = ''; // To store the main page's profile image
 
     function openModal(triggerButton) {
         currentShareUrl = triggerButton.dataset.shareUrl || window.location.href;
         currentShareTitle = triggerButton.dataset.shareTitle || document.title;
-        currentShareType = triggerButton.dataset.shareType || 'page';
 
         // Update modal header
         if (modalMainTitle) {
@@ -71,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const urlObj = new URL(currentShareUrl);
                 modalSubtitle.textContent = urlObj.hostname + urlObj.pathname.replace(/^\/(.*)\/$/, '$1'); // Remove trailing/leading slashes from path
-            } catch (e) {
+            } catch {
                 modalSubtitle.textContent = currentShareUrl.replace(/^https?:\/\//, '');
             }
         }
@@ -99,17 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Update social media links
-        if (facebookLink) facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentShareUrl)}`;
-        if (twitterLink) twitterLink.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;
-        if (linkedinLink) linkedinLink.href = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(currentShareUrl)}&title=${encodeURIComponent(currentShareTitle)}`;
-        if (emailLink) emailLink.href = `mailto:?subject=${encodeURIComponent(currentShareTitle)}&body=${encodeURIComponent(currentShareUrl)}`;
+        if (facebookLink) {facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentShareUrl)}`;}
+        if (twitterLink) {twitterLink.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentShareUrl)}&text=${encodeURIComponent(currentShareTitle)}`;}
+        if (linkedinLink) {linkedinLink.href = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(currentShareUrl)}&title=${encodeURIComponent(currentShareTitle)}`;}
+        if (emailLink) {emailLink.href = `mailto:?subject=${encodeURIComponent(currentShareTitle)}&body=${encodeURIComponent(currentShareUrl)}`;}
 
         // Show/hide buttons based on navigator.share availability
         if (navigator.share && nativeShareOptionButton) {
             nativeShareOptionButton.classList.remove('extrch-modal-hidden');
             socialMediaShareButtons.forEach(btn => { btn.classList.remove('extrch-share-option-visible'); btn.classList.add('extrch-modal-hidden'); });
         } else {
-            if (nativeShareOptionButton) nativeShareOptionButton.classList.add('extrch-modal-hidden');
+            if (nativeShareOptionButton) {nativeShareOptionButton.classList.add('extrch-modal-hidden');}
             socialMediaShareButtons.forEach(btn => { btn.classList.add('extrch-share-option-visible'); btn.classList.remove('extrch-modal-hidden'); });
         }
         modal.classList.remove('extrch-modal-hidden'); // Make the modal container visible
@@ -142,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (shareTriggers.length > 0) {
         shareTriggers.forEach(trigger => {
             // Only open the share modal for share-page or share-item triggers, not the bell/subscribe trigger
-            if (trigger.classList.contains('extrch-bell-page-trigger')) return;
+            if (trigger.classList.contains('extrch-bell-page-trigger')) {return;}
             trigger.addEventListener('click', (e) => {
                 e.preventDefault();
                 openModal(trigger); // Pass the trigger element directly
@@ -186,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         copyLinkButton.disabled = false;
                     }, 2000);
                 })
-                .catch(err => {
+                .catch(() => {
                     label.textContent = 'Error'; // Basic error feedback
                     setTimeout(() => {
                         label.textContent = 'Copy Link';
@@ -218,10 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (link) {
             link.addEventListener('click', () => {
                 let destination = 'unknown';
-                if (link === facebookLink) destination = 'facebook';
-                else if (link === twitterLink) destination = 'twitter';
-                else if (link === linkedinLink) destination = 'linkedin';
-                else if (link === emailLink) destination = 'email';
+                if (link === facebookLink) {destination = 'facebook';}
+                else if (link === twitterLink) {destination = 'twitter';}
+                else if (link === linkedinLink) {destination = 'linkedin';}
+                else if (link === emailLink) {destination = 'email';}
                 trackShare(destination, currentShareUrl);
             });
         }

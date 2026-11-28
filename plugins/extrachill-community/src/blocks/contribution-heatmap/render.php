@@ -32,9 +32,6 @@ if ( ! function_exists( 'ec_get_contribution_events' ) ) {
 }
 
 $heatmap_calendar = extrachill_community_get_contribution_calendar( $heatmap_user_id );
-if ( ! is_array( $heatmap_calendar ) ) {
-	return;
-}
 
 $heatmap_user = get_userdata( $heatmap_user_id );
 $join_year    = 0;

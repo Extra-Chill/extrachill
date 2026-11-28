@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Namespaces.DisallowCurlyBraceSyntax,Universal.Namespaces.DisallowDeclarationWithoutName,Universal.Namespaces.OneDeclarationPerFile -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 /**
  * Minimal Agents API execution principal fixture.
  *
@@ -33,7 +34,7 @@ namespace AgentsAPI\AI {
 				return array_key_exists( 'principal_user_id', $GLOBALS['promoter_link_page_fixture'] ) ? new self( (int) $GLOBALS['promoter_link_page_fixture']['principal_user_id'] ) : null;
 			}
 		}
-		}
+	}
 }
 
 namespace {

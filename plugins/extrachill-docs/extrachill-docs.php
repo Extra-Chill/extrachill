@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Docs
  * Plugin URI: https://docs.extrachill.com
  * Description: User-facing documentation for the Extra Chill platform.
- * Version: 0.14.1
+ * Version: 0.15.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * License: GPL v2 or later
@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_DOCS_VERSION', '0.14.1' );
+define( 'EXTRACHILL_DOCS_VERSION', '0.15.0' );
 define( 'EXTRACHILL_DOCS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_DOCS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -59,6 +59,7 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 // The ability category must be registered before any ability assigns itself
 // to it, so load it first.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/docs-feedback-submit.php';
 
 // MDI import adapter and shared hierarchy helpers.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/doc-page-helpers.php';

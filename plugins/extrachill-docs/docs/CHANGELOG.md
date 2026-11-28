@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.15.0] - 2026-11-28
+
+### Added
+- collect feedback on docs articles
+
 ## [0.14.1] - 2026-11-28
 
 ### Fixed

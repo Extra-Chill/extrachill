@@ -18,6 +18,7 @@ namespace DataMachineEvents\Api\Controllers {
 
 namespace {
 	define( 'ABSPATH', __DIR__ );
+	define( 'MINUTE_IN_SECONDS', 60 );
 	define( 'EXTRACHILL_API_TICKET_REDIRECT_ABILITY', 'data-machine-events/resolve-ticket-destination' );
 
 	class WP_REST_Server {
@@ -25,10 +26,32 @@ namespace {
 	}
 
 	class WP_REST_Request {
-		public function __construct( private array $query ) {}
+		public function __construct( private array $query, private string $method = 'GET' ) {}
+
+		public function get_method(): string {
+			return $this->method;
+		}
 
 		public function get_param( string $name ): mixed {
 			return $this->query[ $name ] ?? null;
+		}
+	}
+
+	class WP_REST_Response {
+		public array $headers = array();
+
+		public function __construct( public array $data, public int $status = 200 ) {}
+
+		public function header( string $name, string $value ): void {
+			$this->headers[ $name ] = $value;
+		}
+	}
+
+	class WP_Error {
+		public function __construct( public string $code, public string $message, private array $data ) {}
+
+		public function get_error_data(): array {
+			return $this->data;
 		}
 	}
 
@@ -46,16 +69,32 @@ namespace {
 
 	function add_action() {}
 	function __( $text ) { return $text; }
-	function is_wp_error() { return false; }
-	function rest_ensure_response( $data ) { return $data; }
+	function is_wp_error( $value ) { return $value instanceof WP_Error; }
+	function is_user_logged_in() { return $GLOBALS['calendar_logged_in'] ?? false; }
+	function rest_ensure_response( $data ) { return new WP_REST_Response( $data ); }
+	function rest_convert_error_to_response( WP_Error $error ) {
+		$data = $error->get_error_data();
+		return new WP_REST_Response( array( 'code' => $error->code, 'message' => $error->message, 'data' => $data ), $data['status'] );
+	}
 	function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
+	function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( $key ) ); }
+	function wp_unslash( $value ) { return stripslashes( $value ); }
+	function wp_salt( $scheme ) { return 'calendar-smoke-' . $scheme; }
+
+	// Keep the public-read adapter real and simulate its fixed-window store.
+	function extrachill_rate_limit_admit( $key, $limit, $window ) {
+		expect_same( 60, $window, 'The limiter window must be one minute.' );
+		$GLOBALS['calendar_admission_calls'][] = $key;
+		$GLOBALS['calendar_admission_count'][ $key ] = 1 + ( $GLOBALS['calendar_admission_count'][ $key ] ?? 0 );
+		return $GLOBALS['calendar_admission_count'][ $key ] <= $limit ? true : 37;
+	}
 	function get_permalink( $id ) { return 'https://events.example/event/' . $id . '/'; }
 	function wp_get_abilities() {
 		return array_map( static fn( $definition ) => new WP_Ability( $definition['execute_callback'] ), $GLOBALS['calendar_abilities'] );
 	}
 
 	function register_rest_route( $namespace, $route, $definition ) {
-		$GLOBALS['calendar_route'] = $definition;
+		$GLOBALS['calendar_routes'][ '/' . $namespace . $route ] = $definition;
 	}
 
 	function wp_register_ability( $name, $definition ) {
@@ -81,12 +120,16 @@ namespace {
 		}
 	}
 
+	$_SERVER['REMOTE_ADDR'] = '192.0.2.1';
+	require_once dirname( __DIR__ ) . '/inc/middleware/public-write-admission.php';
 	require_once dirname( __DIR__ ) . '/inc/routes/events/calendar.php';
 	require_once dirname( __DIR__, 2 ) . '/extrachill-events/inc/abilities/events-calendar.php';
 
 	extrachill_api_register_events_calendar_route();
 	extrachill_events_register_calendar_ability();
-	$route = $GLOBALS['calendar_route'];
+	$routes = $GLOBALS['calendar_routes'];
+	$route  = $routes['/extrachill/v1/events/calendar'];
+	expect_same( false, isset( $routes['/datamachine/v1/events/calendar'] ), 'The public feed must not register admission on the Data Machine Events block endpoint.' );
 	$slug  = $route['args']['event_type'];
 	$input = $GLOBALS['calendar_abilities']['extrachill/events-calendar']['input_schema'];
 	expect_same( 'string', $slug['type'], 'The route must accept a string event_type.' );
@@ -128,7 +171,9 @@ namespace {
 
 	$response = $route['callback']( new WP_REST_Request( array( 'event_type' => 'open-mic', 'location' => 'charleston' ) ) );
 	expect_same( array( 'location' => array( 7 ), 'event_type' => array( 42 ) ), $GLOBALS['calendar_delegate_input']['tax_filter'], 'The route must delegate event_type as a term ID alongside other taxonomy filters.' );
-	$events = $response['dates'][0]['events'];
+	expect_same( 200, $response->status, 'An anonymous GET under the limit must succeed.' );
+	expect_same( array( 'Cache-Control' => 'public, max-age=300' ), $response->headers, 'A successful anonymous GET must be publicly cacheable.' );
+	$events = $response->data['dates'][0]['events'];
 	expect_same( $source, $events[0]['source'], 'The original listing must pass through the route unchanged.' );
 	expect_same( true, array_key_exists( 'source', $events[1] ), 'Older upstream responses must still include the source key.' );
 	expect_same( null, $events[1]['source'], 'A missing upstream source must be null.' );
@@ -144,10 +189,40 @@ namespace {
 		array( 'execute_callback' => static fn( $input ) => array( 'is_affiliate' => 501 === $input['event_id'] ) )
 	);
 	$response = $route['callback']( new WP_REST_Request( array( 'event_type' => 'open-mic' ) ) );
-	$event    = $response['dates'][0]['events'][0];
+	$event    = $response->data['dates'][0]['events'][0];
 	expect_same( $source, $event['source'], 'Affiliate ticket gating must leave original listing attribution intact.' );
 	expect_same( null, $event['ticket_url'], 'An affiliate ticket URL must still be withheld.' );
 	expect_same( 501, $event['ticket_ref'], 'An affiliate event must keep its ticket reference.' );
+
+	$GLOBALS['calendar_admission_count'] = array();
+	$head = $route['callback']( new WP_REST_Request( array(), 'HEAD' ) );
+	expect_same( 200, $head->status, 'HEAD must succeed under the limit.' );
+	expect_same( array(), $head->headers, 'HEAD must not receive the public cache header.' );
+
+	for ( $i = 1; $i < 120; ++$i ) {
+		$response = $route['callback']( new WP_REST_Request( array() ) );
+		expect_same( 200, $response->status, 'The first 120 anonymous requests must succeed.' );
+	}
+
+	unset( $GLOBALS['calendar_delegate_input'] );
+	$limited = $route['callback']( new WP_REST_Request( array( 'page' => 2 ) ) );
+	expect_same( 429, $limited->status, 'Changing the page must not bypass the per-IP limit.' );
+	expect_same( 'public_read_rate_limited', $limited->data['code'], 'The 429 must preserve the public-read error code.' );
+	expect_same( array( 'Retry-After' => '37', 'Cache-Control' => 'no-store' ), $limited->headers, 'The 429 must send Retry-After and must not be cached.' );
+	expect_same( false, isset( $GLOBALS['calendar_delegate_input'] ), 'A blocked request must not execute the calendar ability.' );
+	expect_same( 429, $route['callback']( new WP_REST_Request( array(), 'HEAD' ) )->status, 'HEAD must not bypass the limit.' );
+
+	$calls = count( $GLOBALS['calendar_admission_calls'] );
+	$GLOBALS['calendar_logged_in'] = true;
+	$response = $route['callback']( new WP_REST_Request( array() ) );
+	expect_same( 200, $response->status, 'Authenticated GET must succeed even from a rate-limited IP.' );
+	expect_same( array(), $response->headers, 'Authenticated GET must not receive the public cache header.' );
+	expect_same( $calls, count( $GLOBALS['calendar_admission_calls'] ), 'Authenticated requests must not consult the limiter.' );
+
+	$GLOBALS['calendar_logged_in'] = false;
+	$_SERVER['REMOTE_ADDR'] = '192.0.2.2';
+	$response = $route['callback']( new WP_REST_Request( array() ) );
+	expect_same( 200, $response->status, 'A different IP must retain its own quota.' );
 
 	echo "Public calendar feed smoke test passed.\n";
 }

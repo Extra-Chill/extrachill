@@ -285,7 +285,7 @@ class VenueQualificationAbilities {
 		if ( $tm_check['disqualified'] ) {
 			$fingerprint['ticketmaster_precheck'] = array(
 				'disqualified' => true,
-				'matched'      => (string) ( $tm_check['matched'] ?? '' ),
+				'matched'      => (string) $tm_check['matched'],
 			);
 			$fingerprint['elapsed_ms']            = (int) round( ( microtime( true ) - $started_at ) * 1000 );
 			return $this->with_page( $this->finalize_and_persist( $url, $name, 'ticketmaster_precheck', $fingerprint, $persist_verdict ), $url, $home, array() );
@@ -320,7 +320,7 @@ class VenueQualificationAbilities {
 		// for the decision logic.
 		$fingerprint['structured_data']['event_page_shape'] = QualifyFingerprinter::detect_event_page_shape(
 			$fingerprint['final_url'],
-			is_array( $fingerprint['structured_data'] ) ? $fingerprint['structured_data'] : array(),
+			$fingerprint['structured_data'],
 			$html
 		);
 
@@ -597,7 +597,7 @@ class VenueQualificationAbilities {
 		if ( ! empty( $fingerprint['ticketmaster_precheck']['disqualified'] ) ) {
 			$warnings[] = 'Venue uses Ticketmaster/Live Nation — already covered by TM pipeline flow';
 		}
-		if ( '' !== ( $resolved['improvement_hint'] ?? '' )
+		if ( '' !== $resolved['improvement_hint']
 			&& ! QualifyVerdict::is_qualified( $resolved['verdict'] ) ) {
 			$warnings[] = $resolved['improvement_hint'];
 		}
@@ -607,7 +607,7 @@ class VenueQualificationAbilities {
 		}
 
 		$repair_proposal = null;
-		$events_url      = (string) ( $resolved['events_url'] ?? '' );
+		$events_url      = $resolved['events_url'];
 		if ( ! empty( $fingerprint['production_context']['context_supplied'] )
 			&& '' !== $events_url
 			&& untrailingslashit( $events_url ) !== untrailingslashit( $url ) ) {

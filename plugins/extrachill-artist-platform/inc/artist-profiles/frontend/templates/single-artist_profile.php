@@ -30,7 +30,7 @@ get_header(); ?>
 			while ( have_posts() ) :
 				the_post();
 
-				$artist_profile_id = get_the_ID();
+				$artist_profile_id = (int) get_the_ID();
 
 				// Resolve the bound main-blog `artist` term (Primitive 1) so
 				// term-scoped sections (Shows/Coverage/Community) can query the

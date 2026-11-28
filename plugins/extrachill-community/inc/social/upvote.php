@@ -193,10 +193,11 @@ function extrachill_backfill_user_upvotes_received($user_id) {
 	);
 
 	$user_posts_query = new WP_Query( $args );
-	$user_posts_ids   = $user_posts_query->posts;
+	/** @var int[] $user_posts_ids Query uses 'fields' => 'ids'. */
+	$user_posts_ids = $user_posts_query->posts;
 
 	$total_upvotes = 0;
-	if ( is_array( $user_posts_ids ) && ! empty( $user_posts_ids ) ) {
+	if ( ! empty( $user_posts_ids ) ) {
 		foreach ( $user_posts_ids as $post_id ) {
 			$upvote         = get_post_meta( $post_id, 'upvote_count', true );
 			$total_upvotes += intval( $upvote );

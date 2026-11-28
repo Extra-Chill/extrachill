@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable Generic.Classes.DuplicateClassName,Universal.Files.SeparateFunctionsFromOO,WordPress.WP.AlternativeFunctions -- Standalone fixture intentionally stubs WordPress and dependency APIs in one file.
 
 define( 'ABSPATH', __DIR__ . '/' );
 $GLOBALS['promoter_link_page_abilities'] = array();

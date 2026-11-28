@@ -32,7 +32,7 @@ if ( empty( $user_artist_ids ) ) {
 				continue;
 			}
 
-			$artist_url         = get_permalink( $artist_id );
+			$artist_url         = (string) get_permalink( $artist_id );
 			$profile_image_id   = get_post_thumbnail_id( $artist_id );
 			$profile_image_url  = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' ) : '';
 			$manage_artist_page = get_page_by_path( 'manage-artist' );

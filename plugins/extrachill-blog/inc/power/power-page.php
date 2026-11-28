@@ -150,7 +150,7 @@ function extrachill_blog_enqueue_power_styles() {
 			'extrachill-blog-power',
 			EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/power.css',
 			array( 'extrachill-root' ),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 }

@@ -133,7 +133,8 @@ function extrachill_community_viewer_member_blocked_ids() {
  * Exclude the current viewer's blocked members from a post query.
  *
  * Central filter used by every community read path (abilities, bbPress
- * loops, activity feeds). Merges with any existing author__not_in.
+ * loops, activity feeds). Merges with any existing author__not_in; queries
+ * filtered to specific authors instead drop blocked authors from that list.
  *
  * @param array $args WP_Query / bbPress query args.
  * @return array
@@ -141,6 +142,27 @@ function extrachill_community_viewer_member_blocked_ids() {
 function extrachill_community_exclude_member_blocked_authors( array $args ) {
 	$blocked = extrachill_community_viewer_member_blocked_ids();
 	if ( empty( $blocked ) ) {
+		return $args;
+	}
+
+	// WP_Query ignores `author`/`author__in` whenever `author__not_in` is set,
+	// so an author-filtered query must drop blocked authors from its own
+	// author list instead of adding an exclusion.
+	$requested = isset( $args['author__in'] ) ? array_map( 'intval', (array) $args['author__in'] ) : array();
+	if ( isset( $args['author'] ) && is_scalar( $args['author'] ) ) {
+		$requested = array_merge( $requested, array_map( 'intval', explode( ',', (string) $args['author'] ) ) );
+	}
+	$requested = array_values( array_unique( array_filter( $requested, static fn( int $id ): bool => $id > 0 ) ) );
+
+	if ( ! empty( $requested ) ) {
+		$allowed = array_values( array_diff( $requested, $blocked ) );
+		if ( empty( $allowed ) ) {
+			$args['post__in'] = array( 0 );
+		} elseif ( count( $allowed ) !== count( $requested ) ) {
+			unset( $args['author'] );
+			$args['author__in'] = $allowed;
+		}
+
 		return $args;
 	}
 

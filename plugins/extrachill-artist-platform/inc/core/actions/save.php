@@ -84,7 +84,6 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 	) as $key => $meta_key ) {
 		if ( array_key_exists( $key, $save_data ) ) {
 			$value = null === $save_data[ $key ] ? '' : sanitize_text_field( wp_unslash( (string) $save_data[ $key ] ) );
-			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime at runtime; outside this component's analysis scope.)
 			if ( ! ec_write_link_page_meta( $link_page_id, $meta_key, $value, '' === $value ) ) {
 				$result = new WP_Error( 'artist_link_page_save_failed', 'Artist subscription settings could not be persisted.' );
 				break;
@@ -489,8 +488,8 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
 		$user_ids_to_remove = array_filter( array_map( 'absint', explode( ',', $save_data['remove_member_ids'] ) ) );
 
 		foreach ( $user_ids_to_remove as $user_id_to_remove ) {
-			// @phpstan-ignore phpstan.greater.alwaysTrue (defensive: absint() yields 0 for empty fragments; guard retained.)
-			if ( $user_id_to_remove > 0 && $user_id_to_remove !== $current_user_id ) {
+			// array_filter() above already dropped the 0s absint() yields for empty fragments.
+			if ( $user_id_to_remove !== $current_user_id ) {
 				if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
 					return new WP_Error( 'membership_dependency_missing', 'Artist membership management is unavailable.' );
 				}
@@ -638,7 +637,6 @@ function ec_admin_post_save_link_page() {
 		if ( in_array( $result->get_error_code(), array( 'invalid_link_page_ad_tracking_id', 'invalid_link_page_analytics_tag_id' ), true ) ) {
 			$message = $result->get_error_message();
 		}
-		// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
 		extrachill_set_notice( $message, 'error' );
 
 		$manage_page = get_page_by_path( 'manage-link-page' );
@@ -648,7 +646,6 @@ function ec_admin_post_save_link_page() {
 	}
 
 	// Success - set notice and redirect
-	// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
 	extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
 	$manage_page = get_page_by_path( 'manage-link-page' );
 	$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page' );

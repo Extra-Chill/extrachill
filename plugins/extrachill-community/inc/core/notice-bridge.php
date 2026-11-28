@@ -50,7 +50,7 @@ function extrachill_community_render_bbpress_notices() {
 
 	ob_start();
 	do_action( 'bbp_template_notices' );
-	$bbp_output = ob_get_clean();
+	$bbp_output = (string) ob_get_clean();
 
 	if ( empty( trim( $bbp_output ) ) ) {
 		return;
@@ -88,7 +88,7 @@ function extrachill_community_render_bbpress_notices() {
 				printf(
 					'<div class="notice notice-%s"><p>%s</p></div>',
 					esc_attr( $type ),
-					wp_kses_post( $doc->saveHTML( $item ) )
+					wp_kses_post( (string) $doc->saveHTML( $item ) )
 				);
 			}
 		}

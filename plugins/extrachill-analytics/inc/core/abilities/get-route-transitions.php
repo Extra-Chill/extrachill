@@ -106,7 +106,7 @@ function extrachill_analytics_ability_get_route_transitions( $input ) {
 	$event_type   = defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview';
 	$until        = gmdate( 'Y-m-d H:i:s' );
 	$since        = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-	$stream_since = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days -{$gap_mins} minutes" ) );
+	$stream_since = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days -{$gap_mins} minutes" ) );
 
 	$where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s', 'created_at <= %s' );
 	$values = array( $event_type, $stream_since, $until );
@@ -237,7 +237,7 @@ function extrachill_analytics_ability_get_route_transitions( $input ) {
 	);
 	$report['period']     = array(
 		'since'         => $since,
-		'ranking_since' => gmdate( 'Y-m-d H:i:s', $ranking_since_ts ),
+		'ranking_since' => gmdate( 'Y-m-d H:i:s', (int) $ranking_since_ts ),
 		'until'         => $until,
 		'as_of'         => $until,
 	);
@@ -473,7 +473,7 @@ function extrachill_analytics_route_transition_rank( $buckets, $limit ) {
 			if ( $a['count'] !== $b['count'] ) {
 				return $b['count'] <=> $a['count'];
 			}
-			return strcmp( wp_json_encode( $a ), wp_json_encode( $b ) );
+			return strcmp( (string) wp_json_encode( $a ), (string) wp_json_encode( $b ) );
 		}
 	);
 	return array_slice( $rows, 0, $limit );

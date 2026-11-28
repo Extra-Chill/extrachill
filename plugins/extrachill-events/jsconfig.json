@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"jsx": "react-jsx",
+		"paths": {
+			"@extrachill/components": [ "../../packages/components/src/index.tsx" ],
+			"@extrachill/components/*": [ "../../packages/components/src/*" ]
+		}
+	},
+	"include": [ "blocks/**/*.js", "assets/**/*.js" ]
+}

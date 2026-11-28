@@ -1,4 +1,5 @@
 /** Booking dependencies may only be imported by explicitly owned modules. */
+
 /* global test, expect */
 
 /**

@@ -3,7 +3,7 @@
  * Artist Dispatch integration checks against real WordPress REST controllers.
  *
  * Run only in a disposable WordPress sandbox with this plugin active:
- *   wp eval-file wp-content/plugins/extrachill-blog/tests/integration/artist-dispatch-rest.php
+ *   wp eval-file wp-content/plugins/extrachill-blog/tests/integration/artist-dispatch-rest-smoke.php
  *
  * The sandbox must not load Extra Chill Users or Artist Platform; this file
  * registers exact test doubles for their public ability/relationship contracts.
@@ -46,7 +46,7 @@ if ( ! function_exists( 'ec_get_blog_id' ) ) {
 	}
 }
 if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
-	function ec_get_artists_for_user( $user_id ) {
+	function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		global $ec_dispatch_artists;
 		return isset( $ec_dispatch_artists[ $user_id ] ) ? $ec_dispatch_artists[ $user_id ] : array();
 	}
