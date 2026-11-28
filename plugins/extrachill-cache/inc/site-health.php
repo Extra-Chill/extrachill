@@ -197,3 +197,35 @@ function extrachill_cache_register_blog_map_site_health_test( $tests ) {
 	return $tests;
 }
 add_filter( 'site_status_tests', 'extrachill_cache_register_blog_map_site_health_test' );
+
+/**
+ * Show current-site page cache usage on the Site Health Info screen.
+ *
+ * @param array $info Site Health debug information.
+ * @return array Filtered information.
+ */
+function extrachill_cache_site_health_info( $info ) {
+	$blog_id = get_current_blog_id();
+	$usage   = extrachill_cache_measure_partition( extrachill_cache_blog_dir( $blog_id ), $blog_id );
+
+	$info['extrachill-cache'] = array(
+		'label'  => __( 'Extra Chill Cache', 'extrachill-cache' ),
+		'fields' => array(
+			'files'     => array(
+				'label' => __( 'Page cache files for this site', 'extrachill-cache' ),
+				'value' => $usage['files'],
+			),
+			'bytes'     => array(
+				'label' => __( 'Page cache usage (bytes)', 'extrachill-cache' ),
+				'value' => $usage['bytes'],
+			),
+			'max_bytes' => array(
+				'label' => __( 'Page cache budget (bytes)', 'extrachill-cache' ),
+				'value' => $usage['max_bytes'],
+			),
+		),
+	);
+
+	return $info;
+}
+add_filter( 'debug_information', 'extrachill_cache_site_health_info' );

@@ -30,7 +30,7 @@ feature, drops the rest, and is a fraction of the size.
 
 | Feature | Why dropped |
 |---|---|
-| **gzip / PHP compression** | nginx handles compression at the edge. |
+| **HTTP response compression in PHP** | nginx handles compression at the edge; storage compression is separate. |
 | **Browser-cache headers** | nginx / Cloudflare set these. |
 | **Minification** (HTML/CSS/JS) | All OFF in the live Breeze config. |
 | **CDN integration** | OFF; Cloudflare fronts the site. |
@@ -154,9 +154,35 @@ drop-in is regenerated (plugin reactivation). The Site Health check
 (`inc/site-health.php`) will flag drift if a declared or live host is missing
 from the currently-installed drop-in.
 
-On-disk layout: `wp-content/cache/extrachill-cache/{blog_id}/{sha512}.html`,
-each file a serialized `array( 'body' => ..., 'headers' => ... )` (same shape
-Breeze used).
+## Page cache disk budget
+
+Payloads live in `wp-content/cache/extrachill-cache/{blog_id}/{sha512}.html`
+(unmapped hosts use the root partition, blog `0`). New writes gzip the body
+when PHP zlib is available and compression reduces the stored size. Legacy
+plain entries remain readable. The drop-in decodes before serving, so HTTP
+headers and the response body are unchanged.
+
+Each partition defaults to **2 GiB** of serialized payload bytes. Set
+`EXTRACHILL_CACHE_MAX_BYTES` in `wp-config.php` to override the default, or use
+the `extrachill_cache_max_bytes` filter (`$bytes, $blog_id`) to tune an individual
+partition. A budget of zero trims all non-empty payloads at GC time; it does not
+disable new writes.
+
+Hourly GC first runs its existing batched TTL/entry-expiry cleanup, then
+measures each entire partition using file metadata and, if over budget,
+removes the oldest files (by modification time) until within budget. The TTL
+file and time limits apply only to the expiry pass. Accounting costs one
+metadata scan per GC run and an in-memory mtime sort for each over-budget
+partition, not a scan on the request path or counters on every write and purge.
+The budget is enforced **at GC time**, not a hard quota between runs or under
+concurrent writes. File counts and bytes cover `.html` payloads, not directory
+metadata, block rounding, or temporary files. Flat-directory sharding is a
+follow-up.
+
+Run `wp extrachill-cache gc` to trim now and report remaining files and bytes
+against the budget per partition. Add `--dry-run` to see projected usage without
+changing files or the TTL cursor. Site Health → Info → Extra Chill Cache shows
+current usage and the budget for the selected site.
 
 ## Cutover plan (owner-controlled — DOCS, not performed by this PR)
 

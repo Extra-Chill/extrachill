@@ -13,8 +13,8 @@
  *   - breeze_serve_cache()          inc/cache/execute-cache.php:597
  *   - breeze_cache()                inc/cache/execute-cache.php:291
  * Breeze stored a serialized array( 'body' => ..., 'headers' => ... ) keyed by
- * sha512 of the request URL. We keep the same on-disk shape (serialized
- * body+headers) but with a single, clearly-named directory and a strict TTL.
+ * sha512 of the request URL. We keep the serialized envelope, with optional
+ * body compression on disk, and enforce a strict TTL.
  *
  * @package ExtraChillCache
  */
@@ -64,7 +64,7 @@ if ( ! function_exists( 'extrachill_cache_blog_dir' ) ) {
 			}
 		}
 
-		$blog_id = absint( $blog_id );
+		$blog_id = abs( (int) $blog_id );
 		if ( $blog_id > 0 ) {
 			return $base . '/' . $blog_id;
 		}
@@ -369,8 +369,8 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 		}
 
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Trusted, self-written cache payload; the @ guards a benign unserialize failure (validated via is_array below).
-		$data = @unserialize( $raw );
-		if ( ! is_array( $data ) || empty( $data['body'] ) ) {
+		$data = @unserialize( $raw, array( 'allowed_classes' => false ) );
+		if ( ! is_array( $data ) || empty( $data['body'] ) || ! is_string( $data['body'] ) ) {
 			return false;
 		}
 
@@ -380,6 +380,20 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes an expired local cache file; reachable pre-WP where wp_delete_file is unavailable. The @ guards a benign unlink failure.
 			@unlink( $path );
 			return false;
+		}
+
+		if ( isset( $data['body_encoding'] ) ) {
+			if ( 'gzip' !== $data['body_encoding'] || ! function_exists( 'gzdecode' ) ) {
+				return false;
+			}
+
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- A corrupt cache body is a miss, not a client-visible warning.
+			$body = @gzdecode( $data['body'] );
+			if ( empty( $body ) ) {
+				return false;
+			}
+			$data['body'] = $body;
+			unset( $data['body_encoding'] );
 		}
 
 		return $data;
@@ -418,6 +432,16 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 		if ( $expires > 0 ) {
 			$payload['expires'] = $expires;
 		}
+		if ( function_exists( 'gzencode' ) && function_exists( 'gzdecode' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- On failure keep the original body rather than emitting a warning while storing the response.
+			$compressed = @gzencode( $body, 3 );
+			// Include serialization overhead for the encoding marker and body length.
+			if ( false !== $compressed && strlen( $compressed ) + 32 < strlen( $body ) ) {
+				$body                     = $compressed;
+				$payload['body_encoding'] = 'gzip';
+			}
+		}
+
 		$payload['body']    = $body;
 		$payload['headers'] = $headers;
 
@@ -430,7 +454,9 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 		// payloads to a concurrent request.
 		$tmp = $path . '.' . getmypid() . '.tmp';
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a local cache payload; reachable from the pre-WP layer where WP_Filesystem is unavailable. The @ guards a benign write failure (handled via the false check).
-		if ( false === @file_put_contents( $tmp, $data, LOCK_EX ) ) {
+		if ( strlen( $data ) !== @file_put_contents( $tmp, $data, LOCK_EX ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Remove any partial file (e.g. after a disk-full write).
+			@unlink( $tmp );
 			return false;
 		}
 

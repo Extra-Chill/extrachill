@@ -7,6 +7,7 @@
  * archive pages would otherwise accumulate forever. This module adds a
  * batched/time-budgeted scheduled GC pass that walks the cache tree and removes
  * files older than EXTRACHILL_CACHE_TTL or past their per-entry expiry.
+ * A separate metadata pass enforces per-partition byte budgets.
  *
  * Scheduled once network-wide on the main site; the walker touches every blog
  * partition, so per-site cron jobs are unnecessary.
@@ -17,6 +18,8 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+require_once __DIR__ . '/cache-budget.php';
 
 if ( ! defined( 'EXTRACHILL_CACHE_GC_EVENT' ) ) {
 	define( 'EXTRACHILL_CACHE_GC_EVENT', 'extrachill_cache_gc' );
@@ -85,28 +88,29 @@ function extrachill_cache_run_gc() {
 }
 
 /**
- * Walk the cache tree and delete expired files.
+ * Delete expired files and trim each partition to its byte budget.
  *
- * The walk is bounded by a file-count limit AND a time budget so a 150k-file
- * production cache cannot block a cron run. A cursor option records the last
- * path examined; the next run resumes from that point and clears the cursor
- * when the walk wraps. Files deleted during the pass are tracked so their
- * parent directories can be removed if empty.
+ * The TTL walk is bounded by a file-count limit and a time budget. A cursor
+ * option records the last path examined; the next run resumes from that point
+ * and clears the cursor when the walk wraps. Files deleted during the pass are tracked so their
+ * parent directories can be removed if empty. The metadata-only byte-budget
+ * pass covers whole partitions independently of the TTL walk limits.
  *
  * @param array $args {
  *     Optional. GC runtime arguments.
  *
  *     @type bool $dry_run     If true, count what would be deleted but do not unlink.
- *     @type int  $file_limit  Max files to examine this run. Default 2000.
- *     @type int  $time_budget Max seconds to spend walking. Default 30.
+ *     @type int  $file_limit  Max files to examine for expiry. Default 2000.
+ *     @type int  $time_budget Max seconds to spend walking for expiry. Default 30.
  * }
  * @return array {
  *     GC result counters.
  *
- *     @type int  $examined  Files examined.
- *     @type int  $deleted   Files unlinked.
- *     @type int  $bytes     Bytes reclaimed (or that would be reclaimed in dry-run).
- *     @type bool $completed True if the walk reached the end of the tree.
+ *     @type int   $examined   Files examined for expiry.
+ *     @type int   $deleted    Files unlinked by either pass.
+ *     @type int   $bytes      Bytes reclaimed (or that would be reclaimed in dry-run).
+ *     @type bool  $completed  True if the TTL walk reached the end of the tree.
+ *     @type array $partitions Usage after both passes, keyed by blog ID.
  * }
  */
 function extrachill_cache_gc( $args = array() ) {
@@ -121,15 +125,14 @@ function extrachill_cache_gc( $args = array() ) {
 
 	$base = extrachill_cache_base_dir();
 
-	$stats = array(
-		'examined'  => 0,
-		'deleted'   => 0,
-		'bytes'     => 0,
-		'completed' => false,
-	);
-
 	if ( ! is_dir( $base ) ) {
-		return $stats;
+		return array(
+			'examined'   => 0,
+			'deleted'    => 0,
+			'bytes'      => 0,
+			'completed'  => false,
+			'partitions' => array(),
+		);
 	}
 
 	$ttl    = defined( 'EXTRACHILL_CACHE_TTL' ) ? (int) EXTRACHILL_CACHE_TTL : DAY_IN_SECONDS;
@@ -142,6 +145,7 @@ function extrachill_cache_gc( $args = array() ) {
 	$deleted          = 0;
 	$bytes            = 0;
 	$emptied_dirs     = array();
+	$ttl_deleted      = array();
 	$next_cursor      = '';
 	$started          = false;
 	$budget_exhausted = false;
@@ -208,7 +212,8 @@ function extrachill_cache_gc( $args = array() ) {
 			}
 		} else {
 			++$deleted;
-			$bytes += $size;
+			$bytes               += $size;
+			$ttl_deleted[ $path ] = true;
 		}
 
 		// Do NOT advance $next_cursor to a deleted file: it won't exist on the
@@ -229,13 +234,23 @@ function extrachill_cache_gc( $args = array() ) {
 	// so the next run starts fresh — one no-op run, self-correcting.
 	$completed = ! $budget_exhausted;
 
+	$partitions = array();
+	foreach ( extrachill_cache_partitions() as $blog_id => $dir ) {
+		$usage                  = extrachill_cache_measure_partition( $dir, $blog_id, true, $args['dry_run'], $ttl_deleted );
+		$partitions[ $blog_id ] = $usage;
+		$deleted               += $usage['deleted'];
+		$bytes                 += $usage['reclaimed'];
+		if ( 0 === $usage['files'] && $usage['deleted'] > 0 ) {
+			$emptied_dirs[ $dir ] = true;
+		}
+	}
+
 	if ( ! $args['dry_run'] ) {
 		extrachill_cache_gc_remove_empty_dirs( array_keys( $emptied_dirs ) );
 
-		if ( $completed || '' === $next_cursor ) {
-			// Walk finished, or the batch was all-expired with no kept file to
-			// anchor a resume point. Clear the cursor so the next run starts
-			// from the beginning of the tree.
+		if ( $completed || '' === $next_cursor || ! is_file( $next_cursor ) ) {
+			// Restart if the walk finished or there is no remaining anchor
+			// (the budget pass may have removed it).
 			delete_option( 'extrachill_cache_gc_cursor' );
 		} else {
 			// Resume from the last kept file on the next run.
@@ -244,10 +259,11 @@ function extrachill_cache_gc( $args = array() ) {
 	}
 
 	return array(
-		'examined'  => $examined,
-		'deleted'   => $deleted,
-		'bytes'     => $bytes,
-		'completed' => $completed,
+		'examined'   => $examined,
+		'deleted'    => $deleted,
+		'bytes'      => $bytes,
+		'completed'  => $completed,
+		'partitions' => $partitions,
 	);
 }
 
