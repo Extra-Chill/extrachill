@@ -8,12 +8,6 @@
           { "name": "@extrachill/tokens", "path": "../../packages/tokens" },
           { "name": "@extrachill/components", "path": "../../packages/components" }
         ],
-        "wordpress_test_paths": [
-          "tests/create-ability-rest-routes-smoke.php",
-          "tests/forum-read-abilities-rest-smoke.php",
-          "tests/public-voice-wp-ability-schema-smoke.php",
-          "tests/subscription-inventory-wp-ability-schema-smoke.php"
-        ],
         "validation_dependencies": [
           {
             "source_type": "wp.org",
