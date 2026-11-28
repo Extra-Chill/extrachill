@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"jsx": "react-jsx",
+		"allowJs": true,
+		"checkJs": false,
+		"noEmit": true,
+		"paths": {
+			"@extrachill/components": [ "../../packages/components/src/index.tsx" ]
+		}
+	},
+	"include": [ "src/**/*.js", "src/**/*.jsx" ],
+	"exclude": [ "node_modules", "build" ]
+}

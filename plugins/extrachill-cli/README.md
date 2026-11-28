@@ -205,6 +205,7 @@ context**:
 ```bash
 wp extrachill analytics summary
 wp extrachill analytics search-gaps
+wp extrachill analytics calendar-queries --days=30
 wp extrachill analytics retention
 wp extrachill analytics display-preferences --site=all
 wp extrachill analytics errors
@@ -215,6 +216,12 @@ installs where a `user_login` collides with a numeric user ID (e.g. a login of
 `"1"` alongside user ID `1`), passing `--user=1` makes WP-CLI print a harmless
 but noisy `Ambiguous user match detected` warning before the output, which
 clutters scripted captures. Omit `--user` entirely.
+
+`calendar-queries` shows human query counts and distinct first-party visitors by
+trigger, top scopes, taxonomy terms and search terms, and the total number of
+zero-result queries. Use `--format=json` for scripted reads. Filter-modal opens
+are recorded separately as the `calendar-filter-open` CTA; query rows require a
+Data Machine calendar that emits query-change detail (Data Machine #4076).
 
 ### Analytics — Display Preferences
 

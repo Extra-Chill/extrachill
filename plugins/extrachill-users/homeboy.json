@@ -25,7 +25,8 @@
     "package": {
       "exclude": [
         "blocks/**",
-        "jest.config.cjs"
+        "jest.config.cjs",
+        "jsconfig.json"
       ]
     }
   },

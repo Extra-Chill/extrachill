@@ -39,7 +39,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '9';
+	const SCHEMA_VERSION = '10';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -56,6 +56,12 @@ final class RsvpPassesTable {
 
 	/** A submitted name the venue turned down. Dead forever; never redeems. */
 	const STATUS_DENIED = 'denied';
+
+	/**
+	 * Ticket type a paid pass belongs to when its row has none: passes sold
+	 * before ticket types existed (extrachill#1716), and single-price offers.
+	 */
+	const DEFAULT_TICKET_TYPE = 'general';
 
 	/** Owner types of an owner pass, which are also the owning taxonomies. */
 	const OWNER_VENUE    = 'venue';
@@ -139,6 +145,7 @@ final class RsvpPassesTable {
 			order_reference varchar(191) NULL DEFAULT NULL,
 			payment_reference varchar(191) NULL DEFAULT NULL,
 			idempotency_key varchar(191) NULL DEFAULT NULL,
+			ticket_type varchar(40) NULL DEFAULT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY event_user (event_id, user_id),
@@ -155,6 +162,10 @@ final class RsvpPassesTable {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// Schema 10 (extrachill#1716) adds ticket_type: which of the show's
+		// ticket types a paid pass was sold as. Rows without one count as
+		// DEFAULT_TICKET_TYPE. dbDelta adds the column itself.
+		//
 		// Schema 9 (extrachill#1510) adds revoke_reason: why a paid order's
 		// passes were revoked (`dispute`, `seller_refund`, ...), so a won
 		// dispute restores only the passes the dispute cancelled. dbDelta
@@ -659,7 +670,7 @@ final class RsvpPassesTable {
 	 * Paid ticket pass rows for a set of events, newest first.
 	 *
 	 * @param int[] $event_ids Event post IDs.
-	 * @return array[] Rows with event_id, order_reference, guest_name, status, issued_at.
+	 * @return array[] Rows with event_id, order_reference, guest_name, status, issued_at, ticket_type.
 	 */
 	public static function ticket_rows_for_events( array $event_ids ): array {
 		global $wpdb;
@@ -672,7 +683,7 @@ final class RsvpPassesTable {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Trusted internal table name; one %d per event ID.
 		return (array) $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT event_id, order_reference, guest_name, status, issued_at FROM {$table} WHERE event_id IN ({$placeholders}) AND order_reference IS NOT NULL ORDER BY issued_at DESC, id ASC",
+				"SELECT event_id, order_reference, guest_name, status, issued_at, ticket_type FROM {$table} WHERE event_id IN ({$placeholders}) AND order_reference IS NOT NULL ORDER BY issued_at DESC, id ASC",
 				...$event_ids
 			),
 			ARRAY_A
@@ -738,39 +749,88 @@ final class RsvpPassesTable {
 	}
 
 	/**
+	 * Live paid passes for an event (active or checked in), per ticket type.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @return array<string,int> Ticket type ID => passes. Typeless rows count as DEFAULT_TICKET_TYPE.
+	 */
+	public static function paid_ticket_counts_by_type( int $event_id ): array {
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows   = (array) $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT ticket_type, COUNT(*) AS sold FROM {$table} WHERE event_id = %d AND order_reference IS NOT NULL AND status IN ('active','redeemed') GROUP BY ticket_type", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id
+			),
+			ARRAY_A
+		);
+		$counts = array();
+		foreach ( $rows as $row ) {
+			$type            = self::ticket_type_of( $row );
+			$counts[ $type ] = ( $counts[ $type ] ?? 0 ) + (int) $row['sold'];
+		}
+		return $counts;
+	}
+
+	/**
+	 * The ticket type a pass row was sold as.
+	 *
+	 * @param array $row Pass row.
+	 * @return string
+	 */
+	public static function ticket_type_of( array $row ): string {
+		$type = (string) ( $row['ticket_type'] ?? '' );
+		return '' === $type ? self::DEFAULT_TICKET_TYPE : $type;
+	}
+
+	/**
 	 * All-or-nothing paid issuance, serialized with every capacity-capped pass writer.
 	 * A key lock also prevents the same key being used concurrently across events.
-	 * Returns null only when there is insufficient room; failures are errors.
+	 * Returns rows flagged with pre_existing, null only for insufficient room,
+	 * or an error on failure. Only the creator may send the initial pass email.
+	 *
+	 * $ticket_type records which of the show's types the passes were sold as;
+	 * $type_quantity caps that type on its own (0 for no separate cap).
 	 */
-	public static function issue_tickets( int $event_id, int $quantity, int $capacity, int $ticket_quantity, string $name, string $key, string $order, string $payment ) {
+	public static function issue_tickets( int $event_id, int $quantity, int $capacity, int $ticket_quantity, string $name, string $key, string $order, string $payment, string $ticket_type = self::DEFAULT_TICKET_TYPE, int $type_quantity = 0 ) {
 		global $wpdb;
-		if ( $quantity < 1 || $quantity > 10 || '' === trim( $name ) || strlen( $name ) > 100 || '' === $key || strlen( $key ) > 191 || '' === $order || strlen( $order ) > 191 || '' === $payment || strlen( $payment ) > 191 ) {
+		if ( $quantity < 1 || $quantity > 10 || '' === trim( $name ) || strlen( $name ) > 100 || '' === $key || strlen( $key ) > 191 || '' === $order || strlen( $order ) > 191 || '' === $payment || strlen( $payment ) > 191 || strlen( $ticket_type ) > 40 ) {
 			return new \WP_Error( 'invalid_ticket_purchase', 'A bounded purchase reference and quantity from 1 to 10 are required.', array( 'status' => 400 ) );
 		}
 		$key_lock = 'ec_ticket_' . md5( self::table_name() . ':' . $key );
 		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $key_lock ) ) ) {
 			return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
 		}
-		$locked = false;
+		$locked      = false;
+		$transaction = false;
 		try {
-			$rows = self::ticket_rows( $key, true );
+			$locked = self::acquire_capacity_lock( $event_id );
+			if ( ! $locked ) {
+				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
+			}
+			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+				return new \WP_Error( 'ticket_storage_failed', 'Could not start issuance.', array( 'status' => 500 ) );
+			}
+			$transaction = true;
+			$rows        = self::ticket_rows( $key, true );
 			if ( $rows ) {
 				if ( (int) $rows[0]['event_id'] !== $event_id || count( $rows ) !== $quantity || $rows[0]['order_reference'] !== $order || $rows[0]['payment_reference'] !== $payment ) {
 					return new \WP_Error( 'ticket_idempotency_conflict', 'Key already used for another purchase.', array( 'status' => 409 ) );
 				}
+				foreach ( $rows as &$row ) {
+					$row['pre_existing'] = true;
+				}
 				return $rows;
-			}
-			$locked = self::acquire_capacity_lock( $event_id );
-			if ( ! $locked ) {
-				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
 			}
 			$table = self::table_name();
 			$paid  = self::paid_ticket_count( $event_id );
 			if ( ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] + $quantity > $capacity ) || ( $ticket_quantity > 0 && $paid + $quantity > $ticket_quantity ) ) {
 				return null;
 			}
-			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
-				return new \WP_Error( 'ticket_storage_failed', 'Could not start issuance.', array( 'status' => 500 ) );
+			$ticket_type = '' === $ticket_type ? self::DEFAULT_TICKET_TYPE : $ticket_type;
+			if ( $type_quantity > 0 && (int) ( self::paid_ticket_counts_by_type( $event_id )[ $ticket_type ] ?? 0 ) + $quantity > $type_quantity ) {
+				return null;
 			}
 			$now = current_time( 'mysql', true );
 			for ( $i = 0; $i < $quantity; ++$i ) {
@@ -784,6 +844,7 @@ final class RsvpPassesTable {
 					'idempotency_key'   => $key,
 					'order_reference'   => $order,
 					'payment_reference' => $payment,
+					'ticket_type'       => $ticket_type,
 				) ) ) {
 					$wpdb->query( 'ROLLBACK' );
 					return new \WP_Error( 'ticket_storage_failed', 'No tickets issued; retry fulfillment.', array( 'status' => 500 ) );
@@ -793,8 +854,16 @@ final class RsvpPassesTable {
 				$wpdb->query( 'ROLLBACK' );
 				return new \WP_Error( 'ticket_storage_failed', 'Could not commit issuance.', array( 'status' => 500 ) );
 			}
-			return self::ticket_rows( $key, true );
+			$transaction = false;
+			$rows        = self::ticket_rows( $key, true );
+			foreach ( $rows as &$row ) {
+				$row['pre_existing'] = false;
+			}
+			return $rows;
 		} finally {
+			if ( $transaction ) {
+				$wpdb->query( 'ROLLBACK' );
+			}
 			if ( $locked ) {
 				self::release_capacity_lock( $event_id );
 			}

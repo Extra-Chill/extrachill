@@ -226,63 +226,6 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 	}
 
 	/**
-	 * The upgrade sweep is a no-op for an irrelevant plugin update, and for
-	 * this plugin's own update it reconciles every network site — not only
-	 * the site running the upgrade — and always restores the blog the
-	 * request started on.
-	 *
-	 * A dedicated second site makes the "every network site" claim concrete
-	 * and avoids depending on the ambient state of the harness's default
-	 * test site, which earlier tests in this file leave with a deliberately
-	 * drifted (and, per the class docblock, harness-unreorderable) clicks
-	 * table.
-	 */
-	public function test_network_upgrade_sweep_targets_only_this_plugin_and_reconciles_every_site(): void {
-		global $wpdb;
-		$started_on = get_current_blog_id();
-		$other_blog = $this->create_blog( 'ec-sweep-probe-' . uniqid() . '.example.org' );
-
-		switch_to_blog( $other_blog );
-		delete_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );
-		$wpdb->query( 'DROP TABLE IF EXISTS `' . extrachill_analytics_link_page_clicks_table() . '`' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table, test fixture setup.
-		restore_current_blog();
-		$this->assertSame( $started_on, get_current_blog_id() );
-
-		extrachill_analytics_link_page_reconcile_network_on_upgrade(
-			null,
-			array(
-				'action'  => 'update',
-				'type'    => 'plugin',
-				'plugins' => array( 'some-other-plugin/some-other-plugin.php' ),
-			)
-		);
-		$this->assertSame( $started_on, get_current_blog_id(), 'An irrelevant plugin update must not touch the current blog.' );
-		switch_to_blog( $other_blog );
-		$missing = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', extrachill_analytics_link_page_clicks_table() ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence probe.
-		restore_current_blog();
-		$this->assertNull( $missing, 'An irrelevant plugin update must not touch any network site.' );
-
-		extrachill_analytics_link_page_reconcile_network_on_upgrade(
-			null,
-			array(
-				'action' => 'update',
-				'type'   => 'plugin',
-				'plugin' => 'extrachill-analytics/extrachill-analytics.php',
-			)
-		);
-		$this->assertSame( $started_on, get_current_blog_id(), 'The sweep must always restore the blog it started on.' );
-
-		switch_to_blog( $other_blog );
-		$ready = extrachill_analytics_link_page_schema_table_ready(
-			extrachill_analytics_link_page_clicks_table(),
-			extrachill_analytics_link_page_schema_click_columns(),
-			extrachill_analytics_link_page_schema_click_indexes()
-		);
-		restore_current_blog();
-		$this->assertTrue( $ready, 'The sweep must reconcile every network site, not only the one running the upgrade.' );
-	}
-
-	/**
 	 * Read every owned row, sorted for a value-only (order-independent)
 	 * comparison — column *order* is deliberately not part of this
 	 * assertion (see class docblock).

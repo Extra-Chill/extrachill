@@ -49,6 +49,16 @@ defined( 'ABSPATH' ) || exit;
 abstract class CommerceAuthProvider extends BaseAuthProvider {
 
 	/**
+	 * Bind the concrete provider's slug.
+	 *
+	 * Final and argument-free so save() can safely build the concrete
+	 * subclass through late static binding.
+	 */
+	final public function __construct() {
+		parent::__construct( static::slug() );
+	}
+
+	/**
 	 * Provider slug for this concrete provider.
 	 *
 	 * @return string

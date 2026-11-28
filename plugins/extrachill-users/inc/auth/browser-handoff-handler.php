@@ -98,7 +98,7 @@ function extrachill_users_handle_browser_handoff() {
 	}
 
 	wp_set_current_user( $user_id, $user->user_login );
-	wp_set_auth_cookie( $user_id, false );
+	wp_set_auth_cookie( $user_id, true );
 	do_action( 'wp_login', $user->user_login, $user );
 
 	wp_safe_redirect( $redirect_url );

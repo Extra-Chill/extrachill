@@ -310,11 +310,11 @@ final class LifecycleProviderSchemaLockTest extends TestCase {
 	}
 
 	public function test_schema_8_adds_owner_pass_columns_and_check_ins(): void {
-		$this->assertSame( '9', RsvpPassesTable::SCHEMA_VERSION );
+		$this->assertSame( '10', RsvpPassesTable::SCHEMA_VERSION );
 		RsvpPassesTable::create_table();
 
 		$sql = implode( "\n", $GLOBALS['ec_artist_test']['dbdelta'] );
-		foreach ( array( 'revoke_reason varchar(32) NULL', 'email varchar(200) NULL', 'owner_type varchar(16) NULL', 'owner_term_id bigint(20) unsigned NULL', 'KEY owner_status (owner_type, owner_term_id, status)', 'CREATE TABLE wp_7_ec_event_pass_checkins', 'UNIQUE KEY pass_event (pass_id, event_id)' ) as $needle ) {
+		foreach ( array( 'revoke_reason varchar(32) NULL', 'email varchar(200) NULL', 'owner_type varchar(16) NULL', 'owner_term_id bigint(20) unsigned NULL', 'KEY owner_status (owner_type, owner_term_id, status)', 'CREATE TABLE wp_7_ec_event_pass_checkins', 'UNIQUE KEY pass_event (pass_id, event_id)', 'ticket_type varchar(40) NULL' ) as $needle ) {
 			$this->assertStringContainsString( $needle, $sql );
 		}
 		$this->assertStringNotContainsString( 'ec_owner_guest_list', $sql, 'The standalone owner tables are no longer created.' );

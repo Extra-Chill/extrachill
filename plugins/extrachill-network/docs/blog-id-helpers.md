@@ -138,12 +138,11 @@ if ( function_exists( 'ec_get_blog_id' ) ) {
 
 ### Use Constants (EC_BLOG_ID_*) for:
 
-- Cases where a numeric constant is explicitly needed (e.g., direct comparisons in `sunrise.php`).
+- Cases where a numeric constant is explicitly needed (e.g., code that runs before `ec_get_blog_id()` is loaded).
 
 ### Use Numeric Values (Hardcoded) for:
 
 ❌ **NEVER** in plugin/theme code - use `ec_get_blog_id()` instead.  
-✅ Only in `.github/sunrise.php` (executes before WordPress loads).  
 ✅ In comments to document which site is which.
 
 **Don't Do This**:

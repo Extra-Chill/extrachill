@@ -5,6 +5,141 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.143.2] - 2026-11-28
+
+### Fixed
+- send REST nonce on manual event submission
+
+## [0.143.1] - 2026-11-28
+
+### Fixed
+- prefer partner flyers and label free external tickets RSVP
+
+## [0.143.0] - 2026-11-28
+
+### Added
+- track events calendar queries
+- add event type filtering to the public calendar feed
+
+## [0.142.2] - 2026-11-27
+
+### Changed
+- get the managed PHPUnit baseline green
+
+## [0.142.1] - 2026-11-26
+
+### Changed
+- fix pre-existing ESLint errors on main
+
+## [0.142.0] - 2026-11-26
+
+### Added
+- keyed partner-scoped venue events API for partner websites
+
+## [0.141.2] - 2026-11-26
+
+### Fixed
+- restore market report analytics and exclude empty regions
+
+## [0.141.1] - 2026-11-26
+
+### Fixed
+- Instagram sources publish directly like web flows
+
+## [0.141.0] - 2026-11-26
+
+### Added
+- resolve event sources through handler URL claims, incl. Instagram
+
+## [0.140.2] - 2026-11-25
+
+### Fixed
+- run venue/source Data Machine calls through the flow gateway
+
+## [0.140.1] - 2026-11-23
+
+### Changed
+- fix harness and source-assertion drift in unit suites
+- fix stale team/door/promoter authority fixtures
+- repair artist-unit suite doubles and bootstrap fixture
+
+## [0.140.0] - 2026-11-23
+
+### Added
+- expose shared event door list ability
+
+## [0.139.1] - 2026-11-22
+
+### Fixed
+- pass canonical venue_term_id to event upsert and use find_or_create_venue
+
+## [0.139.0] - 2026-11-22
+
+### Added
+- per-show ticket sales report, door list CSV, walk-up QR
+
+## [0.138.0] - 2026-11-22
+
+### Added
+- ticket types and discount/access codes
+
+## [0.137.1] - 2026-11-21
+
+### Fixed
+- show held-aware tickets remaining on the event page
+
+## [0.137.0] - 2026-11-21
+
+### Added
+- reconcile paid ticket orders when the fulfilment webhook is missed and retry undelivered pass emails
+- index only the next K recurring artist+venue occurrences and link the artist hub
+
+## [0.136.1] - 2026-11-21
+
+### Fixed
+- make duplicate and late fulfilment safe
+
+## [0.136.0] - 2026-11-21
+
+### Added
+- venue show-updates opt-in at ticket checkout + consent-filtered Eventbrite list import
+
+## [0.135.0] - 2026-11-21
+
+### Added
+- email an artist's subscribers when a new show is published for them
+- venue show-updates subscriptions + weekly venue digest
+
+## [0.134.2] - 2026-11-20
+
+### Fixed
+- bind UpcomingFilter params by param_count in priority queries
+
+## [0.134.1] - 2026-11-20
+
+### Fixed
+- attribute event-page demand to market reports
+
+## [0.134.0] - 2026-11-19
+
+### Added
+- no ads for managers on events they manage
+
+## [0.133.0] - 2026-11-19
+
+### Added
+- one Guest Check-In button on event pages; host tools live on /guest-list
+
+## [0.132.1] - 2026-11-18
+
+### Fixed
+- declare instagram in venue profile schemas
+
+## [0.132.0] - 2026-11-18
+
+### Added
+- let the events team add venues by city location
+
 ## [0.131.1] - 2026-11-17
 
 ### Fixed

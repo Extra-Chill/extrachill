@@ -139,6 +139,7 @@ const profile = ( id ) => ( {
 	country: '',
 	phone: '',
 	website: '',
+	instagram: '',
 	ticketing_url: '',
 	capacity: '',
 	logo_attachment_id: 0,

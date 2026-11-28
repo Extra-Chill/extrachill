@@ -153,14 +153,18 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		$this->assertArrayNotHasKey( 'stripe_account', $options );
 		$this->assertArrayNotHasKey( 'refund_application_fee', $params );
 	}
-	public function test_failed_stripe_refund_rolls_back_and_retry_reuses_key(): void {
-		$order                         = $this->paid_order();
-		$GLOBALS['ticket_refund_fail'] = true;
+	public function test_failed_stripe_refund_rolls_back_and_retry_uses_a_new_key(): void {
+		$order                                 = $this->paid_order();
+		$GLOBALS['stripe_refund_attempt_keys'] = array();
+		$GLOBALS['ticket_refund_fail']         = true;
 		$this->assertInstanceOf( WP_Error::class, wc_create_refund( array( 'order_id' => 123, 'amount' => 25, 'refund_payment' => true ) ) );
 		$this->assertSame( 25.0, $order->get_remaining_refund_amount() );
+		$this->assertSame( '1', $order->get_meta( EXTRACHILL_SHOP_REFUND_ATTEMPTS_META ), 'The failed attempt is counted.' );
 		$GLOBALS['ticket_refund_fail'] = false;
 		$this->assertFalse( is_wp_error( wc_create_refund( array( 'order_id' => 123, 'amount' => 25, 'refund_payment' => true ) ) ) );
-		$this->assertSame( 'ec-merch-refund-123-2500-2500', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		// Stripe would replay a refused request under its old key; the retry gets its own.
+		$this->assertSame( 'ec-merch-refund-123-2500-2500-2', $GLOBALS['ticket_refunds'][0][1]['idempotency_key'] );
+		$this->assertSame( array( 'ec-merch-refund-123-2500-2500-1', 'ec-merch-refund-123-2500-2500-2' ), $GLOBALS['stripe_refund_attempt_keys'] );
 	}
 	public function test_refund_without_payment_intent_is_refused(): void {
 		$this->assertSame( 'refund_unavailable', extrachill_shop_refund_merch_payment( new MerchCheckoutOrder(), 10 )->get_error_code() );

@@ -414,7 +414,7 @@ function extrachill_events_door_list_import_source( array $pass ): string {
  * "Name (Venue list)", carry `owner_list: true` and tonight's check-in.
  *
  * @param int  $event_id      Event post ID.
- * @param bool $event_guests  Include the event's own guest list passes (false when the event has no guest list page).
+ * @param bool $event_guests  Include the event's own guest list passes (false when the event has no guest list page). Paid ticket passes are included either way.
  * @return array[] Each: pass_id, label, guest_name, source (party name or ''), added_by (host display name or ''), code, status, redeemed_at (formatted).
  */
 function extrachill_events_door_list_guest_rows( int $event_id, bool $event_guests = true ): array {
@@ -427,10 +427,6 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 			$owners[ $owner['owner_type'] . ':' . $owner['owner_id'] ] = $owner;
 		}
 	}
-	if ( ! $event_guests && ! $owners ) {
-		return array();
-	}
-
 	$owner_keys = array_map(
 		static function ( $owner ) {
 			return array( $owner['owner_type'], $owner['owner_id'] );
@@ -446,7 +442,10 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 				}
 				// Only names the venue put on the list: pending and denied
 				// submissions (extrachill#1129) are not on the door list.
-				return $event_guests && in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
+				// Paid tickets are always on the door, even once the ticket
+				// offer or guest list is switched off (extrachill#1702).
+				$is_ticket = ! empty( $pass['order_reference'] );
+				return ( $event_guests || $is_ticket ) && in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
 			}
 		)
 	);
@@ -463,6 +462,14 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 
 	$checkins = null;
 	$rows     = array();
+	// Ticket type names for paid passes, so the door sees "Ticket (VIP)".
+	$type_names = array();
+	if ( class_exists( \ExtraChillEvents\Abilities\TicketAbilities::class ) ) {
+		$ticket_types = \ExtraChillEvents\Abilities\TicketTypes::effective( \ExtraChillEvents\Abilities\TicketAbilities::settings( $event_id ) );
+		if ( count( $ticket_types ) > 1 ) {
+			$type_names = array_column( $ticket_types, 'name', 'id' );
+		}
+	}
 	foreach ( $passes as $pass ) {
 		if ( RsvpPassesTable::is_owner_pass( $pass ) ) {
 			$checkins = null === $checkins ? RsvpPassesTable::list_checkins_for_event( $event_id ) : $checkins;
@@ -472,22 +479,67 @@ function extrachill_events_door_list_guest_rows( int $event_id, bool $event_gues
 		$added_by_id = (int) ( $pass['issued_by_user_id'] ?? 0 );
 		$added_by    = $added_by_id ? get_userdata( $added_by_id ) : false;
 		$guest_name  = (string) ( $pass['guest_name'] ?? '' );
-		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? extrachill_events_door_list_import_source( $pass );
+		$party_name  = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? null;
+		$source      = $party_name ?? extrachill_events_door_list_import_source( $pass );
 		$rows[]      = array(
-			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
-			'label'       => ( ! empty( $pass['order_reference'] ) ? __( 'Ticket · ', 'extrachill-events' ) : '' ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
-			'guest_name'  => $guest_name,
-			'source'      => $source,
-			'added_by'    => $added_by ? (string) $added_by->display_name : '',
-			'code'        => (string) $pass['code'],
-			'status'      => (string) $pass['status'],
-			'redeemed_at' => ! empty( $pass['redeemed_at'] )
+			'pass_id'         => (int) ( $pass['id'] ?? 0 ),
+			'label'           => extrachill_events_door_ticket_prefix( $pass, $type_names ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
+			'guest_name'      => $guest_name,
+			'source'          => $source,
+			'added_by'        => $added_by ? (string) $added_by->display_name : '',
+			'code'            => (string) $pass['code'],
+			'status'          => (string) $pass['status'],
+			'redeemed_at'     => ! empty( $pass['redeemed_at'] )
 				? mysql2date( (string) get_option( 'time_format' ), get_date_from_gmt( (string) $pass['redeemed_at'] ) )
 				: '',
+			// Read by the door list CSV export (extrachill#1746).
+			'source_kind'     => extrachill_events_door_list_source_kind( $pass, null !== $party_name ),
+			'email'           => (string) ( $pass['email'] ?? '' ),
+			'order_reference' => (string) ( $pass['order_reference'] ?? '' ),
+			'ticket_type'     => (string) ( $pass['ticket_type'] ?? '' ),
+			'checked_in_at'   => (string) ( $pass['redeemed_at'] ?? '' ),
 		);
 	}
 
 	return $rows;
+}
+
+/**
+ * Which kind of door source a guest pass is: a paid `ticket`, an
+ * `eventbrite` import, a `band` guest, or a host's `guest_list` name.
+ *
+ * @param array $pass      Pass row.
+ * @param bool  $has_party Whether an invited band or management added it.
+ * @return string
+ */
+function extrachill_events_door_list_source_kind( array $pass, bool $has_party ): string {
+	if ( ! empty( $pass['order_reference'] ) ) {
+		return 'ticket';
+	}
+	if ( function_exists( 'extrachill_events_pass_is_eventbrite_import' ) && extrachill_events_pass_is_eventbrite_import( $pass ) ) {
+		return 'eventbrite';
+	}
+	return $has_party ? 'band' : 'guest_list';
+}
+
+/**
+ * Door label prefix for a paid pass: "Ticket · ", or "Ticket (VIP) · " when
+ * the show sells more than one type.
+ *
+ * @param array    $pass       Pass row.
+ * @param string[] $type_names Type ID => name, empty for single-type shows.
+ * @return string
+ */
+function extrachill_events_door_ticket_prefix( array $pass, array $type_names ): string {
+	if ( empty( $pass['order_reference'] ) ) {
+		return '';
+	}
+	$type = \ExtraChillEvents\Core\RsvpPassesTable::ticket_type_of( $pass );
+	if ( isset( $type_names[ $type ] ) ) {
+		/* translators: %s: ticket type name. */
+		return sprintf( __( 'Ticket (%s) · ', 'extrachill-events' ), $type_names[ $type ] );
+	}
+	return __( 'Ticket · ', 'extrachill-events' );
 }
 
 /**

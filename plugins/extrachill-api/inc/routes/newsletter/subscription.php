@@ -92,6 +92,7 @@ function extrachill_api_register_newsletter_subscription_route() {
  * Validate emails array parameter
  */
 function extrachill_api_validate_emails_array( $emails, $request, $key ) {
+	unset( $request, $key ); // REST callback signature.
 	if ( ! is_array( $emails ) || empty( $emails ) ) {
 		return new WP_Error( 'invalid_emails', 'emails must be a non-empty array' );
 	}

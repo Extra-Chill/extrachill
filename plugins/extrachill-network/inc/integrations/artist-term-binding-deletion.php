@@ -46,7 +46,7 @@ function extrachill_network_delete_artist_term_profile_binding( $term_id, $taxon
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
 				'meta_key'       => '_artist_term_id',
-				'meta_value'     => $term_id,
+				'meta_value'     => (string) $term_id,
 			)
 		);
 

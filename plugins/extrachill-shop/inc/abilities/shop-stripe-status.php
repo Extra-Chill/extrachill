@@ -93,7 +93,7 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 			'charges_enabled'      => false,
 			'payouts_enabled'      => false,
 			'details_submitted'    => false,
-			'fees'                 => extrachill_shop_seller_fee_rates(),
+			'fees'                 => extrachill_shop_seller_fee_rates( $seller ),
 		);
 	}
 
@@ -126,6 +126,6 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 		'charges_enabled'      => ! empty( $status['charges_enabled'] ),
 		'payouts_enabled'      => ! empty( $status['payouts_enabled'] ),
 		'details_submitted'    => ! empty( $status['details_submitted'] ),
-		'fees'                 => extrachill_shop_seller_fee_rates(),
+		'fees'                 => extrachill_shop_seller_fee_rates( $seller ),
 	);
 }

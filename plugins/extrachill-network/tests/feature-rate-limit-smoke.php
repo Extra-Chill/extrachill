@@ -8,6 +8,7 @@ class WP_Error {
 }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function __( $value ) { return $value; }
+function add_filter() { return true; }
 function apply_filters( $hook, $value ) {
 	return 'extrachill_rate_limit_store' === $hook ? 'feature_store' : $value;
 }

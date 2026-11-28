@@ -111,7 +111,7 @@ Edit your venue's Link Page: one simple page with all your links that you can sh
 
 ### Tickets
 
-See ticket sales for your shows on Extra Chill. Selling tickets through Extra Chill isn't open to venues yet. For now, use your guest list to manage who gets in. See [Hosting a Guest List](hosting-a-guest-list.md).
+Set up paid tickets for a show under **Host tools** on its **Guest Check-In** page. Choose **Enable tickets**, set the total number of tickets (enter 0 to use the guest list limit), add one or more ticket types with prices and quantities, and choose a seller. Ticket prices include tax, and the seller is responsible for tax. Only people who can manage the seller's money can choose that seller or view ticket sales and buyer details. The seller must finish payment setup before tickets can go on sale. Ticket sales are available to eligible venue teams; the Tickets tab shows sales for your shows. See [Working the Door](working-the-door.md) for the door ticket code and sales report, and [Hosting a Guest List](hosting-a-guest-list.md) for guest list settings.
 
 ## Guest Lists for Your Venue
 

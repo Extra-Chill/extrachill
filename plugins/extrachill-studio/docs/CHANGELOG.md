@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.30.0] - 2026-11-22
+
+### Added
+- provided-entries source for run-giveaway paid raffles
+
 ## [0.29.1] - 2026-11-17
 
 ### Changed

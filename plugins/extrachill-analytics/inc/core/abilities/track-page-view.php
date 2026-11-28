@@ -161,8 +161,10 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
 		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
 		: '';
-	$is_bot     = function_exists( 'extrachill_analytics_classify_user_agent' )
-		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
+	// This beacon is admitted as a web request below. Pageviews can be anonymous,
+	// so only the browser and origin signals are needed, not a visitor cookie.
+	$is_bot = function_exists( 'extrachill_analytics_is_interactive_browser' )
+		&& ! extrachill_analytics_is_interactive_browser( extrachill_analytics_classify_user_agent( $user_agent ), 'web' );
 
 	// Exclusion is a normal analytics outcome, not a failed browser request.
 	// Return before admission, identity, counters, or event persistence so known

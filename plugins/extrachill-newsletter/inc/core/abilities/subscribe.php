@@ -253,7 +253,7 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 				// classifier rules apply. Mirrors the pageview beacon override
 				// in extrachill-analytics track-page-view.php. See
 				// extrachill-analytics#275 for the classifier-side fix.
-				if ( 'direct' !== $source && ! ( defined( 'WP_CLI' ) && WP_CLI ) && ! wp_doing_cron() ) {
+				if ( 'direct' !== $source && ! ( defined( 'WP_CLI' ) && wp_validate_boolean( constant( 'WP_CLI' ) ) ) && ! wp_doing_cron() ) {
 					$event_data['is_bot'] = false;
 				}
 

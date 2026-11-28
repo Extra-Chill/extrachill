@@ -36,5 +36,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 function extrachill_api_analytics_reports_permission_check() {
 	return current_user_can( 'manage_network_options' )
 		|| current_user_can( 'manage_options' )
-		|| current_user_can( 'access_studio' );
+		|| current_user_can( 'access_studio' ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- custom capability registered by the Studio plugin (extrachill-studio).
 }

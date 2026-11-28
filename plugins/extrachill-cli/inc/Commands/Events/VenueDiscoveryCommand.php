@@ -243,8 +243,11 @@ class VenueDiscoveryCommand {
 	 *
 	 * ## OPTIONS
 	 *
-	 * --pipeline=<id>
-	 * : Pipeline ID for the city this venue belongs to.
+	 * [--pipeline=<id>]
+	 * : Pipeline ID for the city this venue belongs to. Required unless --location is given; disambiguates a city with more than one pipeline.
+	 *
+	 * [--location=<location>]
+	 * : City this venue belongs to: location term ID, slug, or exact name. Resolves the city pipeline when --pipeline is omitted.
 	 *
 	 * --name=<name>
 	 * : Venue name, e.g. "Exit/In".
@@ -276,6 +279,7 @@ class VenueDiscoveryCommand {
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill venues add --pipeline=20 --name="Exit/In" --events-url="https://exitin.com"
+	 *     wp extrachill venues add --location=Charleston --name="Hed Hi Studio" --events-url="https://example.com/events"
 	 *     wp extrachill venues add --pipeline=20 --name="Station Inn" --events-url="https://www.stationinn.com" --address="402 12th Ave S" --city=Nashville --state=Tennessee
 	 *     wp extrachill venues add --pipeline=3 --name="The Royal American" --events-url="https://theroyalamerican.com/shows" --dry-run
 	 *
@@ -289,26 +293,41 @@ class VenueDiscoveryCommand {
 			WP_CLI::error( 'extrachill/add-venue ability not available. Is extrachill-events active on this site?' );
 		}
 
-		$required = array( 'pipeline', 'name', 'events-url' );
+		$required = array( 'name', 'events-url' );
 		foreach ( $required as $key ) {
 			if ( empty( $assoc_args[ $key ] ) ) {
 				WP_CLI::error( sprintf( '--%s is required.', $key ) );
 			}
 		}
+		if ( empty( $assoc_args['pipeline'] ) && empty( $assoc_args['location'] ) ) {
+			WP_CLI::error( 'Either --pipeline or --location is required.' );
+		}
 
-		WP_CLI::log( sprintf( 'Adding venue "%s" to pipeline %s...', $assoc_args['name'], $assoc_args['pipeline'] ) );
+		WP_CLI::log(
+			sprintf(
+				'Adding venue "%s" to %s...',
+				$assoc_args['name'],
+				! empty( $assoc_args['pipeline'] ) ? 'pipeline ' . $assoc_args['pipeline'] : 'location ' . $assoc_args['location']
+			)
+		);
 
 		$input = array(
-			'pipeline_id' => (int) $assoc_args['pipeline'],
-			'name'        => $assoc_args['name'],
-			'url'         => $assoc_args['events-url'],
-			'address'     => $assoc_args['address'] ?? '',
-			'city'        => $assoc_args['city'] ?? '',
-			'state'       => $assoc_args['state'] ?? '',
-			'zip'         => $assoc_args['zip'] ?? '',
-			'website'     => $assoc_args['website'] ?? '',
-			'dry_run'     => ! empty( $assoc_args['dry-run'] ),
+			'name'    => $assoc_args['name'],
+			'url'     => $assoc_args['events-url'],
+			'address' => $assoc_args['address'] ?? '',
+			'city'    => $assoc_args['city'] ?? '',
+			'state'   => $assoc_args['state'] ?? '',
+			'zip'     => $assoc_args['zip'] ?? '',
+			'website' => $assoc_args['website'] ?? '',
+			'dry_run' => ! empty( $assoc_args['dry-run'] ),
 		);
+
+		if ( ! empty( $assoc_args['pipeline'] ) ) {
+			$input['pipeline_id'] = (int) $assoc_args['pipeline'];
+		}
+		if ( ! empty( $assoc_args['location'] ) ) {
+			$input['location'] = (string) $assoc_args['location'];
+		}
 
 		// Only pass interval if explicitly provided — let the ability use
 		// its default (daily) otherwise.

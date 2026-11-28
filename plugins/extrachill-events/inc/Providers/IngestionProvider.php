@@ -52,11 +52,13 @@ final class IngestionProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/VenueShowUpdates/VenueShowUpdatesSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/PendingEventSubmissions/PendingEventSubmissionsSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueExpansionRunner.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/VenueExpansion/VenueExpansionSystemTask.php';
 		$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]                     = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
 		$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ]               = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\VenueShowUpdates\VenueShowUpdatesSystemTask::TASK_TYPE ]               = \ExtraChillEvents\Steps\VenueShowUpdates\VenueShowUpdatesSystemTask::class;
 		$tasks[ \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::class;
 		$tasks[ \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::TASK_TYPE ]                   = \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class;
 		return $tasks;
@@ -71,6 +73,7 @@ final class IngestionProvider {
 	public static function register_recurring_schedules( array $schedules ): array {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/VenueShowUpdates/VenueShowUpdatesSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/PendingEventSubmissions/PendingEventSubmissionsSystemTask.php';
 		// Fixed wall-clock slots are cron expressions (evaluated in UTC by Action
 		// Scheduler). A named interval would anchor to whenever the schedule was
@@ -83,6 +86,21 @@ final class IngestionProvider {
 				'enabled_setting' => 'extrachill_local_scene_digest_enabled',
 				'default_enabled' => false,
 				'label'           => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
+				'task_params'     => array(
+					'days'    => 7,
+					'limit'   => 8,
+					'dry_run' => false,
+				),
+			)
+		);
+		$schedules['extrachill_venue_show_updates']        = apply_filters(
+			'extrachill_venue_show_updates_schedule',
+			array(
+				'task_type'       => \ExtraChillEvents\Steps\VenueShowUpdates\VenueShowUpdatesSystemTask::TASK_TYPE,
+				'interval'        => '0 16 * * 4',
+				'enabled_setting' => \ExtraChillEvents\Steps\VenueShowUpdates\VenueShowUpdatesSystemTask::SETTING_KEY,
+				'default_enabled' => false,
+				'label'           => 'Weekly Venue Show Updates — Thursdays 16:00 UTC',
 				'task_params'     => array(
 					'days'    => 7,
 					'limit'   => 8,

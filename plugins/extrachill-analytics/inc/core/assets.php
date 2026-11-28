@@ -447,7 +447,7 @@ function extrachill_analytics_enqueue_view_tracking() {
 			$route_family,
 			$request_host
 		),
-		'endpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
+		'endpoint'     => extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
 		'cookieName'   => $cookie_config['cookieName'],
 		'cookieDomain' => $cookie_config['cookieDomain'],
 		'cookieMaxAge' => $cookie_config['cookieMaxAge'],
@@ -471,6 +471,21 @@ add_action( 'extrachill_artist_link_page_minimal_head', 'extrachill_analytics_en
 // carries a visitor cookie and is classified as human. Eligibility (GET/HEAD,
 // first-party host, no REST/admin) is still enforced inside the enqueue.
 add_action( 'extrachill_events_standalone_page_assets', 'extrachill_analytics_enqueue_view_tracking', 20 );
+
+/**
+ * Build a beacon endpoint with optional cookie-auth attribution.
+ *
+ * Anonymous HTML stays cacheable and contains no per-user nonce. Logged-in
+ * requests bypass the page cache. Query args work with sendBeacon, which
+ * cannot send an X-WP-Nonce header.
+ *
+ * @param string $path REST endpoint path.
+ * @return string
+ */
+function extrachill_analytics_beacon_url( $path ) {
+	$url = rest_url( $path );
+	return is_user_logged_in() ? add_query_arg( '_wpnonce', wp_create_nonce( 'wp_rest' ), $url ) : $url;
+}
 
 /**
  * Enqueue outbound-click, CTA-click, and form-submit tracking on every
@@ -544,11 +559,11 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 	);
 
 	$config = array(
-		'endpoint'        => rest_url( 'extrachill/v1/analytics/click' ),
+		'endpoint'        => extrachill_analytics_beacon_url( 'extrachill/v1/analytics/click' ),
 		'networkHosts'    => $network_hosts,
-		'networkEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-network-click/run' ),
-		'ctaEndpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
-		'formEndpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
+		'networkEndpoint' => extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-network-click/run' ),
+		'ctaEndpoint'     => extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
+		'formEndpoint'    => extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
 		'route'           => $route,
 	);
 
@@ -560,7 +575,7 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		? wp_parse_url( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ), PHP_URL_HOST )
 		: '';
 	if ( $post_id > 0 && is_string( $request_host ) && '' !== $request_host ) {
-		$config['contentEndpoint'] = rest_url( 'wp-abilities/v1/abilities/extrachill/track-content-link-click/run' );
+		$config['contentEndpoint'] = extrachill_analytics_beacon_url( 'wp-abilities/v1/abilities/extrachill/track-content-link-click/run' );
 		$config['restPrefix']      = '/' . trim( rest_get_url_prefix(), '/' ) . '/';
 		$config['postId']          = $post_id;
 		$config['proof']           = extrachill_analytics_pageview_proof( $post_id, $source_path, 'singular', $request_host );

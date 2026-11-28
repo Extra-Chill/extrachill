@@ -2,6 +2,41 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.62.2] - 2026-11-28
+
+### Fixed
+- rate-limit anonymous calendar feed requests
+
+## [0.62.1] - 2026-11-28
+
+### Fixed
+- prefer partner flyers and label free external tickets RSVP
+
+## [0.62.0] - 2026-11-28
+
+### Added
+- add event type filtering to the public calendar feed
+
+## [0.61.0] - 2026-11-26
+
+### Added
+- keyed partner-scoped venue events API for partner websites
+
+## [0.60.0] - 2026-11-22
+
+### Added
+- ticket types and discount/access codes
+
+## [0.59.0] - 2026-11-21
+
+### Added
+- venue show-updates opt-in at ticket checkout + consent-filtered Eventbrite list import
+
+## [0.58.0] - 2026-11-21
+
+### Added
+- venue show-updates subscriptions + weekly venue digest
+
 ## [0.57.1] - 2026-11-17
 
 ### Fixed

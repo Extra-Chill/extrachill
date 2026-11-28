@@ -57,7 +57,7 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 			'callback'            => 'extrachill_api_content_blocks_photo_contest_submit_handler',
 			'permission_callback' => $submit_permission,
 			'args'                => array(
-				'post_id'      => array(
+				'post_id'            => array(
 					'required'          => true,
 					'type'              => 'integer',
 					'validate_callback' => function ( $param ) {
@@ -65,14 +65,14 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 					},
 					'sanitize_callback' => 'absint',
 				),
-				'contest_id'   => array(
+				'contest_id'         => array(
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 				// Required for the public; contest moderators may omit it
 				// (enforced by the ability).
-				'email'        => array(
+				'email'              => array(
 					'required'          => false,
 					'type'              => 'string',
 					'format'            => 'email',
@@ -80,12 +80,12 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 					'validate_callback' => 'rest_validate_request_arg',
 					'sanitize_callback' => 'sanitize_email',
 				),
-				'display_name' => array(
+				'display_name'       => array(
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'instagram'    => array(
+				'instagram'          => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
@@ -93,7 +93,7 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 				// Honeypot: must stay empty. The ability owns enforcement; the
 				// route passes it through untouched so spam decisions are not
 				// duplicated at the transport boundary.
-				'website'      => array(
+				'website'            => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
@@ -415,8 +415,8 @@ function extrachill_api_content_blocks_photo_contest_entries_handler( WP_REST_Re
 		);
 	}
 
-	$entries  = is_array( $result ) && array_key_exists( 'entries', $result ) ? $result['entries'] : $result;
-	$data     = array( 'entries' => is_array( $entries ) ? array_values( $entries ) : array() );
+	$entries = is_array( $result ) && array_key_exists( 'entries', $result ) ? $result['entries'] : $result;
+	$data    = array( 'entries' => is_array( $entries ) ? array_values( $entries ) : array() );
 	// Live contest phase (e.g. a moderator's manual close) rides along so the
 	// public page can switch state without waiting for its cached HTML.
 	if ( is_array( $result ) && isset( $result['phase'] ) && is_array( $result['phase'] ) ) {

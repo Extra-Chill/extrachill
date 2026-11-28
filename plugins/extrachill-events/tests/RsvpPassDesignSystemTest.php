@@ -30,13 +30,13 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	private const TEMPLATES = array(
 		'templates/rsvp-pass.php',
 		'templates/rsvp-pass-card.php',
-		'templates/door-list.php',
 		'templates/guest-list-management.php',
 		'inc/templates/rsvp-verify.php',
 		'inc/templates/guest-list.php',
 		'templates/guest-list-door.php',
 		'inc/templates/guest-list-invite.php',
 		'templates/owner-guest-list.php',
+		'templates/show-ticket-report.php',
 	);
 
 	/**
@@ -254,7 +254,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	}
 
 	public function test_door_views_mark_checked_in_names(): void {
-		foreach ( array( 'templates/door-list.php', 'templates/guest-list-door.php' ) as $template ) {
+		foreach ( array( 'templates/guest-list-door.php' ) as $template ) {
 			$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . $template ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read; local plugin file.
 			$this->assertStringContainsString( '✅', $source, "{$template} shows a ✅ for checked-in names" );
 			$this->assertStringContainsString( 'button-success', $source, "{$template} uses the green button" );
@@ -270,7 +270,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 
 	public function test_management_controls_cover_host_workflow(): void {
 		$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php' );
-		foreach ( array( 'extrachill_events_render_perk_mode_select', 'name="password"', 'name="capacity"', 'data-copy-guest-list', 'Download share QR', "\$counts['claimed']", "\$counts['checked_in']", "\$counts['spots_left']", '#ec-door-list', '/rsvp-verify/' ) as $required ) {
+		foreach ( array( 'extrachill_events_render_perk_mode_select', 'name="password"', 'name="capacity"', 'data-copy-guest-list', 'Download share QR', "\$counts['claimed']", "\$counts['checked_in']", "\$counts['spots_left']", '#ec-guest-list-door', 'Guest Check-In', '/rsvp-verify/' ) as $required ) {
 			$this->assertStringContainsString( $required, $source );
 		}
 		$this->assertStringNotContainsString( 'style=', $source );

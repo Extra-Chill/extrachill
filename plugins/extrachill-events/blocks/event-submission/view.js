@@ -1,6 +1,9 @@
 ( function () {
 	const SELECTOR = '.ec-event-submission';
 
+	const restNonceHeaders = ( nonce ) =>
+		nonce ? { 'X-WP-Nonce': nonce } : {};
+
 	const setStatus = ( el, message, isError = false ) => {
 		if ( ! el ) {
 			return;
@@ -85,12 +88,24 @@
 		try {
 			const response = await fetch( endpoint, {
 				method: 'POST',
+				headers: restNonceHeaders( container.dataset.restNonce ),
+				credentials: 'same-origin',
 				body: formData,
 			} );
 
 			const payload = await response.json().catch( () => ( {} ) );
 
 			if ( ! response.ok ) {
+				if (
+					payload?.code === 'missing_contact' &&
+					! form.querySelector(
+						'[name="contact_name"], [name="contact_email"]'
+					)
+				) {
+					throw new Error(
+						'Your session expired. Refresh the page and try again.'
+					);
+				}
 				const message =
 					payload?.message ||
 					'We could not process your submission. Please try again.';
@@ -121,7 +136,7 @@
 	// import field, we probe it via `extrachill/v1/event-source/preview`
 	// and, on success, swap the manual form for a confirmation panel
 	// (events found + Submit for review). The manual form keeps working
-	// byte-identically when no URL is provided.
+	// independently when no URL is provided.
 	// ────────────────────────────────────────────────────────────────────
 
 	// Qualification may test a discovered calendar plus several bounded
@@ -141,7 +156,7 @@
 				headers: {
 					'Content-Type': 'application/json',
 					'X-Requested-With': 'XMLHttpRequest',
-					'X-WP-Nonce': nonce,
+					...restNonceHeaders( nonce ),
 				},
 				credentials: 'same-origin',
 				body: JSON.stringify( body || {} ),

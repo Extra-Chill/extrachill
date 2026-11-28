@@ -54,7 +54,7 @@ class Test_Team_Membership_Repository extends WP_UnitTestCase {
 
 	public function test_artist_corruption_errors_use_artist_codes_and_messages(): void {
 		$repository = new TeamMembershipRepository();
-		$error      = $repository->hydrate( 'artist', array( 'status' => 'invited' ) );
+		$error      = $repository->hydrate( 'artist', array( 'status' => 'pending' ) ); // Not a membership status.
 		$this->assertSame( 'artist_membership_corrupt_status', $error->get_error_code() );
 		$this->assertStringContainsString( 'artist', $error->get_error_message() );
 		$error = $repository->hydrate( 'artist', array( 'status' => 'active', 'is_owner' => 'invalid' ) );
