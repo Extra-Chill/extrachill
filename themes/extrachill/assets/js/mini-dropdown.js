@@ -22,12 +22,11 @@
 		const dropdown = event.target.closest('.ec-mini-dropdown');
 
 		if (toggle && dropdown) {
+			const shouldOpen = !event.defaultPrevented && dropdown.getAttribute('aria-expanded') !== 'true';
 			event.preventDefault();
-			const isOpen = dropdown.getAttribute('aria-expanded') === 'true';
-
 			closeAllDropdowns();
 
-			if (!isOpen) {
+			if (shouldOpen) {
 				toggleDropdown(dropdown, true);
 			}
 			return;
