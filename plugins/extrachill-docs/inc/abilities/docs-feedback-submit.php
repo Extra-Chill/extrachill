@@ -20,10 +20,22 @@ function extrachill_docs_register_feedback_ability() {
 			'input_schema'        => array(
 				'type'                 => 'object',
 				'properties'           => array(
-					'post_id'           => array( 'type' => 'integer', 'minimum' => 1 ),
-					'message'           => array( 'type' => 'string', 'maxLength' => 2000 ),
-					'email'             => array( 'type' => 'string', 'maxLength' => 254 ),
-					'turnstile_response' => array( 'type' => 'string', 'maxLength' => 2048 ),
+					'post_id'            => array(
+						'type'    => 'integer',
+						'minimum' => 1,
+					),
+					'message'            => array(
+						'type'      => 'string',
+						'maxLength' => 2000,
+					),
+					'email'              => array(
+						'type'      => 'string',
+						'maxLength' => 254,
+					),
+					'turnstile_response' => array(
+						'type'      => 'string',
+						'maxLength' => 2048,
+					),
 				),
 				'required'             => array( 'post_id', 'message', 'turnstile_response' ),
 				'additionalProperties' => false,
@@ -50,7 +62,7 @@ function extrachill_docs_register_feedback_ability() {
 function extrachill_docs_feedback_allow_attempt( $user_id ) {
 	// Use the server's remote address, not a caller-controlled forwarding header.
 	$ip      = isset( $_SERVER['REMOTE_ADDR'] ) ? filter_var( wp_unslash( $_SERVER['REMOTE_ADDR'] ), FILTER_VALIDATE_IP ) : false;
-	$ip      = $ip ?: 'unknown';
+	$ip      = $ip ? $ip : 'unknown';
 	$visitor = $user_id ? 'user:' . $user_id : 'ip:' . $ip;
 	$key     = 'ec_docs_feedback_' . hash_hmac( 'sha256', $visitor, wp_salt() );
 	$now     = time();
@@ -110,7 +122,7 @@ function extrachill_docs_submit_feedback( $input ) {
 	}
 
 	$title   = sanitize_text_field( get_the_title( $post ) );
-	$url     = esc_url_raw( get_permalink( $post ) );
+	$url     = esc_url_raw( (string) get_permalink( $post ) );
 	$body    = "Page: {$title}\nURL: {$url}\n";
 	$headers = array( 'Content-Type: text/plain; charset=UTF-8' );
 	if ( $user->ID ) {
