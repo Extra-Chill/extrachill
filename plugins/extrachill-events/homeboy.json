@@ -120,6 +120,11 @@
             "runtime": "host"
           },
           {
+            "name": "event-type-titles-unit",
+            "config": "phpunit-event-type-titles-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "archive-layout-unit",
             "config": "phpunit-archive-layout-unit.xml.dist",
             "runtime": "host"
