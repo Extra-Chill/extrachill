@@ -163,6 +163,32 @@ class Test_Attendance_Funnel_Analytics extends WP_UnitTestCase {
 		$this->assertSame( 'intent', $events[1]['event_data']['source'] );
 	}
 
+	public function test_partner_rsvp_attribution_preserves_button_and_intent_sources(): void {
+		foreach ( array( 'button', 'intent' ) as $index => $source ) {
+			$result = wp_get_ability( 'extrachill/set-event-mark' )->execute(
+				array(
+					'event_id'          => $this->event_ids[ $index ],
+					'blog_id'           => $this->events_blog_id,
+					'marked'            => true,
+					'source'            => $source,
+					'analytics_context' => 'partner_rsvp',
+				)
+			);
+			$this->assertTrue( $result['marked'] );
+		}
+
+		$events = $this->events();
+		$this->assertSame(
+			array( EC_ANALYTICS_EVENT_ATTENDANCE_MARKED, EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED, EC_ANALYTICS_EVENT_ATTENDANCE_MARKED ),
+			wp_list_pluck( $events, 'event_type' )
+		);
+		$this->assertSame( 'button', $events[0]['event_data']['source'] );
+		$this->assertSame( 'intent', $events[2]['event_data']['source'] );
+		foreach ( $events as $event ) {
+			$this->assertSame( 'partner_rsvp', $event['event_data']['context'] );
+		}
+	}
+
 	public function test_intent_on_already_marked_event_still_records_resume(): void {
 		$this->set( $this->event_ids[0], true );
 		$this->set( $this->event_ids[0], true, 'intent' );

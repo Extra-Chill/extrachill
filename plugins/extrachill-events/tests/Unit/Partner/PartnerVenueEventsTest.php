@@ -13,6 +13,38 @@ final class PartnerVenueEventsTest extends TestCase {
 
 	private string $key;
 
+	protected function tearDown(): void {
+		unset( $_GET['ec_rsvp'], $GLOBALS['partner_attendance_render'] );
+		parent::tearDown();
+	}
+
+	public function test_only_upcoming_non_cancelled_partner_landings_get_rsvp_emphasis(): void {
+		$this->assertFalse( ec_events_is_partner_rsvp( 102, 'upcoming' ) );
+		$_GET['ec_rsvp'] = array( '1' );
+		$this->assertFalse( ec_events_is_partner_rsvp( 102, 'upcoming' ) );
+		$_GET['ec_rsvp'] = '1';
+		$this->assertFalse( ec_events_is_partner_rsvp( 102, 'past' ) );
+		$this->assertFalse( ec_events_is_partner_rsvp( 102, 'ongoing' ) );
+		$this->assertFalse( ec_events_is_partner_rsvp( 103, 'upcoming' ) );
+
+		$this->assertSame( array( 'ticket-button', 'button-3', 'button-medium' ), extrachill_events_add_ticket_button_classes( array( 'ticket-button' ), 102, 'upcoming' ) );
+		$this->assertSame( array( 'ticket-button', 'button-1', 'button-medium' ), extrachill_events_add_ticket_button_classes( array( 'ticket-button' ), 103, 'upcoming' ) );
+
+		$this->expectOutputRegex( '/<h2>RSVP on Extra Chill<\/h2>/' );
+		ec_events_render_attendance_button( 102, 'https://seller.example/rsvp', 'upcoming' );
+		$this->assertSame(
+			array(
+				102,
+				array(
+					'primary'           => true,
+					'focus'             => true,
+					'analytics_context' => 'partner_rsvp',
+				),
+			),
+			$GLOBALS['partner_attendance_render']
+		);
+	}
+
 	protected function setUp(): void {
 		$GLOBALS['partner_meta']          = array();
 		$GLOBALS['partner_blog']          = 7;
@@ -220,11 +252,18 @@ final class PartnerVenueEventsTest extends TestCase {
 	/**
 	 * @dataProvider free_external_prices
 	 */
-	public function test_free_external_ticket_labels_the_event_page_as_rsvp( string $price ): void {
+	public function test_free_external_ticket_links_to_unsigned_rsvp_landing( string $price ): void {
 		$GLOBALS['partner_event_data'][101]['price'] = $price;
 		$event                                       = PartnerVenueEvents::for_key( $this->key, 1 )['events'][0];
 
-		$this->assertSame( array( 'url' => $event['url'], 'label' => 'RSVP', 'kind' => 'external' ), $event['ticket'] );
+		$this->assertSame(
+			array(
+				'url'   => $event['url'] . '?ec_rsvp=1',
+				'label' => 'RSVP',
+				'kind'  => 'rsvp',
+			),
+			$event['ticket']
+		);
 	}
 
 	public static function free_external_prices(): array {

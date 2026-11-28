@@ -101,10 +101,12 @@ The example's `schema` is abbreviated; render the complete object returned by th
 | Field | Type | Meaning |
 |---|---|---|
 | `url` | URL string or null | Buy/action destination. Omit the button when null. |
-| `label` | string | Button text, such as `Get Tickets` or `RSVP`. Free events with an external ticket link use `RSVP`; the action still points to the Extra Chill event page. |
-| `kind` | string | One of `checkout`, `external`, `info`, or `none`. |
+| `label` | string | Button text, such as `Get Tickets` or `RSVP`. |
+| `kind` | string | One of `checkout`, `external`, `rsvp`, `info`, or `none`. |
 
-**Use `ticket.url` as-is.** Non-null ticket URLs always route back through Extra Chill: to our checkout or a first-party redirect for outside ticket sellers. Do not replace them with a seller's direct URL or construct checkout URLs yourself.
+**Use `ticket.url` as-is.** Non-null ticket URLs point to Extra Chill event pages. For `checkout` and `external`, fans use the event page to check out or reach the outside seller. Do not replace these URLs with a seller's direct URL or construct checkout URLs yourself.
+
+Free events with an external registration link use `kind: rsvp` and `label: RSVP`. Their `ticket.url` includes the stable, unsigned `ec_rsvp=1` query parameter. Preserve it when rendering the link. It highlights the **Going** button but does not record attendance: the fan must press **Going** and sign in or create an account if needed. The organizer's registration link remains available on the event page.
 
 ## Errors
 

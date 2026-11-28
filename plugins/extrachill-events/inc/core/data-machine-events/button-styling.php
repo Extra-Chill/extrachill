@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function extrachill_events_init_button_styling() {
 	add_filter( 'data_machine_events_modal_button_classes', 'extrachill_events_add_modal_button_classes', 10, 2 );
-	add_filter( 'data_machine_events_ticket_button_classes', 'extrachill_events_add_ticket_button_classes', 10, 1 );
+	add_filter( 'data_machine_events_ticket_button_classes', 'extrachill_events_add_ticket_button_classes', 10, 3 );
 	add_filter( 'data_machine_events_add_to_calendar_button_classes', 'extrachill_events_add_calendar_toggle_button_classes', 10, 1 );
 	add_filter( 'data_machine_events_more_info_button_classes', 'extrachill_events_add_more_info_button_classes', 10, 1 );
 }
@@ -50,15 +50,17 @@ function extrachill_events_add_modal_button_classes( $classes, $button_type ) {
 /**
  * Add theme button classes to ticket button
  *
- * Applies primary theme button styling (button-1) with large size
- * to ticket purchase links for prominent call-to-action appearance.
+ * Uses primary theme styling except when attendance is the partner RSVP CTA.
  *
- * @param array $classes Default button classes from data-machine-events.
+ * @param array  $classes Default button classes from data-machine-events.
+ * @param int    $post_id Event post ID.
+ * @param string $timing  Event timing from the details block.
  * @return array Enhanced button classes with theme styling.
  */
-function extrachill_events_add_ticket_button_classes( $classes ) {
-	$classes[] = 'button-1';
-	$classes[] = 'button-medium';
+function extrachill_events_add_ticket_button_classes( $classes, $post_id = 0, $timing = '' ) {
+	$is_partner_rsvp = function_exists( 'ec_events_is_partner_rsvp' ) && ec_events_is_partner_rsvp( (int) $post_id, $timing );
+	$classes[]       = $is_partner_rsvp ? 'button-3' : 'button-1';
+	$classes[]       = 'button-medium';
 	return $classes;
 }
 

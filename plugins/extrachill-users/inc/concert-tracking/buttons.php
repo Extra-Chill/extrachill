@@ -129,6 +129,9 @@ function ec_users_get_attendance_intent( int $expected_event_id, int $expected_b
  *                         to after login/signup. Defaults to the current
  *                         request URL (JS resolves this at click time when
  *                         omitted).
+ *                       - 'primary' (bool) Use primary styling when unmarked.
+ *                       - 'focus' (bool) Focus the button on mount.
+ *                       - 'analytics_context' (string) Optional 'partner_rsvp' attribution.
  */
 function ec_users_render_attendance_button( int $event_id, array $args = array() ) {
 	$blog_id = get_current_blog_id();
@@ -162,8 +165,8 @@ function ec_users_render_attendance_button( int $event_id, array $args = array()
 
 	$button_label = $is_marked ? $label_set['active'] : $label_set['default'];
 
-	// Theme button classes: button-2 (green accent) when marked, button-3 (neutral) when not.
-	$button_class = $is_marked ? 'button-2' : 'button-3';
+	// Keep the marked state distinct even when the unmarked button is primary.
+	$button_class = $is_marked ? 'button-2' : ( ! empty( $args['primary'] ) ? 'button-1' : 'button-3' );
 	$marked_class = $is_marked ? ' ec-attendance--marked' : '';
 
 	$variant = isset( $args['variant'] ) && '' !== $args['variant']
@@ -303,6 +306,15 @@ function ec_users_render_attendance_mount(
 		data-login-url="<?php echo esc_attr( wp_login_url() ); ?>"
 		data-attendance-intent="<?php echo esc_attr( $intent_token ); ?>"
 		data-pending-intent="<?php echo $pending ? '1' : '0'; ?>"
+		<?php if ( ! empty( $args['primary'] ) ) : ?>
+		data-primary="1"
+		<?php endif; ?>
+		<?php if ( ! empty( $args['focus'] ) ) : ?>
+		data-focus="1"
+		<?php endif; ?>
+		<?php if ( 'partner_rsvp' === ( $args['analytics_context'] ?? '' ) ) : ?>
+		data-analytics-context="partner_rsvp"
+		<?php endif; ?>
 		<?php if ( '' !== $redirect_to ) : ?>
 		data-redirect-to="<?php echo esc_attr( $redirect_to ); ?>"
 		<?php endif; ?>

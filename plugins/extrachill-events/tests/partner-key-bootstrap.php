@@ -53,6 +53,22 @@ namespace {
 		$GLOBALS['partner_actions'][ $hook ][] = $callback;
 	}
 
+	function ec_is_events_site() {
+		return 7 === get_current_blog_id();
+	}
+
+	function ec_users_render_attendance_button( $event_id, $args = array() ) {
+		$GLOBALS['partner_attendance_render'] = array( $event_id, $args );
+	}
+
+	function esc_html( $text ) {
+		return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+	}
+
+	function esc_html_e( $text, $domain ) {
+		echo esc_html( $text );
+	}
+
 	function wp_register_ability( $name, $args ) {
 		$GLOBALS['partner_registered'][ $name ] = $args;
 	}
@@ -164,4 +180,6 @@ namespace {
 	require_once __DIR__ . '/../inc/Core/VenuePartnerKey.php';
 	require_once __DIR__ . '/../inc/Core/PartnerVenueEvents.php';
 	require_once __DIR__ . '/../inc/Abilities/PartnerVenueEventsAbilities.php';
+	require_once __DIR__ . '/../inc/core/concert-tracking-integration.php';
+	require_once __DIR__ . '/../inc/core/data-machine-events/button-styling.php';
 }

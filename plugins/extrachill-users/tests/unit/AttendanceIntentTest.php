@@ -12,7 +12,7 @@ class Test_Attendance_Intent extends WP_UnitTestCase {
 
 	/** Clear request state after each test. */
 	protected function tearDown(): void {
-		unset( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] );
+		unset( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ], $_GET['ec_rsvp'] );
 		remove_filter( 'extrachill_users_events_blog_id', array( $this, 'filter_events_blog_id' ) );
 		parent::tearDown();
 	}
@@ -77,6 +77,17 @@ class Test_Attendance_Intent extends WP_UnitTestCase {
 
 		$this->assertIsArray( $intent );
 		$this->assertSame( $event_id, (int) $intent['event_id'] );
+	}
+
+	/** The unsigned landing marker is independent of the signed continuation. */
+	public function test_partner_marker_does_not_become_pending_intent(): void {
+		$event_id        = $this->create_published_event();
+		$_GET['ec_rsvp'] = '1';
+
+		$this->assertNull( ec_users_get_attendance_intent( $event_id, $this->events_blog_id ) );
+
+		$_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] = ec_users_create_attendance_intent( $event_id, $this->events_blog_id );
+		$this->assertSame( 'mark', ec_users_get_attendance_intent( $event_id, $this->events_blog_id )['action'] );
 	}
 
 	/** A changed signature must not become pending state. */

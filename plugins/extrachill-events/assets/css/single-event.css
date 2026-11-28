@@ -60,6 +60,13 @@
     position: relative;
 }
 
+/* Keep the RSVP panel on its own line so it does not stretch the ticket CTA. */
+.data-machine-event-details .event-action-buttons > #ec-partner-rsvp {
+    flex: 0 1 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
 /*
  * "Add a show at {venue}" (#958): a quiet text link on its own row, so it
  * never competes with the ticket and share buttons above it.

@@ -25,6 +25,7 @@ final class PartnerVenueEvents {
 	public const DEFAULT_LIMIT = 20;
 	public const MAX_LIMIT     = 50;
 	public const CACHE_TTL     = 300;
+	public const RSVP_PARAM    = 'ec_rsvp';
 
 	/**
 	 * Build the partner document for the venue the key belongs to.
@@ -346,9 +347,9 @@ final class PartnerVenueEvents {
 			$price   = strtolower( trim( (string) ( $attrs['price'] ?? '' ) ) );
 			$is_free = in_array( $price, array( 'free', '$0', '0', '$0.00', '' ), true );
 			return array(
-				'url'   => $url,
+				'url'   => $is_free ? add_query_arg( self::RSVP_PARAM, '1', $url ) : $url,
 				'label' => $is_free ? 'RSVP' : 'Get Tickets',
-				'kind'  => 'external',
+				'kind'  => $is_free ? 'rsvp' : 'external',
 			);
 		}
 

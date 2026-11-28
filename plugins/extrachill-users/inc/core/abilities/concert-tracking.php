@@ -138,29 +138,34 @@ function extrachill_users_register_concert_tracking_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'user_id'  => array(
+					'user_id'           => array(
 						'type'        => 'integer',
 						'description' => 'User ID. Defaults to current user. Targeting another user requires network administration permission.',
 						'default'     => 0,
 					),
-					'event_id' => array(
+					'event_id'          => array(
 						'type'        => 'integer',
 						'description' => 'Event post ID.',
 					),
-					'blog_id'  => array(
+					'blog_id'           => array(
 						'type'        => 'integer',
 						'description' => 'Blog ID. Defaults to events blog.',
 						'default'     => 0,
 					),
-					'marked'   => array(
+					'marked'            => array(
 						'type'        => 'boolean',
 						'description' => 'Desired attendance state.',
 					),
-					'source'   => array(
+					'source'            => array(
 						'type'        => 'string',
 						'enum'        => array( 'button', 'intent' ),
 						'description' => 'Interaction that produced the write: a direct button press, or a signed pre-login continuation resuming after authentication. Analytics only.',
 						'default'     => 'button',
+					),
+					'analytics_context' => array(
+						'type'        => 'string',
+						'enum'        => array( 'partner_rsvp' ),
+						'description' => 'Optional path attribution. Analytics only.',
 					),
 				),
 				'required'   => array( 'event_id', 'marked' ),
@@ -716,8 +721,9 @@ function extrachill_users_ability_set_event_mark( array $input ) {
 	$changed    = (bool) $write_result;
 	$first_mark = $marked && $changed && 1 === ec_users_get_user_event_count( $user_id );
 	$source     = 'intent' === ( $input['source'] ?? 'button' ) ? 'intent' : 'button';
+	$context    = 'partner_rsvp' === ( $input['analytics_context'] ?? '' ) ? 'partner_rsvp' : '';
 
-	ec_users_record_attendance_transition( $user_id, $event_id, $blog_id, $marked, $changed, $first_mark, $timing, $source );
+	ec_users_record_attendance_transition( $user_id, $event_id, $blog_id, $marked, $changed, $first_mark, $timing, $source, $context );
 
 	return array(
 		'user_id'     => $user_id,

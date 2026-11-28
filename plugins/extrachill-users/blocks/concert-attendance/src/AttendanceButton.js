@@ -10,7 +10,7 @@
  *
  * Theme button classes:
  *   - button-2 (green accent) when marked
- *   - button-3 (neutral)      when unmarked
+ *   - button-3 (neutral) or button-1 (primary) when unmarked
  *
  * @package
  */
@@ -27,20 +27,21 @@ import useMarkAttendance from './useMarkAttendance';
 import dispatchAttendanceChanged from './dispatchAttendanceChanged';
 
 /**
- * @param {Object}  props               Component properties.
- * @param {number}  props.eventId       Event post ID.
- * @param {number}  props.blogId        Blog ID the event lives on.
- * @param {boolean} props.isLoggedIn    Whether a user is logged in.
- * @param {boolean} props.initialMarked Server-rendered marked state.
- * @param {number}  props.initialCount  Server-rendered attendee count.
- * @param {string}  props.labelDefault  Label when unmarked.
- * @param {string}  props.labelActive   Label when marked.
- * @param {string}  props.loginUrl      Login URL for logged-out users.
- * @param {string}  props.redirectTo    Optional explicit post-login return URL.
- *                                      When empty, the current request URL is
- *                                      used (prior default behavior).
- * @param {boolean} props.pendingIntent Whether a signed attendance continuation should resume.
- * @param {string}  props.intentToken   Signed continuation added before authentication.
+ * @param {Object}  props                  Component properties.
+ * @param {number}  props.eventId          Event post ID.
+ * @param {number}  props.blogId           Blog ID the event lives on.
+ * @param {boolean} props.isLoggedIn       Whether a user is logged in.
+ * @param {boolean} props.initialMarked    Server-rendered marked state.
+ * @param {number}  props.initialCount     Server-rendered attendee count.
+ * @param {string}  props.labelDefault     Label when unmarked.
+ * @param {string}  props.labelActive      Label when marked.
+ * @param {string}  props.loginUrl         Login URL for logged-out users.
+ * @param {string}  props.redirectTo       Optional post-login URL; defaults to the current URL.
+ * @param {boolean} props.pendingIntent    Whether a signed attendance continuation should resume.
+ * @param {string}  props.intentToken      Signed continuation added before authentication.
+ * @param {boolean} props.primary          Use primary styling when unmarked.
+ * @param {boolean} props.focusOnMount     Focus the attendance button on arrival.
+ * @param {string}  props.analyticsContext Optional path attribution.
  */
 const AttendanceButton = ( {
 	eventId,
@@ -54,6 +55,9 @@ const AttendanceButton = ( {
 	redirectTo,
 	pendingIntent,
 	intentToken,
+	primary,
+	focusOnMount,
+	analyticsContext,
 } ) => {
 	const [ marked, setMarked ] = useState( !! initialMarked );
 	const [ countLabel, setCountLabel ] = useState(
@@ -63,6 +67,12 @@ const AttendanceButton = ( {
 	const buttonRef = useRef( null );
 	const attemptedIntent = useRef( false );
 	const [ status, setStatus ] = useState( '' );
+
+	useEffect( () => {
+		if ( focusOnMount ) {
+			buttonRef.current?.focus();
+		}
+	}, [ focusOnMount ] );
 
 	const completeIntent = useCallback(
 		( response = null ) => {
@@ -102,13 +112,20 @@ const AttendanceButton = ( {
 			completeIntent();
 			return;
 		}
-		mark( { eventId, blogId, marked: true, source: 'intent' } )
+		mark( {
+			eventId,
+			blogId,
+			marked: true,
+			source: 'intent',
+			...( analyticsContext && { analyticsContext } ),
+		} )
 			.then( ( response ) => response && completeIntent( response ) )
 			.catch( () => {
 				attemptedIntent.current = false;
 				setStatus( '' );
 			} );
 	}, [
+		analyticsContext,
 		blogId,
 		completeIntent,
 		eventId,
@@ -125,6 +142,7 @@ const AttendanceButton = ( {
 		// flow); otherwise fall back to the current request URL.
 		if ( ! isLoggedIn ) {
 			const target = loginUrl || '/login';
+			// Keep the landing URL (including its RSVP marker) on the round trip.
 			const returnTo = redirectTo || window.location.href;
 			const continuation = new URL( returnTo, window.location.href );
 			if ( intentToken ) {
@@ -147,7 +165,12 @@ const AttendanceButton = ( {
 		const previous = marked;
 		setMarked( ! previous );
 
-		mark( { eventId, blogId, marked: ! previous } )
+		mark( {
+			eventId,
+			blogId,
+			marked: ! previous,
+			...( analyticsContext && { analyticsContext } ),
+		} )
 			.then( ( response ) => {
 				if ( ! response ) {
 					return;
@@ -180,7 +203,8 @@ const AttendanceButton = ( {
 	};
 
 	const label = marked ? labelActive : labelDefault;
-	const buttonClass = marked ? 'button-2' : 'button-3';
+	const unmarkedClass = primary ? 'button-1' : 'button-3';
+	const buttonClass = marked ? 'button-2' : unmarkedClass;
 
 	return (
 		<>
