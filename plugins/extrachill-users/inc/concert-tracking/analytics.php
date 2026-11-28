@@ -64,15 +64,20 @@ function ec_users_emit_attendance_event( string $constant, array $event_data ): 
  * @param bool   $first_mark Whether this is the user's first-ever mark.
  * @param string $timing     upcoming|ongoing|past.
  * @param string $source     button|intent.
+ * @param string $context    Optional partner_rsvp attribution (not authorization).
  * @return string[] Constants emitted, in order (for tests and diagnostics).
  */
-function ec_users_record_attendance_transition( int $user_id, int $event_id, int $blog_id, bool $marked, bool $changed, bool $first_mark, string $timing, string $source ): array {
+function ec_users_record_attendance_transition( int $user_id, int $event_id, int $blog_id, bool $marked, bool $changed, bool $first_mark, string $timing, string $source, string $context = '' ): array {
 	$base    = array(
 		'user_id'  => $user_id,
 		'event_id' => $event_id,
 		'blog_id'  => $blog_id,
 	);
 	$emitted = array();
+
+	if ( 'partner_rsvp' === $context ) {
+		$base['context'] = $context;
+	}
 
 	if ( 'intent' === $source ) {
 		ec_users_emit_attendance_event( 'EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED', $base + array( 'timing' => $timing ) );

@@ -11,8 +11,33 @@
  * @since 0.18.0
  */
 
+use ExtraChillEvents\Core\PartnerVenueEvents;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+/**
+ * Whether to present the partner RSVP on this event page. The marker is not
+ * attendance intent and must never authorize a write.
+ *
+ * @param int    $event_id Event post ID.
+ * @param string $timing   Event timing from the details block.
+ */
+function ec_events_is_partner_rsvp( int $event_id, string $timing ): bool {
+	if ( 'upcoming' !== $timing || ! ec_is_events_site() || ! function_exists( 'ec_users_render_attendance_button' ) || ! class_exists( PartnerVenueEvents::class ) ) {
+		return false;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- Read-only presentation flag; compare to an exact literal.
+	if ( '1' !== ( $_GET[ PartnerVenueEvents::RSVP_PARAM ] ?? null ) ) {
+		return false;
+	}
+
+	$post = get_post( $event_id );
+	$data = $post && function_exists( 'data_machine_events_parse_event_data' ) ? data_machine_events_parse_event_data( $post ) : null;
+
+	return is_array( $data ) && 'EventCancelled' !== basename( trim( (string) ( $data['eventStatus'] ?? '' ) ) );
 }
 
 /**
@@ -32,8 +57,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *   attendance button — moving the concert-history unlock from the buried
  *   /my-shows/ tab to the moment of intent. We do NOT re-promote the ticket /
  *   add-to-calendar CTAs here; the generic per-#406 de-emphasis stands.
- * - UPCOMING / ONGOING: unchanged — the standard inline attendance toggle,
- *   secondary to the ticket-first action row.
+ * - UPCOMING partner RSVP: frame Going as the primary action, with the
+ *   existing registration link visually secondary.
+ * - Other UPCOMING / ONGOING: standard inline attendance toggle.
  *
  * Guards:
  * - Only on events.extrachill.com (blog_id check)
@@ -81,7 +107,26 @@ function ec_events_render_attendance_button( $post_id, $ticket_url, $timing = ''
 		return;
 	}
 
-	// Upcoming / ongoing: unchanged — standard inline attendance toggle.
+	if ( ec_events_is_partner_rsvp( $event_id, $timing ) ) {
+		?>
+		<div id="ec-partner-rsvp" class="notice notice-info">
+			<h2><?php esc_html_e( 'RSVP on Extra Chill', 'extrachill-events' ); ?></h2>
+			<p><?php esc_html_e( 'Mark Going to save this event to My Shows. If the organizer requires registration, use their event link too.', 'extrachill-events' ); ?></p>
+			<?php
+			ec_users_render_attendance_button(
+				$event_id,
+				array(
+					'primary'           => true,
+					'focus'             => true,
+					'analytics_context' => 'partner_rsvp',
+				)
+			);
+			?>
+		</div>
+		<?php
+		return;
+	}
+
 	ec_users_render_attendance_button( $event_id );
 }
 add_action( 'data_machine_events_action_buttons', 'ec_events_render_attendance_button', 5, 3 );

@@ -103,6 +103,32 @@ describe( 'AttendanceButton continuation', () => {
 		);
 	} );
 
+	test( 'resumes a verified partner continuation with attribution', async () => {
+		window.history.replaceState(
+			{},
+			'',
+			'/events/test/?ec_rsvp=1&ec_attendance_intent=signed'
+		);
+		const mark = jest.fn().mockResolvedValue( { marked: true, count: 1 } );
+		useMarkAttendance.mockReturnValue( { mark, isMarking: false } );
+
+		await act( async () => {
+			root.render(
+				<AttendanceButton { ...props } analyticsContext="partner_rsvp" />
+			);
+		} );
+
+		expect( mark ).toHaveBeenCalledTimes( 1 );
+		expect( mark ).toHaveBeenCalledWith( {
+			eventId: 123,
+			blogId: 7,
+			marked: true,
+			source: 'intent',
+			analyticsContext: 'partner_rsvp',
+		} );
+		expect( window.location.search ).toBe( '?ec_rsvp=1' );
+	} );
+
 	test( 'dispatches ec:attendance-changed once the resumed intent resolves', async () => {
 		const mark = jest.fn().mockResolvedValue( {
 			marked: true,
@@ -154,6 +180,37 @@ describe( 'AttendanceButton click', () => {
 	} );
 
 	const clickProps = { ...props, pendingIntent: false };
+
+	test( 'a bare partner RSVP landing focuses Going but does not mark until clicked', async () => {
+		window.history.replaceState( {}, '', '/events/test/?ec_rsvp=1' );
+		const mark = jest.fn().mockResolvedValue( { marked: true, count: 1 } );
+		useMarkAttendance.mockReturnValue( { mark, isMarking: false } );
+
+		await act( async () => {
+			root.render(
+				<AttendanceButton
+					{ ...clickProps }
+					primary
+					focusOnMount
+					analyticsContext="partner_rsvp"
+				/>
+			);
+		} );
+
+		const button = container.querySelector( 'button' );
+		expect( document.activeElement ).toBe( button );
+		expect( button.classList.contains( 'button-1' ) ).toBe( true );
+		expect( mark ).not.toHaveBeenCalled();
+
+		await act( async () => button.click() );
+		expect( mark ).toHaveBeenCalledTimes( 1 );
+		expect( mark ).toHaveBeenCalledWith( {
+			eventId: 123,
+			blogId: 7,
+			marked: true,
+			analyticsContext: 'partner_rsvp',
+		} );
+	} );
 
 	test( 'dispatches ec:attendance-changed with the server-reconciled marked state after a click', async () => {
 		const mark = jest.fn().mockResolvedValue( {

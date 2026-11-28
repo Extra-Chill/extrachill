@@ -220,8 +220,8 @@ const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED = 'local_scene_prompt_comp
  * only, and only on a real state transition. Bulk concert-history imports
  * never emit them. `event_data` is limited to `user_id`, `event_id`,
  * `blog_id`, `timing` (upcoming|ongoing|past), boolean `first_mark`, and
- * `source` (button|intent). Clicks are already recorded by the generic
- * `cta_click` adapter through the button's `data-ec-track` id.
+ * `source` (button|intent), and optional `context` (partner_rsvp). The generic
+ * `cta_click` adapter records clicks through the button's `data-ec-track` id.
  */
 const EC_ANALYTICS_EVENT_ATTENDANCE_MARKED         = 'attendance_marked';
 const EC_ANALYTICS_EVENT_ATTENDANCE_UNMARKED       = 'attendance_unmarked';

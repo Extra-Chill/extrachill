@@ -19,7 +19,8 @@
  *   const result = await mark( { eventId, blogId, source } );
  *   // result === { marked: bool, changed: bool, first_mark: bool, count: number, count_label: string }
  *   // source: 'button' (default) or 'intent' when resuming a pre-login
- *   // continuation. Analytics only; the write is identical.
+ *   // continuation. Optional analyticsContext attributes a partner RSVP.
+ *   // Both are analytics only; the write is identical.
  *
  * The hook owns ONLY the network write + its in-flight / error state. The
  * caller owns its own optimistic UI.
@@ -41,7 +42,13 @@ const useMarkAttendance = () => {
 	const inFlight = useRef( false );
 
 	const mark = useCallback(
-		( { eventId, blogId, marked = true, source = 'button' } = {} ) => {
+		( {
+			eventId,
+			blogId,
+			marked = true,
+			source = 'button',
+			analyticsContext,
+		} = {} ) => {
 			if ( inFlight.current ) {
 				return Promise.resolve( null );
 			}
@@ -53,6 +60,9 @@ const useMarkAttendance = () => {
 			const data = { event_id: eventId, marked, source };
 			if ( blogId ) {
 				data.blog_id = blogId;
+			}
+			if ( analyticsContext ) {
+				data.analytics_context = analyticsContext;
 			}
 
 			return apiFetch( {

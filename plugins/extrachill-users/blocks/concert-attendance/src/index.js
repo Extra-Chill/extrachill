@@ -53,6 +53,9 @@ domReady( () => {
 			redirectTo={ mount.dataset.redirectTo || '' }
 			pendingIntent={ mount.dataset.pendingIntent === '1' }
 			intentToken={ mount.dataset.attendanceIntent || '' }
+			primary={ mount.dataset.primary === '1' }
+			focusOnMount={ mount.dataset.focus === '1' }
+			analyticsContext={ mount.dataset.analyticsContext || '' }
 		/>
 	);
 } );
