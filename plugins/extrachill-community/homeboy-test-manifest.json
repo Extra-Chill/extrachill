@@ -94,6 +94,9 @@
     "tests/topic-actions-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/upvote-control-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/topic-term-correction-smoke.php": {
       "environment": "standalone-php"
     },

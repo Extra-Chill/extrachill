@@ -427,6 +427,7 @@ blockquote {
 ================================================== */
 .upvote {
     display: flex;
+    align-items: center;
     font-size: var(--font-size-lg);
     gap: 6px;
 }
