@@ -432,7 +432,7 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 		if ( $expires > 0 ) {
 			$payload['expires'] = $expires;
 		}
-		if ( is_string( $body ) && function_exists( 'gzencode' ) && function_exists( 'gzdecode' ) ) {
+		if ( function_exists( 'gzencode' ) && function_exists( 'gzdecode' ) ) {
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- On failure keep the original body rather than emitting a warning while storing the response.
 			$compressed = @gzencode( $body, 3 );
 			// Include serialization overhead for the encoding marker and body length.

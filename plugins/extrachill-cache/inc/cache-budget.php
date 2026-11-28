@@ -40,7 +40,10 @@ function extrachill_cache_partitions() {
 
 	yield 0 => $base;
 	try {
-		foreach ( new FilesystemIterator( $base ) as $entry ) {
+		foreach ( new FilesystemIterator( $base, FilesystemIterator::SKIP_DOTS ) as $entry ) {
+			if ( ! $entry instanceof SplFileInfo ) {
+				continue;
+			}
 			$name = $entry->getFilename();
 			if ( preg_match( '/^[1-9][0-9]*$/D', $name ) && ! $entry->isLink() && $entry->isDir() ) {
 				yield (int) $name => $entry->getPathname();
@@ -77,13 +80,16 @@ function extrachill_cache_measure_partition( $dir, $blog_id, $trim = false, $dry
 	);
 	$mtimes = array();
 	try {
-		$entries = new FilesystemIterator( $dir );
+		$entries = new FilesystemIterator( $dir, FilesystemIterator::SKIP_DOTS );
 	} catch ( UnexpectedValueException $e ) {
 		// Empty or concurrently purged partition.
 		return $usage;
 	}
 
 	foreach ( $entries as $entry ) {
+		if ( ! $entry instanceof SplFileInfo ) {
+			continue;
+		}
 		$name = $entry->getFilename();
 		$path = $entry->getPathname();
 		if ( ! str_ends_with( $name, '.html' ) || isset( $ttl_deleted[ $path ] ) ) {
