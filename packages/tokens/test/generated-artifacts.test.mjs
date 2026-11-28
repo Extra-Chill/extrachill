@@ -5,8 +5,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -51,4 +51,25 @@ for ( const [ script, file ] of [
 
 test( 'tokens.json, CSS and theme.json agree (scripts/validate.mjs)', () => {
 	run( 'validate.mjs' );
+} );
+
+test( 'validator rejects incorrect body and mono generic font fallbacks', () => {
+	const dir = mkdtempSync( join( tmpdir(), 'ec-tokens-' ) );
+	try {
+		mkdirSync( join( dir, 'scripts' ) );
+		const validator = join( dir, 'scripts', 'validate.mjs' );
+		cpSync( join( PROJECT, 'scripts', 'validate.mjs' ), validator );
+		cpSync( join( PROJECT, 'css' ), join( dir, 'css' ), { recursive: true } );
+		const tokens = JSON.parse( readFileSync( join( PROJECT, 'tokens.json' ), 'utf-8' ) );
+		tokens.categories.typography[ 'font-family-body' ].value = "'Helvetica', 'Open Sans', serif";
+		tokens.categories.typography[ 'font-family-mono' ].value = "'Helvetica', Arial, sans-serif";
+		writeFileSync( join( dir, 'tokens.json' ), JSON.stringify( tokens ) );
+
+		const result = spawnSync( process.execPath, [ validator ], { encoding: 'utf-8' } );
+		assert.equal( result.status, 1 );
+		assert.match( result.stderr, /"font-family-body" must end in the unquoted generic sans-serif/ );
+		assert.match( result.stderr, /"font-family-mono" must end in the unquoted generic monospace/ );
+	} finally {
+		rmSync( dir, { recursive: true, force: true } );
+	}
 } );
