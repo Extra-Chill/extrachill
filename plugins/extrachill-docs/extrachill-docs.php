@@ -59,6 +59,7 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 // The ability category must be registered before any ability assigns itself
 // to it, so load it first.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/docs-feedback-submit.php';
 
 // MDI import adapter and shared hierarchy helpers.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/doc-page-helpers.php';
