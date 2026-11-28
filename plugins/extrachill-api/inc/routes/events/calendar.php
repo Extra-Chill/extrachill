@@ -27,7 +27,7 @@ function extrachill_api_register_events_calendar_route() {
 			'callback'            => 'extrachill_api_events_calendar_handler',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'page'     => array(
+				'page'       => array(
 					'required'          => false,
 					'type'              => 'integer',
 					'default'           => 1,
@@ -35,55 +35,61 @@ function extrachill_api_register_events_calendar_route() {
 					'sanitize_callback' => 'absint',
 					'description'       => 'Page number',
 				),
-				'venue'    => array(
+				'venue'      => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Filter by venue slug',
 				),
-				'promoter' => array(
+				'promoter'   => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Filter by promoter slug',
 				),
-				'location' => array(
+				'location'   => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Filter by location slug',
 				),
-				'scope'    => array(
+				'event_type' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+					'description'       => 'Filter by event type slug',
+				),
+				'scope'      => array(
 					'required'          => false,
 					'type'              => 'string',
 					'enum'              => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Time scope filter',
 				),
-				'lat'      => array(
+				'lat'        => array(
 					'required'    => false,
 					'type'        => 'number',
 					'description' => 'Latitude for geo filtering',
 				),
-				'lng'      => array(
+				'lng'        => array(
 					'required'    => false,
 					'type'        => 'number',
 					'description' => 'Longitude for geo filtering',
 				),
-				'radius'   => array(
+				'radius'     => array(
 					'required'          => false,
 					'type'              => 'integer',
 					'default'           => 25,
 					'sanitize_callback' => 'absint',
 					'description'       => 'Radius for geo filtering (miles)',
 				),
-				'search'   => array(
+				'search'     => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Search query',
 				),
-				'past'     => array(
+				'past'       => array(
 					'required'    => false,
 					'type'        => 'boolean',
 					'default'     => false,
@@ -111,7 +117,7 @@ function extrachill_api_events_calendar_handler( WP_REST_Request $request ) {
 
 	$input = array();
 
-	$params = array( 'page', 'venue', 'promoter', 'location', 'scope', 'lat', 'lng', 'radius', 'search', 'past' );
+	$params = array( 'page', 'venue', 'promoter', 'location', 'event_type', 'scope', 'lat', 'lng', 'radius', 'search', 'past' );
 	foreach ( $params as $key ) {
 		$value = $request->get_param( $key );
 		if ( null !== $value ) {
