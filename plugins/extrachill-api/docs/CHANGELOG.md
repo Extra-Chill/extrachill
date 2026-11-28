@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.62.3] - 2026-11-28
+
+### Fixed
+- route partner RSVPs into My Shows
+
 ## [0.62.2] - 2026-11-28
 
 ### Fixed
