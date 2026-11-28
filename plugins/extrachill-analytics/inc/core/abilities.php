@@ -20,9 +20,11 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_patterns
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_drill_404_category_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_list_404_events_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_purge_404_events_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_cleanup_link_page_tables_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_404_top_ips_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_page_view_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_cta_click_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_calendar_query_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_network_click_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_content_link_click_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_track_form_submit_ability' );
@@ -46,6 +48,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_reve
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_pages_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_content_revenue_diagnostics_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_ingest_revenue_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_revenue_ledger_migration_abilities' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bot_filter_impact_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_delivery_coverage_ability' );
 
@@ -167,18 +170,24 @@ function extrachill_analytics_ability_track_event( $input ) {
 				array(
 					'has_visitor_cookie' => '' !== $visitor_id,
 					'request_origin'     => 'web',
+					'allow_cookieless'   => function_exists( 'extrachill_analytics_visitor_opted_out' )
+						&& extrachill_analytics_visitor_opted_out(),
 				)
 			);
 			$event_data['is_bot'] = (bool) $verdict['is_bot'];
 		}
 	}
 
-	// Defense-in-depth: if a 'search' event arrives with a payload-shaped term,
-	// reclassify it as 'search_attack' so real search metrics stay clean while
-	// the attack stays visible. This catches any caller (current or future)
-	// that forgets to pre-classify, including community/forum/artist search.
-	if ( EC_ANALYTICS_EVENT_SEARCH === $event_type && ! empty( $event_data['search_term'] ) ) {
-		$classification = extrachill_analytics_classify_search_payload( (string) $event_data['search_term'] );
+	if ( EC_ANALYTICS_EVENT_CALENDAR_QUERY === $event_type ) {
+		$event_data = extrachill_analytics_resolve_calendar_terms( $event_data );
+	}
+
+	// Classify before text sanitization or truncation can erase probe signatures.
+	if ( in_array( $event_type, array( EC_ANALYTICS_EVENT_SEARCH, EC_ANALYTICS_EVENT_CALENDAR_QUERY ), true )
+		&& isset( $event_data['search_term'] ) && is_string( $event_data['search_term'] )
+	) {
+		$classification            = extrachill_analytics_classify_search_payload( $event_data['search_term'] );
+		$event_data['search_term'] = mb_substr( sanitize_text_field( $event_data['search_term'] ), 0, 200, 'UTF-8' );
 		if ( null !== $classification ) {
 			$event_type = EC_ANALYTICS_EVENT_SEARCH_ATTACK;
 			$event_data = array_merge(

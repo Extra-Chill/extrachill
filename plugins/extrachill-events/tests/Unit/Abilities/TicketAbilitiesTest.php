@@ -3,23 +3,37 @@
 use ExtraChillEvents\Abilities\TicketAbilities;
 use ExtraChillEvents\Core\RsvpPassesTable;
 
+require_once dirname( __DIR__, 3 ) . '/inc/core/ticket-checkout.php';
+class WP_Term {
+	public $slug = 'lofi';
+}
+function get_term( $id, $taxonomy ) { return 12 === $id ? new WP_Term() : null; }
+function extrachill_events_digest_scope( $scope ) { return array(
+	'entity'   => 'venue_show_updates',
+	'taxonomy' => 'venue',
+); }
+function extrachill_users_subscribe_to_entity( ...$args ) { $GLOBALS['ticket_subscriptions'][] = $args; }
+
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/TicketAbilities.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/ticket-service-authority.php';
 
-if ( ! defined( 'ARRAY_A' ) ) { define( 'ARRAY_A', 'ARRAY_A' ); }
+if ( ! defined( 'ARRAY_A' ) ) {
+	define( 'ARRAY_A', 'ARRAY_A' ); }
 // Network contract double: verified claims on the active request must match a registered target grant.
 function ec_cross_site_request_has_service_grant( string $service_id, string $scope ): bool {
 	$request = $GLOBALS['ticket_request'] ?? null;
 	$claims  = $GLOBALS['ticket_claims'] ?? array();
-	if ( ! $request || $service_id !== ( $claims['service_id'] ?? '' ) || $scope !== ( $claims['scope'] ?? '' ) ) { return false; }
+	if ( ! $request || $service_id !== ( $claims['service_id'] ?? '' ) || $scope !== ( $claims['scope'] ?? '' ) ) {
+		return false; }
 	foreach ( extrachill_events_ticket_target_grants() as $grant ) {
 		$matches = $grant['method'] === $request['method'] && $grant['route'] === $request['route'];
 		foreach ( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) as $field ) {
 			$matches = $matches && (string) $grant[ $field ] === (string) ( $claims[ $field ] ?? '' );
 		}
-		if ( $matches ) { return true; }
+		if ( $matches ) {
+			return true; }
 	}
 	return false;
 }
@@ -27,11 +41,16 @@ function extrachill_events_guest_list_pass_link( $id, $code, $name = '' ) { retu
 function extrachill_events_send_guest_list_pass_email( $id, $email, $code, $name = '', $subject = '' ) {
 	$GLOBALS['ticket_emails'][]     = $code;
 	$GLOBALS['ticket_email_args'][] = array( $email, $code, $subject );
-	return true;
+	return empty( $GLOBALS['ticket_email_fail'] );
 }
 function datamachine_get_event_timing( int $id ): string { return $GLOBALS['ticket_timing'][ $id ] ?? 'past'; }
-function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['ticket_meta'][$id][$key] ?? ''; }
-function get_post( $id ) { return (object) array( 'ID' => (int) $id, 'post_type' => 'data_machine_events', 'post_status' => 'publish', 'post_title' => 'Test show' ); }
+function get_post_meta( $id, $key, $single = false ) { return $GLOBALS['ticket_meta'][ $id ][ $key ] ?? ''; }
+function get_post( $id ) { return (object) array(
+	'ID'          => (int) $id,
+	'post_type'   => 'data_machine_events',
+	'post_status' => 'publish',
+	'post_title'  => 'Test show',
+); }
 function get_permalink( $id ) { return 'https://events.test/' . $id; }
 function extrachill_events_get_perk_capacity( $id ) { return 3; }
 function ec_get_blog_id( $site ) { return 'events' === $site ? 7 : 8; }
@@ -39,73 +58,164 @@ function ec_get_site_url( $site ) { return 'https://' . $site . '.test'; }
 function get_current_user_id() { return 1; }
 function extrachill_events_user_can_manage_event( $user, $event ) { return false; }
 function get_the_title( $id ) { return 'Test show'; }
-foreach ( array( '_n' => static fn( $one, $many, $n ) => 1 === $n ? $one : $many, 'esc_html' => static fn( $t ) => $t, 'esc_html__' => static fn( $t ) => $t ) as $name => $impl ) {
+foreach ( array(
+	'_n'         => static fn( $one, $many, $n ) => 1 === $n ? $one : $many,
+	'esc_html'   => static fn( $t ) => $t,
+	'esc_html__' => static fn( $t ) => $t,
+) as $name => $impl ) {
 	if ( ! function_exists( $name ) ) {
 		$GLOBALS['ticket_impl'][ $name ] = $impl;
 		eval( "function {$name}( ...\$a ) { return ( \$GLOBALS['ticket_impl']['{$name}'] )( ...\$a ); }" );
 	}
 }
-function ec_send_email_queued( array $args ) { $GLOBALS['dispute_mail'][] = $args; return array( 'success' => true ); }
+function ec_send_email_queued( array $args ) { $GLOBALS['dispute_mail'][] = $args;
+	return array( 'success' => true ); }
 // Recipient lookup is Events-internal and covered by its own tests; record the seller asked for.
 eval( 'namespace ExtraChillEvents\Abilities; class CommerceSellerNotifications { public static function get_data( string $type, int $id ): array { $GLOBALS["dispute_seller"] = array( $type, $id ); return array( "name" => "Lo-Fi", "recipients" => array( "owner@example.com" ) ); } }' );
 function ec_cross_site_rest_request( $site, $method, $path, $args = array() ) {
-	$GLOBALS['shop_calls'][] = array( $site, $method, $path, $args['query'] ?? array() );
+	$GLOBALS['shop_calls'][]     = array( $site, $method, $path, $args['query'] ?? array() );
 	$GLOBALS['shop_call_args'][] = $args;
 	return $GLOBALS['shop_status'];
 }
 
 /** Query-shape fake: transactions retain a snapshot for rollback tests. */
 final class TicketWpdb {
-	public $prefix = 'wp_';
-	public $rows = array();
+	public $prefix      = 'wp_';
+	public $rows        = array();
 	public $fail_insert = false;
-	private $snapshot = array();
+	public $before_key_lock;
+	public $key_locked      = false;
+	public $capacity_locked = false;
+	public $in_transaction  = false;
+	private $snapshot       = array();
 	public function prepare( $sql, ...$args ) {
-		foreach ( $args as $arg ) { $sql = preg_replace( '/%[ds]/', is_int( $arg ) ? (string) $arg : "'" . addslashes( $arg ) . "'", $sql, 1 ); }
+		foreach ( $args as $arg ) {
+			$sql = preg_replace( '/%[ds]/', is_int( $arg ) ? (string) $arg : "'" . addslashes( $arg ) . "'", $sql, 1 ); }
 		return $sql;
 	}
 	public function get_var( $sql ) {
-		if ( strpos( $sql, 'GET_LOCK' ) !== false || strpos( $sql, 'RELEASE_LOCK' ) !== false ) { return 1; }
-		return count( array_filter( $this->rows, static function ( $row ) { return in_array( $row['status'], array( 'active', 'redeemed' ), true ); } ) );
+		if ( strpos( $sql, 'GET_LOCK' ) !== false ) {
+			if ( strpos( $sql, 'ec_ticket_' ) !== false ) {
+				if ( $this->before_key_lock ) {
+					$callback              = $this->before_key_lock;
+					$this->before_key_lock = null;
+					$callback(); // Another delivery commits before this waiter acquires the key lock.
+				}
+				$this->key_locked = true;
+			} else {
+				$this->capacity_locked = true; }
+			return 1;
+		}
+		if ( strpos( $sql, 'RELEASE_LOCK' ) !== false ) {
+			if ( strpos( $sql, 'ec_ticket_' ) !== false ) {
+				$this->key_locked = false; } else {
+				$this->capacity_locked = false; }
+				return 1;
+		}
+		return count( array_filter( $this->rows, static function ( $row ) { return in_array( $row['status'], array( 'active', 'redeemed' ), true );
+		} ) );
 	}
-	public function get_row( $sql, $format ) { return array( 'claimed' => $this->get_var( $sql ), 'checked_in' => 0 ); }
+	public function get_row( $sql, $format ) { return array(
+		'claimed'    => $this->get_var( $sql ),
+		'checked_in' => 0,
+	); }
 	public function get_results( $sql, $format ) {
+		if ( strpos( $sql, 'GROUP BY ticket_type' ) !== false ) {
+			$counts = array();
+			foreach ( $this->rows as $row ) {
+				if ( in_array( $row['status'], array( 'active', 'redeemed' ), true ) ) {
+					$type                     = $row['ticket_type'] ?? null;
+					$counts[ (string) $type ] = array(
+						'ticket_type' => $type,
+						'sold'        => ( $counts[ (string) $type ]['sold'] ?? 0 ) + 1,
+					);
+				}
+			}
+			return array_values( $counts );
+		}
+		if ( strpos( $sql, 'idempotency_key' ) !== false && ( ! $this->key_locked || ! $this->capacity_locked ) ) {
+			throw new \RuntimeException( 'Replay lookup must hold both locks.' );
+		}
 		preg_match( "/WHERE (idempotency_key|order_reference) = '([^']+)'/", $sql, $match );
-		return array_values( array_filter( $this->rows, static function ( $row ) use ( $match ) { return $row[$match[1]] === $match[2]; } ) );
+		return array_values( array_filter( $this->rows, static function ( $row ) use ( $match ) { return $row[ $match[1] ] === $match[2];
+		} ) );
 	}
 	public function query( $sql ) {
-		if ( 'START TRANSACTION' === $sql ) { $this->snapshot = $this->rows; }
-		if ( 'ROLLBACK' === $sql ) { $this->rows = $this->snapshot; }
+		if ( 'START TRANSACTION' === $sql ) {
+			$this->snapshot       = $this->rows;
+			$this->in_transaction = true; }
+		if ( 'ROLLBACK' === $sql ) {
+			$this->rows = $this->snapshot; }
+		if ( in_array( $sql, array( 'COMMIT', 'ROLLBACK' ), true ) ) {
+			$this->in_transaction = false; }
 		return 1;
 	}
 	public function insert( $table, $data ) {
-		if ( $this->fail_insert && count( $this->rows ) === 1 ) { return false; }
-		$data['id'] = count( $this->rows ) + 1;
+		if ( $this->fail_insert && count( $this->rows ) === 1 ) {
+			return false; }
+		$data['id']   = count( $this->rows ) + 1;
 		$this->rows[] = $data;
 		return 1;
 	}
 	public function update( $table, $data, $where ) {
 		$count = 0;
 		foreach ( $this->rows as &$row ) {
-			if ( ! array_diff_assoc( $where, $row ) ) { $row = array_merge( $row, $data ); ++$count; }
+			if ( ! array_diff_assoc( $where, $row ) ) {
+				$row = array_merge( $row, $data );
+				++$count; }
 		}
 		return $count;
 	}
 }
 
+if ( ! function_exists( 'remove_accents' ) ) {
+	function remove_accents( $text ) { return $text; }
+}
+
 final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
+	public function test_venue_subscription_requires_explicit_consent_and_a_venue_seller(): void {
+		$GLOBALS['ticket_subscriptions'] = array();
+		extrachill_events_ticket_subscribe_venue( array(
+			'type' => 'venue',
+			'id'   => 12,
+		), 9, false );
+		extrachill_events_ticket_subscribe_venue( array(
+			'type' => 'promoter',
+			'id'   => 12,
+		), 9, true );
+		$this->assertSame( array(), $GLOBALS['ticket_subscriptions'] );
+		extrachill_events_ticket_subscribe_venue( array(
+			'type' => 'venue',
+			'id'   => 12,
+		), 9, true );
+		$this->assertSame( array( array( 9, 'venue_show_updates', 'venue', 'lofi' ) ), $GLOBALS['ticket_subscriptions'] );
+	}
+
 	protected function setUp(): void {
-		$GLOBALS['ticket_request'] = null;
-		$GLOBALS['ticket_claims'] = array();
+		$GLOBALS['ticket_request']    = null;
+		$GLOBALS['ticket_claims']     = array();
 		$GLOBALS['ticket_emails']     = array();
 		$GLOBALS['ticket_email_args'] = array();
-		$GLOBALS['dispute_mail'] = array();
-		$GLOBALS['wpdb'] = new TicketWpdb();
-		$GLOBALS['ticket_timing'] = array( 10 => 'upcoming' );
-		$GLOBALS['shop_calls'] = array();
-		$GLOBALS['shop_call_args'] = array();
-		$GLOBALS['shop_status'] = array( 'can_receive_payments' => true );
-		$GLOBALS['ticket_meta'] = array( 10 => array( '_extrachill_ticket_offer' => array( 'tickets_enabled' => true, 'ticket_price_minor' => 1500, 'ticket_quantity' => 0, 'ticket_seller' => array( 'type' => 'venue', 'id' => 2 ) ) ) );
+		$GLOBALS['ticket_email_fail'] = false;
+		$GLOBALS['dispute_mail']      = array();
+		$GLOBALS['wpdb']              = new TicketWpdb();
+		$GLOBALS['ticket_timing']     = array( 10 => 'upcoming' );
+		$GLOBALS['shop_calls']        = array();
+		$GLOBALS['shop_call_args']    = array();
+		$GLOBALS['shop_status']       = array( 'can_receive_payments' => true );
+		$GLOBALS['ticket_meta']       = array(
+			10 => array(
+				'_extrachill_ticket_offer' => array(
+					'tickets_enabled'    => true,
+					'ticket_price_minor' => 1500,
+					'ticket_quantity'    => 0,
+					'ticket_seller'      => array(
+						'type' => 'venue',
+						'id'   => 2,
+					),
+				),
+			),
+		);
 	}
 	private function issue( $quantity = 2, $key = 'key', $order = 'cs_123' ) {
 		return RsvpPassesTable::issue_tickets( 10, $quantity, 3, 0, 'Guest', $key, $order, 'pi_123' );
@@ -121,9 +231,17 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	public function test_output_reports_a_missing_seller_as_null_and_keeps_input_strict(): void {
 		$unset = TicketAbilities::output_settings( TicketAbilities::settings( 11 ) );
 		$this->assertNull( $unset['ticket_seller'] );
-		$this->assertNull( TicketAbilities::output_settings( array( 'ticket_seller' => array( 'type' => 'venue', 'id' => 0 ) ) )['ticket_seller'] );
+		$this->assertNull( TicketAbilities::output_settings( array(
+			'ticket_seller' => array(
+				'type' => 'venue',
+				'id'   => 0,
+			),
+		) )['ticket_seller'] );
 		$this->assertNull( TicketAbilities::output_settings( array() )['ticket_seller'] );
-		$this->assertSame( array( 'type' => 'venue', 'id' => 2 ), TicketAbilities::output_settings( TicketAbilities::settings( 10 ) )['ticket_seller'] );
+		$this->assertSame( array(
+			'type' => 'venue',
+			'id'   => 2,
+		), TicketAbilities::output_settings( TicketAbilities::settings( 10 ) )['ticket_seller'] );
 		$this->assertSame( 0, TicketAbilities::settings( 11 )['ticket_seller']['id'], 'Storage keeps the internal ID-0 default.' );
 		$this->assertSame( array( 'object', 'null' ), TicketAbilities::output_fields()['ticket_seller']['type'] );
 		$this->assertSame( 'object', TicketAbilities::fields()['ticket_seller']['type'] );
@@ -137,7 +255,12 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_invalid_offer_and_seller_authority(): void {
 		$this->assertSame( 'invalid_ticket_offer', TicketAbilities::validate_settings( 10, array( 'ticket_price_minor' => 0 ) )->get_error_code() );
-		$this->assertSame( 'ticket_seller_forbidden', TicketAbilities::validate_settings( 10, array( 'ticket_seller' => array( 'type' => 'venue', 'id' => 4 ) ) )->get_error_code() );
+		$this->assertSame( 'ticket_seller_forbidden', TicketAbilities::validate_settings( 10, array(
+			'ticket_seller' => array(
+				'type' => 'venue',
+				'id'   => 4,
+			),
+		) )->get_error_code() );
 	}
 	private function off_sale(): array {
 		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer']['tickets_enabled'] = false;
@@ -146,22 +269,46 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	public function test_enabling_with_ready_seller_asks_shop_and_succeeds(): void {
 		$settings = TicketAbilities::validate_settings( 10, $this->off_sale() );
 		$this->assertTrue( $settings['tickets_enabled'] );
-		$this->assertSame( array( array( 'shop', 'GET', '/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run', array( 'input' => array( 'seller' => array( 'type' => 'venue', 'id' => 2 ) ) ) ) ), $GLOBALS['shop_calls'] );
+		$this->assertSame( array(
+			array(
+				'shop',
+				'GET',
+				'/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run',
+				array(
+					'input' => array(
+						'seller' => array(
+							'type' => 'venue',
+							'id'   => 2,
+						),
+					),
+				),
+			),
+		), $GLOBALS['shop_calls'] );
 	}
 	public function test_seller_status_runs_the_shop_owned_ability_as_the_current_user(): void {
-		$this->assertTrue( TicketAbilities::seller_can_receive_payments( array( 'type' => 'promoter', 'id' => 9 ) ) );
+		$this->assertTrue( TicketAbilities::seller_can_receive_payments( array(
+			'type' => 'promoter',
+			'id'   => 9,
+		) ) );
 		// The Shop ability's run path, never the extrachill-api adapter route,
 		// whose wrapped ability is not registered in an Events request.
 		$this->assertSame( 'shop', $GLOBALS['shop_calls'][0][0] );
 		$this->assertSame( 'GET', $GLOBALS['shop_calls'][0][1], 'The ability is readonly, so core requires GET.' );
 		$this->assertSame( '/wp-abilities/v1/abilities/extrachill/shop-stripe-status/run', $GLOBALS['shop_calls'][0][2] );
-		$this->assertSame( array( 'input' => array( 'seller' => array( 'type' => 'promoter', 'id' => 9 ) ) ), $GLOBALS['shop_call_args'][0]['query'] );
+		$this->assertSame( array(
+			'input' => array(
+				'seller' => array(
+					'type' => 'promoter',
+					'id'   => 9,
+				),
+			),
+		), $GLOBALS['shop_call_args'][0]['query'] );
 		$this->assertSame( 1, $GLOBALS['shop_call_args'][0]['user_id'] );
 		$this->assertArrayNotHasKey( 'body', $GLOBALS['shop_call_args'][0] );
 	}
 	public function test_enabling_with_unready_seller_is_refused(): void {
 		$GLOBALS['shop_status'] = array( 'can_receive_payments' => false );
-		$error = TicketAbilities::validate_settings( 10, $this->off_sale() );
+		$error                  = TicketAbilities::validate_settings( 10, $this->off_sale() );
 		$this->assertSame( 'ticket_seller_payments_unavailable', $error->get_error_code() );
 		$this->assertSame( 409, $error->get_error_data()['status'] );
 	}
@@ -182,7 +329,10 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_replay_and_conflicting_key(): void {
 		$first = $this->issue();
-		$this->assertSame( $first, $this->issue() );
+		$this->assertFalse( $first[0]['pre_existing'] );
+		$replay = $this->issue();
+		$this->assertTrue( $replay[0]['pre_existing'] );
+		$this->assertSame( array_column( $first, 'code' ), array_column( $replay, 'code' ) );
 		$this->assertCount( 2, $GLOBALS['wpdb']->rows );
 		$this->assertSame( 'ticket_idempotency_conflict', $this->issue( 1 )->get_error_code() );
 	}
@@ -212,17 +362,63 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( array( 'revoked' => 0 ), RsvpPassesTable::revoke_ticket_order( 'cs_123' ) );
 	}
 	private function service_context(): void {
-		$GLOBALS['ticket_claims'] = array( 'service_id' => 'extrachill.events.tickets', 'scope' => 'extrachill/events:tickets', 'source_site_id' => 8, 'target_site_id' => 7, 'target_host' => 'events.test' );
-		add_filter( 'extrachill_events_ticket_service_assertion_keys', static function () { return array( 'test-key' => 'test-secret' ); } );
-		$GLOBALS['ticket_request'] = array( 'method' => 'POST', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
+		$GLOBALS['ticket_claims'] = array(
+			'service_id'     => 'extrachill.events.tickets',
+			'scope'          => 'extrachill/events:tickets',
+			'source_site_id' => 8,
+			'target_site_id' => 7,
+			'target_host'    => 'events.test',
+		);
+		add_filter( 'extrachill_events_ticket_service_assertion_keys', static function () { return array( 'test-key' => 'test-secret' );
+		} );
+		$GLOBALS['ticket_request'] = array(
+			'method' => 'POST',
+			'route'  => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run',
+		);
 	}
+	public function test_paid_issuance_subscribes_once_and_sold_out_does_not(): void {
+		$this->service_context();
+		$GLOBALS['ticket_subscriptions'] = array();
+		$abilities                       = new TicketAbilities();
+		$input                           = array(
+			'event'              => 10,
+			'quantity'           => 2,
+			'name'               => 'Buyer',
+			'email'              => 'buyer@example.com',
+			'idempotency_key'    => 'consent',
+			'order_reference'    => 'cs_consent',
+			'payment_reference'  => 'pi_consent',
+			'buyer_user_id'      => 9,
+			'seller'             => array(
+				'type' => 'venue',
+				'id'   => 12,
+			),
+			'venue_show_updates' => true,
+		);
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( array( array( 9, 'venue_show_updates', 'venue', 'lofi' ) ), $GLOBALS['ticket_subscriptions'] );
+		$input['idempotency_key'] = 'sold-out';
+		$this->assertSame( 'sold_out', $abilities->issue( $input )['status'] );
+		$this->assertCount( 1, $GLOBALS['ticket_subscriptions'] );
+	}
+
 	public function test_ability_issuance_email_replay_and_order_status(): void {
 		$this->service_context();
 		$abilities = new TicketAbilities();
-		$input = array( 'event' => 10, 'quantity' => 2, 'name' => 'Guest', 'email' => 'guest@example.com', 'idempotency_key' => 'key', 'order_reference' => 'cs_123', 'payment_reference' => 'pi_123' );
-		$first = $abilities->issue( $input );
+		$input     = array(
+			'event'             => 10,
+			'quantity'          => 2,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'key',
+			'order_reference'   => 'cs_123',
+			'payment_reference' => 'pi_123',
+		);
+		$first     = $abilities->issue( $input );
 		$this->assertSame( 'issued', $first['status'] );
 		$this->assertCount( 2, $first['passes'] );
+		$this->assertSame( 0, $first['emails_failed'] );
 		$this->assertSame( $first, $abilities->issue( $input ) );
 		$this->assertCount( 2, $GLOBALS['ticket_emails'] );
 		$status = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
@@ -230,11 +426,95 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( $status['refundable'] );
 		$this->assertSame( 'https://events.test/10/guest-list/?pass=' . $status['passes'][0]['code'], $status['passes'][0]['url'], 'Order status carries the buyer pass link for My Account.' );
 		$GLOBALS['wpdb']->rows[0]['status'] = 'redeemed';
-		$status = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
+		$status                             = $abilities->order_status( array( 'order_reference' => 'cs_123' ) );
 		$this->assertTrue( $status['any_redeemed'] );
 		$this->assertFalse( $status['refundable'] );
 		$input['idempotency_key'] = 'second';
-		$this->assertSame( array( 'status' => 'sold_out', 'passes' => array() ), $abilities->issue( $input ) );
+		$this->assertSame( array(
+			'status'        => 'sold_out',
+			'passes'        => array(),
+			'emails_failed' => 0,
+		), $abilities->issue( $input ) );
+	}
+	public function test_failed_pass_emails_are_reported_and_resent_for_active_passes_only(): void {
+		$this->service_context();
+		$abilities                    = new TicketAbilities();
+		$input                        = array(
+			'event'             => 10,
+			'quantity'          => 2,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'key',
+			'order_reference'   => 'cs_123',
+			'payment_reference' => 'pi_123',
+		);
+		$GLOBALS['ticket_email_fail'] = true;
+		$this->assertSame( 2, $abilities->issue( $input )['emails_failed'] );
+		$this->assertSame( 0, $abilities->issue( $input )['emails_failed'], 'A replay sends nothing, so nothing fails.' );
+		$this->assertSame( array(
+			'emailed' => 0,
+			'failed'  => 2,
+		), $abilities->resend( array(
+			'order_reference' => 'cs_123',
+			'email'           => 'guest@example.com',
+		) ) );
+		$GLOBALS['ticket_email_fail']       = false;
+		$GLOBALS['ticket_emails']           = array();
+		$GLOBALS['wpdb']->rows[1]['status'] = 'revoked';
+		$this->assertSame( array(
+			'emailed' => 1,
+			'failed'  => 0,
+		), $abilities->resend( array(
+			'order_reference' => 'cs_123',
+			'email'           => 'guest@example.com',
+		) ) );
+		$this->assertSame( array( $GLOBALS['wpdb']->rows[0]['code'] ), $GLOBALS['ticket_emails'] );
+	}
+	public function test_concurrent_duplicate_waiting_for_last_tickets_sends_no_second_email(): void {
+		$this->service_context();
+		$abilities                        = new TicketAbilities();
+		$input                            = array(
+			'event'             => 10,
+			'quantity'          => 3,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'key',
+			'order_reference'   => 'cs_123',
+			'payment_reference' => 'pi_123',
+		);
+		$first                            = null;
+		$GLOBALS['wpdb']->before_key_lock = function () use ( $abilities, $input, &$first ) {
+			$first = $abilities->issue( $input );
+		};
+		$waiting                          = $abilities->issue( $input );
+		$this->assertSame( 'issued', $waiting['status'] );
+		$this->assertSame( $first, $waiting );
+		$this->assertCount( 3, $GLOBALS['wpdb']->rows );
+		$this->assertCount( 3, $GLOBALS['ticket_emails'] );
+		$this->assertSame( $first, $abilities->issue( $input ) );
+		$this->assertCount( 3, $GLOBALS['ticket_emails'] );
+		$this->assertFalse( $GLOBALS['wpdb']->key_locked );
+		$this->assertFalse( $GLOBALS['wpdb']->capacity_locked );
+		$this->assertFalse( $GLOBALS['wpdb']->in_transaction );
+	}
+	public function test_paid_fulfilment_after_event_end_and_disabling_sales(): void {
+		$this->service_context();
+		$GLOBALS['ticket_timing'][10] = 'past';
+		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer']['tickets_enabled'] = false;
+		$abilities = new TicketAbilities();
+		$this->assertFalse( $abilities->offer( array( 'event' => 10 ) )['sale_open'] );
+		$input = array(
+			'event'             => 10,
+			'quantity'          => 2,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'key',
+			'order_reference'   => 'cs_123',
+			'payment_reference' => 'pi_123',
+		);
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertSame( 'issued', $abilities->issue( $input )['status'] );
+		$this->assertCount( 2, $GLOBALS['ticket_emails'] );
 	}
 	public function test_verified_claims_require_exact_service_and_scope(): void {
 		$this->service_context();
@@ -244,15 +524,21 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	}
 	public function test_service_grant_covers_every_ticket_route_and_nothing_else(): void {
 		$this->service_context();
-		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'restore-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) as $ability ) {
+		foreach ( array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'restore-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller', 'resend-ticket-pass-emails' ) as $ability ) {
 			$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/' . $ability . '/run';
 			$this->assertTrue( extrachill_events_ticket_has_service_authority(), $ability );
 		}
 		$GLOBALS['ticket_request']['route'] = '/wp-abilities/v1/abilities/extrachill/grant-event-priority-boost/run';
 		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'priority route' );
-		$GLOBALS['ticket_request'] = array( 'method' => 'GET', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
+		$GLOBALS['ticket_request'] = array(
+			'method' => 'GET',
+			'route'  => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run',
+		);
 		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'GET method' );
-		$GLOBALS['ticket_request']           = array( 'method' => 'POST', 'route' => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run' );
+		$GLOBALS['ticket_request']                  = array(
+			'method' => 'POST',
+			'route'  => '/wp-abilities/v1/abilities/extrachill/issue-ticket-passes/run',
+		);
 		$GLOBALS['ticket_claims']['source_site_id'] = 3;
 		$this->assertFalse( extrachill_events_ticket_has_service_authority(), 'wrong source site' );
 	}
@@ -267,7 +553,10 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	public function test_dispute_revokes_and_emails_the_seller(): void {
 		$this->service_context();
 		$this->issue();
-		$result = ( new TicketAbilities() )->revoke( array( 'order_reference' => 'cs_123', 'reason' => 'dispute' ) );
+		$result = ( new TicketAbilities() )->revoke( array(
+			'order_reference' => 'cs_123',
+			'reason'          => 'dispute',
+		) );
 		$this->assertSame( array( 'revoked' => 2 ), $result );
 		$this->assertSame( array( 'venue', 2 ), $GLOBALS['dispute_seller'] );
 		$this->assertCount( 1, $GLOBALS['dispute_mail'] );
@@ -279,7 +568,10 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->service_context();
 		$this->issue();
 		$GLOBALS['wpdb']->rows[0]['status'] = 'redeemed';
-		$result = ( new TicketAbilities() )->revoke( array( 'order_reference' => 'cs_123', 'reason' => 'dispute' ) );
+		$result                             = ( new TicketAbilities() )->revoke( array(
+			'order_reference' => 'cs_123',
+			'reason'          => 'dispute',
+		) );
 		$this->assertSame( array( 'revoked' => 0 ), $result );
 		$this->assertSame( 'redeemed', $GLOBALS['wpdb']->rows[0]['status'] );
 		$this->assertStringContainsString( 'already checked in', $GLOBALS['dispute_mail'][0]['context']['body_html'] );
@@ -288,12 +580,23 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->service_context();
 		$this->issue();
 		$GLOBALS['wpdb']->rows[0]['status'] = 'redeemed';
-		$result = ( new TicketAbilities() )->revoke( array( 'order_reference' => 'cs_123', 'reason' => 'seller_refund' ) );
+		$result                             = ( new TicketAbilities() )->revoke( array(
+			'order_reference' => 'cs_123',
+			'reason'          => 'seller_refund',
+		) );
 		$this->assertSame( 'ticket_already_redeemed', $result->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['dispute_mail'] );
 	}
 	public function test_notify_seller_is_service_only_and_emails_finance_owners(): void {
-		$input = array( 'seller' => array( 'type' => 'promoter', 'id' => 5 ), 'subject' => 'New Order #1 - Lo-Fi', 'body_html' => '<p>Order</p>', 'cta_url' => 'https://shop.test/manage/' );
+		$input = array(
+			'seller'    => array(
+				'type' => 'promoter',
+				'id'   => 5,
+			),
+			'subject'   => 'New Order #1 - Lo-Fi',
+			'body_html' => '<p>Order</p>',
+			'cta_url'   => 'https://shop.test/manage/',
+		);
 		$this->assertSame( 'ticket_service_required', ( new TicketAbilities() )->notify_seller( $input )->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['dispute_mail'] );
 		$this->service_context();
@@ -367,5 +670,311 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->revoke( 'dispute' );
 		$this->assertSame( array( 'restored' => 0 ), $this->restore( '' ) );
 		$this->assertSame( array( 'redeemed', 'active' ), array_column( $GLOBALS['wpdb']->rows, 'status' ) );
+	}
+
+	/** Offer settings for event 10 with two public types, a hidden one and codes. */
+	private function tiered( array $extra = array() ): void {
+		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer'] = $extra + array(
+			'tickets_enabled'    => true,
+			'ticket_price_minor' => 1000,
+			'ticket_quantity'    => 0,
+			'ticket_seller'      => array(
+				'type' => 'venue',
+				'id'   => 2,
+			),
+			'ticket_types'       => array(
+				array(
+					'id'          => 'early-bird',
+					'name'        => 'Early bird',
+					'price_minor' => 1000,
+					'quantity'    => 1,
+					'hidden'      => false,
+				),
+				array(
+					'id'          => 'ga',
+					'name'        => 'GA',
+					'price_minor' => 1500,
+					'quantity'    => 0,
+					'hidden'      => false,
+				),
+				array(
+					'id'          => 'industry',
+					'name'        => 'Industry',
+					'price_minor' => 500,
+					'quantity'    => 0,
+					'hidden'      => true,
+				),
+			),
+			'ticket_codes'       => array(
+				array(
+					'code'             => 'FRIENDS',
+					'percent_off'      => 20,
+					'amount_off_minor' => 0,
+					'max_uses'         => 5,
+					'ticket_types'     => array(),
+				),
+				array(
+					'code'             => 'FIVEOFF',
+					'percent_off'      => 0,
+					'amount_off_minor' => 500,
+					'max_uses'         => 0,
+					'ticket_types'     => array( 'ga' ),
+				),
+				array(
+					'code'             => 'INDUSTRY',
+					'percent_off'      => 0,
+					'amount_off_minor' => 0,
+					'max_uses'         => 0,
+					'ticket_types'     => array( 'industry' ),
+				),
+			),
+		);
+	}
+
+	public function test_legacy_offer_reads_as_one_default_type(): void {
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array(
+			array(
+				'id'               => 'general',
+				'name'             => 'General admission',
+				'price_minor'      => 1500,
+				'unit_price_minor' => 1500,
+				'remaining'        => 3,
+				'code_applies'     => false,
+			),
+		), $offer['ticket_types'] );
+		$this->assertNull( $offer['code'] );
+		$this->assertFalse( $offer['code_invalid'] );
+	}
+
+	public function test_offer_lists_public_types_and_hides_code_only_types(): void {
+		$this->tiered();
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $offer['ticket_types'], 'id' ) );
+		$this->assertSame( array( 1, 3 ), array_column( $offer['ticket_types'], 'remaining' ), 'A type cap is capped again by show capacity.' );
+		$this->assertTrue( $offer['sale_open'] );
+		$this->assertArrayNotHasKey( 'ticket_codes', $offer, 'The public offer never lists codes.' );
+	}
+
+	public function test_codes_discount_and_unlock(): void {
+		$this->tiered();
+		$offer = ( new TicketAbilities() )->offer( array(
+			'event' => 10,
+			'code'  => ' friends ',
+		) );
+		$this->assertSame( 'FRIENDS', $offer['code']['code'] );
+		$this->assertSame( array( 800, 1200 ), array_column( $offer['ticket_types'], 'unit_price_minor' ), '20% off every public type.' );
+
+		$offer = ( new TicketAbilities() )->offer( array(
+			'event' => 10,
+			'code'  => 'FIVEOFF',
+		) );
+		$this->assertSame( array( 1000, 1000 ), array_column( $offer['ticket_types'], 'unit_price_minor' ), '$5 off GA only.' );
+		$this->assertSame( array( false, true ), array_column( $offer['ticket_types'], 'code_applies' ) );
+
+		$offer = ( new TicketAbilities() )->offer( array(
+			'event' => 10,
+			'code'  => 'industry',
+		) );
+		$this->assertSame( array( 'early-bird', 'ga', 'industry' ), array_column( $offer['ticket_types'], 'id' ), 'An access code unlocks its hidden type.' );
+		$this->assertSame( 500, $offer['ticket_types'][2]['unit_price_minor'] );
+
+		$offer = ( new TicketAbilities() )->offer( array(
+			'event' => 10,
+			'code'  => 'NOPE',
+		) );
+		$this->assertTrue( $offer['code_invalid'] );
+		$this->assertNull( $offer['code'] );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $offer['ticket_types'], 'id' ) );
+	}
+
+	public function test_type_sells_out_on_its_own_cap(): void {
+		$this->tiered();
+		$this->assertCount( 1, RsvpPassesTable::issue_tickets( 10, 1, 3, 0, 'Guest', 'k1', 'cs_1', 'pi_1', 'early-bird', 1 ) );
+		$this->assertSame( 'early-bird', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$this->assertNull( RsvpPassesTable::issue_tickets( 10, 1, 3, 0, 'Guest', 'k2', 'cs_2', 'pi_2', 'early-bird', 1 ), 'Early bird is gone.' );
+		$offer = ( new TicketAbilities() )->offer( array( 'event' => 10 ) );
+		$this->assertSame( array( 0, 2 ), array_column( $offer['ticket_types'], 'remaining' ) );
+		$this->assertTrue( $offer['sale_open'], 'GA is still on sale.' );
+		$this->assertSame( array( 'early-bird' => 1 ), RsvpPassesTable::paid_ticket_counts_by_type( 10 ) );
+	}
+
+	public function test_untyped_passes_count_as_the_default_type(): void {
+		$this->issue( 1 );
+		$this->assertSame( 'general', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$GLOBALS['wpdb']->rows[0]['ticket_type'] = null;
+		$this->assertSame( array( 'general' => 1 ), RsvpPassesTable::paid_ticket_counts_by_type( 10 ) );
+	}
+
+	public function test_issue_ability_records_the_paid_type(): void {
+		$this->tiered();
+		$this->service_context();
+		$input = array(
+			'event'             => 10,
+			'quantity'          => 1,
+			'name'              => 'Guest',
+			'email'             => 'guest@example.com',
+			'idempotency_key'   => 'cs_t',
+			'order_reference'   => 'cs_t',
+			'payment_reference' => 'pi_t',
+			'ticket_type'       => 'early-bird',
+		);
+		$this->assertSame( 'issued', ( new TicketAbilities() )->issue( $input )['status'] );
+		$this->assertSame( 'early-bird', $GLOBALS['wpdb']->rows[0]['ticket_type'] );
+		$input['idempotency_key'] = 'cs_u';
+		$input['order_reference'] = 'cs_u';
+		$this->assertSame( 'sold_out', ( new TicketAbilities() )->issue( $input )['status'], 'The type cap holds at fulfilment.' );
+	}
+
+	public function test_types_validate_and_set_the_from_price(): void {
+		$settings = TicketAbilities::validate_settings( 10, array(
+			'ticket_types' => array(
+				array(
+					'name'        => 'VIP',
+					'price_minor' => 4000,
+				),
+				array(
+					'name'        => 'GA',
+					'price_minor' => 2000,
+					'quantity'    => 100,
+				),
+				array(
+					'name'        => 'Comp-ish',
+					'price_minor' => 100,
+					'hidden'      => true,
+				),
+				array(
+					'name'        => 'GA',
+					'price_minor' => 2500,
+				),
+			),
+		) );
+		$this->assertSame( array( 'vip', 'ga', 'comp-ish', 'ga-2' ), array_column( $settings['ticket_types'], 'id' ) );
+		$this->assertSame( 2000, $settings['ticket_price_minor'], 'The from price ignores hidden types.' );
+		$this->assertSame( array(), $settings['ticket_codes'] );
+		$this->assertSame( array(), $GLOBALS['shop_calls'], 'Already on sale: no Shop check.' );
+
+		foreach ( array(
+			array(
+				array(
+					'name'        => '',
+					'price_minor' => 100,
+				),
+			),
+			array(
+				array(
+					'name'        => 'Free',
+					'price_minor' => 0,
+				),
+			),
+			array(
+				array(
+					'id'          => 'a',
+					'name'        => 'A',
+					'price_minor' => 100,
+				),
+				array(
+					'id'          => 'a',
+					'name'        => 'B',
+					'price_minor' => 100,
+				),
+			),
+			array_fill( 0, 11, array(
+				'name'        => 'X',
+				'price_minor' => 100,
+			) ),
+		) as $types ) {
+			$this->assertSame( 'invalid_ticket_types', TicketAbilities::validate_settings( 10, array( 'ticket_types' => $types ) )->get_error_code() );
+		}
+	}
+
+	public function test_codes_validate_against_the_types(): void {
+		$this->tiered();
+		$settings = TicketAbilities::validate_settings( 10, array(
+			'ticket_codes' => array(
+				array(
+					'code'        => 'half-off',
+					'percent_off' => 50,
+				),
+				array(
+					'code'         => 'VIPONLY',
+					'ticket_types' => array( 'industry', 'industry' ),
+				),
+			),
+		) );
+		$this->assertSame( array( 'HALF-OFF', 'VIPONLY' ), array_column( $settings['ticket_codes'], 'code' ) );
+		$this->assertSame( array( 'industry' ), $settings['ticket_codes'][1]['ticket_types'] );
+
+		foreach ( array(
+			array( array( 'code' => 'ab' ) ),
+			array(
+				array(
+					'code'             => 'BOTH',
+					'percent_off'      => 10,
+					'amount_off_minor' => 100,
+				),
+			),
+			array(
+				array(
+					'code'        => 'FREE',
+					'percent_off' => 100,
+				),
+			),
+			array( array( 'code' => 'DUP' ), array( 'code' => 'dup' ) ),
+			array(
+				array(
+					'code'         => 'GHOST',
+					'ticket_types' => array( 'nope' ),
+				),
+			),
+		) as $codes ) {
+			$this->assertSame( 'invalid_ticket_codes', TicketAbilities::validate_settings( 10, array( 'ticket_codes' => $codes ) )->get_error_code() );
+		}
+	}
+
+	public function test_removing_a_type_a_code_names_is_refused(): void {
+		$this->tiered();
+		$error = TicketAbilities::validate_settings( 10, array(
+			'ticket_types' => array(
+				array(
+					'id'          => 'early-bird',
+					'name'        => 'Early bird',
+					'price_minor' => 1000,
+				),
+			),
+		) );
+		$this->assertSame( 'invalid_ticket_codes', $error->get_error_code(), 'FIVEOFF must not widen to every type.' );
+	}
+
+	public function test_enabled_offer_needs_a_type_or_a_price(): void {
+		$this->assertSame( 'invalid_ticket_offer', TicketAbilities::validate_settings( 10, array(
+			'ticket_types'       => array(),
+			'ticket_price_minor' => 0,
+		) )->get_error_code() );
+		$this->tiered( array( 'ticket_price_minor' => 0 ) );
+		$this->assertTrue( TicketAbilities::validate_settings( 10, array( 'ticket_quantity' => 5 ) )['tickets_enabled'] );
+	}
+
+	public function test_public_settings_hide_codes_and_code_only_types(): void {
+		$this->tiered();
+		$public = TicketAbilities::public_settings( TicketAbilities::settings( 10 ) );
+		$this->assertSame( array(), $public['ticket_codes'] );
+		$this->assertSame( array( 'early-bird', 'ga' ), array_column( $public['ticket_types'], 'id' ) );
+		$this->assertSame( 1000, $public['ticket_price_minor'] );
+	}
+
+	public function test_unit_price_rounds_and_never_goes_negative(): void {
+		$type = array(
+			'id'          => 'ga',
+			'price_minor' => 999,
+			'hidden'      => false,
+		);
+		$this->assertSame( 669, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array( 'percent_off' => 33 ) ) );
+		$this->assertSame( 0, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array( 'amount_off_minor' => 5000 ) ) );
+		$this->assertSame( 999, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, null ) );
+		$this->assertSame( 999, \ExtraChillEvents\Abilities\TicketTypes::unit_price( $type, array(
+			'percent_off'  => 50,
+			'ticket_types' => array( 'vip' ),
+		) ), 'A code scoped elsewhere leaves the price.' );
 	}
 }

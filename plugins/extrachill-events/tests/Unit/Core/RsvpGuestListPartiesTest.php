@@ -591,9 +591,42 @@ final class RsvpGuestListPartiesTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'Jake (Slim S.O.U.L.)', $rows[0]['label'] );
 	}
 
-	public function test_door_template_renders_the_label(): void {
-		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/door-list.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
+	public function test_ticket_buyers_are_on_the_door_even_without_a_guest_list(): void {
+		// The row shape RsvpPassesTable::issue_tickets() writes: no account,
+		// the buyer's name, and the order (extrachill#1702).
+		foreach ( array( 'Pat Buyer', 'Pat Buyer' ) as $index => $name ) {
+			$this->db->insert(
+				RsvpPassesTable::table_name(),
+				array(
+					'event_id'          => self::EVENT_ID,
+					'code'              => 'TICKET' . $index,
+					'guest_name'        => $name,
+					'status'            => RsvpPassesTable::STATUS_ACTIVE,
+					'order_reference'   => 'order-1',
+					'payment_reference' => 'pi_1',
+				)
+			);
+		}
+		extrachill_events_add_guest_list_name( self::EVENT_ID, 'Comp', '', self::HOST_ID );
 
-		$this->assertStringContainsString( "esc_html( (string) \$guest_row['label'] )", $source );
+		$this->assertSame( array( 'Ticket · Pat Buyer', 'Ticket · Pat Buyer', 'Comp' ), array_column( extrachill_events_door_list_guest_rows( self::EVENT_ID ), 'label' ) );
+		$this->assertSame(
+			array( 'Ticket · Pat Buyer', 'Ticket · Pat Buyer' ),
+			array_column( extrachill_events_door_list_guest_rows( self::EVENT_ID, false ), 'label' ),
+			'Guest list off: comps drop, sold tickets still check in.'
+		);
+	}
+
+	public function test_door_template_renders_the_label(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
+		$rows   = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
+
+		// The host screen shows each guest's labelled name, source included.
+		// Guest rows always carry `label`; attendee rows fall back to their
+		// account display name (extrachill#1757 normalized the door row shape).
+		$this->assertStringContainsString( "\$row['label']         = (string) ( \$row['label'] ?? \$row['display_name'] ?? '' );", $rows );
+		$this->assertStringContainsString( "(string) ( \$row['display_name'] ?? '' ) : \$row['label'];", $rows );
+		$this->assertStringContainsString( "esc_html( (string) \$door_row['name'] )", $source );
+		$this->assertStringContainsString( 'Added by %s', $source );
 	}
 }

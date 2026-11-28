@@ -14,7 +14,7 @@ async function run( ok, options = {} ) {
 		addEventListener: ( name, callback ) => { submit = callback; },
 		querySelector: ( selector ) => selector.includes( 'button' ) ? button : selector === '.cf-turnstile' ? widget : error,
 	};
-	const fields = { quantity: '2', name: 'Buyer', email: 'buyer@example.com', 'cf-turnstile-response': 'token', terms_accepted: options.terms === false ? null : '1' };
+	const fields = { quantity: '2', name: 'Buyer', email: 'buyer@example.com', 'cf-turnstile-response': 'token', terms_accepted: options.terms === false ? null : '1', ...( options.fields || {} ) };
 	const responses = options.responses || [ ok ? { ok: true, status: 200, body: { checkout_url: 'https://checkout.stripe.com/example' } } : { ok: false, status: 400, body: { message: 'Sold out' } } ];
 	vm.runInNewContext( source, {
 		document: { querySelectorAll: () => [ form ] },
@@ -40,9 +40,15 @@ async function run( ok, options = {} ) {
 	assert.equal( result.requests[ 0 ].options.method, 'POST' );
 	assert.equal( result.requests[ 0 ].options.credentials, 'omit' );
 	assert.equal( result.requests[ 0 ].options.headers[ 'X-WP-Nonce' ], undefined );
-	assert.deepEqual( JSON.parse( result.requests[ 0 ].options.body ), { event: 42, quantity: 2, name: 'Buyer', email: 'buyer@example.com', terms_accepted: true, turnstile_response: 'token' } );
+	assert.deepEqual( JSON.parse( result.requests[ 0 ].options.body ), { event: 42, quantity: 2, name: 'Buyer', email: 'buyer@example.com', terms_accepted: true, venue_show_updates: false, turnstile_response: 'token' } );
 	assert.equal( result.destination, 'https://checkout.stripe.com/example' );
 	assert.equal( result.button.disabled, true );
+
+	// A chosen ticket type and code ride along (extrachill#1716).
+	result = await run( true, { fields: { ticket_type: 'vip', code: 'FRIENDS' } } );
+	const sent = JSON.parse( result.requests[ 0 ].options.body );
+	assert.equal( sent.ticket_type, 'vip' );
+	assert.equal( sent.code, 'FRIENDS' );
 
 	// Failure surfaces the server message and resets Turnstile.
 	result = await run( false );

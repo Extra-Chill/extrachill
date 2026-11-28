@@ -17,13 +17,13 @@ Users remain authenticated across all `.extrachill.com` subdomains automatically
 The `extrachill.link` domain provides public access to artist link pages while maintaining cross-domain authentication for management operations.
 
 **Architecture**:
-- **Backend**: extrachill.link maps to artist.extrachill.com (blog ID 4)
+- **Backend**: extrachill.link is the native domain of the Link Pages site (blog ID 13)
 - **Frontend URLs**: Link pages display as `extrachill.link/{artist-slug}`
 - **Authentication**: WordPress cookies configured with `SameSite=None; Secure` attributes for cross-domain access
 - **Cookie Configuration**: Managed by extrachill-users plugin (extrachill-users/inc/auth/extrachill-link-auth.php)
 
 **URL Parameter Detection**:
-- Join flow entry: `extrachill.link/join` → redirects to `artist.extrachill.com/login/?from_join=true` via sunrise.php
+- Join flow entry: `extrachill.link/join` → redirects to `artist.extrachill.com/login/?from_join=true` via `ec_network_link_page_join_route()` (extrachill-network `inc/link-pages/site-integration.php`)
 - Detected via `from_join` parameter in URL
 - Post-registration redirect: tracked via `join_flow_completion_{user_id}` transients
 

@@ -4,7 +4,7 @@ Some people always get in: partners, friends, your regular sound engineer. Put t
 
 ## Who Can Manage It
 
-A venue's team manages the venue list. A promoter's team manages the promoter list. Log in and open any of your shows on the [Events Calendar](https://events.extrachill.com/). Your list appears on the show's page as **Owner's list for** your venue or promoter name.
+A venue's team manages the venue list. A promoter's team manages the promoter list. Log in and open any of your shows on the [Events Calendar](https://events.extrachill.com/). Tap **Guest Check-In** on the show's page and open **Host tools**. Your list appears there as **Owner's list for** your venue or promoter name.
 
 If a show lists both your venue and a promoter, each team sees its own list.
 
@@ -29,6 +29,6 @@ Tap **Remove** next to their name. Their pass stops working right away, at every
 
 ## At the Door
 
-Door staff scan the person's pass to check them in. People on your list also show up on the door list with "(Venue list)" or "(Promoter list)" after their name. See [Working the Door](working-the-door.md).
+Door staff scan the person's pass to check them in. People on your list also show up on the check-in list with "(Venue list)" or "(Promoter list)" after their name. See [Working the Door](working-the-door.md).
 
 For what your guests see, see [Getting on a Guest List](getting-on-a-guest-list.md).

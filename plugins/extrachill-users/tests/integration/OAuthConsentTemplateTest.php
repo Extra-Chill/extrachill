@@ -68,6 +68,30 @@ class Test_OAuth_Consent_Template extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Declare the theme-compat deprecation only when this render will emit it.
+	 *
+	 * Core loads wp-includes/theme-compat/{header,footer}.php with
+	 * require_once, so the notice fires at most once per process: never when
+	 * the active theme ships the file, and never again once any earlier test
+	 * has rendered page chrome. Declaring it unconditionally makes the result
+	 * depend on suite order.
+	 *
+	 * @param string $file Template file name, e.g. header.php.
+	 */
+	private function expect_theme_compat_notice( string $file ): void {
+		if ( '' !== locate_template( $file ) ) {
+			return;
+		}
+
+		$compat = realpath( ABSPATH . WPINC . '/theme-compat/' . $file );
+		if ( false !== $compat && in_array( $compat, get_included_files(), true ) ) {
+			return;
+		}
+
+		$this->setExpectedDeprecated( 'Theme without ' . $file );
+	}
+
+	/**
 	 * Every nonce-action case, in one render pass.
 	 *
 	 * Deliberately a single test rather than four. The template renders full
@@ -80,8 +104,8 @@ class Test_OAuth_Consent_Template extends WP_UnitTestCase {
 	 * behavior. One render pass, one declaration, order-independent.
 	 */
 	public function test_consent_form_renders_the_nonce_action_for_each_grant(): void {
-		$this->setExpectedDeprecated( 'Theme without header.php' );
-		$this->setExpectedDeprecated( 'Theme without footer.php' );
+		$this->expect_theme_compat_notice( 'header.php' );
+		$this->expect_theme_compat_notice( 'footer.php' );
 
 		$device = $this->rendered_nonce(
 			$this->render(

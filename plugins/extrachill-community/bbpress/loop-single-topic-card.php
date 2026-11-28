@@ -24,31 +24,9 @@ if ( ! $topic_id ) {
 		<div class="topic-card-header-area">
 			<div class="bbp-topic-header-inner">
 				<div class="bbp-meta-upvote">
-					<?php
-					$user_id = get_current_user_id();
-					// Determine icon based on user's upvote status
-					$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-					$is_upvoted    = is_array($upvoted_posts) && in_array($topic_id, $upvoted_posts, true);
-					$icon_id       = $is_upvoted ? 'circle-up' : 'circle-up-outline';
-
-					// Fetch the upvote count.
-					$upvote_count = get_upvote_count($topic_id); // Ensure this function is adapted to your setup
-
-					// Add 1 to the upvote count for display purposes
-					$display_upvote_count = $upvote_count + 1;
-					?>
-
 					<div class="upvote-date">
-						<div class="upvote">
-							<span class="upvote-icon" 
-									data-post-id="<?php echo esc_attr( (string) $topic_id ); ?>" 
-									data-type="topic"
-									data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
-								<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
-							</span>
-							<span class="upvote-count"><?php echo esc_html( (string) $display_upvote_count ); ?></span>
-						</div> 
-					</div> 
+						<?php extrachill_community_render_upvote( $topic_id, 'topic' ); ?>
+					</div>
 				</div><!-- .bbp-meta-upvote -->
 				<?php
 				// Optional per-card URL override (e.g. the profile Recent

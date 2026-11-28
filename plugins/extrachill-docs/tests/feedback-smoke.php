@@ -14,6 +14,7 @@ class WP_Post {
 	public $post_type   = 'page';
 	public $post_status = 'publish';
 	public $post_parent = 0;
+	public $post_password = '';
 
 	public function __construct( array $props ) {
 		foreach ( $props as $key => $value ) {
@@ -39,6 +40,8 @@ function is_singular( $types = array() ) { unset( $types ); return $GLOBALS['ec_
 function get_queried_object() { return $GLOBALS['ec_test']['post']; }
 function get_queried_object_id() { return $GLOBALS['ec_test']['post'] ? $GLOBALS['ec_test']['post']->ID : 0; }
 function get_the_ID() { return $GLOBALS['ec_test']['the_id']; }
+function get_current_blog_id() { return ec_get_blog_id( 'docs' ); }
+function get_option( $name ) { return false; }
 function esc_html_e( $text ) { echo htmlspecialchars( $text, ENT_QUOTES ); }
 function esc_url( $url ) { return $url; }
 function trailingslashit( $value ) { return rtrim( $value, '/' ) . '/'; }
@@ -108,7 +111,7 @@ $GLOBALS['ec_test']['the_id'] = 110;
 ob_start();
 extrachill_docs_render_feedback();
 extrachill_docs_render_feedback();
-$check( 1 === substr_count( (string) ob_get_clean(), 'class="docs-feedback"' ), 'renders exactly once' );
+$check( 1 === substr_count( (string) ob_get_clean(), 'data-docs-feedback-block' ), 'renders exactly once' );
 
 extrachill_docs_enqueue_feedback();
 $check( in_array( 'extrachill-docs-feedback', $GLOBALS['ec_test']['enqueued'], true ), 'script enqueued on articles' );

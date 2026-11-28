@@ -13,6 +13,9 @@
     "tests/signed-token-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/taxonomy-count-pagination-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/taxonomy-count-errors-smoke.php": {
       "environment": "standalone-php"
     },
@@ -20,6 +23,12 @@
       "environment": "standalone-php"
     },
     "tests/ability-site-affinity-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/post-ad-free-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/comment-policy-smoke.php": {
       "environment": "standalone-php"
     },
     "tests/ad-policy-smoke.php": {

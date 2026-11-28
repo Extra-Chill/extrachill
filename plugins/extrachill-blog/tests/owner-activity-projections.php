@@ -3,7 +3,10 @@
 
 define( 'ABSPATH', __DIR__ . '/' );
 
-class WP_Error {}
+class WP_Error {
+	public function get_error_code() { return 'projection_failed'; }
+	public function get_error_message() { return ''; }
+}
 class WP_Post {}
 class WP_Term {
 	public $slug = 'test-artist';

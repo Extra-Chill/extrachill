@@ -53,8 +53,13 @@ $ec_shop_config = array(
 	'pageUrl'            => esc_url_raw( (string) get_permalink() ),
 	// Shown beside "Connect payouts"; one source of truth in inc/core/legal-documents.php.
 	'sellerAgreementUrl' => esc_url_raw( extrachill_shop_legal_document( 'seller_agreement', 'url' ) ),
-	// Fee rates the Seller Agreement promises sellers see before listing.
-	'fees'               => extrachill_shop_seller_fee_rates(),
+	// Fee rates the Seller Agreement promises sellers see before listing: this seller's, overrides included.
+	'fees'               => extrachill_shop_seller_fee_rates(
+		array(
+			'type' => $ec_shop_state['selected']['type'],
+			'id'   => (int) $ec_shop_state['selected']['id'],
+		)
+	),
 );
 
 $ec_shop_wrapper = get_block_wrapper_attributes( array( 'class' => 'ec-shop-manager' ) );

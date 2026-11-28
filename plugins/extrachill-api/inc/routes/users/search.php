@@ -63,6 +63,7 @@ function extrachill_api_register_user_search_routes() {
  * @return bool|WP_Error True if authorized, WP_Error otherwise.
  */
 function extrachill_api_user_search_permission_check( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',

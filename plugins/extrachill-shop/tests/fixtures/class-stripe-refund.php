@@ -9,6 +9,8 @@ namespace Stripe;
 
 class Refund {
 	public static function create( $params, $options ) {
+		// Every attempt's idempotency key, failed ones included.
+		$GLOBALS['stripe_refund_attempt_keys'][] = $options['idempotency_key'] ?? '';
 		if ( ! empty( $GLOBALS['ticket_refund_fail'] ) ) {
 			throw new \RuntimeException( 'Stripe unavailable' ); }
 		$GLOBALS['ticket_refunds'][] = array( $params, $options );

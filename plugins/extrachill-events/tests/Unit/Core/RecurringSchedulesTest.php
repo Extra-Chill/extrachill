@@ -22,6 +22,7 @@ class RecurringSchedulesTest extends TestCase {
 		$schedules = \ExtraChillEvents\Providers\IngestionProvider::register_recurring_schedules( array() );
 
 		$this->assertSame( '0 15 * * 4', $schedules['extrachill_local_scene_digest']['interval'], 'Local Scene digest: Thursdays 15:00 UTC.' );
+		$this->assertSame( '0 16 * * 4', $schedules['extrachill_venue_show_updates']['interval'], 'Venue show updates: Thursdays 16:00 UTC.' );
 		$this->assertSame( '0 9 * * 1', $schedules['extrachill_qualify_digest']['interval'], 'Qualify digest: Mondays 09:00 UTC.' );
 		$this->assertSame( '0 9 * * *', $schedules['extrachill_pending_event_submissions']['interval'], 'Pending submissions: daily 09:00 UTC.' );
 
@@ -31,5 +32,7 @@ class RecurringSchedulesTest extends TestCase {
 			$this->assertCount( 5, preg_split( '/\s+/', trim( $schedule['interval'] ) ), $id . ' interval is a 5-field cron expression.' );
 		}
 		$this->assertFalse( $schedules['extrachill_local_scene_digest']['default_enabled'], 'Subscriber email stays opt-in to enable.' );
+		$this->assertFalse( $schedules['extrachill_venue_show_updates']['default_enabled'], 'Venue email stays opt-in to enable.' );
+		$this->assertSame( 'extrachill_venue_show_updates_enabled', $schedules['extrachill_venue_show_updates']['enabled_setting'] );
 	}
 }

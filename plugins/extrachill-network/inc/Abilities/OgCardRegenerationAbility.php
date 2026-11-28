@@ -301,11 +301,11 @@ class OgCardRegenerationAbility {
 	/**
 	 * Bulk mode: process a bounded candidate list.
 	 *
-	 * @param array{ids: int[], has_more: bool} $candidates Candidate set for this call.
-	 * @param bool                              $force      Bypass the signature check.
-	 * @param bool                              $dry_run    Report only, write nothing.
-	 * @param int                                $blog_id    Blog id being operated on.
-	 * @param string                             $mode       Bulk mode label for the response.
+	 * @param array{ids: int[], has_more: bool, offset: int} $candidates Candidate set for this call.
+	 * @param bool                                           $force      Bypass the signature check.
+	 * @param bool                                           $dry_run    Report only, write nothing.
+	 * @param int                                            $blog_id    Blog id being operated on.
+	 * @param string                                         $mode       Bulk mode label for the response.
 	 * @return array
 	 */
 	private function executeBulk( array $candidates, bool $force, bool $dry_run, int $blog_id, string $mode ): array {
@@ -449,7 +449,9 @@ class OgCardRegenerationAbility {
 			)
 		);
 
-		$ids      = array_map( 'absint', (array) $query->posts );
+		/** @var int[] $post_ids `fields => ids` makes WP_Query return IDs. */
+		$post_ids = $query->posts;
+		$ids      = array_map( 'absint', (array) $post_ids );
 		$has_more = count( $ids ) > $limit;
 
 		return array(
@@ -469,7 +471,7 @@ class OgCardRegenerationAbility {
 	 *
 	 * @param int $limit  Max candidates to return.
 	 * @param int $offset Candidate offset.
-	 * @return array{ids: int[], has_more: bool, offset: int, orphans: array}
+	 * @return array{ids: int[], has_more: bool, offset: int}
 	 */
 	private function diskCandidates( int $limit, int $offset ): array {
 		$upload_dir = wp_upload_dir();

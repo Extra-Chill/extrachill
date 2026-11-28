@@ -34,12 +34,18 @@
 			     declared in homeboy.json. -->
 			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
 			<exclude>tests/Unit/Core/DataMachineSettingsTest.php</exclude>
+			<!-- Pure-PHP Eventbrite import test with file-level doubles; runs in
+			     phpunit-eventbrite-import-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/EventbriteAttendeeImportTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
 			<exclude>tests/Unit/Core/SubmitCtasTest.php</exclude>
 			<exclude>tests/Unit/Core/SubmitLandingTest.php</exclude>
 			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
 			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<!-- Pure-PHP host screen test with host-panel and door-row fixtures
+			     (extrachill#1702); runs in phpunit-rsvp-perks-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/GuestCheckInTest.php</exclude>
 			<exclude>tests/Unit/Core/GuestListPassImageUploadTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>

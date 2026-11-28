@@ -154,9 +154,6 @@ function ec_migrate_post( int $source_blog_id, int $post_id, int $dest_blog_id, 
 	// attachments there. Build old_id=>new_id and old_url=>new_url maps.
 	// ---------------------------------------------------------------------
 	$copy = ec_migrate_copy_attachments( $attachments, $dest_blog_id );
-	if ( is_wp_error( $copy ) ) {
-		return $copy;
-	}
 
 	$attachment_map  = $copy['attachment_map'];
 	$url_map         = $copy['url_map'];
@@ -239,7 +236,7 @@ function ec_migrate_post( int $source_blog_id, int $post_id, int $dest_blog_id, 
 		if ( ! empty( $unrewritten_urls ) ) {
 			$source_delete_blocked = true;
 		} else {
-			$deleted        = ec_migrate_delete_source( $source_blog_id, $post_id, array_keys( $attachments ) );
+			$deleted        = ec_migrate_delete_source( $source_blog_id, $post_id, array_map( 'intval', array_keys( $attachments ) ) );
 			$source_deleted = ! is_wp_error( $deleted ) && $deleted;
 		}
 	}
@@ -370,7 +367,8 @@ function ec_migrate_read_source( int $source_blog_id, int $post_id ) {
 function ec_migrate_collect_attachment_ids( int $post_id, string $content ): array {
 	$ids = array();
 
-	// Children (parent = post).
+	// Children (parent = post). `fields => ids` makes get_children() return IDs.
+	/** @var int[] $children */
 	$children = get_children(
 		array(
 			'post_parent'    => $post_id,
@@ -423,7 +421,8 @@ function ec_migrate_extract_referenced_ids( string $content ): array {
 	// "ids":[1,2,3] arrays — capture the array body then pull each number.
 	if ( preg_match_all( '/"ids"\s*:\s*\[([0-9,\s]*)\]/', $content, $m ) ) {
 		foreach ( $m[1] as $list ) {
-			foreach ( preg_split( '/[,\s]+/', $list, -1, PREG_SPLIT_NO_EMPTY ) as $n ) {
+			$numbers = preg_split( '/[,\s]+/', $list, -1, PREG_SPLIT_NO_EMPTY );
+			foreach ( false === $numbers ? array() : $numbers as $n ) {
 				$ids[] = (int) $n;
 			}
 		}
@@ -486,7 +485,7 @@ function ec_migrate_collect_terms( int $post_id, string $post_type ): array {
  *
  * @param array $attachments  id => descriptor (from ec_migrate_read_source).
  * @param int   $dest_blog_id Destination blog ID.
- * @return array|WP_Error {
+ * @return array {
  *     @type array $attachment_map     old_id => new_id.
  *     @type array $url_map            old_url => new_url.
  *     @type int[] $new_attachment_ids New attachment IDs on dest.
@@ -945,7 +944,7 @@ function ec_migrate_create_dest_post(
 					$term = $slug ? get_term_by( 'slug', $slug, $taxonomy ) : false;
 					if ( ! $term && $name ) {
 						$created = wp_insert_term( $name, $taxonomy, array( 'slug' => $slug ) );
-						if ( ! is_wp_error( $created ) && isset( $created['term_id'] ) ) {
+						if ( ! is_wp_error( $created ) ) {
 							$term = get_term( (int) $created['term_id'], $taxonomy );
 						}
 					}

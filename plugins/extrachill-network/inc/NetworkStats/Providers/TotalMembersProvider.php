@@ -52,6 +52,7 @@ class TotalMembersProvider extends AbstractMetricProvider {
 		try {
 			$total = get_transient( 'total_members_count' );
 			if ( false === $total ) {
+				/** @var array<string, mixed> $user_count The `pre_count_users` filter can short-circuit with any shape. */
 				$user_count = count_users();
 				$total      = isset( $user_count['total_users'] ) ? (int) $user_count['total_users'] : null;
 				if ( null !== $total ) {

@@ -121,23 +121,12 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 				continue;
 			}
 
-			// Limit to maximum 3 terms per taxonomy with smart selection
+			// Limit to maximum 3 terms per taxonomy. Sort-enabled taxonomies
+			// lead with their stored per-object order (core term_order).
 			if ( count( $terms ) > 3 ) {
-				// Sort by post count (descending), then alphabetically (ascending)
-				usort(
-					$terms,
-					function ( $a, $b ) {
-						// Primary sort: higher post count first
-						if ( $a->count !== $b->count ) {
-								return $b->count - $a->count;
-						}
-						// Secondary sort: alphabetical by name
-						return strcmp( $a->name, $b->name );
-					}
-				);
-
-				// Take only the top 3 terms
-				$terms = array_slice( $terms, 0, 3 );
+				$tax_object  = get_taxonomy( $taxonomy );
+				$term_orders = ( $tax_object && ! empty( $tax_object->sort ) ) ? extrachill_get_object_term_orders( $post_id, $taxonomy ) : array();
+				$terms       = extrachill_select_badge_terms( $terms, $term_orders, 3 );
 			}
 
 			foreach ( $terms as $term ) {
@@ -193,4 +182,65 @@ function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) 
 			echo wp_kses_post( $badges_html );
 		}
 	}
+}
+
+/**
+ * Read stored per-object term order for a sort-enabled taxonomy.
+ *
+ * Core persists term_relationships.term_order when a taxonomy registers
+ * with 'sort' => true but does not expose it on WP_Term.
+ *
+ * @param int    $post_id  Object ID.
+ * @param string $taxonomy Taxonomy slug.
+ * @return array<int,int> Map of term_taxonomy_id => term_order.
+ */
+function extrachill_get_object_term_orders( $post_id, $taxonomy ) {
+	global $wpdb;
+
+	$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- term_order is not exposed by the term APIs; read per render of a capped badge list.
+		$wpdb->prepare(
+			"SELECT tr.term_taxonomy_id, tr.term_order FROM {$wpdb->term_relationships} tr INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tr.object_id = %d AND tt.taxonomy = %s",
+			(int) $post_id,
+			$taxonomy
+		)
+	);
+
+	$orders = array();
+	foreach ( (array) $rows as $row ) {
+		$orders[ (int) $row->term_taxonomy_id ] = (int) $row->term_order;
+	}
+	return $orders;
+}
+
+/**
+ * Select the badge terms to display.
+ *
+ * Terms with a stored order (> 0) lead in that order. Terms without one
+ * (legacy relationships or non-sort taxonomies) follow, by post count
+ * descending, then name, which matches the historical selection.
+ *
+ * @param WP_Term[]      $terms       Terms assigned to the object.
+ * @param array<int,int> $term_orders Map of term_taxonomy_id => term_order.
+ * @param int            $limit       Maximum terms to return.
+ * @return WP_Term[]
+ */
+function extrachill_select_badge_terms( array $terms, array $term_orders, $limit = 3 ) {
+	usort(
+		$terms,
+		function ( $a, $b ) use ( $term_orders ) {
+			$order_a = (int) ( $term_orders[ (int) $a->term_taxonomy_id ] ?? 0 );
+			$order_b = (int) ( $term_orders[ (int) $b->term_taxonomy_id ] ?? 0 );
+			$order_a = $order_a > 0 ? $order_a : PHP_INT_MAX;
+			$order_b = $order_b > 0 ? $order_b : PHP_INT_MAX;
+			if ( $order_a !== $order_b ) {
+				return $order_a <=> $order_b;
+			}
+			if ( $a->count !== $b->count ) {
+				return $b->count - $a->count;
+			}
+			return strcmp( $a->name, $b->name );
+		}
+	);
+
+	return array_slice( $terms, 0, (int) $limit );
 }

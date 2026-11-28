@@ -76,6 +76,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * Breadcrumb structure:
  * - Single forum: Community › Parent Forum › ... › Forum Name
  * - Single topic: Community › Parent Forum › ... › Forum Name › Topic Name
+ * - Topic or reply edit: Community › Parent Forum › ... › Forum Name › Topic Name › Edit
  * - User profile: Community › Username
  * - Custom pages: Community › Page Name
  *
@@ -94,30 +95,28 @@ function extrachill_community_breadcrumb_trail( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	// Topic edit: Community › Parent Forums › Forum Name › Topic Name › Edit
-	if ( function_exists( 'bbp_is_topic_edit' ) && bbp_is_topic_edit() ) {
-		$topic_id = bbp_get_topic_id();
-		$forum_id = bbp_get_topic_forum_id( $topic_id );
-		$trail    = '';
+	// Reply edits derive the topic from the edited reply, not the current topic query.
+	$is_reply_edit = function_exists( 'bbp_is_reply_edit' ) && bbp_is_reply_edit();
+	if ( $is_reply_edit || ( function_exists( 'bbp_is_topic_edit' ) && bbp_is_topic_edit() ) ) {
+		$topic_id = $is_reply_edit ? bbp_get_reply_topic_id( bbp_get_reply_id() ) : bbp_get_topic_id();
+		$forum_id = $topic_id ? bbp_get_topic_forum_id( $topic_id ) : 0;
+		$crumbs   = array();
 
 		if ( $forum_id ) {
-			$ancestors = bbp_get_forum_ancestors( $forum_id );
+			$forum_ids   = array_reverse( bbp_get_forum_ancestors( $forum_id ) );
+			$forum_ids[] = $forum_id;
 
-			if ( ! empty( $ancestors ) ) {
-				$ancestors = array_reverse( $ancestors );
-
-				foreach ( $ancestors as $ancestor_id ) {
-					$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $ancestor_id ) ) . '">' . esc_html( bbp_get_forum_title( $ancestor_id ) ) . '</a> › ';
-				}
+			foreach ( $forum_ids as $id ) {
+				$crumbs[] = '<a href="' . esc_url( bbp_get_forum_permalink( $id ) ) . '">' . esc_html( bbp_get_forum_title( $id ) ) . '</a>';
 			}
-
-			$trail .= '<a href="' . esc_url( bbp_get_forum_permalink( $forum_id ) ) . '">' . esc_html( bbp_get_forum_title( $forum_id ) ) . '</a>';
 		}
 
-		$trail .= ' › <a href="' . esc_url( bbp_get_topic_permalink( $topic_id ) ) . '">' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</a>';
-		$trail .= ' › <span class="breadcrumb-title">' . esc_html__( 'Edit', 'extra-chill-community' ) . '</span>';
+		if ( $topic_id ) {
+			$crumbs[] = '<a href="' . esc_url( bbp_get_topic_permalink( $topic_id ) ) . '">' . esc_html( bbp_get_topic_title( $topic_id ) ) . '</a>';
+		}
+		$crumbs[] = '<span class="breadcrumb-title">' . esc_html__( 'Edit', 'extra-chill-community' ) . '</span>';
 
-		return $trail;
+		return implode( ' › ', $crumbs );
 	}
 
 	// Single topic

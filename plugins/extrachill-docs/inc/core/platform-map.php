@@ -68,11 +68,11 @@ function extrachill_docs_load_platform_map(): array {
 			continue;
 		}
 
-		// Only identity fields at four spaces; nested runner settings are ignored.
+		// Only section fields at four spaces; nested runner settings are ignored.
 		if ( null !== $current_repo && preg_match( '/^    ([a-z_]+):\s*"?([^"\n]*)"?\s*$/', $raw, $matches ) ) {
 			$key   = $matches[1];
 			$value = trim( $matches[2], " \t\"'" );
-			if ( '' !== $key && '' !== $value ) {
+			if ( '' !== $value ) {
 				$current[ $key ] = $value;
 			}
 		}
@@ -81,6 +81,30 @@ function extrachill_docs_load_platform_map(): array {
 	extrachill_docs_flush_platform_map_entry( $out, $current_repo, $current );
 
 	return $out;
+}
+
+/**
+ * Get a section's description, or null if its slug is not in the map.
+ *
+ * Multiple publishing components can share a section (for example, Accounts).
+ * Use the first non-empty description for each slug.
+ *
+ * @param string $slug Section page slug.
+ * @return string|null
+ */
+function extrachill_docs_get_section_description( string $slug ): ?string {
+	static $descriptions = null;
+	if ( null === $descriptions ) {
+		$descriptions = array();
+		foreach ( extrachill_docs_load_platform_map() as $entry ) {
+			$parent_slug = $entry['parent_slug'];
+			if ( empty( $descriptions[ $parent_slug ] ) ) {
+				$descriptions[ $parent_slug ] = $entry['description'];
+			}
+		}
+	}
+
+	return $descriptions[ $slug ] ?? null;
 }
 
 /**
@@ -111,6 +135,7 @@ function extrachill_docs_flush_platform_map_entry( array &$out, ?string $current
 		'repo'         => $current_repo,
 		'parent_slug'  => $parent_slug,
 		'parent_title' => $platform,
+		'description'  => $current['description'] ?? '',
 		'docs_subpath' => $docs_subpath,
 		'post_status'  => $post_status,
 	);

@@ -88,6 +88,38 @@ function get_upvote_count($post_id) {
 	return is_numeric($count) ? intval($count) : 0;
 }
 
+/**
+ * Render the upvote control shared by topic and reply cards.
+ *
+ * @param int    $post_id Post displayed on the card.
+ * @param string $type    Vote type ('topic' or 'reply').
+ */
+function extrachill_community_render_upvote( $post_id, $type ) {
+	$user_id       = get_current_user_id();
+	$upvoted_posts = $user_id ? get_user_meta( $user_id, 'upvoted_posts', true ) : array();
+	$is_upvoted    = is_array( $upvoted_posts ) && in_array( $post_id, $upvoted_posts, true );
+	$icon_id       = $is_upvoted ? 'circle-up' : 'circle-up-outline';
+	$display_count = get_upvote_count( $post_id ) + 1;
+	?>
+	<div class="upvote">
+		<?php if ( $user_id ) : ?>
+			<span class="upvote-icon" data-post-id="<?php echo esc_attr( (string) $post_id ); ?>" data-type="<?php echo esc_attr( $type ); ?>" data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
+				<?php echo ec_icon( $icon_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG for a fixed internal icon ID. ?>
+			</span>
+		<?php else : ?>
+			<?php
+			// Return to the page containing the card, including any feed filters.
+			$login_url = wp_login_url( home_url( add_query_arg( array() ) ) );
+			?>
+			<a class="upvote-icon button-3 button-small" href="<?php echo esc_url( $login_url ); ?>" aria-label="<?php esc_attr_e( 'Log in to upvote', 'extra-chill-community' ); ?>">
+				<?php echo ec_icon( 'circle-up-outline' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted SVG for a fixed internal icon ID. ?>
+			</a>
+		<?php endif; ?>
+		<span class="upvote-count"><?php echo esc_html( (string) $display_count ); ?></span>
+	</div>
+	<?php
+}
+
 function extrachill_get_upvoted_posts($post_type, $user_id = null) {
 	$current_user_id = get_current_user_id();
 	$upvoted         = $user_id ? array( $user_id ) : get_user_meta($current_user_id, 'upvoted_posts', true);

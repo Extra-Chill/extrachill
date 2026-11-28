@@ -356,6 +356,97 @@ function ec_seo_resolve_offer_url( string $ticket_url, string $fallback_url ): s
 }
 
 /**
+ * Order artist terms using legacy billing hints, without inferring billing roles.
+ *
+ * Performer-text matches precede title-only matches; unmatched acts sort by name
+ * and term ID for deterministic output. Replace this ranking with the canonical
+ * structured performer order when data-machine#3823 exposes its read contract.
+ * No parallel lineup storage or guessed structured-performer attributes here.
+ *
+ * @param array  $terms          Assigned artist terms.
+ * @param string $performer_name Legacy performer text.
+ * @param string $title          Event title.
+ * @return array Ordered, case-insensitively deduplicated artist terms.
+ */
+function ec_seo_order_event_artist_terms( array $terms, string $performer_name, string $title ): array {
+	$ranked = array();
+	foreach ( $terms as $term ) {
+		if ( ! ( $term instanceof \WP_Term ) || '' === trim( $term->name ) ) {
+			continue;
+		}
+
+		$position = mb_stripos( $performer_name, $term->name );
+		$source   = 0;
+		if ( false === $position ) {
+			$position = mb_stripos( $title, $term->name );
+			$source   = 1;
+		}
+		if ( false === $position ) {
+			$source   = 2;
+			$position = 0;
+		}
+		$ranked[] = array(
+			'term' => $term,
+			'rank' => array( $source, $position, mb_strtolower( $term->name ), (int) $term->term_id ),
+		);
+	}
+
+	usort( $ranked, static function ( array $a, array $b ): int {
+		return $a['rank'] <=> $b['rank'];
+	} );
+
+	$seen    = array();
+	$ordered = array();
+	foreach ( $ranked as $item ) {
+		$key = mb_strtolower( $item['term']->name );
+		if ( isset( $seen[ $key ] ) ) {
+			continue;
+		}
+		$seen[ $key ] = true;
+		$ordered[]    = $item['term'];
+	}
+	return $ordered;
+}
+
+/**
+ * Resolve performer schema from artist terms, falling back to unsplit legacy text.
+ *
+ * @param \WP_Post $post  Event post.
+ * @param array    $attrs Event-details attributes.
+ * @return array Performer entities, a single legacy entity, or an empty array.
+ */
+function ec_seo_resolve_event_performers( \WP_Post $post, array $attrs ): array {
+	$name = isset( $attrs['performer'] ) ? trim( (string) $attrs['performer'] ) : '';
+	$type = ! empty( $attrs['performerType'] ) ? (string) $attrs['performerType'] : 'MusicGroup';
+	if ( ! in_array( $type, array( 'MusicGroup', 'Person' ), true ) ) {
+		$type = 'MusicGroup';
+	}
+
+	$terms      = get_the_terms( $post->ID, 'artist' );
+	$terms      = is_array( $terms ) ? ec_seo_order_event_artist_terms( $terms, $name, $post->post_title ) : array();
+	$performers = array();
+	foreach ( $terms as $term ) {
+		$entity = array(
+			'@type' => $type,
+			'name'  => $term->name,
+		);
+		$url    = get_term_link( $term );
+		if ( ! is_wp_error( $url ) && '' !== $url ) {
+			$entity['url'] = $url;
+		}
+		$performers[] = $entity;
+	}
+
+	if ( ! empty( $performers ) ) {
+		return $performers;
+	}
+	return '' !== $name ? array(
+		'@type' => $type,
+		'name'  => $name,
+	) : array();
+}
+
+/**
  * Build the Event schema entity for a single event post.
  *
  * @param \WP_Post $post  Event post.
@@ -495,18 +586,10 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		$schema['location'] = $place;
 	}
 
-	// performer: skip when empty.
-	$performer_name = isset( $attrs['performer'] ) ? trim( (string) $attrs['performer'] ) : '';
-	if ( '' !== $performer_name ) {
-		$performer_type = ! empty( $attrs['performerType'] ) ? (string) $attrs['performerType'] : 'MusicGroup';
-		// Only allow the two canonical schema.org performer types.
-		if ( ! in_array( $performer_type, array( 'MusicGroup', 'Person' ), true ) ) {
-			$performer_type = 'MusicGroup';
-		}
-		$schema['performer'] = array(
-			'@type' => $performer_type,
-			'name'  => $performer_name,
-		);
+	// Artist terms are authoritative; legacy free text remains unsplit.
+	$performers = ec_seo_resolve_event_performers( $post, $attrs );
+	if ( ! empty( $performers ) ) {
+		$schema['performer'] = $performers;
 	}
 
 	// organizer: skip when empty.
@@ -562,6 +645,49 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 	}
 
 	return $schema;
+}
+
+/**
+ * Public seam: the standalone Event entity our own event page emits.
+ *
+ * Returns exactly what `ec_seo_emit_event_schema()` appends to the page
+ * graph for this post (same builder, same entity-decoding boundary as
+ * `ec_seo_get_schema_graph()`), plus `@context` so the entity can be
+ * emitted on its own, e.g. on a partner venue's website. Fixes to
+ * `ec_seo_build_event_schema()` therefore reach every consumer.
+ *
+ * Events live on the events site. When called from another blog this
+ * switches there for the read and always restores the caller's blog. Note
+ * that site-scoped plugins (data-machine-events) are not bootstrapped by
+ * switch_to_blog(), so callers that need venue enrichment should run on the
+ * events site (the partner REST route does, via route affinity).
+ *
+ * @param int $post_id Event post ID.
+ * @return array|null Event entity with `@context`, or null when the post is
+ *                    not a published event with a start date.
+ */
+function ec_seo_get_event_schema( int $post_id ): ?array {
+	$build = static function () use ( $post_id ): ?array {
+		$post = $post_id > 0 ? get_post( $post_id ) : null;
+		if ( ! ( $post instanceof \WP_Post ) || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return null;
+		}
+
+		$attrs = ec_seo_extract_event_details_block( $post->post_content );
+		if ( empty( $attrs ) || empty( $attrs['startDate'] ) ) {
+			return null;
+		}
+
+		$event = ec_seo_build_event_schema( $post, $attrs );
+		if ( null === $event ) {
+			return null;
+		}
+
+		return array_merge( array( '@context' => 'https://schema.org' ), ec_seo_normalize_schema_values( $event ) );
+	};
+
+	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	return function_exists( 'ec_with_blog' ) ? ec_with_blog( $events_blog, $build ) : $build();
 }
 
 /**
