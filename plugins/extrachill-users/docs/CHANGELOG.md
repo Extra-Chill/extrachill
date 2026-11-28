@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.77.2] - 2026-11-28
+
+### Fixed
+- route partner RSVPs into My Shows
+
 ## [0.77.1] - 2026-11-25
 
 ### Fixed
