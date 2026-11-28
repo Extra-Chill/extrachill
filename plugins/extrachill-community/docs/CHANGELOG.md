@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.35.1] - 2026-11-28
+
+### Fixed
+- boot core-dependent smokes from HOMEBOY_WORDPRESS_CORE_ROOT
+
 ## [1.35.0] - 2026-11-17
 
 ### Added
