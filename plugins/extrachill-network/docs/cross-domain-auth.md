@@ -25,7 +25,7 @@ The Extra Chill Platform implements WordPress native multisite authentication ac
 **Cookie Configuration**: WordPress sets the multisite auth cookie for:
 - `.extrachill.com` (wildcard, covers all subdomains — derived automatically by WordPress core, no custom config)
 
-`extrachill.link` never receives this cookie. It authenticates separately via a bearer token handoff (see below).
+`extrachill.link` never receives this cookie. It uses host-only WordPress auth cookies (see below).
 
 ## WordPress Multisite Authentication
 
@@ -57,7 +57,7 @@ wordpress_logged_in_<SITECOOKIEHASH>
 
 ### Cookie Domain Configuration
 
-**`COOKIE_DOMAIN` is not defined anywhere in `wp-config.php`, and it should not be.** This is plain WordPress core behavior for subdomain multisite installs — zero custom code required.
+**Do not define `COOKIE_DOMAIN` in `wp-config.php`.** Core handles the network subdomains, and the network plugin sets a host-only value on the Link Pages host.
 
 `wp-config.php` (verified live, `wp-config.php:85-92`) only defines the multisite bootstrap constants:
 
@@ -79,11 +79,11 @@ if ( ! defined( 'COOKIE_DOMAIN' ) && is_subdomain_install() ) {
 }
 ```
 
-Because `SUBDOMAIN_INSTALL` is `true` and the network domain is `extrachill.com`, core defines `COOKIE_DOMAIN` as `.extrachill.com` on every request, with no plugin or config-file involvement. This is the cleanest seam in this network's auth model: cross-subdomain SSO across `*.extrachill.com` is stock WordPress multisite, not custom infrastructure. Do not add an explicit `COOKIE_DOMAIN` define — it would be redundant at best, and risks fighting the network's `cookie_domain` value if the network row ever changes.
+Because `SUBDOMAIN_INSTALL` is `true` and the network domain is `extrachill.com`, core defines `COOKIE_DOMAIN` as `.extrachill.com` on network-domain requests, with no plugin or config-file involvement. This is the cleanest seam in this network's auth model: cross-subdomain SSO across `*.extrachill.com` is stock WordPress multisite, not custom infrastructure. Do not add an explicit `COOKIE_DOMAIN` define — it would be redundant at best, and risks fighting the network's `cookie_domain` value if the network row ever changes.
 
 **Result**: Single login session across all `.extrachill.com` subdomains, entirely via core's default derivation.
 
-**The one exception is `extrachill.link`** — a different registrable domain, so it can never receive the `.extrachill.com` cookie no matter how `COOKIE_DOMAIN` is set. It is a native multisite domain for its own site (blog 13), so routing is stock core; only authentication needs bespoke handling via a separate bearer-token handoff. See [Domain Mapping for extrachill.link](#domain-mapping-for-extrachilllink) and the [Notes](#notes) section below.
+**The one exception is `extrachill.link`** — a different registrable domain, so it can never receive the `.extrachill.com` cookie no matter how `COOKIE_DOMAIN` is set. It is a native multisite domain for its own site (blog 13), so routing is stock core; authentication uses a browser SSO handoff to create a separate WordPress session. See [Domain Mapping for extrachill.link](#domain-mapping-for-extrachilllink) and the [Notes](#notes) section below.
 
 ## Domain Mapping for extrachill.link
 
@@ -114,7 +114,7 @@ Because `SUBDOMAIN_INSTALL` is `true` and the network domain is `extrachill.com`
 
 **extrachill.com Cookies**: The `.extrachill.com` auth cookie is accessible on all `.extrachill.com` subdomains (`community.extrachill.com`, `shop.extrachill.com`, `artist.extrachill.com`, etc.) because they share a registrable domain.
 
-**extrachill.link Cookies**: `extrachill.link` is a **different registrable domain** than `extrachill.com`, so the `.extrachill.com` auth cookie is never sent there — not by the browser, not by any Domain-attribute trick, because cookie scoping is bound to the registrable domain regardless of which blog serves it. `extrachill.link` authenticates via a separate bearer-token handoff instead of a shared cookie. See [Notes](#notes) below for the mechanism.
+**extrachill.link Cookies**: `extrachill.link` is a **different registrable domain** than `extrachill.com`, so the `.extrachill.com` auth cookie is never sent there — not by the browser, not by any Domain-attribute trick, because cookie scoping is bound to the registrable domain regardless of which blog serves it. `extrachill.link` uses a separate WordPress session and a host-only cookie. See [Notes](#notes) below for the mechanism.
 
 **Cookie Scope**:
 ```
@@ -128,14 +128,14 @@ Because `SUBDOMAIN_INSTALL` is `true` and the network domain is `extrachill.com`
 extrachill.link mapping:
 - WordPress core resolves the host to the Link Pages site (Blog ID 13)
 - Does NOT receive the .extrachill.com cookie (different registrable domain)
-- Authenticated actions use a bearer token instead — see Notes
+- Authenticated REST actions use the local WordPress cookie and a `wp_rest` nonce
 ```
 
 ### Session Consistency
 
-**Single Session**: User's WordPress session is one per user, not per domain — but only across sites that share the `.extrachill.com` cookie. `extrachill.link` authenticates out-of-band via the bearer-token handoff, not via shared session cookies.
+**Single Session**: User's WordPress session is one per user, not per domain — but only across sites that share the `.extrachill.com` cookie. The browser handoff creates an independent session on `extrachill.link`.
 
-**Logout Behavior**: Logout from any `.extrachill.com` site clears the shared session cookie across all `.extrachill.com` domains. It does not directly affect an `extrachill.link` bearer token already issued to a client, since that token is a separate credential (see Notes).
+**Logout Behavior**: Logout from any `.extrachill.com` site clears the shared session cookie across all `.extrachill.com` domains. Logout on either domain does not end the session on the other. Sign out on both domains to end both sessions. A later visit to `/edit` can create a new Link Pages session if the network session is still active.
 
 **Blog Switching**: User remains logged in when visiting different `.extrachill.com` sites
 
@@ -369,15 +369,16 @@ Cross-domain auth relies on:
 
 - WordPress core's automatic `COOKIE_DOMAIN` derivation (`.extrachill.com`) for subdomain multisite — no explicit `COOKIE_DOMAIN` define, see [Cookie Domain Configuration](#cookie-domain-configuration) above
 - `extrachill.link` as a native multisite domain for blog 13 (no domain-mapping drop-in)
-- For `extrachill.link` (a different registrable domain than `.extrachill.com`, so the auth cookie can never reach it), authenticated REST calls use a **wp-native bearer token** minted by `extrachill-api/inc/auth/extrachill-link-token-handoff.php` on the artist site and handed to the link page in a URL fragment. This replaced the former `SameSite=None; Secure` cookie patch, which modern browser privacy (Safari ITP, Chrome third-party-cookie phase-out) increasingly blocked.
-
-Cookie domain configuration lives in WordPress core's multisite bootstrap (not an explicit config define) and the hosting/proxy layer.
+- `extrachill-network` defines `COOKIE_DOMAIN` as `''` on the canonical Link Pages host before core can derive it from the network domain. No third-party cookies are needed.
+- `/edit` and the header's Log In link start a browser handoff. The artist site uses the network session or redirects to its login page. It hands a 60-second, single-use token back in a URL fragment; an isolated page removes the fragment and submits the token by POST. The Link Pages host checks the initiating browser's state cookie before creating a session.
+- Public Link Pages remain cacheable: the pencil checks the local session separately, and only browsers with an editor hint, a remembered editor marker, or a network referrer try SSO automatically. The hint and marker are not credentials.
+- When deploying, purge cached Link Pages HTML and any previously cached `/edit` response so the new button configuration and private editor response take effect.
 
 ### Cookie domain expectations
 
 **Check 1: Cookie Domain Derivation**
 - `COOKIE_DOMAIN` should **not** appear as an explicit `define()` in `wp-config.php` — if it does, someone added a redundant (or worse, conflicting) override of core's automatic derivation.
-- To verify the effective value at runtime: `wp eval 'var_dump( COOKIE_DOMAIN );'` should print `string(15) ".extrachill.com"`.
+- To verify the effective value at runtime: `wp --url=https://extrachill.com eval 'var_dump( COOKIE_DOMAIN );'` should show `.extrachill.com`. The equivalent command with `--url=https://extrachill.link` should show `string(0) ""`.
 
 **Check 2: HTTPS Configuration**
 - Ensure all sites use HTTPS
@@ -415,6 +416,6 @@ Cookie domain configuration lives in WordPress core's multisite bootstrap (not a
 
 - [Blog ID Helpers](blog-id-helpers.md)
 - [extrachill-users authentication](../../extrachill-users/docs/authentication.md) - Authentication system
-- `extrachill-api/inc/auth/extrachill-link-token-handoff.php` - `extrachill.link` bearer-token handoff implementation
+- `inc/link-pages/browser-session.php` - `extrachill.link` browser SSO
 - [WordPress Multisite Handbook](https://developer.wordpress.org/plugins/multisite/)
 - [WordPress Security Handbook](https://developer.wordpress.org/plugins/security/)

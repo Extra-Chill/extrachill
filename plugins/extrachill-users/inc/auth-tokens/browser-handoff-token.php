@@ -33,9 +33,10 @@ add_action(
  *
  * @param int    $user_id      User ID.
  * @param string $redirect_url Destination URL after cookies are set.
+ * @param string $browser_state_hash Optional SHA-256 challenge for a browser-bound, POST-only handoff.
  * @return string Token.
  */
-function extrachill_users_create_browser_handoff_token( int $user_id, string $redirect_url ): string {
+function extrachill_users_create_browser_handoff_token( int $user_id, string $redirect_url, string $browser_state_hash = '' ): string {
 	$token = wp_generate_password( 64, false, false );
 	$key   = 'ec_browser_handoff_' . hash( 'sha256', $token );
 
@@ -45,6 +46,7 @@ function extrachill_users_create_browser_handoff_token( int $user_id, string $re
 			'user_id'                => $user_id,
 			'redirect_url'           => $redirect_url,
 			'created_at_ts'          => time(),
+			'browser_state_hash'     => $browser_state_hash,
 			// Lets a Two Factor member's handoff keep the minting session's 2FA.
 			'two_factor_verified_at' => function_exists( 'extrachill_users_current_session_two_factor_time' )
 				? extrachill_users_current_session_two_factor_time( $user_id )

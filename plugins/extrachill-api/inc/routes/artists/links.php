@@ -117,7 +117,7 @@ function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
  * Routes each payload section to the appropriate ability:
  * - links       -> extrachill/save-link-page-links
  * - css_vars    -> extrachill/save-link-page-styles
- * - settings    -> extrachill/save-link-page-settings
+ * - settings, bio -> extrachill/save-link-page-settings
  * - socials     -> extrachill/save-social-links
  * - background_image_id, profile_image_id -> extrachill/save-link-page-settings
  */
@@ -194,7 +194,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	}
 
 	// Save settings via ability.
-	$has_settings = isset( $body['settings'] ) || isset( $body['background_image_id'] ) || isset( $body['profile_image_id'] );
+	$has_settings = isset( $body['settings'] ) || isset( $body['bio'] ) || isset( $body['background_image_id'] ) || isset( $body['profile_image_id'] );
 	if ( $has_settings ) {
 		if ( isset( $body['settings'] ) && ! is_array( $body['settings'] ) ) {
 			return new WP_Error( 'invalid_format', 'settings must be an object.', array( 'status' => 400 ) );
@@ -206,6 +206,12 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		}
 
 		$settings_input = array( 'artist_id' => $artist_id );
+		if ( isset( $body['bio'] ) ) {
+			if ( ! is_string( $body['bio'] ) ) {
+				return new WP_Error( 'invalid_format', 'bio must be a string.', array( 'status' => 400 ) );
+			}
+			$settings_input['bio'] = $body['bio'];
+		}
 		if ( isset( $body['settings'] ) ) {
 			$settings_input['settings'] = $body['settings'];
 		}

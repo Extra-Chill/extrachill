@@ -46,11 +46,11 @@ final class EditEntryTest extends TestCase {
 	}
 
 	public function test_endpoints_are_host_supplied_and_url_sanitized(): void {
-		$this->assertSame( array( 'configuration_url' => '', 'handoff_url' => '', 'login_url' => '' ), ec_get_link_page_edit_endpoints() );
-		add_filter( 'ec_link_page_edit_endpoints', static function () { return array( 'configuration_url' => 'https://host.example/wp-json/x', 'login_url' => 'javascript:alert(1)' ); } );
-		$endpoints = ec_get_link_page_edit_endpoints();
-		$this->assertSame( 'https://host.example/wp-json/x', $endpoints['configuration_url'] );
-		$this->assertSame( '', $endpoints['login_url'] );
+		$this->assertSame( array( 'configuration_url' => '' ), ec_get_link_page_edit_endpoints() );
+		add_filter( 'ec_link_page_edit_endpoints', static function () { return array( 'configuration_url' => 'javascript:alert(1)' ); } );
+		$this->assertSame( array( 'configuration_url' => '' ), ec_get_link_page_edit_endpoints() );
+		add_filter( 'ec_link_page_edit_endpoints', static function () { return array( 'configuration_url' => 'https://host.example/wp-json/x' ); } );
+		$this->assertSame( array( 'configuration_url' => 'https://host.example/wp-json/x' ), ec_get_link_page_edit_endpoints() );
 	}
 
 	public function test_configuration_is_unavailable_without_an_owner_answer(): void {

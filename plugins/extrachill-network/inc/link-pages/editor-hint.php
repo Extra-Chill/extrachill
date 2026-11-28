@@ -2,8 +2,8 @@
 /**
  * Link Page editor hint.
  *
- * The Link Page edit button on the public host needs a bearer token minted on
- * the artist site, which costs a top-level redirect. Anonymous visitors must
+ * Establishing a Link Pages session from the artist site costs a top-level
+ * redirect. Anonymous visitors without an editor signal must
  * never pay it, so the public page only starts that handoff when it has a
  * signal the visitor may be an editor.
  *
@@ -15,7 +15,7 @@
  * happens once, and logging in or out resets it.
  *
  * The hint is not a credential. Anyone can set it on themselves; it only makes
- * the public page try the token handoff, which still authenticates against the
+ * the public page try browser SSO, which still authenticates against the
  * artist site.
  *
  * @package ExtraChill\Network

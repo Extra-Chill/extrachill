@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function extrachill_display_user_avatar_menu() {
 	$login_url    = home_url( user_trailingslashit( '/login' ) );
 	$register_url = $login_url . '#tab-register';
+	$login_url    = apply_filters( 'ec_users_avatar_menu_login_url', $login_url );
 
 	$is_logged_in    = is_user_logged_in();
 	$current_user_id = $is_logged_in ? get_current_user_id() : 0;

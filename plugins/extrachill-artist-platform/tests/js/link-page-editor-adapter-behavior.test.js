@@ -8,7 +8,6 @@ import {
 	deleteMedia,
 } from '../../src/blocks/shared/api/client';
 import { renderToString } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
 import { adapter } from '../../src/blocks/link-page-editor/adapter';
 
 jest.mock( '../../src/blocks/shared/api/client', () => ( {
@@ -25,10 +24,6 @@ jest.mock( '../../src/blocks/shared/api/client', () => ( {
 	uploadMedia: jest.fn(),
 	deleteMedia: jest.fn(),
 	generateQRCode: jest.fn(),
-} ) );
-jest.mock( '@wordpress/api-fetch', () => ( {
-	__esModule: true,
-	default: jest.fn( async () => ( {} ) ),
 } ) );
 
 const draft = {
@@ -116,12 +111,7 @@ describe( 'shared editor Artist adapter', () => {
 
 	it( 'omits unrelated Link Page fields from bio-only saves', async () => {
 		await adapter.save( 7, draft, { dirtyAreas: [ 'bio' ] } );
-		expect( updateLinks ).not.toHaveBeenCalled();
-		expect( apiFetch ).toHaveBeenCalledWith( {
-			path: '/wp-abilities/v1/abilities/extrachill/save-link-page-settings/run',
-			method: 'POST',
-			data: { input: { artist_id: 7, bio: '' } },
-		} );
+		expect( updateLinks ).toHaveBeenCalledWith( 7, { bio: '' } );
 	} );
 
 	it( 'deletes background media before clearing its attachment id', async () => {

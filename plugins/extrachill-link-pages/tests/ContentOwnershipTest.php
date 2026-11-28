@@ -321,10 +321,11 @@ final class ContentOwnershipTest extends TestCase {
 
 	public function test_host_management_endpoints_set_edit_button_attributes(): void {
 		$this->assertArrayNotHasKey( 'data-extrch-permissions-api-url', ec_get_link_page_public_projection( 40 )['body_attributes'] );
-		add_filter( 'ec_link_page_management_endpoints', static function () { return array( 'permissions_url' => 'https://api.example/perm', 'handoff_url' => 'https://auth.example/handoff' ); } );
+		add_filter( 'ec_link_page_management_endpoints', static function () { return array( 'permissions_url' => 'https://api.example/perm', 'session_url' => 'https://api.example/session', 'handoff_url' => 'https://api.example/handoff' ); } );
 		$attributes = ec_get_link_page_public_projection( 40 )['body_attributes'];
 		$this->assertSame( 'https://api.example/perm', $attributes['data-extrch-permissions-api-url'] );
-		$this->assertSame( 'https://auth.example/handoff', $attributes['data-extrch-token-handoff-url'] );
+		$this->assertSame( 'https://api.example/session', $attributes['data-extrch-session-url'] );
+		$this->assertSame( 'https://api.example/handoff', $attributes['data-extrch-session-handoff-url'] );
 	}
 
 	/**

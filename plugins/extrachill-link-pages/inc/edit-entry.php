@@ -2,12 +2,8 @@
 /**
  * Owner-neutral editing entry on the public Link Page host (/edit).
  *
- * The public host does not share the owner sites' auth cookies, so /edit
- * serves a static shell that authenticates with a bearer token from the host
- * site's handoff, fetches the editor configuration for that user, points
- * wp.apiFetch at the host API, loads the owner adapter scripts the
- * configuration lists, and mounts the existing editor. Which pages a user may
- * edit is answered by owner adapters through `ec_link_page_editor_configuration`.
+ * The shell uses the local WordPress session and REST nonce. Owner adapters
+ * answer which pages a user may edit through `ec_link_page_editor_configuration`.
  *
  * @package ExtraChillLinkPages
  */
@@ -17,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Host-supplied endpoints for the /edit shell.
  *
- * @return array{configuration_url:string,handoff_url:string,login_url:string}
+ * @return array{configuration_url:string}
  */
 function ec_get_link_page_edit_endpoints() {
 	/**
@@ -26,22 +22,11 @@ function ec_get_link_page_edit_endpoints() {
 	 *
 	 * Callbacks should return an array; any other value is discarded.
 	 *
-	 * @param array|mixed $endpoints `configuration_url` (GET, bearer token,
-	 *                               returns the editor configuration),
-	 *                               `handoff_url` (mints a token and returns
-	 *                               it in the URL fragment), `login_url`
-	 *                               (sign-in page accepting redirect_to).
+	 * @param array|mixed $endpoints `configuration_url` (same-origin GET returning editor configuration).
 	 */
 	$endpoints = apply_filters( 'ec_link_page_edit_endpoints', array() );
 	$endpoints = is_array( $endpoints ) ? $endpoints : array();
-	$clean     = static function ( $key ) use ( $endpoints ) {
-		return esc_url_raw( (string) ( $endpoints[ $key ] ?? '' ), array( 'https', 'http' ) );
-	};
-	return array(
-		'configuration_url' => $clean( 'configuration_url' ),
-		'handoff_url'       => $clean( 'handoff_url' ),
-		'login_url'         => $clean( 'login_url' ),
-	);
+	return array( 'configuration_url' => esc_url_raw( (string) ( $endpoints['configuration_url'] ?? '' ), array( 'https', 'http' ) ) );
 }
 
 /** Whether the current request is the /edit shell. */
@@ -110,7 +95,7 @@ add_action( 'wp_abilities_api_init', 'ec_register_link_page_editor_configuration
 
 /** Enqueue the /edit shell assets. */
 function ec_enqueue_link_page_edit_shell() {
-	if ( ! ec_enqueue_link_page_editor() ) {
+	if ( ! is_user_logged_in() || ! ec_enqueue_link_page_editor() ) {
 		return false;
 	}
 	wp_enqueue_script( 'wp-api-fetch' );
@@ -123,8 +108,7 @@ function ec_enqueue_link_page_edit_shell() {
 		'window.ecLinkPageEditShell = ' . wp_json_encode(
 			array(
 				'configurationUrl' => $endpoints['configuration_url'],
-				'handoffUrl'       => $endpoints['handoff_url'],
-				'loginUrl'         => $endpoints['login_url'],
+				'nonce'            => wp_create_nonce( 'wp_rest' ),
 				'joinUrl'          => ec_link_page_public_base_url() . 'join/',
 			)
 		) . ';',

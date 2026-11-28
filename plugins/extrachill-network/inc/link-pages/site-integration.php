@@ -133,14 +133,14 @@ function ec_network_link_page_management_endpoints( $endpoints, $link_page_id, $
 		return $endpoints;
 	}
 	$artist_id = ec_network_link_page_artist_owner_id( $owner_reference );
-	$base      = ec_network_link_page_artist_api_base();
-	$site      = ec_get_site_url( 'artist' );
-	if ( ! $artist_id || ! $base || ! $site ) {
+	if ( ! $artist_id || ! ec_network_link_page_cookie_host( $_SERVER['HTTP_HOST'] ?? '' ) ) {
 		return is_array( $endpoints ) ? $endpoints : array();
 	}
 	return array(
-		'permissions_url' => $base . '/artists/' . $artist_id . '/permissions',
-		'handoff_url'     => $site . '/wp-admin/admin-post.php?action=ec_link_token_handoff',
+		'permissions_url' => rest_url( 'extrachill/v1/artists/' . $artist_id . '/permissions' ),
+		'session_url'     => admin_url( 'admin-ajax.php?action=ec_link_session_status' ),
+		'handoff_url'     => ec_network_link_session_url( 'ec_link_session_start' ),
+		'network_url'     => ec_get_site_url( 'main' ),
 	);
 }
 add_filter( 'ec_link_page_management_endpoints', 'ec_network_link_page_management_endpoints', 20, 3 );
@@ -173,14 +173,6 @@ function ec_network_link_page_join_route( $route, $path ) {
 }
 add_filter( 'ec_link_page_public_special_route', 'ec_network_link_page_join_route', 20, 2 );
 
-/**
- * Public host for Link Pages: extrachill.link.
- *
- * @return string
- */
-function ec_network_link_page_public_host() {
-	return 'extrachill.link';
-}
 add_filter( 'ec_link_page_public_host', 'ec_network_link_page_public_host' );
 
 /**
@@ -196,8 +188,7 @@ add_filter( 'ec_link_page_root_slug', 'ec_network_link_page_root_slug' );
 /**
  * Endpoints for the extrachill.link /edit shell.
  *
- * Editor configuration and the bearer-token handoff live on the artist site,
- * where the owner adapter and the .extrachill.com login session are.
+ * The browser talks to the public host; REST affinity reaches the owner plugin.
  *
  * @param mixed $endpoints Existing endpoints.
  * @return mixed
@@ -206,17 +197,55 @@ function ec_network_link_page_edit_endpoints( $endpoints ) {
 	if ( ! empty( $endpoints['configuration_url'] ) ) {
 		return $endpoints;
 	}
-	$site = ec_get_site_url( 'artist' );
-	if ( ! $site ) {
-		return $endpoints;
-	}
-	return array(
-		'configuration_url' => $site . '/wp-json/extrachill/v1/link-pages/editor-configuration',
-		'handoff_url'       => $site . '/wp-admin/admin-post.php?action=ec_link_token_handoff',
-		'login_url'         => $site . '/login',
-	);
+	return array( 'configuration_url' => rest_url( 'extrachill/v1/link-pages/editor-configuration' ) );
 }
 add_filter( 'ec_link_page_edit_endpoints', 'ec_network_link_page_edit_endpoints' );
+
+/** Point explicit sign-in requests at the network, preserving the page ID. */
+function ec_network_link_page_edit_login_url( $url, $link_page_id ) {
+	if ( ! ec_get_site_url( 'link_pages' ) ) {
+		return $url;
+	}
+	$return = add_query_arg( 'ec_link_sso', '1', trailingslashit( ec_get_site_url( 'link_pages' ) ) . 'edit' );
+	if ( $link_page_id ) {
+		$return = add_query_arg( 'link_page', $link_page_id, $return );
+	}
+	return ec_network_link_session_url( 'ec_link_session_start', array( 'return' => rawurlencode( $return ), 'login' => '1' ) );
+}
+add_filter( 'ec_link_page_edit_login_url', 'ec_network_link_page_edit_login_url', 10, 2 );
+
+/** Automatically sign in on /edit, but never loop if a browser rejects cookies. */
+function ec_network_link_page_require_edit_session() {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only navigation; the SSO validates its own state.
+	if ( ! ec_network_link_page_cookie_host( $_SERVER['HTTP_HOST'] ?? '' ) || ! function_exists( 'ec_is_link_page_edit_request' ) || ! ec_is_link_page_edit_request() || is_user_logged_in() || isset( $_GET['ec_link_sso'] ) ) {
+		return;
+	}
+	$url = ec_network_link_page_edit_login_url( '', absint( $_GET['link_page'] ?? 0 ) );
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	if ( $url ) {
+		nocache_headers();
+		wp_safe_redirect( $url );
+		exit;
+	}
+}
+add_action( 'template_redirect', 'ec_network_link_page_require_edit_session', 6 );
+
+/** Send the Link Pages theme header's login link through the same SSO. */
+function ec_network_link_page_header_login_url( $url ) {
+	return ec_network_link_page_cookie_host( $_SERVER['HTTP_HOST'] ?? '' ) ? ec_network_link_page_edit_login_url( $url, 0 ) : $url;
+}
+add_filter( 'ec_users_avatar_menu_login_url', 'ec_network_link_page_header_login_url' );
+
+/** Obtain a REST nonce without personalizing cacheable public HTML. */
+function ec_network_link_session_status() {
+	nocache_headers();
+	if ( ! ec_network_link_page_cookie_host( $_SERVER['HTTP_HOST'] ?? '' ) || ! is_user_logged_in() || empty( $_COOKIE[ LOGGED_IN_COOKIE ] ) || (int) wp_validate_auth_cookie( '', 'logged_in' ) !== get_current_user_id() ) {
+		wp_send_json( array(), 401 );
+	}
+	wp_send_json( array( 'nonce' => wp_create_nonce( 'wp_rest' ) ) );
+}
+add_action( 'wp_ajax_ec_link_session_status', 'ec_network_link_session_status' );
+add_action( 'wp_ajax_nopriv_ec_link_session_status', 'ec_network_link_session_status' );
 
 /**
  * What a /join visitor can be getting a Link Page for.
