@@ -99,6 +99,13 @@ namespace {
 		return 'events' === $site ? 7 : null;
 	}
 
+	// extrachill-users is a required plugin (Requires Plugins header) and loads
+	// first in production; venue providers and abilities compose its team
+	// primitives, so the isolated runtime loads the same class files.
+	foreach ( array( 'TeamMembershipRepository', 'TeamInvitationToken', 'TeamOnboardingAdapter', 'TeamOnboardingAdapters', 'TeamOnboardingRepository', 'TeamOnboardingService' ) as $users_team_class ) {
+		require_once dirname( __DIR__, 3 ) . '/extrachill-users/inc/teams/' . $users_team_class . '.php';
+	}
+
 	if ( 'cli' === ( $argv[1] ?? '' ) ) {
 		define( 'WP_CLI', true );
 		class WP_CLI {

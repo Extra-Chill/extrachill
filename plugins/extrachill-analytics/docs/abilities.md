@@ -33,6 +33,15 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Exposure:** `show_in_rest`: true. API: none found. CLI: none found.
 - **Side effects:** Writes an admitted event to the network-wide analytics events table.
 
+### `extrachill/track-calendar-query`
+
+- **Purpose:** Record a `calendar_query` from the Data Machine calendar. Filter opens are tracked separately as the `calendar-filter-open` CTA.
+- **Input:** `source_url` (string, required, maximum 2048 characters) and `event_data` (object, required). The event requires `trigger`, `route`, `has_date_range`, and a nonnegative integer `result_count`. Optional dimensions are `scope`, `search_term`, `taxonomies` (taxonomy to term ID lists), and the archive pair `archive_taxonomy` / `archive_term` (term ID).
+- **Output:** `integer`: Event ID on success, 0 on failure, or `WP_Error` if admission fails.
+- **Permission:** Public browser admission checks apply. Visitor identity and bot status are server-owned.
+- **Exposure:** `show_in_rest`: true. Read the breakdown with `wp extrachill analytics calendar-queries`.
+- **Side effects:** Resolves term IDs to slugs and stores only a sanitized, length-capped search term. Probe-shaped terms use the shared `search_attack` classification instead.
+
 ### `extrachill/track-form-submit`
 
 - **Purpose:** Record a form_submit event for a named form. Never carries field values.
@@ -213,6 +222,14 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Permission:** `is_user_logged_in`; execution validates the stored link page, resolves its owning artist, and requires `ec_can_manage_artist` for that artist.
 - **Exposure:** `show_in_rest`: true. API: `/analytics/link-page`. CLI: none found.
 
+### `extrachill/cleanup-link-page-tables`
+
+- **Purpose:** Drops empty Link Page daily analytics tables (`extrch_link_page_daily_views`, `extrch_link_page_daily_link_clicks`) left on non-storage blogs. Only the Link Page storage blog keeps these tables.
+- **Input:** `dry_run` (boolean, optional): If true, only report what would be dropped. [default true].
+- **Output:** `object`: Per-table report with would_drop/dropped/refused counts. A table that still has rows is refused, never dropped.
+- **Permission:** `manage_network_options`, or WP-CLI.
+- **Exposure:** `show_in_rest`: false. API: none. CLI: `wp extrachill analytics link-page-tables`.
+
 ### `extrachill/get-experiment-summary`
 
 - **Purpose:** Report bounded assignment, exposure, outcome, lift, confidence, identity, privacy, and version coverage for one code-registered experiment. See [experiment summary](experiment-summary.md).
@@ -230,6 +247,8 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Exposure:** `show_in_rest`: false. API: none found. CLI: none found.
 
 ## Revenue and delivery
+
+Revenue storage belongs to the Data Machine Business revenue ledger. Every revenue read below goes through `datamachine/revenue-query`: one coverage query finds the Extra Chill snapshot accounts, then each snapshot is read on its own. Every write goes through `datamachine/revenue-ingest`. Extra Chill adds its own layer on top of those reads: slug/URL to post resolution, residual vs forward format, and the outbound_click joins. The query ability returns at most 1000 rows per call, so each snapshot is paged with `offset` until the returned rows reach `counts.matched_rows`. Paging stops defensively on an empty page, a repeated page, or more than ceil(matched / limit) + 1 pages. A snapshot whose rows still fall short of its matched rows (for example, a provider without `offset` support) is reported as truncated: the ARC lists it under `source.truncated_snapshots`, and the diagnostics totals reconciliation flags it.
 
 ### `extrachill/get-content-revenue`
 
@@ -271,7 +290,26 @@ Inputs below reflect `input_schema`; fields are optional unless marked required.
 - **Output:** `object`: Result with success, written, mode, dry_run, counts (rows, input_rows, duplicate_rows_deduped, resolved, unresolved, inserted, replaced, deleted, and would_delete on dry run), and the stable identity (import_batch, period_label, period_start/end, source, source_site, blog_id). On failure: success=false, written=false, error. Top-level fields: `success` (boolean), `written` (boolean), `mode` (string), `dry_run` (boolean), `rows` (integer), `input_rows` (integer), `duplicate_rows_deduped` (integer), `resolved` (integer), `unresolved` (integer), `inserted` (integer), `replaced` (integer), `deleted` (integer), `would_delete` (integer), `error` (string), `identity` (object).
 - **Permission:** `manage_options` or `manage_network_options` capability, or active `WP_CLI`. Execution authorizes replace against the target blog (or network); additive requires network-level authorization (CLI allowed).
 - **Exposure:** `show_in_rest`: false. API: none found. CLI: `wp extrachill analytics revenue fetch`.
-- **Side effects:** Unless dry_run, resolves and persists revenue rows inside a transaction and per-period advisory lock; replace updates/inserts rows and deletes stale rows only in its exact snapshot. Additive never deletes.
+- **Side effects:** Unless dry_run, resolves rows and writes the final snapshot through `datamachine/revenue-ingest` into the Data Machine Business revenue ledger (one ledger account per snapshot, `extrachill:blog-{blog_id}:{import_batch}`, source = the `source` input, kind `ad_revenue`, USD) under a per-period advisory lock. Analytics no longer writes its own table. Replace sends exactly the incoming snapshot, so rows that disappeared are removed; additive merges with the existing snapshot and never deletes. The ledger only stores dated windows, so an undated (lifetime) snapshot fails closed.
+
+### `extrachill/migrate-revenue-ledger`
+
+- **Purpose:** One-time copy of the legacy `extrachill_analytics_mediavine_revenue` table into the Data Machine Business revenue ledger through `datamachine/revenue-ingest`, printing per-period totals before (legacy) and after (ledger, read back through `datamachine/revenue-query`) plus parity.
+- **Input:** `execute` (boolean, optional): Write to the ledger. Default false (dry run: validated through the ledger's dry_run and reported). [default false]; `blog_id` (integer, optional): Restrict to one legacy blog_id. 0 = every blog. [default 0; minimum 0].
+- **Output:** `object`: `success`, `dry_run`, `legacy_rows`, `before` / `after` per-period totals (blog_id, period_label, period_start, period_end, rows, views, revenue), `parity` (holds, matched, mismatched, missing, periods), `snapshots` (per legacy snapshot: account, window, rows, views, revenue, status `would_migrate` / `migrated` / `already_migrated` / `conflict` / `error`), `undated`, `truncated`, `errors`.
+- **Mapping:** Each legacy snapshot (blog_id, import_batch, period window) becomes one ledger account+window: source=mediavine, kind=ad_revenue, amount=revenue (USD). `views`, `rpm`, `cpm`, `viewability`, `fill_rate`, `impressions_per_pageview`, plus `slug`, `canonical_url`, `period_label`, go in `metrics`. URL/post attribution goes in the ledger attribution fields: `url`, `blog_id` (owning content blog), and `object_ref` = `post:{blog_id}:{post_id}` for resolved rows.
+- **Permission:** `manage_network_options` capability, or an active `WP_CLI` context.
+- **Exposure:** `show_in_rest`: false. API: none found. CLI: `wp extrachill analytics revenue migrate [--execute]`.
+- **Side effects:** Only with `execute`: writes ledger snapshots. It never overwrites a snapshot already in the ledger (matching totals are reported as `already_migrated`, differing ones as `conflict`) and never drops the legacy table. Undated (all-time) rows cannot be stored in the dated ledger, so they are reported and not migrated.
+
+### `extrachill/drop-legacy-revenue-table`
+
+- **Purpose:** Explicit, parity-guarded drop of the retired `extrachill_analytics_mediavine_revenue` table. Nothing drops it automatically.
+- **Input:** `execute` (boolean, optional): Drop the table. Default false (report whether the drop would be allowed). [default false]; `allow_undated` (boolean, optional): Accept losing undated (all-time) legacy rows that the dated ledger cannot hold. [default false].
+- **Output:** `object`: `success`, `dry_run`, `dropped`, `would_drop`, `refused`, `reasons`, `legacy_rows`, `parity`, `undated`.
+- **Permission:** `manage_network_options` capability, or an active `WP_CLI` context.
+- **Exposure:** `show_in_rest`: false. API: none found. CLI: `wp extrachill analytics revenue drop-legacy [--execute] [--allow-undated]`.
+- **Side effects:** With `execute` only, and only when it does not refuse, runs `DROP TABLE` on the legacy table and deletes its schema version option. It refuses when any dated legacy period is missing from the ledger or mismatched there, when a ledger snapshot read was truncated, or when undated rows remain and `allow_undated` is not set.
 
 ## 404s and attacks
 

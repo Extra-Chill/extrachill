@@ -126,6 +126,8 @@ final class TicketTestOrder {
 	public function set_transaction_id( $value ) { $this->transaction_id = $value; }
 	public function set_total( $value ) { $this->total = $value; }
 	public function get_total() { return (float) $this->total; }
+	public function set_discount_total( $value ) { $this->discount_total = $value; }
+	public function get_discount_total() { return (float) ( $this->discount_total ?? 0 ); }
 	public function get_shipping_total() { return 0.0; }
 	public function get_date_created() {
 		return new DateTimeImmutable( '@' . $this->created );

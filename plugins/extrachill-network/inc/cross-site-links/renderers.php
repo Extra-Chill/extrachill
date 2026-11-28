@@ -24,7 +24,7 @@ function extrachill_render_cross_site_taxonomy_links() {
 	}
 
 	$term = get_queried_object();
-	if ( ! $term || ! isset( $term->taxonomy ) ) {
+	if ( ! $term instanceof WP_Term ) {
 		return;
 	}
 
@@ -45,7 +45,7 @@ function extrachill_render_cross_site_taxonomy_links() {
  *
  * Hooked to: extrachill_after_author_bio
  *
- * @param int $user_id Author user ID.
+ * @param mixed $user_id Author user ID; only a non-zero int renders links.
  */
 function extrachill_render_cross_site_user_links( $user_id ) {
 	if ( ! $user_id || ! is_int( $user_id ) ) {

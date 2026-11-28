@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.0] - 2026-11-22
+
+### Added
+- per-show ticket sales report, door list CSV, walk-up QR
+
+## [0.29.0] - 2026-11-22
+
+### Added
+- ticket types and discount/access codes
+
+## [0.28.1] - 2026-11-21
+
+### Fixed
+- show held-aware tickets remaining on the event page
+
+## [0.28.0] - 2026-11-21
+
+### Added
+- reconcile paid ticket orders when the fulfilment webhook is missed and retry undelivered pass emails
+
+## [0.27.1] - 2026-11-21
+
+### Fixed
+- hold ticket inventory during checkout and use unique idempotency keys per refund attempt
+- make duplicate and late fulfilment safe
+
+## [0.27.0] - 2026-11-21
+
+### Added
+- venue show-updates opt-in at ticket checkout + consent-filtered Eventbrite list import
+
+## [0.26.0] - 2026-11-19
+
+### Added
+- commerce fees resolve global → seller → event overrides
+
 ## [0.25.0] - 2026-11-17
 
 ### Added

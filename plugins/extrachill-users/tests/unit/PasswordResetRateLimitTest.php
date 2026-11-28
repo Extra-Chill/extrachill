@@ -39,6 +39,10 @@ class Test_Authentication_Rate_Limits extends WP_UnitTestCase {
 	}
 
 	public function test_authenticate_admits_fifth_failure_and_blocks_sixth(): void {
+		// Core's authenticate callbacks run before the limiter and rewrite the
+		// error for unknown accounts (invalid_email). Use a real account so a
+		// wrong password yields core's genuine incorrect_password failure.
+		self::factory()->user->create( array( 'user_email' => 'person@example.com' ) );
 		for ( $attempt = 0; $attempt < EXTRACHILL_USERS_LOGIN_RATE_LIMIT; ++$attempt ) {
 			$result = apply_filters( 'authenticate', new WP_Error( 'incorrect_password', 'No.' ), 'person@example.com', 'wrong' );
 			$this->assertSame( 'incorrect_password', $result->get_error_code() );

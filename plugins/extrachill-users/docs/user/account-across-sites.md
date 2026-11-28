@@ -4,8 +4,8 @@ One Extra Chill account works across every Extra Chill site. Your profile and ac
 
 ## Sign in on another site
 
-1. Choose **Log In** or **Sign in** on the site you are visiting.
-2. Use the email and password for your Extra Chill account, or choose **Sign in with Google** if that is how you access it.
+1. Choose **Log In** on the site you are visiting.
+2. Use your Extra Chill username or email address and password, or choose **Continue with Google** if that is how you access your account.
 3. After sign-in, continue on the site you wanted to visit.
 
 If you are sent to another page to sign in, finish signing in there. You should then return to the site where you started. If access is blocked or your account does not appear to be signed in, check that you used the same account and contact Extra Chill support if the problem continues.

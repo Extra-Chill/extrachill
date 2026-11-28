@@ -18,11 +18,13 @@
  *    `venue_calendar_feed` AND whose stored feed venue matches the venue being
  *    synced. A feed sync must never adopt, overwrite, or unpublish a scraped
  *    event, a publicly submitted event, or another venue's event.
- * 2. Never resolve the venue by name. `Venue_Taxonomy::find_or_create_venue()`
- *    runs a name-matching cascade that exists for untrusted string input; here
- *    the venue is known with certainty from the binding, and running the
- *    cascade risks minting a near-duplicate term for a venue that already
- *    exists.
+ * 2. Never resolve the venue by name. The venue is known with certainty from
+ *    the binding, so the upsert payload pins it via `venue_term_id`; DME
+ *    attaches that exact term instead of running the
+ *    `Venue_Taxonomy::find_or_create_venue()` name-matching cascade, which
+ *    exists for untrusted string input and risks minting a near-duplicate or
+ *    ambiguous term for a venue that already exists. The name and address
+ *    fields travel only as display data.
  * 3. Never touch `pending` events. Public submissions land pending for human
  *    review; a feed sync silently publishing or overwriting one would bypass
  *    that review.
@@ -262,6 +264,45 @@ class VenueCalendarFeedSync {
 	}
 
 	/**
+	 * Build the upsert `event` payload for one feed occurrence.
+	 *
+	 * The venue is pinned by `venue_term_id` (scope rule 2) so DME attaches the
+	 * bound term rather than re-resolving the venue by name. Empty strings are
+	 * dropped so a blank feed field never clears stored event data; the term ID
+	 * stays an int.
+	 *
+	 * @param int    $venue_term_id Bound venue term ID.
+	 * @param string $venue_name    Venue display name.
+	 * @param array  $event         Parsed feed occurrence.
+	 * @param array  $venue_meta    Venue display fields keyed by event attribute.
+	 * @return array Event payload.
+	 */
+	private static function event_payload( int $venue_term_id, string $venue_name, array $event, array $venue_meta ): array {
+		$payload = array(
+			'title'         => (string) ( $event['title'] ?? '' ),
+			'description'   => (string) ( $event['description'] ?? '' ),
+			'startDate'     => (string) ( $event['startDate'] ?? '' ),
+			'startTime'     => (string) ( $event['startTime'] ?? '' ),
+			'endDate'       => (string) ( $event['endDate'] ?? '' ),
+			'endTime'       => (string) ( $event['endTime'] ?? '' ),
+			'ticketUrl'     => (string) ( $event['ticketUrl'] ?? '' ),
+			'venue'         => $venue_name,
+			'venue_term_id' => $venue_term_id,
+		);
+
+		foreach ( array( 'venueAddress', 'venueCity', 'venueState', 'venueZip', 'venueCountry', 'venueTimezone' ) as $key ) {
+			$payload[ $key ] = (string) ( $venue_meta[ $key ] ?? '' );
+		}
+
+		return array_filter(
+			$payload,
+			static function ( $value ) {
+				return '' !== $value;
+			}
+		);
+	}
+
+	/**
 	 * Upsert one feed event against the bound venue.
 	 *
 	 * Venue geography is supplied from the bound term rather than from the feed
@@ -282,24 +323,21 @@ class VenueCalendarFeedSync {
 			return new \WP_Error( 'venue_calendar_feed_upsert_unavailable', 'Event upsert is unavailable.' );
 		}
 
-		$payload = array(
-			'title'         => (string) ( $event['title'] ?? '' ),
-			'description'   => (string) ( $event['description'] ?? '' ),
-			'startDate'     => (string) ( $event['startDate'] ?? '' ),
-			'startTime'     => (string) ( $event['startTime'] ?? '' ),
-			'endDate'       => (string) ( $event['endDate'] ?? '' ),
-			'endTime'       => (string) ( $event['endTime'] ?? '' ),
-			'ticketUrl'     => (string) ( $event['ticketUrl'] ?? '' ),
-			'venue'         => $venue_name,
-			'venueAddress'  => (string) get_term_meta( $venue_term_id, '_venue_address', true ),
-			'venueCity'     => (string) get_term_meta( $venue_term_id, '_venue_city', true ),
-			'venueState'    => (string) get_term_meta( $venue_term_id, '_venue_state', true ),
-			'venueZip'      => (string) get_term_meta( $venue_term_id, '_venue_zip', true ),
-			'venueCountry'  => (string) get_term_meta( $venue_term_id, '_venue_country', true ),
-			'venueTimezone' => (string) get_term_meta( $venue_term_id, '_venue_timezone', true ),
+		$payload = self::event_payload(
+			$venue_term_id,
+			$venue_name,
+			$event,
+			array(
+				'venueAddress'  => (string) get_term_meta( $venue_term_id, '_venue_address', true ),
+				'venueCity'     => (string) get_term_meta( $venue_term_id, '_venue_city', true ),
+				'venueState'    => (string) get_term_meta( $venue_term_id, '_venue_state', true ),
+				'venueZip'      => (string) get_term_meta( $venue_term_id, '_venue_zip', true ),
+				'venueCountry'  => (string) get_term_meta( $venue_term_id, '_venue_country', true ),
+				'venueTimezone' => (string) get_term_meta( $venue_term_id, '_venue_timezone', true ),
+			)
 		);
 
-		if ( '' === $payload['title'] || '' === $payload['startDate'] ) {
+		if ( '' === ( $payload['title'] ?? '' ) || '' === ( $payload['startDate'] ?? '' ) ) {
 			return new \WP_Error( 'venue_calendar_feed_event_incomplete', 'Event is missing a title or start date.' );
 		}
 
@@ -319,12 +357,7 @@ class VenueCalendarFeedSync {
 			// update it in place rather than reverting it to pending, so a
 			// venue correcting a set time does not re-enter the queue.
 			'post_status' => $existing ? self::existing_status( $existing ) : 'pending',
-			'event'       => array_filter(
-				$payload,
-				static function ( $value ) {
-					return '' !== $value;
-				}
-			),
+			'event'       => $payload,
 		);
 
 		if ( $existing ) {

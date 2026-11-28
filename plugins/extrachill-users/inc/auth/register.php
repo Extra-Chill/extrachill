@@ -247,7 +247,7 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 	}
 
 	wp_set_current_user( $user_id, $user->user_login );
-	wp_set_auth_cookie( $user_id, false );
+	wp_set_auth_cookie( $user_id, true );
 	do_action( 'wp_login', $user->user_login, $user );
 
 	$final_redirect_url = $success_redirect_url;

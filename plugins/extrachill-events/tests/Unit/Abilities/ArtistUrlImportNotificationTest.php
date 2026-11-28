@@ -38,6 +38,9 @@ use ExtraChillEvents\Abilities\ArtistUrlImportAbilities;
 
 /** Verify the feature's receipt and replay contracts. */
 final class ArtistUrlImportNotificationTest extends PHPUnit\Framework\TestCase {
+	/** @var array<string, mixed> Shared shim globals to restore. */
+	private $previous_shim_state = array();
+
 	/** Reset notification fixtures. */
 	protected function setUp(): void {
 		parent::setUp();
@@ -51,15 +54,29 @@ final class ArtistUrlImportNotificationTest extends PHPUnit\Framework\TestCase {
 			'recipients' => array( 22 => array( 'status' => 'existing' ) ),
 		);
 		$GLOBALS['ec_artist_test']                      = array( 'fired_actions' => array() );
-		// In qualify-v2-unit, earlier files' get_current_user_id()/get_userdata()
-		// shims (Stubs/wp-stubs.php, RsvpGuestListPartiesTest.php) win; seed the
-		// keys they read with the same actor.
-		$GLOBALS['test_current_user_id']                = 31;
-		$GLOBALS['rsvp_pass_mail_test']['users'][31]    = (object) array( 'ID' => 31 );
+
+		// In qualify-v2-unit, earlier files own the get_current_user_id() and
+		// get_userdata() shims (tests/Unit/Core/Stubs/wp-stubs.php reads
+		// test_current_user_id; the RSVP suites read rsvp_pass_mail_test users).
+		// Seed the moderator actor for whichever shim loaded first.
+		$this->previous_shim_state = array(
+			'test_current_user_id' => $GLOBALS['test_current_user_id'] ?? null,
+			'rsvp_pass_mail_test'  => $GLOBALS['rsvp_pass_mail_test'] ?? null,
+		);
+		$GLOBALS['test_current_user_id']             = 31;
+		$GLOBALS['rsvp_pass_mail_test']['users'][31] = (object) array( 'ID' => 31 );
 	}
 
+	/** Restore shared shim globals. */
 	protected function tearDown(): void {
-		unset( $GLOBALS['test_current_user_id'], $GLOBALS['rsvp_pass_mail_test']['users'][31], $GLOBALS['artist_import_notification_actor_id'] );
+		foreach ( $this->previous_shim_state as $key => $value ) {
+			if ( null === $value ) {
+				unset( $GLOBALS[ $key ] );
+			} else {
+				$GLOBALS[ $key ] = $value;
+			}
+		}
+		unset( $GLOBALS['artist_import_notification_actor_id'], $GLOBALS['artist_import_notification_calls'], $GLOBALS['artist_import_notification_receipt'], $GLOBALS['ec_artist_test'] );
 		parent::tearDown();
 	}
 

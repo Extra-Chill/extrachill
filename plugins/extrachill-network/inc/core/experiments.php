@@ -96,7 +96,7 @@ add_action( 'init', 'extrachill_register_experiment_cache_group', 0 );
  * @return bool Whether experiment administration is allowed.
  */
 function extrachill_experiment_admin_permission() {
-	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	if ( defined( 'WP_CLI' ) && wp_validate_boolean( constant( 'WP_CLI' ) ) ) {
 		return true;
 	}
 
@@ -123,7 +123,10 @@ function extrachill_experiment_admin_permission() {
  * Eligibility callbacks must re-resolve their own context and compose any
  * applicable Users capability/rollout gate. Assignment is never authorization.
  *
- * @return array<string, array<string, mixed>>
+ * Filter output is untrusted: keys and entries are validated by
+ * extrachill_get_normalized_experiment_definitions().
+ *
+ * @return array<mixed>
  */
 function extrachill_get_experiment_definitions() {
 	$definitions = apply_filters( 'extrachill_experiment_definitions', array() );
@@ -211,10 +214,6 @@ function extrachill_normalize_experiment_definition( $definition, $registered_ke
 		if ( ! is_string( $surface ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]{0,63}$/', $surface ) ) {
 			return null;
 		}
-	}
-
-	if ( $total_weight <= 0 ) {
-		return null;
 	}
 
 	return array(
@@ -843,7 +842,7 @@ function extrachill_experiment_unbiased_bucket( $seed, $total ) {
 	while ( true ) {
 		$hash = hash( 'sha256', $seed . "\0" . $round );
 		for ( $offset = 0; $offset <= 56; $offset += 7 ) {
-			$bucket = extrachill_experiment_reduce_draw( hexdec( substr( $hash, $offset, 7 ) ), $total );
+			$bucket = extrachill_experiment_reduce_draw( (int) hexdec( substr( $hash, $offset, 7 ) ), $total );
 			if ( null !== $bucket ) {
 				return $bucket;
 			}
@@ -912,13 +911,13 @@ function extrachill_experiment_subject( $experiment_key, $surface, array $contex
 /**
  * Canonicalize bounded scalar context for exposure signing.
  *
- * @param array<string, mixed> $context Consumer context.
+ * @param array<mixed> $context Consumer context; non-string keys and non-scalar values are dropped.
  * @return string Canonical JSON.
  */
 function extrachill_experiment_context_json( array $context ) {
 	$bounded = array();
 	foreach ( $context as $key => $value ) {
-		if ( is_string( $key ) && is_scalar( $value ) && ! is_null( $value ) ) {
+		if ( is_string( $key ) && is_scalar( $value ) ) {
 			$bounded[ $key ] = $value;
 		}
 	}
@@ -977,7 +976,7 @@ function extrachill_experiment_exposure_token( array $metadata, $subject_key, ar
  * @param array<string, mixed> $context        Consumer context.
  * @param string               $token          Signed assignment proof.
  * @param int|null             $now            Optional current time for tests.
- * @return array<string, mixed>|null Trusted metadata, or null when invalid.
+ * @return array{experiment_key: string, definition_version: int, assignment_policy: string, variant: string, surface: string}|null Trusted metadata, or null when invalid.
  */
 function extrachill_validate_experiment_exposure( $experiment_key, $definition_version, $assignment_policy, $variant, $surface, array $context, $token, $now = null ) {
 	$now    = null === $now ? time() : (int) $now;
@@ -1231,6 +1230,6 @@ function extrachill_experiment_attributes( $experiment_key, $surface, array $con
 		esc_attr( $experiment_key ),
 		esc_attr( $surface ),
 		esc_attr( $definition['default_variant'] ),
-		esc_attr( wp_json_encode( $context ) )
+		esc_attr( (string) wp_json_encode( $context ) )
 	);
 }

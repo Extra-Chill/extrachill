@@ -13,6 +13,66 @@ const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY   = 'local_scene_digest';
 const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY = 'location';
 const EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_LIMIT    = 8;
 
+/*
+ * Venue show-updates scope (#1724): the same digest pipeline, scoped to one
+ * venue term instead of one city. Its consent identity is separate from the
+ * city digest so a fan can follow a venue without a Local Scene.
+ */
+const EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER = 'extrachill-events-venue-show-updates';
+const EXTRACHILL_EVENTS_VENUE_UPDATES_TYPE     = 'venue_weekly_digest';
+const EXTRACHILL_EVENTS_VENUE_UPDATES_ENTITY   = 'venue_show_updates';
+const EXTRACHILL_EVENTS_VENUE_UPDATES_TAXONOMY = 'venue';
+
+/**
+ * Supported digest scopes.
+ *
+ * @return string[]
+ */
+function extrachill_events_digest_scopes(): array {
+	return array( 'location', 'venue' );
+}
+
+/**
+ * Normalize a digest scope, falling back to the city (location) scope.
+ *
+ * @param mixed $scope Requested scope.
+ * @return string location|venue
+ */
+function extrachill_events_normalize_digest_scope( $scope ): string {
+	$scope = is_string( $scope ) ? sanitize_key( $scope ) : '';
+	return in_array( $scope, extrachill_events_digest_scopes(), true ) ? $scope : 'location';
+}
+
+/**
+ * Describe one digest scope: its consent identity, producer and delivery labels.
+ *
+ * @param string $scope location|venue.
+ * @return array{scope:string,entity:string,taxonomy:string,producer:string,type:string,utm_source:string,plural:string}
+ */
+function extrachill_events_digest_scope( string $scope ): array {
+	if ( 'venue' === extrachill_events_normalize_digest_scope( $scope ) ) {
+		return array(
+			'scope'      => 'venue',
+			'entity'     => EXTRACHILL_EVENTS_VENUE_UPDATES_ENTITY,
+			'taxonomy'   => EXTRACHILL_EVENTS_VENUE_UPDATES_TAXONOMY,
+			'producer'   => EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER,
+			'type'       => EXTRACHILL_EVENTS_VENUE_UPDATES_TYPE,
+			'utm_source' => 'venue_show_updates',
+			'plural'     => 'venues',
+		);
+	}
+
+	return array(
+		'scope'      => 'location',
+		'entity'     => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY,
+		'taxonomy'   => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY,
+		'producer'   => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER,
+		'type'       => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TYPE,
+		'utm_source' => 'local_scene_digest',
+		'plural'     => 'locations',
+	);
+}
+
 /**
  * Register recipient authorization.
  *
@@ -25,18 +85,26 @@ function extrachill_events_init_local_scene_digest(): void {
 }
 
 /**
- * Register the digest-owned consent identity against the canonical location taxonomy.
+ * Register the digest-owned consent identities: city digest on the canonical
+ * location taxonomy, venue show updates on the venue taxonomy.
  *
  * @param array $entities Registered entity-to-taxonomy mappings.
  * @return array
  */
 function extrachill_events_local_scene_digest_subscription_entities( array $entities ): array {
-	$entities[ EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY ] = EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY;
+	foreach ( extrachill_events_digest_scopes() as $scope ) {
+		$definition                        = extrachill_events_digest_scope( $scope );
+		$entities[ $definition['entity'] ] = $definition['taxonomy'];
+	}
 	return $entities;
 }
 
 /**
- * Authorize only canonical location subscriptions for digest delivery.
+ * Authorize each digest producer for exactly its own scope's subscriptions.
+ *
+ * The city producer only resolves city digest consent; the venue producer
+ * only resolves venue show-updates consent. Neither can read the other's
+ * audience, and no other entity type is reachable through them.
  *
  * @param bool   $authorized Existing authorization decision.
  * @param string $producer   Requesting producer.
@@ -45,14 +113,19 @@ function extrachill_events_local_scene_digest_subscription_entities( array $enti
  * @return bool
  */
 function extrachill_events_authorize_local_scene_digest_producer( $authorized, $producer, $entity, $delivery ): bool {
-	if ( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER !== $producer ) {
-		return (bool) $authorized;
+	foreach ( extrachill_events_digest_scopes() as $scope ) {
+		$definition = extrachill_events_digest_scope( $scope );
+		if ( $definition['producer'] !== $producer ) {
+			continue;
+		}
+
+		return is_array( $entity )
+			&& ( $entity['entity_type'] ?? '' ) === $definition['entity']
+			&& ( $entity['taxonomy'] ?? '' ) === $definition['taxonomy']
+			&& in_array( $delivery, array( 'notification', 'email' ), true );
 	}
 
-	return is_array( $entity )
-		&& EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY === ( $entity['entity_type'] ?? '' )
-		&& EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY === ( $entity['taxonomy'] ?? '' )
-		&& in_array( $delivery, array( 'notification', 'email' ), true );
+	return (bool) $authorized;
 }
 
 /**
@@ -62,12 +135,85 @@ function extrachill_events_authorize_local_scene_digest_producer( $authorized, $
  * @return array Aggregate counts only.
  */
 function extrachill_events_run_local_scene_digest( array $params = array() ): array {
-	$days    = min( 14, max( 1, absint( $params['days'] ?? 7 ) ) );
-	$limit   = min( 20, max( 1, absint( $params['limit'] ?? EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_LIMIT ) ) );
-	$dry_run = ! empty( $params['dry_run'] );
-	$counts  = array(
-		'locations_scanned'           => 0,
-		'locations_with_events'       => 0,
+	return extrachill_events_run_scoped_digest( 'location', $params );
+}
+
+/**
+ * Run every venue's weekly "This week at {venue}" email (#1724).
+ *
+ * Only venues with at least one show-updates subscriber are walked, and a
+ * venue with no qualified shows in the window sends nothing.
+ *
+ * @param array $params Task parameters.
+ * @return array Aggregate counts only.
+ */
+function extrachill_events_run_venue_show_updates( array $params = array() ): array {
+	return extrachill_events_run_scoped_digest( 'venue', $params );
+}
+
+/**
+ * Resolve the terms one digest scope runs over.
+ *
+ * Cities are every city-depth location term. Venues are only the venue terms
+ * someone subscribed to, so the weekly run never scans the whole taxonomy.
+ *
+ * @param string $scope location|venue.
+ * @return WP_Term[]|WP_Error
+ */
+function extrachill_events_digest_scope_terms( string $scope ) {
+	$definition = extrachill_events_digest_scope( $scope );
+	if ( 'venue' === $definition['scope'] ) {
+		$slugs = extrachill_users_entity_subscription_slugs( $definition['producer'], $definition['entity'], $definition['taxonomy'] );
+		if ( is_wp_error( $slugs ) ) {
+			return new WP_Error( 'venue_query_failed', 'Venue subscriptions could not be read.' );
+		}
+		$terms = array();
+		foreach ( $slugs as $slug ) {
+			$term = get_term_by( 'slug', (string) $slug, $definition['taxonomy'] );
+			if ( $term instanceof WP_Term ) {
+				$terms[] = $term;
+			}
+		}
+		return $terms;
+	}
+
+	$terms = get_terms(
+		array(
+			'taxonomy'   => 'location',
+			'hide_empty' => false,
+		)
+	);
+	if ( is_wp_error( $terms ) ) {
+		return new WP_Error( 'location_query_failed', 'Locations could not be read.' );
+	}
+
+	return array_values(
+		array_filter(
+			$terms,
+			static function ( WP_Term $term ): bool {
+				return count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) >= 2;
+			}
+		)
+	);
+}
+
+/**
+ * Run one digest scope over all of its terms and return privacy-safe evidence.
+ *
+ * @param string $scope  location|venue.
+ * @param array  $params Task parameters.
+ * @return array Aggregate counts only.
+ */
+function extrachill_events_run_scoped_digest( string $scope, array $params = array() ): array {
+	$definition = extrachill_events_digest_scope( $scope );
+	$scope      = $definition['scope'];
+	$plural     = $definition['plural'];
+	$days       = min( 14, max( 1, absint( $params['days'] ?? 7 ) ) );
+	$limit      = min( 20, max( 1, absint( $params['limit'] ?? EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_LIMIT ) ) );
+	$dry_run    = ! empty( $params['dry_run'] );
+	$counts     = array(
+		$plural . '_scanned'          => 0,
+		$plural . '_with_events'      => 0,
 		'qualified_events'            => 0,
 		'candidate_query_failures'    => 0,
 		'candidate_queries_truncated' => 0,
@@ -81,7 +227,8 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		'retryable_failures'          => 0,
 	);
 
-	if ( ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
+	$missing_scope_dependency = 'venue' === $scope && ! function_exists( 'extrachill_users_entity_subscription_slugs' );
+	if ( $missing_scope_dependency || ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
 		$counts['retryable_failures'] = 1;
 		return array(
 			'dry_run'           => $dry_run,
@@ -91,31 +238,22 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		);
 	}
 
-	$terms = get_terms(
-		array(
-			'taxonomy'   => 'location',
-			'hide_empty' => false,
-		)
-	);
+	$terms = extrachill_events_digest_scope_terms( $scope );
 	if ( is_wp_error( $terms ) ) {
 		$counts['retryable_failures'] = 1;
 		return array(
 			'dry_run'           => $dry_run,
 			'counts'            => $counts,
-			'failures'          => array( 'location_query_failed' => 1 ),
+			'failures'          => array( $terms->get_error_code() => 1 ),
 			'retryable_failure' => true,
 		);
 	}
 
 	$failures = array();
 	foreach ( $terms as $term ) {
-		if ( count( get_ancestors( $term->term_id, 'location', 'taxonomy' ) ) < 2 ) {
-			continue;
-		}
-
-		++$counts['locations_scanned'];
+		++$counts[ $plural . '_scanned' ];
 		$query_evidence              = array();
-		$candidates                  = extrachill_events_local_scene_digest_candidates( $term, $days, $query_evidence );
+		$candidates                  = extrachill_events_local_scene_digest_candidates( $term, $days, $query_evidence, $scope );
 		$counts['qualified_events'] += count( $candidates );
 		if ( ! empty( $query_evidence['failed'] ) ) {
 			++$counts['candidate_query_failures'];
@@ -129,13 +267,13 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		if ( empty( $candidates ) ) {
 			continue;
 		}
-		++$counts['locations_with_events'];
+		++$counts[ $plural . '_with_events' ];
 
 		// Cross-plugin results are a trust boundary: fail closed on any unexpected shape.
 		/** @var mixed $recipient_ids */
-		$recipient_ids = extrachill_users_entity_subscription_recipients( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug, 'notification' );
+		$recipient_ids = extrachill_users_entity_subscription_recipients( $definition['producer'], $definition['entity'], $definition['taxonomy'], $term->slug, 'notification' );
 		/** @var mixed $email_ids */
-		$email_ids = extrachill_users_entity_subscription_recipients( EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $term->slug, 'email' );
+		$email_ids = extrachill_users_entity_subscription_recipients( $definition['producer'], $definition['entity'], $definition['taxonomy'], $term->slug, 'email' );
 		if ( is_wp_error( $recipient_ids ) || ! is_array( $recipient_ids ) || is_wp_error( $email_ids ) || ! is_array( $email_ids ) ) {
 			++$counts['retryable_failures'];
 			$failures['recipient_resolution_failed'] = ( $failures['recipient_resolution_failed'] ?? 0 ) + 1;
@@ -158,7 +296,7 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 				continue;
 			}
 
-			$result = extrachill_events_deliver_local_scene_digest( $user_id, $term, $selected, isset( $email_ids[ $user_id ] ) );
+			$result = extrachill_events_deliver_local_scene_digest( $user_id, $term, $selected, isset( $email_ids[ $user_id ] ), $scope );
 			$status = $result['status'] ?? 'failed';
 			if ( 'inserted' === $status ) {
 				++$counts['notifications_inserted'];
@@ -194,15 +332,22 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 }
 
 /**
- * Query, hydrate, and hard-gate one location's upcoming events.
+ * Query, hydrate, and hard-gate one scope term's upcoming events.
  *
- * @param WP_Term    $location Canonical location term.
+ * The city scope keeps only events whose single canonical location is the
+ * city; the venue scope keeps only events whose single venue is the venue.
+ * Every other gate (status, venue-local window, datetime validity) is shared.
+ *
+ * @param WP_Term    $location Canonical location term, or venue term for the venue scope.
  * @param int        $days     Upcoming window length.
  * @param array|null $evidence Aggregate query evidence populated by reference.
+ * @param string     $scope    location|venue.
  * @param-out array{failed:bool,truncated:bool} $evidence
  * @return array Qualified event rows.
  */
-function extrachill_events_local_scene_digest_candidates( WP_Term $location, int $days, ?array &$evidence = null ): array {
+function extrachill_events_local_scene_digest_candidates( WP_Term $location, int $days, ?array &$evidence = null, string $scope = 'location' ): array {
+	$scope         = extrachill_events_normalize_digest_scope( $scope );
+	$taxonomy      = extrachill_events_digest_scope( $scope )['taxonomy'];
 	$evidence      = array(
 		'failed'    => false,
 		'truncated' => false,
@@ -217,7 +362,7 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 			'date_end'    => $utc_now->modify( '+' . ( $days + 1 ) . ' days' )->format( 'Y-m-d' ),
 			'per_page'    => $cap + 1,
 			'order'       => 'ASC',
-			'tax_filters' => array( 'location' => array( (int) $location->term_id ) ),
+			'tax_filters' => array( $taxonomy => array( (int) $location->term_id ) ),
 		)
 	);
 	if ( ! isset( $query['posts'] ) || ! is_array( $query['posts'] ) ) {
@@ -237,10 +382,20 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 			continue;
 		}
 
-		$location_ids = wp_get_post_terms( $post->ID, 'location', array( 'fields' => 'ids' ) );
-		$venue_terms  = wp_get_post_terms( $post->ID, 'venue' );
-		if ( is_wp_error( $location_ids ) || array( (int) $location->term_id ) !== array_values( array_unique( array_map( 'absint', $location_ids ) ) ) || is_wp_error( $venue_terms ) || 1 !== count( $venue_terms ) ) {
+		$venue_terms = wp_get_post_terms( $post->ID, 'venue' );
+		if ( is_wp_error( $venue_terms ) || 1 !== count( $venue_terms ) ) {
 			continue;
+		}
+		if ( 'venue' === $scope ) {
+			$only_venue = reset( $venue_terms );
+			if ( ! $only_venue instanceof WP_Term || (int) $only_venue->term_id !== (int) $location->term_id ) {
+				continue;
+			}
+		} else {
+			$location_ids = wp_get_post_terms( $post->ID, 'location', array( 'fields' => 'ids' ) );
+			if ( is_wp_error( $location_ids ) || array( (int) $location->term_id ) !== array_values( array_unique( array_map( 'absint', $location_ids ) ) ) ) {
+				continue;
+			}
 		}
 
 		$data   = data_machine_events_parse_event_data( $post );
@@ -465,9 +620,12 @@ function extrachill_events_local_scene_digest_is_placeholder_end( string $end_da
  * @param WP_Term $location       Canonical location term.
  * @param array   $events         Selected event rows.
  * @param bool    $email_eligible Whether email delivery is enabled.
+ * @param string  $scope          location|venue.
  * @return array Delivery result.
  */
-function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $location, array $events, bool $email_eligible ): array {
+function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $location, array $events, bool $email_eligible, string $scope = 'location' ): array {
+	$definition = extrachill_events_digest_scope( $scope );
+	$scope      = $definition['scope'];
 	if ( ! function_exists( 'ec_users_notify_with_receipts' ) || ! function_exists( 'ec_users_release_notification_receipt' ) || ! function_exists( 'ec_get_network_bot_user_id' ) ) {
 		return array(
 			'status'            => 'failed',
@@ -477,8 +635,8 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 	}
 
 	$actor_id = absint( ec_get_network_bot_user_id() );
-	$link     = extrachill_events_local_scene_digest_tracked_url( get_term_link( $location ) );
-	if ( ! $actor_id || ! wp_http_validate_url( $link ) ) {
+	$link     = extrachill_events_local_scene_digest_tracked_url( get_term_link( $location ), $scope );
+	if ( ! $actor_id || is_wp_error( $link ) || ! wp_http_validate_url( $link ) ) {
 		return array(
 			'status' => 'failed',
 			'reason' => 'invalid_delivery_context',
@@ -491,11 +649,12 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 		array( $user_id ),
 		array(
 			'actor_id'            => $actor_id,
-			'type'                => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TYPE,
-			'title'               => __( 'Your Local Scene weekly picks are ready', 'extrachill-events' ),
+			'type'                => $definition['type'],
+			/* translators: %s: venue name. */
+			'title'               => 'venue' === $scope ? sprintf( __( 'This week at %s', 'extrachill-events' ), $location->name ) : __( 'Your Local Scene weekly picks are ready', 'extrachill-events' ),
 			'link'                => $link,
 			'item_id'             => $events[0]['post_id'],
-			'producer'            => EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER,
+			'producer'            => $definition['producer'],
 			'idempotency_key'     => $idempotency_key,
 			'producer_owns_email' => true,
 		)
@@ -526,12 +685,12 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 
 	$user = get_userdata( $user_id );
 	if ( ! $user instanceof WP_User || empty( $user->user_email ) || ! is_email( $user->user_email ) || ! function_exists( 'ec_send_email_queued' ) ) {
-		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key );
+		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key, false, $scope );
 	}
 
-	$email = extrachill_events_build_local_scene_digest_email( $user_id, $location, $events );
+	$email = extrachill_events_build_local_scene_digest_email( $user_id, $location, $events, $scope );
 	if ( empty( $email['subject'] ) || empty( $email['body_html'] ) ) {
-		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key );
+		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key, false, $scope );
 	}
 	/** @var mixed $queue Cross-plugin result; fail closed on any unexpected shape. */
 	$queue = ec_send_email_queued( // phpcs:ignore Generic.Formatting.MultipleStatementAlignment.NotSameWarning -- separated from the validated email assignment by a guard.
@@ -545,14 +704,17 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
 				'body_html'      => $email['body_html'],
 				'cta_url'        => $link,
 				'cta_label'      => __( 'See Every Show', 'extrachill-events' ),
-				/* translators: %s: subscribed city name. */
-				'preheader'      => sprintf( __( 'Upcoming shows picked for you in %s.', 'extrachill-events' ), $location->name ),
+				'preheader'      => 'venue' === $scope
+					/* translators: %s: subscribed venue name. */
+					? sprintf( __( 'Upcoming shows at %s this week.', 'extrachill-events' ), $location->name )
+					/* translators: %s: subscribed city name. */
+					: sprintf( __( 'Upcoming shows picked for you in %s.', 'extrachill-events' ), $location->name ),
 			),
 		)
 	);
 	$result['email_queued'] = is_array( $queue ) && ! empty( $queue['success'] );
 	if ( ! $result['email_queued'] ) {
-		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key, true );
+		return extrachill_events_release_local_scene_digest_receipt( $result, $notification_id, $user_id, $idempotency_key, true, $scope );
 	}
 	return $result;
 }
@@ -565,13 +727,14 @@ function extrachill_events_deliver_local_scene_digest( int $user_id, WP_Term $lo
  * @param int    $user_id         Recipient user ID.
  * @param string $idempotency_key Producer replay key.
  * @param bool   $retryable       Whether successful release should retry the whole task.
+ * @param string $scope           location|venue.
  * @return array Failed delivery result.
  */
-function extrachill_events_release_local_scene_digest_receipt( array $result, int $notification_id, int $user_id, string $idempotency_key, bool $retryable = false ): array {
+function extrachill_events_release_local_scene_digest_receipt( array $result, int $notification_id, int $user_id, string $idempotency_key, bool $retryable = false, string $scope = 'location' ): array {
 	$released = ec_users_release_notification_receipt(
 		$notification_id,
 		$user_id,
-		EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER,
+		extrachill_events_digest_scope( $scope )['producer'],
 		$idempotency_key
 	);
 
@@ -588,15 +751,21 @@ function extrachill_events_release_local_scene_digest_receipt( array $result, in
  * @param int     $user_id  Recipient user ID.
  * @param WP_Term $location Canonical location term.
  * @param array   $events   Selected event rows.
+ * @param string  $scope    location|venue.
  * @return array Email subject and body.
  */
-function extrachill_events_build_local_scene_digest_email( int $user_id, WP_Term $location, array $events ): array {
+function extrachill_events_build_local_scene_digest_email( int $user_id, WP_Term $location, array $events, string $scope = 'location' ): array {
+	$scope   = extrachill_events_normalize_digest_scope( $scope );
+	$subject = 'venue' === $scope
+		/* translators: %s: venue name. */
+		? sprintf( __( 'This week at %s', 'extrachill-events' ), $location->name )
+		: __( "Your Local Scene: This Week's Shows", 'extrachill-events' );
 	$going = array();
 	$more  = array();
 	$blog  = absint( ec_get_blog_id( 'events' ) );
 	if ( ! $blog ) {
 		return array(
-			'subject'   => __( "Your Local Scene: This Week's Shows", 'extrachill-events' ),
+			'subject'   => $subject,
 			'body_html' => '',
 		);
 	}
@@ -609,14 +778,22 @@ function extrachill_events_build_local_scene_digest_email( int $user_id, WP_Term
 		}
 	}
 
-	/* translators: %s: Local Scene name. */
-	$body  = '<p>' . esc_html( sprintf( __( 'Here is what is happening in %s this week.', 'extrachill-events' ), $location->name ) ) . '</p>';
-	$body .= extrachill_events_render_local_scene_digest_section( __( "You're Going", 'extrachill-events' ), $going );
-	$body .= extrachill_events_render_local_scene_digest_section( __( 'More This Week', 'extrachill-events' ), $more );
-	$body .= '<p style="font-size:13px"><a href="' . esc_url( extrachill_events_local_scene_digest_unsubscribe_url( $user_id, $location->slug ) ) . '">' . esc_html__( 'Unsubscribe from this Local Scene digest', 'extrachill-events' ) . '</a></p>';
+	$intro = 'venue' === $scope
+		/* translators: %s: venue name. */
+		? sprintf( __( 'Here is what is on at %s this week.', 'extrachill-events' ), $location->name )
+		/* translators: %s: Local Scene name. */
+		: sprintf( __( 'Here is what is happening in %s this week.', 'extrachill-events' ), $location->name );
+	$unsubscribe_label = 'venue' === $scope
+		/* translators: %s: venue name. */
+		? sprintf( __( 'Unsubscribe from %s show updates', 'extrachill-events' ), $location->name )
+		: __( 'Unsubscribe from this Local Scene digest', 'extrachill-events' );
+	$body  = '<p>' . esc_html( $intro ) . '</p>';
+	$body .= extrachill_events_render_local_scene_digest_section( __( "You're Going", 'extrachill-events' ), $going, $scope );
+	$body .= extrachill_events_render_local_scene_digest_section( __( 'More This Week', 'extrachill-events' ), $more, $scope );
+	$body .= '<p style="font-size:13px"><a href="' . esc_url( extrachill_events_local_scene_digest_unsubscribe_url( $user_id, $location->slug, null, $scope ) ) . '">' . esc_html( $unsubscribe_label ) . '</a></p>';
 
 	return array(
-		'subject'   => __( "Your Local Scene: This Week's Shows", 'extrachill-events' ),
+		'subject'   => $subject,
 		'body_html' => $body,
 	);
 }
@@ -626,9 +803,11 @@ function extrachill_events_build_local_scene_digest_email( int $user_id, WP_Term
  *
  * @param string $heading Section heading.
  * @param array  $events  Selected event rows.
+ * @param string $scope   location|venue. Venue emails omit the repeated venue name.
  * @return string Section HTML.
  */
-function extrachill_events_render_local_scene_digest_section( string $heading, array $events ): string {
+function extrachill_events_render_local_scene_digest_section( string $heading, array $events, string $scope = 'location' ): string {
+	$scope = extrachill_events_normalize_digest_scope( $scope );
 	if ( empty( $events ) ) {
 		return '';
 	}
@@ -645,11 +824,13 @@ function extrachill_events_render_local_scene_digest_section( string $heading, a
 				? ' - ' . $event_end->format( 'g:i A' )
 				: ' - ' . $event_end->format( 'D, M j \a\t g:i A' );
 		}
-		$details .= ' · ' . $event['venue_name'];
+		if ( 'venue' !== $scope ) {
+			$details .= ' · ' . $event['venue_name'];
+		}
 		if ( '' !== $price ) {
 			$details .= ' · ' . $price;
 		}
-		$html .= '<li><a href="' . esc_url( extrachill_events_local_scene_digest_tracked_url( $event['url'] ) ) . '"><strong>' . esc_html( $event['title'] ) . '</strong></a><br>' . esc_html( $details ) . '</li>';
+		$html .= '<li><a href="' . esc_url( extrachill_events_local_scene_digest_tracked_url( $event['url'], $scope ) ) . '"><strong>' . esc_html( $event['title'] ) . '</strong></a><br>' . esc_html( $details ) . '</li>';
 	}
 	return $html . '</ul>';
 }
@@ -657,17 +838,18 @@ function extrachill_events_render_local_scene_digest_section( string $heading, a
 /**
  * Add generic campaign tags without embedding location identity.
  *
- * @param mixed $url Canonical URL or error.
+ * @param mixed  $url   Canonical URL or error.
+ * @param string $scope location|venue.
  * @return string Tracked URL.
  */
-function extrachill_events_local_scene_digest_tracked_url( $url ): string {
+function extrachill_events_local_scene_digest_tracked_url( $url, string $scope = 'location' ): string {
 	if ( is_wp_error( $url ) || ! is_string( $url ) ) {
 		return '';
 	}
 	return extrachill_events_local_scene_digest_add_query_args(
 		$url,
 		array(
-			'utm_source'   => 'local_scene_digest',
+			'utm_source'   => extrachill_events_digest_scope( $scope )['utm_source'],
 			'utm_medium'   => 'email',
 			'utm_campaign' => 'weekly_events',
 		)
@@ -675,17 +857,25 @@ function extrachill_events_local_scene_digest_tracked_url( $url ): string {
 }
 
 /**
- * Mint a location-specific signed unsubscribe URL valid for 30 days.
+ * Mint a scope-specific signed unsubscribe URL valid for 30 days.
+ *
+ * City tokens keep their original claims; venue tokens add `scope: venue`
+ * so one route and one ability serve both scopes.
  *
  * @param int      $user_id Recipient user ID.
- * @param string   $slug    Canonical location slug.
+ * @param string   $slug    Canonical location (or venue) slug.
  * @param int|null $expires Optional expiry timestamp.
+ * @param string   $scope   location|venue.
  * @return string Signed URL.
  */
-function extrachill_events_local_scene_digest_unsubscribe_url( int $user_id, string $slug, ?int $expires = null ): string {
+function extrachill_events_local_scene_digest_unsubscribe_url( int $user_id, string $slug, ?int $expires = null, string $scope = 'location' ): string {
 	$slug    = sanitize_title( $slug );
 	$expires = $expires ?? ( time() + 30 * DAY_IN_SECONDS );
-	$token   = extrachill_sign( 'events.digest_unsubscribe', compact( 'user_id', 'slug' ), max( 1, min( 30 * DAY_IN_SECONDS, $expires - time() ) ) );
+	$claims  = compact( 'user_id', 'slug' );
+	if ( 'venue' === extrachill_events_normalize_digest_scope( $scope ) ) {
+		$claims['scope'] = 'venue';
+	}
+	$token = extrachill_sign( 'events.digest_unsubscribe', $claims, max( 1, min( 30 * DAY_IN_SECONDS, $expires - time() ) ) );
 	return extrachill_events_local_scene_digest_add_query_args(
 		rest_url( 'extrachill/v1/local-scene-digest/unsubscribe' ),
 		array(
@@ -721,6 +911,11 @@ function extrachill_events_local_scene_digest_add_query_args( string $url, array
  * @return array{status: string, title: string, message: string, action_html: string, html: string}
  */
 function extrachill_events_local_scene_digest_unsubscribe_page( array $params, bool $is_post ): array {
+	$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
+	if ( is_array( $verified ) && 'venue' === ( $verified['scope'] ?? '' ) ) {
+		return extrachill_events_venue_updates_unsubscribe_page( $params, $is_post );
+	}
+
 	$action_html = '';
 	if ( ! $is_post ) {
 		$result = extrachill_events_local_scene_digest_unsubscribe_confirmation( $params );
@@ -761,6 +956,50 @@ function extrachill_events_local_scene_digest_unsubscribe_page( array $params, b
 }
 
 /**
+ * Venue show-updates copy for the shared signed unsubscribe page (#1724).
+ *
+ * Only reached once the token verified with `scope: venue`, so an invalid
+ * link always falls through to the city copy above.
+ *
+ * @param array $params  Signed request parameters.
+ * @param bool  $is_post Whether the request is the confirming POST.
+ * @return array{status: string, title: string, message: string, action_html: string, html: string}
+ */
+function extrachill_events_venue_updates_unsubscribe_page( array $params, bool $is_post ): array {
+	$action_html = '';
+	if ( ! $is_post ) {
+		$result      = extrachill_events_local_scene_digest_unsubscribe_confirmation( $params );
+		$status      = is_wp_error( $result ) ? 'invalid' : 'confirm';
+		$title       = is_wp_error( $result ) ? __( 'Unsubscribe link invalid', 'extrachill-events' ) : __( "Unsubscribe from this venue's show updates?", 'extrachill-events' );
+		$message     = is_wp_error( $result ) ? __( 'This unsubscribe link is invalid or has expired. You can manage venue show updates from the venue page.', 'extrachill-events' ) : __( "This stops the weekly email and its in-app update for this venue only. Your tickets, RSVPs and other subscriptions don't change.", 'extrachill-events' );
+		$action_html = is_wp_error( $result ) ? '' : $result['html'];
+	} else {
+		$result = extrachill_events_local_scene_digest_unsubscribe( $params );
+		if ( ! is_wp_error( $result ) ) {
+			$status  = 'unsubscribed';
+			$title   = __( "You're unsubscribed", 'extrachill-events' );
+			$message = __( 'You will no longer receive weekly show updates from this venue. Your other subscriptions have not changed.', 'extrachill-events' );
+		} elseif ( 'invalid_local_scene_digest_unsubscribe' === $result->get_error_code() ) {
+			$status  = 'invalid';
+			$title   = __( 'Unsubscribe link invalid', 'extrachill-events' );
+			$message = __( 'This unsubscribe request is invalid or has expired. You can manage venue show updates from the venue page.', 'extrachill-events' );
+		} else {
+			$status  = 'unavailable';
+			$title   = __( 'Unsubscribe unavailable', 'extrachill-events' );
+			$message = __( 'This subscription could not be updated right now. Please try again later.', 'extrachill-events' );
+		}
+	}
+
+	return array(
+		'status'      => $status,
+		'title'       => $title,
+		'message'     => $message,
+		'action_html' => $action_html,
+		'html'        => extrachill_events_build_local_scene_digest_unsubscribe_page( $title, $message, $action_html ),
+	);
+}
+
+/**
  * Verify and normalize one signed unsubscribe request without mutating consent.
  *
  * @param array    $params Signed request parameters.
@@ -772,10 +1011,12 @@ function extrachill_events_verify_local_scene_digest_unsubscribe( array $params,
 	$token  = (string) ( $params['token'] ?? '' );
 	$claims = extrachill_verify( 'events.digest_unsubscribe', $token, $now );
 	if ( null !== $claims ) {
-		$user_id = (int) ( $claims['user_id'] ?? 0 );
-		$slug    = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
-		if ( $user_id > 0 && '' !== $slug ) {
-			return compact( 'user_id', 'slug', 'token' );
+		$user_id   = (int) ( $claims['user_id'] ?? 0 );
+		$slug      = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
+		$raw_scope = (string) ( $claims['scope'] ?? 'location' );
+		$scope     = extrachill_events_normalize_digest_scope( $raw_scope );
+		if ( $user_id > 0 && '' !== $slug && $scope === $raw_scope ) {
+			return compact( 'user_id', 'slug', 'token', 'scope' );
 		}
 	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
 		return extrachill_events_local_scene_digest_unsubscribe_legacy_verify( $params );
@@ -800,7 +1041,8 @@ function extrachill_events_local_scene_digest_unsubscribe_legacy_verify( array $
 		return new WP_Error( 'invalid_local_scene_digest_unsubscribe', __( 'This unsubscribe link is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
-	return compact( 'user_id', 'slug', 'expires', 'signature' );
+	$scope = 'location'; // Legacy links predate venue show updates.
+	return compact( 'user_id', 'slug', 'expires', 'signature', 'scope' );
 }
 
 /**
@@ -838,11 +1080,12 @@ function extrachill_events_build_local_scene_digest_unsubscribe_form( array $ver
 	foreach ( $args as $name => $value ) {
 		$fields .= '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 	}
-	return '<form method="post" action="' . esc_url( rest_url( 'extrachill/v1/local-scene-digest/unsubscribe' ) ) . '">' . $fields . '<button type="submit">' . esc_html__( 'Unsubscribe from this Local Scene', 'extrachill-events' ) . '</button></form>';
+	$label = 'venue' === ( $verified['scope'] ?? 'location' ) ? __( 'Unsubscribe from this venue', 'extrachill-events' ) : __( 'Unsubscribe from this Local Scene', 'extrachill-events' );
+	return '<form method="post" action="' . esc_url( rest_url( 'extrachill/v1/local-scene-digest/unsubscribe' ) ) . '">' . $fields . '<button type="submit">' . esc_html( $label ) . '</button></form>';
 }
 
 /**
- * Verify a signed POST and remove only its digest-specific location consent.
+ * Verify a signed POST and remove only its scope-specific consent (one city or one venue).
  *
  * @param array $params Signed request parameters.
  * @return array|WP_Error
@@ -856,7 +1099,8 @@ function extrachill_events_local_scene_digest_unsubscribe( array $params ) {
 		return new WP_Error( 'local_scene_digest_unsubscribe_unavailable', __( 'Unsubscribe is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
 	}
 
-	$result = extrachill_users_unsubscribe_from_entity( $verified['user_id'], EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_ENTITY, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_TAXONOMY, $verified['slug'] );
+	$definition = extrachill_events_digest_scope( (string) ( $verified['scope'] ?? 'location' ) );
+	$result     = extrachill_users_unsubscribe_from_entity( $verified['user_id'], $definition['entity'], $definition['taxonomy'], $verified['slug'] );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

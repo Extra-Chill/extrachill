@@ -58,12 +58,27 @@ function extrachill_analytics_link_page_clicks_table() {
  * blog served the request: the artist dashboard runs on the artist site
  * while pages (and their view/click beacons) are served by the storage
  * site. Falls back to the current blog when the Link Pages runtime is not
- * loaded. Schema code keeps the per-blog functions above.
+ * loaded. Schema code keeps the per-blog functions above and runs them while
+ * switched to the storage blog.
  *
  * @return string
  */
 function extrachill_analytics_link_page_storage_prefix() {
 	global $wpdb;
+	$storage_blog_id = extrachill_analytics_link_page_storage_blog_id();
+	return $storage_blog_id > 0 ? $wpdb->get_blog_prefix( $storage_blog_id ) : $wpdb->prefix;
+}
+
+/**
+ * Blog ID that owns the Link Page analytics tables.
+ *
+ * The single source of truth for both runtime reads/writes (via
+ * `extrachill_analytics_link_page_storage_prefix()`) and schema
+ * create/reconcile, so the tables only ever exist where they are used.
+ *
+ * @return int Storage blog ID, or 0 meaning "the current blog".
+ */
+function extrachill_analytics_link_page_storage_blog_id() {
 	$storage_blog_id = function_exists( 'ec_get_link_page_storage_blog_id' ) ? (int) ec_get_link_page_storage_blog_id() : 0;
 	/**
 	 * Blog whose tables hold Link Page analytics. Default: the Link Page
@@ -71,8 +86,17 @@ function extrachill_analytics_link_page_storage_prefix() {
 	 *
 	 * @param int $storage_blog_id Blog ID.
 	 */
-	$storage_blog_id = (int) apply_filters( 'extrachill_analytics_link_page_storage_blog_id', $storage_blog_id );
-	return $storage_blog_id > 0 ? $wpdb->get_blog_prefix( $storage_blog_id ) : $wpdb->prefix;
+	return max( 0, (int) apply_filters( 'extrachill_analytics_link_page_storage_blog_id', $storage_blog_id ) );
+}
+
+/**
+ * Whether the current blog is the Link Page analytics storage blog.
+ *
+ * @return bool
+ */
+function extrachill_analytics_link_page_is_storage_blog() {
+	$storage_blog_id = extrachill_analytics_link_page_storage_blog_id();
+	return 0 === $storage_blog_id || ! is_multisite() || get_current_blog_id() === $storage_blog_id;
 }
 
 /** Daily-views table on the Link Page storage blog. */
@@ -100,8 +124,36 @@ function extrachill_analytics_link_page_storage_clicks_table() {
  * link-page-schema.php against the owned column and index contract. That pass short-circuits to a no-op once a
  * site's tables already match, so this whole function stays cheap once the
  * version option catches up (#287).
+ *
+ * Always targets the Link Page storage blog (#1775): runtime reads and writes
+ * resolve there, so creating the tables on any other blog only leaves empty
+ * orphan copies behind. Called from another blog, this switches to the
+ * storage blog for the duration of the call.
  */
 function extrachill_analytics_link_page_create_table() {
+	$storage_blog_id = extrachill_analytics_link_page_storage_blog_id();
+	$switched        = ! extrachill_analytics_link_page_is_storage_blog();
+
+	if ( $switched ) {
+		switch_to_blog( $storage_blog_id );
+	}
+
+	try {
+		extrachill_analytics_link_page_create_table_on_current_blog();
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
+ * Create/reconcile the Link Page tables on the current blog. Callers must
+ * already be on the storage blog; use `extrachill_analytics_link_page_create_table()`.
+ *
+ * @return void
+ */
+function extrachill_analytics_link_page_create_table_on_current_blog() {
 	$current_db_version = get_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );
 
 	if ( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION === $current_db_version ) {
@@ -145,7 +197,19 @@ function extrachill_analytics_link_page_create_table() {
 	update_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION );
 }
 
-add_action( 'admin_init', 'extrachill_analytics_link_page_create_table' );
+/**
+ * `admin_init` entry point: reconcile only while serving the storage blog's
+ * admin, so wp-admin traffic on other sites never creates orphan copies or
+ * pays a blog switch.
+ *
+ * @return void
+ */
+function extrachill_analytics_link_page_create_table_on_admin_init() {
+	if ( extrachill_analytics_link_page_is_storage_blog() ) {
+		extrachill_analytics_link_page_create_table();
+	}
+}
+add_action( 'admin_init', 'extrachill_analytics_link_page_create_table_on_admin_init' );
 
 /**
  * Ensure this site's Link Page schema is current before the first write in
@@ -167,23 +231,20 @@ function extrachill_analytics_link_page_schema_ensure_ready() {
 		return;
 	}
 
-	if ( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION !== get_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION ) ) {
-		extrachill_analytics_link_page_create_table();
-	}
+	// create_table() is version-gated on the storage blog's own option.
+	extrachill_analytics_link_page_create_table();
 
 	$ready = true;
 }
 
 /**
- * Sweep every network site's Link Page tables immediately after this plugin
- * upgrades, instead of waiting for each site's next `admin_init` or write.
+ * Reconcile the storage blog's Link Page tables immediately after this plugin
+ * upgrades, instead of waiting for its next `admin_init` or write (#287).
  *
- * A site that never loads wp-admin and only ever receives click/view writes
- * would otherwise keep a drifted schema until its next write happened to run
- * `extrachill_analytics_link_page_schema_ensure_ready()` — this hook removes
- * that gap for the network as a whole right when the plugin ships (#287).
- * Each per-site call is the same version-gated, idempotent routine, so a
- * site already on the current schema costs one cheap option read.
+ * Only the Link Page storage blog is touched (#1775). This previously swept
+ * every network site via get_sites(), which created empty table copies on
+ * sites that never read or write them. Leftover copies are removed with the
+ * one-time `extrachill/cleanup-link-page-tables` ability.
  *
  * @param WP_Upgrader $upgrader_object Unused; required by the hook signature.
  * @param array       $hook_extra      Upgrade action/type/plugin metadata.
@@ -206,10 +267,105 @@ function extrachill_analytics_link_page_reconcile_network_on_upgrade( $upgrader_
 		return;
 	}
 
-	foreach ( get_sites( array( 'fields' => 'ids' ) ) as $blog_id ) {
-		switch_to_blog( (int) $blog_id );
-		extrachill_analytics_link_page_create_table();
-		restore_current_blog();
-	}
+	extrachill_analytics_link_page_create_table();
 }
 add_action( 'upgrader_process_complete', 'extrachill_analytics_link_page_reconcile_network_on_upgrade', 10, 2 );
+
+/**
+ * One-time cleanup of Link Page analytics tables on non-storage blogs (#1775).
+ *
+ * Before #1775 the upgrade sweep created both tables on every network site,
+ * while reads/writes only ever touched the storage blog. This walks every
+ * non-storage blog and, per table:
+ *   - absent      → skipped (not reported),
+ *   - 0 rows      → `would_drop` on dry run, `dropped` otherwise,
+ *   - rows > 0    → `refused`; never dropped, reported for operator review
+ *                   (e.g. legacy pre-storage-move rows that may need a merge).
+ * The storage blog's tables are reported as `storage` and never touched.
+ * A blog whose copies are all gone after a live run also loses its stale
+ * schema-version option.
+ *
+ * @param bool $dry_run When true (default), report only.
+ * @return array|WP_Error Report, or WP_Error when the storage blog is unknown.
+ */
+function extrachill_analytics_link_page_cleanup_orphan_tables( $dry_run = true ) {
+	global $wpdb;
+
+	$dry_run = (bool) $dry_run;
+	$report  = array(
+		'storage_blog_id' => 0,
+		'dry_run'         => $dry_run,
+		'tables'          => array(),
+		'would_drop'      => 0,
+		'dropped'         => 0,
+		'refused'         => 0,
+	);
+
+	if ( ! is_multisite() ) {
+		return $report;
+	}
+
+	$storage_blog_id = extrachill_analytics_link_page_storage_blog_id();
+	if ( $storage_blog_id <= 0 ) {
+		return new WP_Error(
+			'extrachill_analytics_link_page_storage_unresolved',
+			__( 'Link Page storage blog could not be resolved; refusing to clean up Link Page analytics tables.', 'extrachill-analytics' )
+		);
+	}
+	$report['storage_blog_id'] = $storage_blog_id;
+
+	$suffixes = array( 'extrch_link_page_daily_views', 'extrch_link_page_daily_link_clicks' );
+
+	$site_ids = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	);
+
+	foreach ( $site_ids as $blog_id ) {
+		$blog_id   = (int) $blog_id;
+		$prefix    = $wpdb->get_blog_prefix( $blog_id );
+		$remaining = 0;
+
+		foreach ( $suffixes as $suffix ) {
+			$table  = $prefix . $suffix;
+			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table existence probe.
+			if ( $table !== $exists ) {
+				continue;
+			}
+
+			$rows = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Code-defined plugin-owned table name.
+
+			if ( $blog_id === $storage_blog_id ) {
+				$action = 'storage';
+				++$remaining;
+			} elseif ( $rows > 0 ) {
+				$action = 'refused';
+				++$report['refused'];
+				++$remaining;
+			} elseif ( $dry_run ) {
+				$action = 'would_drop';
+				++$report['would_drop'];
+				++$remaining;
+			} else {
+				$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-time operator cleanup of an empty plugin-owned orphan table.
+				$action = 'dropped';
+				++$report['dropped'];
+			}
+
+			$report['tables'][] = array(
+				'blog_id' => $blog_id,
+				'table'   => $table,
+				'rows'    => $rows,
+				'action'  => $action,
+			);
+		}
+
+		if ( ! $dry_run && 0 === $remaining && $blog_id !== $storage_blog_id ) {
+			delete_blog_option( $blog_id, EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );
+		}
+	}
+
+	return $report;
+}

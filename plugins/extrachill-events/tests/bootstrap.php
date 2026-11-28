@@ -246,6 +246,34 @@ if ( ! function_exists( 'mb_substr' ) && function_exists( 'substr' ) ) {
 	}
 }
 
+if ( ! function_exists( 'extrachill_rate_limit_admit' ) ) {
+	/**
+	 * Network rate-limit contract stub for the isolated unit harness.
+	 *
+	 * Production loads extrachill-network/inc/core/rate-limit.php (a required
+	 * network dependency). This in-memory counter mirrors its contract: true
+	 * while under the limit, otherwise retry-after seconds. Tests reset it by
+	 * clearing $GLOBALS['extrachill_rate_limit_test_counts'].
+	 *
+	 * @param string $key            Limiter key.
+	 * @param int    $limit          Requests allowed per window.
+	 * @param int    $window_seconds Window length.
+	 * @return true|int
+	 */
+	function extrachill_rate_limit_admit( string $key, int $limit, int $window_seconds ) {
+		$window_seconds = max( 1, $window_seconds );
+		$start          = intdiv( time(), $window_seconds ) * $window_seconds;
+		$window_key     = $key . ':' . $window_seconds . ':' . $start;
+		$counts         = $GLOBALS['extrachill_rate_limit_test_counts'] ?? array();
+		$count          = (int) ( $counts[ $window_key ] ?? 0 ) + 1;
+
+		$counts[ $window_key ]                        = $count;
+		$GLOBALS['extrachill_rate_limit_test_counts'] = $counts;
+
+		return $count <= $limit ? true : $start + $window_seconds - time();
+	}
+}
+
 /** Restores mutable plain-test globals after every test. */
 abstract class BookingTestCase extends PHPUnit\Framework\TestCase {
 	private $booking_test_globals;

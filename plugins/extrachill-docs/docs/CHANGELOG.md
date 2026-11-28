@@ -1,5 +1,30 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.15.0] - 2026-11-28
+
+### Added
+- collect feedback on docs articles
+
+## [0.14.1] - 2026-11-28
+
+### Fixed
+- render managed section landing pages from code
+
+## [0.14.0] - 2026-11-28
+
+### Added
+- add event type filtering to the public calendar feed
+
+## [0.13.3] - 2026-11-25
+
+### Fixed
+- skip README.md and other unmappable docs files instead of importing stray posts
+
+## [0.13.2] - 2026-11-21
+
+### Changed
+- nightly network-wide Docs Agent maintenance run
+
 ## [0.13.1] - 2026-11-16
 
 ### Fixed

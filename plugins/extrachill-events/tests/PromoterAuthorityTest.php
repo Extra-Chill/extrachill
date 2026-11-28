@@ -114,14 +114,15 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 		$GLOBALS['promoter_test']['abilities'][ $name ] = $definition; }
 }
 
+require_once __DIR__ . '/Support/post-fixtures.php';
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $post_id ) {
-		return $GLOBALS['event_management_test']['posts'][ $post_id ] ?? null;
+		return ec_events_test_fixture_post( $post_id );
 	}
 }
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
 	function wp_get_post_terms( $post_id, $taxonomy ) {
-		return $GLOBALS['event_management_test']['terms'][ $post_id ][ $taxonomy ] ?? array();
+		return ec_events_test_fixture_post_terms( $post_id, $taxonomy );
 	}
 }
 
@@ -692,31 +693,17 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'active', $repository->get_organization( 100 )['status'] );
 	}
 
-	protected function tearDown(): void {
-		unset( $GLOBALS['event_management_test'], $GLOBALS['ec_artist_test'] );
-	}
-
 	/** Revocation retains members but removes all promoter-derived event authority. */
 	public function test_organization_revocation_removes_event_and_guest_list_authority(): void {
 		$service = new PromoterAuthorityActor();
 		$this->assertIsArray( $service->verify( 1, 100, 2 ) );
 		$this->assertIsArray( $service->create_membership( 2, 100, 3, false ) );
-		$event = (object) array(
+		$GLOBALS['promoter_test']['posts'][900] = (object) array(
 			'ID'          => 900,
 			'post_type'   => 'data_machine_events',
 			'post_author' => 1,
 		);
-		// Seed the shared post/term keys so whichever get_post()/wp_get_post_terms()
-		// shim loaded first in this process (this file's, or the booking harness's
-		// when the membership suite loads it earlier) sees the event.
-		$GLOBALS['event_management_test'] = array(
-			'posts' => array( 900 => $event ),
-			'terms' => array( 900 => array( 'promoter' => array( $GLOBALS['promoter_test']['terms'][100] ) ) ),
-		);
-		$GLOBALS['ec_artist_test']        = array(
-			'blog_id' => 1,
-			'posts'   => array( 1 => array( 900 => $event ) ),
-		);
+		$GLOBALS['promoter_test']['post_terms'][900]['promoter'] = array( $GLOBALS['promoter_test']['terms'][100] );
 
 		$this->assertTrue( extrachill_events_user_can_manage_event( 3, 900 ) );
 		$this->assertTrue( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );

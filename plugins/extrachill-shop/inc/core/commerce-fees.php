@@ -2,9 +2,12 @@
 /**
  * Commerce fees: the one place Extra Chill's share of a sale is calculated.
  *
- * Rates come from the network `extrachill_commerce_fees` setting
- * (`ec_commerce_fee_settings()` in extrachill-network, edited on the network
- * Payments page). Checkout and ticket checkout call this to set the Stripe
+ * Rates come from the network `extrachill_commerce_fees` setting, edited on
+ * the network Payments page, with any seller and event overrides layered on
+ * top (`ec_commerce_fee_settings( $context )` in extrachill-network; set with
+ * the fee override abilities, `inc/abilities/commerce-fee-overrides.php`).
+ * Every caller passes what it is selling, so it charges and shows the same
+ * resolved rates. Checkout and ticket checkout call this to set the Stripe
  * application fee, and seller emails call it to show the payout. Refunds
  * never recompute it: they return the fee Stripe recorded on the charge.
  *
@@ -30,16 +33,21 @@ defined( 'ABSPATH' ) || exit;
  * Platform-owned products (no seller) are charged on the platform account, so
  * there is no application fee. Free sales have no fee.
  *
+ * The rates are resolved for this sale: the seller's override and, when
+ * `$context['event_id']` is given, the event's override (see
+ * `ec_commerce_fee_settings()`).
+ *
  * @param string     $kind           `extrachill_merch` or `extrachill_ticket`.
  * @param int        $subtotal_minor Item subtotal in minor units.
  * @param array|null $seller         Seller reference, or null for platform products.
  * @param int        $quantity       Tickets in the order (tickets only).
  * @param string     $fee_payer      Who pays card processing on the seller's direct
  *                                   charges (tickets only); '' when unknown.
+ * @param array      $context        More of the fee context, e.g. `event_id` for tickets.
  * @return array{buyer_fee:int,application_fee:int} Minor units.
  * @throws InvalidArgumentException For an unknown kind.
  */
-function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1, $fee_payer = '' ) {
+function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1, $fee_payer = '', array $context = array() ) {
 	if ( ! in_array( $kind, array( 'extrachill_merch', 'extrachill_ticket' ), true ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Programming error, never shown to users.
 		throw new InvalidArgumentException( 'Unknown commerce fee kind: ' . $kind );
@@ -51,7 +59,7 @@ function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1
 			'application_fee' => 0,
 		);
 	}
-	$settings = ec_commerce_fee_settings();
+	$settings = ec_commerce_fee_settings( extrachill_commerce_fee_context( $kind, $seller, $context ) );
 	if ( 'extrachill_merch' === $kind ) {
 		return array(
 			'buyer_fee'       => 0,
@@ -59,6 +67,21 @@ function extrachill_commerce_fee( $kind, $subtotal_minor, $seller, $quantity = 1
 		);
 	}
 	return extrachill_commerce_ticket_fee( $subtotal, max( 1, (int) $quantity ), $settings, $fee_payer );
+}
+
+/**
+ * The `ec_commerce_fee_settings()` context for a sale.
+ *
+ * @param string     $kind    `extrachill_merch` or `extrachill_ticket`.
+ * @param array|null $seller  Seller reference, or null.
+ * @param array      $context More context (`event_id`); `kind` and `seller` win.
+ * @return array
+ */
+function extrachill_commerce_fee_context( $kind, $seller, array $context = array() ): array {
+	return array(
+		'kind'   => (string) $kind,
+		'seller' => $seller,
+	) + $context;
 }
 
 /**
@@ -102,7 +125,7 @@ function extrachill_commerce_merch_fee( $subtotal_minor, $total_minor, $seller, 
 		);
 	}
 	$hold       = min( $total, max( 0, (int) $hold_minor ) );
-	$settings   = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings() : array();
+	$settings   = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings( extrachill_commerce_fee_context( 'extrachill_merch', $seller ) ) : array();
 	$processing = 'platform' === $payer ? min( $total - $hold, extrachill_commerce_processing_estimate( $total, $settings ) ) : 0;
 	$commission = min( $total - $hold - $processing, extrachill_commerce_fee( 'extrachill_merch', $subtotal_minor, $seller )['application_fee'] );
 	return array(
@@ -233,7 +256,7 @@ function extrachill_shop_format_fee_percent( $percent ) {
 /**
  * The current fee rates, as sellers see them before they list.
  *
- * Read from the same network setting `extrachill_commerce_fee()` charges
+ * Read from the same resolved settings `extrachill_commerce_fee()` charges
  * with, so the shop manager never shows a rate checkout does not use. The
  * summaries are the seller-facing wording; clients show them as-is. With no
  * seller ticket fee (the default), the ticket summary says the venue keeps
@@ -243,10 +266,15 @@ function extrachill_shop_format_fee_percent( $percent ) {
  * inside the application fee when Extra Chill pays it; see
  * `extrachill_commerce_merch_fee()`).
  *
+ * Given a seller, the rates are that seller's (global rates with the
+ * seller's override). An event override can still change a single show's
+ * ticket fees; it is not shown here.
+ *
+ * @param array|null $seller Seller reference, or null for the global rates.
  * @return array{merch_percent: float, ticket_percent: float, ticket_buyer_fee_percent: float, ticket_buyer_fee_flat: float, ticket_buyer_fee_per_ticket: float, processing_percent: float, processing_fixed: float, merch_summary: string, ticket_summary: string}
  */
-function extrachill_shop_seller_fee_rates() {
-	$settings   = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings() : array();
+function extrachill_shop_seller_fee_rates( $seller = null ) {
+	$settings   = function_exists( 'ec_commerce_fee_settings' ) ? ec_commerce_fee_settings( $seller ? array( 'seller' => $seller ) : array() ) : array();
 	$merch      = (float) ( $settings['merch_percent'] ?? 0 );
 	$ticket     = (float) ( $settings['ticket_percent'] ?? 0 );
 	$buyer_pc   = (float) ( $settings['ticket_buyer_fee_percent'] ?? 0 );

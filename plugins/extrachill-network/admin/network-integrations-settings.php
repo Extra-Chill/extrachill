@@ -355,7 +355,7 @@ function ec_render_integration_section( array $integration ) {
 							id="<?php echo esc_attr( $input_id ); ?>"
 							name="<?php echo esc_attr( $post_key ); ?>"
 							value="<?php echo $is_secret ? '' : esc_attr( $config[ $field['key'] ] ?? '' ); ?>"
-							class="regular-text<?php echo 'textarea' === $input_type ? ' code' : ''; ?>"
+							class="regular-text"
 							placeholder="<?php echo esc_attr( $field['placeholder'] ); ?>"
 							<?php echo $is_secret ? 'autocomplete="new-password"' : ''; ?> />
 				<?php endif; ?>

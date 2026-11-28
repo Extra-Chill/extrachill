@@ -14,8 +14,8 @@ Every component, including `extrachill-network`, lives in its own directory with
 |---|---|
 | `deploy/homeboy/projects/extrachill-monorepo` | Deploy targets for every monorepo member (`deploy-monorepo.yml`) |
 | `deploy/homeboy/projects/extrachill-site` + `components/` | Release-polled components that are *not* in this repo (Data Machine family, `wp-codebox`, …; `deploy.yml`) |
-| `deploy/tests/` | Deploy, nginx and sunrise contract tests |
-| `deploy/nginx`, `deploy/sunrise.php`, `docs/nginx` | Server artifacts |
+| `deploy/tests/` | Deploy and nginx contract tests |
+| `deploy/nginx`, `docs/nginx` | Server artifacts |
 | `rigs/extrachill-network` | The 11-site network rig and user journeys; boots members from this checkout |
 
 ## Documentation

@@ -94,6 +94,8 @@ const EC_ANALYTICS_EVENT_REDIRECT_FIRE     = 'redirect_fire';
  *   dest_path (path only, max 512), label (max 80), link_kind (server-owned:
  *   same_site|network). Fires for links inside the post body only, so it is
  *   the crosslink-density measurement (#1436).
+ * - calendar_query: trigger, scope, has_date_range, search_term, taxonomies
+ *   (taxonomy to term slugs), archive_taxonomy, archive_term, result_count, route.
  * - form_submit: form, placement, route. NEVER field values — the write gate
  *   admits no input-value dimension for this event type (see
  *   extrachill/track-form-submit).
@@ -106,6 +108,8 @@ const EC_ANALYTICS_EVENT_CTA_CLICK         = 'cta_click';
 const EC_ANALYTICS_EVENT_NETWORK_CLICK     = 'network_click';
 const EC_ANALYTICS_EVENT_CONTENT_LINK      = 'content_link_click';
 const EC_ANALYTICS_EVENT_FORM_SUBMIT       = 'form_submit';
+const EC_ANALYTICS_EVENT_CALENDAR_QUERY    = 'calendar_query';
+const EC_ANALYTICS_CALENDAR_TRIGGERS       = array( 'search', 'date_range', 'scope', 'taxonomy_filter', 'clear', 'pagination', 'geo', 'initial' );
 
 /**
  * First-consumer experiment contract.
@@ -135,6 +139,7 @@ const EC_ANALYTICS_PUBLIC_BROWSER_EVENTS = array(
 	EC_ANALYTICS_EVENT_NETWORK_CLICK,
 	EC_ANALYTICS_EVENT_CONTENT_LINK,
 	EC_ANALYTICS_EVENT_FORM_SUBMIT,
+	EC_ANALYTICS_EVENT_CALENDAR_QUERY,
 );
 
 /** Team-experience events (team membership + Studio usage; MCP defined below). */

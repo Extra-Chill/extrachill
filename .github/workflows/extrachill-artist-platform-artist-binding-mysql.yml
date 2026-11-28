@@ -41,7 +41,7 @@ jobs:
       WP_INTEGRATION_PATH: /tmp/artist-binding-wordpress
       ARTIST_BINDING_SOURCE: ${{ github.workspace }}/plugins/extrachill-artist-platform/inc/core/artist-term-binding.php
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'

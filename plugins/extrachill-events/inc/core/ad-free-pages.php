@@ -7,6 +7,9 @@
  * (/rsvp-verify/). A guest pulling up a pass in a dark venue line, or a
  * host scanning at the door, should never get an ad.
  *
+ * Event managers also never see ads on the event pages of shows they manage:
+ * it is their own show, and they are working it, not browsing it.
+ *
  * Uses the network ad policy's `extrachill_should_block_ads` filter, which
  * both the policy (extrachill_get_ad_policy) and the ad blocklist output
  * honor. Every event gets this automatically; a new ad-free event surface
@@ -37,7 +40,27 @@ function extrachill_events_is_ad_free_page(): bool {
 		return true;
 	}
 
+	if ( extrachill_events_is_managed_event_page() ) {
+		return true;
+	}
+
 	return false;
+}
+
+/**
+ * Whether the current request is an event page the current user manages.
+ *
+ * @return bool
+ */
+function extrachill_events_is_managed_event_page(): bool {
+	if ( ! is_singular( 'data_machine_events' ) || ! function_exists( 'extrachill_events_user_can_manage_event' ) ) {
+		return false;
+	}
+
+	$user_id  = (int) get_current_user_id();
+	$event_id = (int) get_queried_object_id();
+
+	return $user_id > 0 && $event_id > 0 && extrachill_events_user_can_manage_event( $user_id, $event_id );
 }
 
 /**

@@ -62,9 +62,9 @@ require_once dirname( __DIR__, 3 ) . '/inc/Abilities/OwnerGuestListAbilities.php
 final class OwnerGuestListFakeWpdb {
 
 	public $base_prefix = 'wp_';
-	public $prefix     = 'wp_7_';
-	public $last_error = '';
-	public $insert_id  = 0;
+	public $prefix      = 'wp_7_';
+	public $last_error  = '';
+	public $insert_id   = 0;
 
 	/** @var array<string, array<int, array<string, mixed>>> Rows by table name. */
 	public $tables = array();
@@ -156,7 +156,7 @@ final class OwnerGuestListFakeWpdb {
 	public function update( $table, $data, $where ) {
 
 		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
-		$count = 0;
+		$count                        = 0;
 		foreach ( $this->rows( $table ) as $index => $row ) {
 			foreach ( $where as $key => $value ) {
 				if ( (string) ( $row[ $key ] ?? '' ) !== (string) $value ) {
@@ -200,7 +200,7 @@ final class OwnerGuestListFakeWpdb {
 
 	public function get_col( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		$column           = preg_match( '/SELECT (\w+) FROM/', $query, $m ) ? $m[1] : '';
 		return array_column( $this->matching( $query ), $column );
@@ -309,7 +309,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
 
-				'time_format'                           => 'g:i a',
+				'time_format' => 'g:i a',
 			),
 			'caps'           => array( self::ADMIN_ID => array( 'manage_network_options' ) ),
 			'editable_posts' => array(),
@@ -370,10 +370,17 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		);
 	}
 
+	/**
+	 * Set the viewer for whichever get_current_user_id() shim loaded first.
+	 *
+	 * In the qualify-v2 suite tests/Unit/Core/Stubs/wp-stubs.php (pulled in by
+	 * AccountMarketTest, which sorts first) owns get_current_user_id() and
+	 * reads test_current_user_id; standalone, this file's shim reads
+	 * owner_list_test.
+	 */
 	private function as_user( int $user_id ): void {
 		$GLOBALS['owner_list_test']['current_user'] = $user_id;
-		// In qualify-v2-unit, Stubs/wp-stubs.php's get_current_user_id() loads first.
-		$GLOBALS['test_current_user_id'] = $user_id;
+		$GLOBALS['test_current_user_id']            = $user_id;
 	}
 
 	/** Tonight's shows per owner, as the door-window query would find them. */
@@ -614,9 +621,11 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 	}
 
 	public function test_door_list_template_labels_and_never_offers_permanent_removal(): void {
-		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/door-list.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
-		$this->assertStringContainsString( "empty( \$guest_row['owner_list'] )", $source );
-		$this->assertStringContainsString( 'empty( $guest_rows )', $source );
+		// The host screen's check-in list (extrachill#1702) is the door list now.
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/templates/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read.
+		$this->assertStringContainsString( "empty( \$door_row['owner_list'] )", $source, 'Owner\'s-list rows never get Remove at the door.' );
+		$this->assertStringContainsString( 'ec_guest_list_remove', $source );
+		$this->assertFileDoesNotExist( dirname( __DIR__, 3 ) . '/templates/door-list.php', 'The event-page door list is gone (extrachill#1702).' );
 
 		$integration = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-integration.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
 		$this->assertStringContainsString( "extrachill_events_door_list_guest_rows( \$event_id, '' !== \$guest_list_url )", $integration );
@@ -710,7 +719,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( (int) $pass['id'], $sam['member_id'], 'member_id is the pass ID.' );
 		$this->assertSame( 'active', $sam['status'] );
 		$this->assertSame( 'removed', extrachill_events_owner_list_member_summary( array( 'status' => 'revoked' ) + $pass )['status'], 'A revoked pass still reads `removed` in the ability contract.' );
-		$this->assertSame( '9', RsvpPassesTable::SCHEMA_VERSION );
+		$this->assertSame( '10', RsvpPassesTable::SCHEMA_VERSION );
 	}
 
 	/** The scan view, fed the one code lookup the verify page does. */

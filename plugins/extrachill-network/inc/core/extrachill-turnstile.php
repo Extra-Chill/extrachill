@@ -204,6 +204,11 @@ function ec_enqueue_turnstile_script( $handle = 'cloudflare-turnstile' ) {
  * Honors the same bypass conditions as ec_verify_turnstile_response()
  * (local environment + 'extrachill_bypass_turnstile_verification' filter).
  *
+ * Memoizes verdicts per request object and token (or per raw token for the
+ * current PHP request). Core re-runs permission callbacks for the Allow header;
+ * verifying a single-use token again would turn a success into a rejection.
+ * Request-object storage is private so client parameters cannot forge a verdict.
+ *
  * Fires the stable 'extrachill_turnstile_rejected' action once before returning
  * a turnstile_missing_token or turnstile_failed error. Receives the error code
  * (string) and the original WP_REST_Request|string $request_or_token unchanged.
@@ -233,25 +238,47 @@ function ec_turnstile_check_request( $request_or_token ) {
 		$token = (string) $request_or_token;
 	}
 
+	static $request_verdicts = null;
+	static $raw_verdicts     = array();
+	if ( null === $request_verdicts ) {
+		$request_verdicts = new WeakMap();
+	}
+
+	$cache_key  = hash( 'sha256', $token );
+	$is_request = $request_or_token instanceof WP_REST_Request;
+	$verdicts   = $is_request ? ( $request_verdicts[ $request_or_token ] ?? array() ) : $raw_verdicts;
+	if ( isset( $verdicts[ $cache_key ] ) ) {
+		return $verdicts[ $cache_key ];
+	}
+
 	if ( '' === $token ) {
-		do_action( 'extrachill_turnstile_rejected', 'turnstile_missing_token', $request_or_token );
-		return new WP_Error(
+		$result = new WP_Error(
 			'turnstile_missing_token',
 			__( 'Security verification required.', 'extrachill-network' ),
 			array( 'status' => 403 )
 		);
-	}
-
-	if ( ! ec_verify_turnstile_response( $token ) ) {
-		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', $request_or_token );
-		return new WP_Error(
+	} elseif ( ! ec_verify_turnstile_response( $token ) ) {
+		$result = new WP_Error(
 			'turnstile_failed',
 			__( 'Security verification failed. Please try again.', 'extrachill-network' ),
 			array( 'status' => 403 )
 		);
+	} else {
+		$result = true;
 	}
 
-	return true;
+	$verdicts[ $cache_key ] = $result;
+	if ( $is_request ) {
+		$request_verdicts[ $request_or_token ] = $verdicts;
+	} else {
+		$raw_verdicts = $verdicts;
+	}
+
+	if ( is_wp_error( $result ) ) {
+		do_action( 'extrachill_turnstile_rejected', $result->get_error_code(), $request_or_token );
+	}
+
+	return $result;
 }
 
 /**

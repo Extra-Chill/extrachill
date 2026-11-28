@@ -106,6 +106,17 @@ function extrachill_docs_plan_plugin_docs( array $platform_map, string $plugins_
 		sort( $files );
 
 		foreach ( $files as $file ) {
+			if ( ! extrachill_docs_is_publishable_doc_filename( basename( $file ) ) ) {
+				// Same rule as the MDI layout: anything it cannot map (e.g.
+				// README.md) is skipped instead of imported as a stray post.
+				$plan[] = array(
+					'repo'   => $repo,
+					'path'   => $repo . '/' . $subpath . '/' . basename( $file ),
+					'file'   => $file,
+					'action' => 'skipped_invalid_filename',
+				);
+				continue;
+			}
 			$plan[] = array(
 				'repo'         => $repo,
 				'path'         => $repo . '/' . $subpath . '/' . basename( $file ),
@@ -273,6 +284,7 @@ function extrachill_docs_publish_changed_plugin_docs(): void {
 	if ( ! class_exists( 'WP_Markdown_CLI' ) || ! function_exists( 'markdown_db_register_content_layout_profile' ) ) {
 		static $logged = false;
 		if ( ! $logged ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operational signal: the hourly docs import is skipped while MDI is inactive.
 			error_log( 'Extra Chill Docs: MDI inactive; skipping docs import.' );
 			$logged = true;
 		}

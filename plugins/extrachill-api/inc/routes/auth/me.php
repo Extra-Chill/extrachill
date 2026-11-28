@@ -37,6 +37,7 @@ function extrachill_api_register_auth_me_route() {
  * @return WP_REST_Response|WP_Error
  */
 function extrachill_api_auth_me_handler( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	$user = wp_get_current_user();
 
 	if ( ! $user->exists() ) {

@@ -27,9 +27,11 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 if ( ! class_exists( 'WP_Term' ) ) {
-	// Mirrors core's constructor: slug lookups only accept WP_Term instances.
-	#[\AllowDynamicProperties]
-	class WP_Term {
+	/** Term double: production slug reads keep only real WP_Term results. */
+	final class WP_Term {
+		public $term_id;
+		public $slug;
+		public $taxonomy;
 		public function __construct( $term ) {
 			foreach ( get_object_vars( $term ) as $key => $value ) {
 				$this->$key = $value;

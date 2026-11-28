@@ -48,7 +48,7 @@ function ec_normalize_frontend_path( string $path ): ?string {
  * result is never unique, unresolved, or ambiguous until every target response
  * has passed the response contract. Failures make valid inputs incomplete.
  *
- * @param string[] $paths Host-relative frontend paths.
+ * @param array    $paths Host-relative frontend paths; non-string entries resolve as empty input.
  * @param array    $args  Optional `timeout` in seconds (1-15, default 15).
  * @return array{scan:array,results:array}
  */
@@ -92,7 +92,7 @@ function ec_resolve_frontend_paths( array $paths, array $args = array() ): array
 			'results' => $results,
 		);
 	}
-	$body_bytes = strlen( wp_json_encode( array( 'paths' => $normalized_paths ) ) );
+	$body_bytes = strlen( (string) wp_json_encode( array( 'paths' => $normalized_paths ) ) );
 	if ( $body_bytes > EC_FRONTEND_PATH_RESOLVER_MAX_BODY_BYTES ) {
 		return ec_frontend_path_resolver_incomplete_results(
 			$results,
@@ -234,7 +234,7 @@ function ec_resolve_frontend_path( string $path, array $args = array() ): array 
  * @param array $results  Input result rows.
  * @param array $failures Target or batch failures.
  * @param array $targets  Successfully checked targets.
- * @return array
+ * @return array{scan:array,results:array}
  */
 function ec_frontend_path_resolver_incomplete_results( array $results, array $failures, array $targets = array() ): array {
 	foreach ( $results as &$result ) {
@@ -261,7 +261,7 @@ function ec_frontend_path_resolver_incomplete_results( array $results, array $fa
  * @param array  $paths   Raw input paths.
  * @param string $code    Rejection code.
  * @param string $message Rejection message.
- * @return array
+ * @return array{scan:array,results:array}
  */
 function ec_frontend_path_resolver_rejected_input_results( array $paths, string $code, string $message ): array {
 	return ec_frontend_path_resolver_incomplete_results(

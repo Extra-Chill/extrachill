@@ -60,7 +60,7 @@ jest.mock( '@extrachill/components', () => {
 		StatTile: ( { label, value } ) =>
 			React.createElement( 'span', null, `${ label }: ${ value }` ),
 	};
-} );
+}, { virtual: true } );
 
 const emptyStats = {
 	total_shows: 0,

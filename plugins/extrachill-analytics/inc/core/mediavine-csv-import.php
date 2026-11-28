@@ -102,7 +102,7 @@ function extrachill_analytics_revenue_resolve_slug( $raw_slug, $hostname ) {
 
 	if ( $post_id > 0 && function_exists( 'get_post' ) ) {
 		$post = get_post( $post_id );
-		if ( is_object( $post ) && isset( $post->post_name ) ) {
+		if ( $post instanceof WP_Post ) {
 			$slug = $post->post_name;
 		} else {
 			$slug = trim( (string) strtok( $raw_slug, '?#' ), '/' );
@@ -212,7 +212,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- paired with the streaming fopen above.
 		return array(
 			'success' => false,
-			'error'   => 'CSV has no slug/url/page column. Headers seen: ' . implode( ', ', array_map( 'sanitize_text_field', $headers ) ),
+			'error'   => 'CSV has no slug/url/page column. Headers seen: ' . implode( ', ', array_map( 'sanitize_text_field', array_map( 'strval', $headers ) ) ),
 		);
 	}
 
@@ -221,6 +221,8 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 	$resolved   = 0;
 	$unresolved = 0;
 	$samples    = array();
+
+	$ingest_rows = array();
 
 	// Slug->post resolution (url_to_postid) always runs against the CURRENT blog,
 	// but rows are stamped with $blog_id. On a multisite, importing for a blog
@@ -280,12 +282,7 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 			'import_batch'             => $batch,
 		);
 
-		if ( ! $dry_run ) {
-			$ok = extrachill_analytics_revenue_upsert( $record );
-			if ( false !== $ok ) {
-				++$imported;
-			}
-		}
+		$ingest_rows[] = $record;
 
 		if ( count( $samples ) < 5 ) {
 			$samples[] = array(
@@ -301,6 +298,29 @@ function extrachill_analytics_revenue_import_csv( $file, array $args = array() )
 
 	if ( $switched ) {
 		restore_current_blog();
+	}
+
+	// Persist through the ingestion engine, which writes the revenue ledger
+	// (datamachine/revenue-ingest). Analytics no longer writes its own table.
+	if ( ! $dry_run && ! empty( $ingest_rows ) ) {
+		$ingest = extrachill_analytics_revenue_ingest_rows(
+			$ingest_rows,
+			array(
+				'blog_id'      => $blog_id,
+				'hostname'     => $hostname,
+				'period'       => isset( $args['period'] ) ? (string) $args['period'] : '',
+				'period_start' => isset( $args['period_start'] ) ? (string) $args['period_start'] : '',
+				'period_end'   => isset( $args['period_end'] ) ? (string) $args['period_end'] : '',
+			)
+		);
+		if ( empty( $ingest['success'] ) ) {
+			return array(
+				'success' => false,
+				'error'   => isset( $ingest['error'] ) ? (string) $ingest['error'] : 'Revenue ingestion failed.',
+			);
+		}
+		$imported = isset( $ingest['rows'] ) ? (int) $ingest['rows'] : 0;
+		$batch    = isset( $ingest['identity']['import_batch'] ) ? (string) $ingest['identity']['import_batch'] : $batch;
 	}
 
 	return array(

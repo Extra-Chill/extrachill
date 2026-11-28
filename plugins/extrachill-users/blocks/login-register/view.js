@@ -529,7 +529,7 @@ export function LoginPanel( { config, notice, setNotice, setChallenge = () => {}
 					<input type="password" name="pwd" id="user_pass" className="input" placeholder="Your password" required />
 					<div className="login-remember-me">
 						<label htmlFor="rememberme">
-							<input type="checkbox" id="rememberme" name="rememberme" value="forever" />
+							<input type="checkbox" id="rememberme" name="rememberme" value="forever" defaultChecked />
 							Remember me
 						</label>
 					</div>

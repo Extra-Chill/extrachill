@@ -92,6 +92,43 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			$this->assertArrayNotHasKey( 'revoked', $orders['cs_paid'] );
 		}
 
+		public function test_sales_break_down_by_ticket_type() {
+			$settings                 = $this->settings();
+			$settings['ticket_types'] = array(
+				array( 'id' => 'ga', 'name' => 'GA', 'price_minor' => 1500, 'quantity' => 0, 'hidden' => false ),
+				array( 'id' => 'vip', 'name' => 'VIP', 'price_minor' => 4000, 'quantity' => 20, 'hidden' => false ),
+			);
+			$vip                      = $this->pass( 'cs_vip', 'active' ) + array( 'ticket_type' => 'vip' );
+			$summary                  = TicketSalesAbilities::summarize_event(
+				array( 'event_id' => 9 ),
+				$settings,
+				array(
+					$vip,
+					array( 'status' => 'redeemed' ) + $vip,
+					$this->pass( 'cs_ga', 'active' ) + array( 'ticket_type' => 'ga' ),
+					$this->pass( 'cs_gone', 'revoked' ) + array( 'ticket_type' => 'ga' ),
+					// Sold before ticket types existed.
+					$this->pass( 'cs_old', 'active' ),
+				)
+			);
+
+			$types = array_column( $summary['ticket_types'], null, 'id' );
+			$this->assertSame( array( 'ga', 'vip', 'general' ), array_keys( $types ) );
+			$this->assertSame( 1, $types['ga']['sold'], 'Refunded passes are not sold.' );
+			$this->assertSame( 2, $types['vip']['sold'] );
+			$this->assertSame( 20, $types['vip']['quantity'] );
+			$this->assertSame( 1, $types['general']['sold'], 'A removed or legacy type still reports by ID.' );
+			$orders = array_column( $summary['orders'], 'ticket_type', 'order_reference' );
+			$this->assertSame( 'VIP', $orders['cs_vip'] );
+			$this->assertSame( 'general', $orders['cs_old'] );
+		}
+
+		public function test_single_price_show_reports_one_type() {
+			$summary = TicketSalesAbilities::summarize_event( array( 'event_id' => 9 ), $this->settings(), array( $this->pass( 'cs_paid', 'active' ) ) );
+			$this->assertSame( array( array( 'id' => 'general', 'name' => 'General admission', 'price_minor' => 1500, 'quantity' => 0, 'sold' => 1 ) ), $summary['ticket_types'] );
+			$this->assertSame( 'General admission', $summary['orders'][0]['ticket_type'] );
+		}
+
 		public function test_upcoming_shows_first_then_recent_past_then_undated() {
 			$sorted = TicketSalesAbilities::sort_events(
 				array(

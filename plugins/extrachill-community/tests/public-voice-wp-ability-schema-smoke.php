@@ -1,19 +1,8 @@
 <?php
 /** Runtime contract test using WordPress core's actual WP_Ability validator. */
 
-// Runs in two contexts: standalone with an explicit WordPress root, and under
-// the host-smoke backend, which requires this file with WordPress already
-// loaded. Only bootstrap WordPress when it is not present yet.
-if ( ! defined( 'ABSPATH' ) ) {
-	$wordpress_root = $argv[1] ?? getenv( 'WP_ROOT' ) ?: '';
-	if ( '' === $wordpress_root || ! file_exists( $wordpress_root . '/wp-load.php' ) ) {
-		fwrite( STDERR, "Usage: php tests/public-voice-wp-ability-schema-smoke.php /path/to/wordpress\n" );
-		exit( 1 );
-	}
-
-	define( 'SHORTINIT', true );
-	require $wordpress_root . '/wp-load.php';
-}
+// Standalone: loads WordPress core source (HOMEBOY_WORDPRESS_CORE_ROOT) without a database.
+require __DIR__ . '/support/wordpress-core-bootstrap.php';
 
 if ( ! function_exists( '__' ) ) {
 	function __( $text ) {

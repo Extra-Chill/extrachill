@@ -85,3 +85,16 @@ function extrachill_docs_derive_slug_from_path( string $path ): string {
 	$basename = preg_replace( '/\.md$/i', '', $basename );
 	return sanitize_title( (string) $basename );
 }
+
+/**
+ * Whether a docs file name may be published as a docs page.
+ *
+ * The publish plan and the MDI layout share this rule, so a file the layout
+ * cannot map (README.md, Uppercase.md, …) is never enumerated and can never
+ * fall through to MDI's default `post` mapping.
+ *
+ * @param string $filename File name (basename) inside a docs directory.
+ */
+function extrachill_docs_is_publishable_doc_filename( string $filename ): bool {
+	return 1 === preg_match( '/^[a-z0-9-]+\.md$/', $filename );
+}

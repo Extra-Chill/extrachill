@@ -72,6 +72,7 @@ function extrachill_api_register_onboarding_routes() {
  * Permission check - must be logged in
  */
 function extrachill_api_onboarding_permission_check( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',
@@ -87,6 +88,7 @@ function extrachill_api_onboarding_permission_check( WP_REST_Request $request ) 
  * GET handler - retrieve onboarding status via ability.
  */
 function extrachill_api_onboarding_get_handler( WP_REST_Request $request ) {
+	unset( $request ); // REST callback signature.
 	$ability = wp_get_ability( 'extrachill/get-onboarding-status' );
 
 	if ( ! $ability ) {

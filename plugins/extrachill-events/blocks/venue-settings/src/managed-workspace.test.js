@@ -44,7 +44,7 @@ jest.mock( '@extrachill/components', () => {
 		PanelHeader: ( { title, description } ) =>
 			React.createElement( 'header', null, title, description ),
 	};
-} );
+}, { virtual: true } );
 
 const render = async ( component ) => {
 	const container = document.createElement( 'div' );

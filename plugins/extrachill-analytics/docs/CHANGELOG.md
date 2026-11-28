@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.50.0] - 2026-11-28
+
+### Added
+- track events calendar queries
+
+### Fixed
+- count opted-out browser clicks as human
+
+## [0.49.10] - 2026-11-26
+
+### Fixed
+- classify cookieless account outcomes using verified accounts
+
+## [0.49.9] - 2026-11-24
+
+### Fixed
+- page revenue ledger reads past the 1000-row query limit
+
+## [0.49.8] - 2026-11-24
+
+### Changed
+- move revenue storage onto the Data Machine revenue ledger
+
+## [0.49.7] - 2026-11-24
+
+### Fixed
+- scope link-page daily tables to the storage blog and add safe cleanup
+
+## [0.49.6] - 2026-11-22
+
+### Fixed
+- align beacon route assignment for PHPCS
+
+## [0.49.5] - 2026-11-20
+
+### Fixed
+- exclude outcomes owned by deleted accounts from conversions
+
 ## [0.49.4] - 2026-11-17
 
 ### Fixed

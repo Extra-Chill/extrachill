@@ -32,57 +32,61 @@ function extrachill_events_register_calendar_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'page'     => array(
+					'page'       => array(
 						'type'        => 'integer',
 						'description' => 'Page number (1-indexed).',
 						'default'     => 1,
 						'minimum'     => 1,
 					),
-					'month'    => array(
+					'month'      => array(
 						'type'        => 'string',
 						'description' => 'Visible month in YYYY-MM format.',
 						'pattern'     => '^\\d{4}-(0[1-9]|1[0-2])$',
 					),
-					'venue'    => array(
+					'venue'      => array(
 						'type'        => 'string',
 						'description' => 'Filter by venue taxonomy slug.',
 					),
-					'venue_id' => array(
+					'venue_id'   => array(
 						'type'        => 'integer',
 						'description' => 'Filter by an exact authorized venue term ID.',
 						'minimum'     => 1,
 					),
-					'promoter' => array(
+					'promoter'   => array(
 						'type'        => 'string',
 						'description' => 'Filter by promoter taxonomy slug.',
 					),
-					'location' => array(
+					'location'   => array(
 						'type'        => 'string',
 						'description' => 'Filter by location taxonomy slug.',
 					),
-					'scope'    => array(
+					'event_type' => array(
+						'type'        => 'string',
+						'description' => 'Filter by event type taxonomy slug.',
+					),
+					'scope'      => array(
 						'type'        => 'string',
 						'description' => 'Time-window scope.',
 						'enum'        => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
 					),
-					'lat'      => array(
+					'lat'        => array(
 						'type'        => 'number',
 						'description' => 'Latitude for geo filtering.',
 					),
-					'lng'      => array(
+					'lng'        => array(
 						'type'        => 'number',
 						'description' => 'Longitude for geo filtering.',
 					),
-					'radius'   => array(
+					'radius'     => array(
 						'type'        => 'integer',
 						'description' => 'Radius in miles for geo filtering.',
 						'default'     => 25,
 					),
-					'search'   => array(
+					'search'     => array(
 						'type'        => 'string',
 						'description' => 'Free-text search query.',
 					),
-					'past'     => array(
+					'past'       => array(
 						'type'        => 'boolean',
 						'description' => 'Include past events.',
 						'default'     => false,
@@ -175,10 +179,12 @@ function extrachill_events_ability_calendar( array $input ): array|\WP_Error {
 	if ( ! empty( $input['venue_id'] ) ) {
 		$tax_filter['venue'] = array( absint( $input['venue_id'] ) );
 	}
+
 	$mappings = array(
-		'venue'    => 'venue',
-		'promoter' => 'promoter',
-		'location' => 'location',
+		'venue'      => 'venue',
+		'promoter'   => 'promoter',
+		'location'   => 'location',
+		'event_type' => 'event_type',
 	);
 
 	foreach ( $mappings as $param => $taxonomy ) {
@@ -291,5 +297,6 @@ function extrachill_events_transform_calendar_event( array $occurrence ): array 
 		'occurrence_display' => $occurrence['occurrence']['display'],
 		'ticket_url'         => '' !== $ticket_url ? $ticket_url : null,
 		'permalink'          => get_permalink( $post_id ),
+		'source'             => $event['source'] ?? null,
 	);
 }

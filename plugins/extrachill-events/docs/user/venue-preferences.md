@@ -1,6 +1,12 @@
 # Venue Preferences
 
-Want to keep up with shows at the venues you love? Extra Chill does not have venue preferences or alerts for a single venue. Here is what you can use instead.
+Want to keep up with shows at the venues you love? You can get a weekly email when a venue has shows coming up, and use your Local Scene email to find more live music nearby.
+
+## Get a weekly email from one venue
+
+Venue pages and some event pages offer **Get show updates**. Choose it to get one email a week when that venue has shows coming up. You do not need a ticket, and you can unsubscribe at any time.
+
+If you are signed in, turn updates on from the venue or event page. If you are not signed in, enter your email and confirm from the message we send. Nothing starts until you confirm.
 
 ## Get a weekly email of shows near you
 

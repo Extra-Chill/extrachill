@@ -1,5 +1,22 @@
-/** Reveal only measured treatment candidates; hidden controls have no exposure box. */
+/**
+ * Swap breadcrumb arms after cache-neutral assignment.
+ *
+ * The measured wrapper holds the shared root prefix (visible in both arms), so
+ * the shared runtime records exposure under an identical condition. Its
+ * following siblings hold the control site crumb (visible by default) and the
+ * hidden treatment dropdown; exactly one of them is shown per assigned arm.
+ */
 ( function () {
+	function setVisible( element, visible ) {
+		element.hidden = ! visible;
+		element.toggleAttribute( 'inert', ! visible );
+		if ( visible ) {
+			element.removeAttribute( 'aria-hidden' );
+		} else {
+			element.setAttribute( 'aria-hidden', 'true' );
+		}
+	}
+
 	function update( element ) {
 		if ( ! element || ! element.matches || ! element.matches(
 			'[data-ec-experiment-key="network-dropdown-everywhere"]' +
@@ -8,12 +25,13 @@
 			return;
 		}
 		const treatment = element.getAttribute( 'data-ec-experiment-variant' ) === 'treatment';
-		element.hidden = ! treatment;
-		element.toggleAttribute( 'inert', ! treatment );
-		if ( treatment ) {
-			element.removeAttribute( 'aria-hidden' );
-		} else {
-			element.setAttribute( 'aria-hidden', 'true' );
+		let sibling = element.nextElementSibling;
+		if ( sibling && sibling.matches( '.ec-network-dropdown-experiment-control' ) ) {
+			setVisible( sibling, ! treatment );
+			sibling = sibling.nextElementSibling;
+		}
+		if ( sibling && sibling.matches( '.ec-network-dropdown-experiment-treatment' ) ) {
+			setVisible( sibling, treatment );
 		}
 	}
 

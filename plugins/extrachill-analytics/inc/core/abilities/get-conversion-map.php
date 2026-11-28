@@ -606,7 +606,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 			'by_category'           => $category_outcomes,
 			'coverage'              => $outcome_coverage,
 			'attribution_semantics' => 'direct_source resolves the outcome event source_url to a published main-site article. visitor_journey attributes an identified outcome occurring after that visitor\'s first eligible mature entry journey, split at the configured pageview-session boundary. Outcome identity is event_data.user_id then stored user_id, with visitor_id stitched to a user only when this window observes exactly one user for that visitor; ambiguous visitors are not merged. Repeated person/outcome rows count once, while later rows may supply attribution missing from an earlier duplicate. The lenses are independent and may both attribute one outcome; do not add them as unique people. Coverage status measured, partial, or not_instrumented must be read with each count.',
-			'trust_semantics'       => 'trusted_outcomes combines deduplicated authenticated_server_outcomes and visitor_identified_browser_outcomes. Positive stored or payload user identity is authoritative even when request heuristics stamped the row as a bot. Anonymous is_bot:true rows are confirmed_bot_events_excluded before deduplication or attribution. unclassified_outcomes remain visible but are not included in trusted_outcomes. trust_coverage_status measured, partial, or not_instrumented describes whether the eligible outcome population has person evidence.',
+			'trust_semantics'       => 'trusted_outcomes combines deduplicated authenticated_server_outcomes and visitor_identified_browser_outcomes. Positive stored or payload user identity is authoritative even when request heuristics stamped the row as a bot. Anonymous is_bot:true rows are confirmed_bot_events_excluded and rows owned by since-deleted accounts are deleted_account_events_excluded, both before deduplication or attribution. unclassified_outcomes remain visible but are not included in trusted_outcomes. trust_coverage_status measured, partial, or not_instrumented describes whether the eligible outcome population has person evidence.',
 		),
 		'days'                        => $days,
 		'start_date'                  => $start_date,
@@ -818,6 +818,10 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 			++$outcome_coverage[ $type ]['confirmed_bot_events_excluded'];
 			continue;
 		}
+		if ( 'deleted_account' === $trust_class ) {
+			++$outcome_coverage[ $type ]['deleted_account_events_excluded'];
+			continue;
+		}
 
 		$person_id = extrachill_analytics_conversion_outcome_dedupe_key( $outcome, $visitor_to_user );
 		if ( isset( $outcome_records[ $type ][ $person_id ] ) ) {
@@ -959,6 +963,7 @@ function extrachill_analytics_conversion_outcome_zero_coverage() {
 		'stored_events'                       => 0,
 		'automatic_registration_excluded'     => 0,
 		'confirmed_bot_events_excluded'       => 0,
+		'deleted_account_events_excluded'     => 0,
 		'deduplicated_outcomes'               => 0,
 		'duplicate_events'                    => 0,
 		'trusted_outcomes'                    => 0,

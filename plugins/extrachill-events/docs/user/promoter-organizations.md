@@ -30,7 +30,7 @@ Your organization gets its own Link Page: one simple page for all your links tha
 
 ## Shows You Put On
 
-When a show on the [Events Calendar](https://events.extrachill.com/) lists your organization as its promoter, your team can run that show's guest list and door list. Log in and open the show's page to get started.
+When a show on the [Events Calendar](https://events.extrachill.com/) lists your organization as its promoter, your team can run that show's guest list and check-in. Log in, open the show's page, and tap **Guest Check-In** to get started.
 
 You can also keep a standing list of people who get into every one of your shows. See:
 
@@ -47,4 +47,4 @@ The venue stays in charge of its own settings, booking inquiries, team, and mone
 
 ## Ticket Sales
 
-Organization owners see a ticket sales area in the workspace. Selling tickets through Extra Chill isn't open to promoters yet. For now, use your guest list to manage who gets in.
+Organization owners who can manage the promoter's money can set a promoter as the seller for a show's paid tickets and view its sales. The seller must finish payment setup before tickets can go on sale. Ticket prices include tax, and the seller is responsible for tax. Set up paid tickets under **Host tools** on the show's **Guest Check-In** page. Your team's ticket sales area shows sales for your shows. See [Managing a Venue](managing-a-venue.md) for the ticket settings and [Working the Door](working-the-door.md) for the door ticket code and sales report.

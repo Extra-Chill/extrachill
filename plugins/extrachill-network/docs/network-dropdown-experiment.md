@@ -1,6 +1,6 @@
 # Breadcrumb dropdown experiment
 
-`network-dropdown-everywhere` ships inactive (definition version 1). No lifecycle
+`network-dropdown-everywhere` ships inactive (definition version 3). No lifecycle
 options are written on deployment. Existing homepage/root archive dropdowns are
 unchanged and excluded from the experiment.
 
@@ -12,17 +12,34 @@ wp extrachill experiments state network-dropdown-everywhere active
 wp extrachill experiments report network-dropdown-everywhere --outcome-event-types=cta_click,network_click
 ```
 
-Cached markup contains a hidden, inert control candidate, never a server-side
-visitor assignment. The shared assignment runtime resolves the variant; the
-presentation listener reveals only treatment. The shared IntersectionObserver
-then measures the revealed wrapper. Hidden control wrappers have no rendered
-box and cannot intersect, so do not generate exposures.
+Cached markup contains both arms and never a server-side visitor assignment.
+A late `extrachill_breadcrumbs_root` filter splits the root into the shared
+prefix (`Extra Chill`) and, when present, the trailing link to the current
+site's home URL (`› Community`). It renders:
 
-The theme's `extrachill_breadcrumbs_after_root` action allows the component to
-render its own escaped interactive markup without post-HTML sanitization
-stripping button or SVG markup. Eligibility is checked against the same exact
-trail predicate as the existing dropdown. Site labels come from the filtered
-network dropdown list, matched to the current site's canonical URL.
+- the measured wrapper (experiment attributes) around the shared prefix,
+  visible in both arms;
+- the control segment: the existing site crumb, visible by default;
+- the treatment segment (` › [Community ▾]`), hidden and inert, emitted via
+  the theme's `extrachill_breadcrumbs_after_root` action because post-HTML
+  sanitization of the root strips button and SVG markup.
+
+After assignment the presentation listener shows exactly one segment, so
+treatment reads `Extra Chill › [Community ▾] › …` with no duplicate label and
+control reads exactly today's breadcrumb. The main site root has no site crumb,
+so treatment appends `› Blog ▾` there. The shared IntersectionObserver measures
+the same always-visible wrapper in both arms, so exposure fires under an
+identical condition. Site plugins are not special-cased; the site crumb is
+recognized only by its href matching `home_url()`.
+
+History: v1 never rendered treatment. v2 appended a duplicate site crumb on
+sites whose root already names the site, and only exposed treatment (the hidden
+control had no box). Neither dataset may be mixed with v3. Activate v3 only
+after experiment bot filtering (#1778) lands.
+
+Eligibility is checked against the same exact trail predicate as the existing
+dropdown. Site labels come from the filtered network dropdown list, matched to
+the current site's canonical URL.
 
 Validation: `composer test` includes standalone PHP definition/rendering/list
 checks and the treatment/control JavaScript test. A live WP-CLI invocation also

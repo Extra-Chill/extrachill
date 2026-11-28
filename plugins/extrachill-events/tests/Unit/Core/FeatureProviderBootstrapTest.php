@@ -105,7 +105,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 				'extrachill_homepage_content',
 				'extrachill_template_archive',
 				'template_redirect',
-				// Legacy alias kept for venue invitation links delivered before the generic team route (#1325).
+				// Legacy alias kept for venue invitation links already delivered (#1325).
 				'admin_post_ec_accept_venue_invitation',
 				'admin_post_nopriv_ec_accept_venue_invitation',
 				'ec_points_sources',

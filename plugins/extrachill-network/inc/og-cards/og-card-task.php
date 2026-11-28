@@ -361,7 +361,7 @@ class OgCardGenerationTask extends SystemTask {
 	 * @return string
 	 */
 	public static function signature_for( array $data ): string {
-		return md5( wp_json_encode( $data ) );
+		return md5( (string) wp_json_encode( $data ) );
 	}
 
 	/**

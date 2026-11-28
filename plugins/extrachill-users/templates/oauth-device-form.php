@@ -29,9 +29,9 @@ declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
-$user_code    = isset( $args['user_code'] ) ? (string) $args['user_code'] : '';
-$error        = isset( $args['error'] ) ? (string) $args['error'] : '';
-$nonce_action = isset( $args['nonce_action'] ) && '' !== (string) $args['nonce_action']
+$user_code     = isset( $args['user_code'] ) ? (string) $args['user_code'] : '';
+$error_message = isset( $args['error'] ) ? (string) $args['error'] : '';
+$nonce_action  = isset( $args['nonce_action'] ) && '' !== (string) $args['nonce_action']
 	? (string) $args['nonce_action']
 	: 'wp_native_auth_oauth_device';
 
@@ -40,8 +40,8 @@ get_header();
 <div class="card">
 	<h1><?php esc_html_e( 'Connect a device to Extra Chill', 'extrachill-users' ); ?></h1>
 
-	<?php if ( '' !== $error ) : ?>
-		<div class="notice notice-error"><?php echo esc_html( $error ); ?></div>
+	<?php if ( '' !== $error_message ) : ?>
+		<div class="notice notice-error"><?php echo esc_html( $error_message ); ?></div>
 	<?php endif; ?>
 
 	<p><?php esc_html_e( 'The app you are connecting showed you a short code. Enter it here to continue.', 'extrachill-users' ); ?></p>

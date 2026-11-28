@@ -329,8 +329,13 @@ final class EventDigestOfferTest extends TestCase {
 		$this->assertStringContainsString( 'data-ec-track-placement="event_digest_offer"', $html );
 		$this->assertStringContainsString( 'class="notice notice-info event-digest-offer"', $html );
 		$this->follow_login_redirect( $html );
-		// The intent is a signed token (extrachill_sign); verify it the way the return page does.
-		$this->assertSame( 'subscribe_digest', extrachill_events_get_archive_auth_intent( $this->term( 77, 'Charleston' ) ) );
+		// Since the signed-token primitive (#1335) the intent travels as a
+		// purpose-bound token, not a bare string; its claims carry the intent.
+		$this->assertNotSame( 'subscribe_digest', $_GET['ec_events_intent'] );
+		$claims = extrachill_verify( 'events.archive_intent', (string) $_GET['ec_events_intent'] );
+		$this->assertIsArray( $claims );
+		$this->assertSame( 'subscribe_digest', $claims['intent'] );
+		$this->assertSame( 'charleston', $claims['term'] );
 		$this->assertContains( 'extrachill-events-event-digest-offer', $GLOBALS['digest_test']['scripts'] );
 	}
 

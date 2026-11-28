@@ -71,35 +71,44 @@
 			<!-- Same reason: requires inc/core/rsvp-pass-service.php and inc/admin/event-perks.php. -->
 			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpGuestRsvpTest.php</exclude>
+			<!-- Pure-PHP host screen test with host-panel and door-row fixtures
+			     (extrachill#1702); runs in phpunit-rsvp-perks-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/GuestCheckInTest.php</exclude>
+			<!-- Pure-PHP guest-list tests with file-level WP shims (get_term,
+			     get_current_user_id, ...) and single-site $wpdb doubles; they run
+			     in phpunit-rsvp-perks-unit.xml.dist (extrachill#1833). Here real
+			     WordPress wins over the shims and multisite core calls
+			     set_blog_id()/get_blog_prefix() on the doubles, so they can only
+			     fail. -->
+			<exclude>tests/Unit/Core/RsvpGuestListTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestListPartiesTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestListRequestsTest.php</exclude>
+			<exclude>tests/Unit/Core/OwnerGuestListTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassCardTest.php</exclude>
+			<!-- Pure-PHP system-task test with Data Machine doubles; runs in
+			     phpunit-local-scene-unit.xml.dist (extrachill#1833). -->
+			<exclude>tests/Unit/Core/VenueShowUpdatesSystemTaskTest.php</exclude>
+			<!-- Host-process tests: LocationSeoCountTest exec()s a fresh PHP
+			     request and RecurringScheduleGateTest runs in child processes.
+			     The WASM sandbox cannot spawn processes. Both run in
+			     phpunit-qualify-v2-unit.xml.dist (extrachill#1833). -->
+			<exclude>tests/Unit/Core/LocationSeoCountTest.php</exclude>
+			<exclude>tests/Unit/Core/RecurringScheduleGateTest.php</exclude>
+			<!-- Pure-PHP tests whose doubles (wp_get_ability, sibling plugin
+			     sources outside this sandbox) only apply on the host; they run
+			     in phpunit-qualify-v2-unit.xml.dist (extrachill#1833). -->
+			<exclude>tests/Unit/Core/RootLocationReconcilerTest.php</exclude>
+			<exclude>tests/Unit/Core/DocsLinksTest.php</exclude>
 			<!-- Resolves the scraper through the bootstrap's wp_get_ability()
 			     double ($GLOBALS['ec_test_ability_resolver']). Under real
 			     WordPress the core registry wins, so the double never applies
 			     and the test can only fail here. Runs in phpunit-artist-unit. -->
 			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
-			<!-- Pure-PHP guest-list tests built on file-level doubles (array
-			     posts, an in-memory $wpdb without set_blog_id()/get_blog_prefix(),
-			     user_can/get_post shims). Under real WordPress the core
-			     functions and WP_Post win over the doubles, so they can only
-			     fail here. All of them run in phpunit-rsvp-perks-unit.xml.dist. -->
-			<exclude>tests/Unit/Core/RsvpGuestListTest.php</exclude>
-			<exclude>tests/Unit/Core/RsvpGuestListPartiesTest.php</exclude>
-			<exclude>tests/Unit/Core/RsvpGuestListRequestsTest.php</exclude>
-			<exclude>tests/Unit/Core/OwnerGuestListTest.php</exclude>
+			<!-- Pure-PHP tests on file-level doubles (user_can/get_post shims,
+			     ActionScheduler spy) that real WordPress replaces; they run in
+			     phpunit-rsvp-perks-unit.xml.dist / phpunit-qualify-v2-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/GuestListModeTest.php</exclude>
-			<exclude>tests/Unit/Core/GuestListShowDayPinTest.php</exclude>
-			<exclude>tests/Unit/Core/RsvpPassCardTest.php</exclude>
-			<!-- Pure-PHP tests whose doubles the sandbox replaces with the real
-			     thing (ActionScheduler, get_terms/wp_get_ability, exec() of a
-			     PHP subprocess, sibling extrachill-booking files that are not
-			     mounted). They run in phpunit-qualify-v2-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/FlowOpsResumeTest.php</exclude>
-			<exclude>tests/Unit/Core/RootLocationReconcilerTest.php</exclude>
-			<exclude>tests/Unit/Core/LocationSeoCountTest.php</exclude>
-			<exclude>tests/Unit/Core/DocsLinksTest.php</exclude>
-			<!-- Runs in a separate PHP process with its own doubles; the sandbox
-			     cannot spawn one ("child process ended unexpectedly"). Runs in
-			     phpunit-qualify-v2-unit.xml.dist. -->
-			<exclude>tests/Unit/Core/RecurringScheduleGateTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
@@ -111,6 +120,8 @@
 			     phpunit-qualify-v2-unit.xml.dist. -->
 			<!-- Real-registry output validation for get/set-event-perk (extrachill#1244). -->
 			<file>tests/Unit/Abilities/EventPerkOutputSchemaManagedTest.php</file>
+			<!-- Real-registry output validation for get/update-venue-profile (extrachill#1693). -->
+			<file>tests/Unit/Abilities/VenueProfileOutputSchemaManagedTest.php</file>
 			<!-- Isolated bridge doubles run in phpunit-single-event-network-bridge-unit.xml.dist. -->
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 		</testsuite>

@@ -60,6 +60,7 @@ class MarketReportAbilities {
 					'type'       => 'object',
 					'properties' => array(
 						'success'   => array( 'type' => 'boolean' ),
+						'coverage'  => array( 'type' => 'object' ),
 						'locations' => array(
 							'type'  => 'array',
 							'items' => array(
@@ -83,16 +84,20 @@ class MarketReportAbilities {
 									'ga'                => array(
 										'type'       => 'object',
 										'properties' => array(
-											'sessions'  => array( 'type' => 'integer' ),
-											'pageviews' => array( 'type' => 'integer' ),
+											'sessions'  => array( 'type' => array( 'integer', 'null' ) ),
+											'pageviews' => array( 'type' => array( 'integer', 'null' ) ),
+											'archive'   => $this->demandSchema( false ),
+											'events'    => $this->demandSchema( false ),
 										),
 									),
 									'gsc'               => array(
 										'type'       => 'object',
 										'properties' => array(
-											'clicks'      => array( 'type' => 'integer' ),
-											'impressions' => array( 'type' => 'integer' ),
-											'position'    => array( 'type' => 'number' ),
+											'clicks'      => array( 'type' => array( 'integer', 'null' ) ),
+											'impressions' => array( 'type' => array( 'integer', 'null' ) ),
+											'position'    => array( 'type' => array( 'number', 'null' ) ),
+											'archive'     => $this->demandSchema( true ),
+											'events'      => $this->demandSchema( true ),
 										),
 									),
 									'opportunity_score' => array( 'type' => 'number' ),
@@ -158,11 +163,12 @@ class MarketReportAbilities {
 		// 4. Get flow breakdown per location (pipeline → city mapping).
 		$flow_data = $this->getFlowBreakdownByCity();
 
-		// 5. Get GA4 data for location pages.
-		$ga_data = $this->getGADataForLocations( $days );
-
-		// 6. Get GSC data for location pages.
-		$gsc_data = $this->getGSCDataForLocations( $days );
+		// 5. Fetch both page types, resolving all analytics event slugs in one query.
+		$ga_rows  = $this->getDemandRows( $days, false );
+		$gsc_rows = $this->getDemandRows( $days, true );
+		$markets  = $this->getEventMarkets( array_merge( $ga_rows['events'], $gsc_rows['events'] ), $locations );
+		$ga_data  = $this->aggregateDemand( $ga_rows, $markets, false );
+		$gsc_data = $this->aggregateDemand( $gsc_rows, $markets, true );
 
 		// 7. Build results.
 		$results      = array();
@@ -184,16 +190,9 @@ class MarketReportAbilities {
 				'total'          => 0,
 			);
 
-			$ga = $ga_data[ $slug ] ?? array(
-				'sessions'  => 0,
-				'pageviews' => 0,
-			);
+			$ga = $this->applyCoverage( $ga_data[ $slug ] ?? $this->emptyDemand( false ), $ga_rows['coverage'] );
 
-			$gsc = $gsc_data[ $slug ] ?? array(
-				'clicks'      => 0,
-				'impressions' => 0,
-				'position'    => 0,
-			);
+			$gsc = $this->applyCoverage( $gsc_data[ $slug ] ?? $this->emptyDemand( true ), $gsc_rows['coverage'] );
 
 			// Opportunity score: markets with high impressions/traffic but few venue scrapers.
 			$opportunity = $this->calculateOpportunityScore( $events, $venues, $flows, $ga, $gsc );
@@ -235,6 +234,10 @@ class MarketReportAbilities {
 		return array(
 			'success'   => true,
 			'locations' => $results,
+			'coverage'  => array(
+				'ga'  => $ga_rows['coverage'],
+				'gsc' => $gsc_rows['coverage'],
+			),
 			'summary'   => array(
 				'total_locations' => count( $locations ),
 				'total_events'    => $total_events,
@@ -245,7 +248,7 @@ class MarketReportAbilities {
 	}
 
 	/**
-	 * Get city-level location terms (leaf nodes with parent != 0).
+	 * Get market terms, excluding empty regional parents.
 	 *
 	 * @param string|null $slug_filter Optional slug to filter to.
 	 * @return array Array of WP_Term objects.
@@ -257,18 +260,21 @@ class MarketReportAbilities {
 			'fields'     => 'all',
 		);
 
-		if ( $slug_filter ) {
-			$args['slug'] = $slug_filter;
-		}
-
 		$terms = get_terms( $args );
 
 		if ( is_wp_error( $terms ) ) {
 			return array();
 		}
 
-		// Only city-level terms (has a parent).
-		return array_filter( $terms, fn( $t ) => (int) $t->parent > 0 );
+		// Inspect the full hierarchy even when filtering to one slug. Empty
+		// parent terms are regional roll-ups, not city opportunities.
+		$parents = array_fill_keys( array_map( fn( $term ) => (int) $term->parent, $terms ), true );
+		return array_filter(
+			$terms,
+			fn( $t ) => (int) $t->parent > 0
+				&& ( ! $slug_filter || $t->slug === $slug_filter )
+				&& ( (int) $t->count > 0 || ! isset( $parents[ (int) $t->term_id ] ) )
+		);
 	}
 
 	/**
@@ -482,113 +488,245 @@ class MarketReportAbilities {
 	}
 
 	/**
-	 * Get GA4 session/pageview data for location pages.
+	 * Schema shared by archive and event demand breakdowns.
 	 *
-	 * @param int $days Number of days.
-	 * @return array Map of location slug => { sessions, pageviews }.
+	 * @param bool $search Whether to describe GSC metrics.
+	 * @return array Metric schema.
 	 */
-	private function getGADataForLocations( int $days ): array {
-		$ga = wp_get_ability( 'datamachine/google-analytics' );
-
-		if ( ! $ga ) {
-			return array();
+	private function demandSchema( bool $search ): array {
+		$properties = array();
+		foreach ( $this->emptyDemand( $search, false ) as $key => $value ) {
+			$properties[ $key ] = array( 'type' => array( 'position' === $key ? 'number' : 'integer', 'null' ) );
 		}
+		return array(
+			'type'       => 'object',
+			'properties' => $properties,
+		);
+	}
 
-		$end   = gmdate( 'Y-m-d' );
-		$start = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
-
-		$result = $ga->execute(
+	/**
+	 * Fetch archive and event page rows, including the analytics long tail.
+	 *
+	 * @param int  $days Reporting period.
+	 * @param bool $search Whether to fetch GSC rather than GA.
+	 * @return array Rows grouped by source.
+	 */
+	private function getDemandRows( int $days, bool $search ): array {
+		$rows             = array(
+			'archive' => array(),
+			'events'  => array(),
+		);
+		$ability          = wp_get_ability( $search ? 'datamachine/google-search-console' : 'datamachine/google-analytics' );
+		$rows['coverage'] = array_fill_keys(
+			array( 'archive', 'events' ),
 			array(
-				'action'      => 'page_stats',
-				'start_date'  => $start,
-				'end_date'    => $end,
-				'hostname'    => 'events.extrachill.com',
-				'page_filter' => '/location/',
-				'limit'       => 200,
+				'status'  => 'unavailable',
+				'message' => 'Analytics ability not registered.',
 			)
 		);
-
-		$data = array();
-
-		if ( ! empty( $result['success'] ) && ! empty( $result['results'] ) ) {
-			foreach ( $result['results'] as $row ) {
-				$path = $row['pagePath'] ?? '';
-				$slug = $this->extractCitySlugFromPath( $path );
-				if ( $slug ) {
-					if ( ! isset( $data[ $slug ] ) ) {
-						$data[ $slug ] = array(
-							'sessions'  => 0,
-							'pageviews' => 0,
-						);
-					}
-					$data[ $slug ]['sessions']  += (int) ( $row['sessions'] ?? 0 );
-					$data[ $slug ]['pageviews'] += (int) ( $row['screenPageViews'] ?? 0 );
+		if ( ! $ability ) {
+			return $rows;
+		}
+		$schema = $ability->get_input_schema();
+		$limit  = (int) ( $schema['properties']['limit']['maximum'] ?? $schema['properties']['limit']['default'] ?? 1000 );
+		$start  = strtotime( "-{$days} days" );
+		foreach ( array(
+			'archive' => '/location/',
+			'events'  => '/events/',
+		) as $source => $path ) {
+			$args = array(
+				'action'     => 'page_stats',
+				'start_date' => gmdate( 'Y-m-d', false === $start ? null : $start ),
+				'end_date'   => gmdate( 'Y-m-d' ),
+				'limit'      => $limit,
+			);
+			if ( $search ) {
+				$args['url_filter'] = 'events.extrachill.com' . $path;
+			} else {
+				$args['hostname']    = 'events.extrachill.com';
+				$args['page_filter'] = $path;
+			}
+			$result = $ability->execute( $args );
+			if ( is_wp_error( $result ) || empty( $result['success'] ) ) {
+				$rows['coverage'][ $source ] = array(
+					'status'  => 'unavailable',
+					'message' => is_wp_error( $result ) ? $result->get_error_message() : ( $result['message'] ?? 'Analytics request failed.' ),
+				);
+			} else {
+				$rows['coverage'][ $source ] = array(
+					'status' => count( $result['results'] ?? array() ) >= $limit ? 'limited' : 'available',
+					'limit'  => $limit,
+				);
+				foreach ( $result['results'] ?? array() as $row ) {
+					$keys              = $row['keys'] ?? '';
+					$path              = wp_parse_url( $row['pagePath'] ?? ( is_array( $keys ) ? ( $keys[0] ?? '' ) : $keys ), PHP_URL_PATH );
+					$row['path']       = is_string( $path ) ? $path : '';
+					$rows[ $source ][] = $row;
 				}
 			}
 		}
+		return $rows;
+	}
 
+	/**
+	 * Extract only single-event slugs; ignore index and pagination pages.
+	 *
+	 * @param string $path URL path.
+	 * @return string|null Event slug.
+	 */
+	private function eventSlug( string $path ): ?string {
+		return preg_match( '#^/events/([^/]+)/?$#', $path, $matches ) ? rawurldecode( $matches[1] ) : null;
+	}
+
+	/**
+	 * Resolve the union of GA/GSC slugs in one query, then roll up child terms.
+	 *
+	 * @param array $rows Event analytics rows.
+	 * @param array $locations Reported location terms.
+	 * @return array Event slug to unique market slugs.
+	 */
+	private function getEventMarkets( array $rows, array $locations ): array {
+		global $wpdb;
+
+		$slugs = array();
+		foreach ( $rows as $row ) {
+			$slug = $this->eventSlug( $row['path'] );
+			if ( $slug ) {
+				$slugs[ $slug ] = $slug;
+			}
+		}
+		if ( ! $slugs ) {
+			return array();
+		}
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'hide_empty' => false,
+			)
+		);
+		if ( is_wp_error( $terms ) ) {
+			return array();
+		}
+		$by_id = array();
+		foreach ( $terms as $term ) {
+			$by_id[ (int) $term->term_id ] = $term;
+		}
+		$reported = array();
+		foreach ( $locations as $term ) {
+			$reported[ (int) $term->term_id ] = $term->slug;
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $slugs ), '%s' ) );
+		// Internal table identifiers and generated placeholders; all slugs are bound.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$matches = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DISTINCT p.post_name, tt.term_id FROM {$wpdb->posts} p
+				JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+				JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+				WHERE p.post_type = 'data_machine_events' AND p.post_status = 'publish'
+				AND tt.taxonomy = 'location' AND p.post_name IN ($placeholders)",
+				...array_values( $slugs )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		$markets = array();
+		foreach ( $matches as $match ) {
+			$id   = (int) $match->term_id;
+			$seen = array();
+			while ( isset( $by_id[ $id ] ) && ! isset( $seen[ $id ] ) ) {
+				$seen[ $id ] = true;
+				if ( isset( $reported[ $id ] ) ) {
+					$markets[ $match->post_name ][ $reported[ $id ] ] = true;
+				}
+				$id = (int) $by_id[ $id ]->parent;
+			}
+		}
+		return $markets;
+	}
+
+	/**
+	 * Zero-valued metrics, with optional source breakdowns.
+	 *
+	 * @param bool $search Whether to use GSC metrics.
+	 * @param bool $breakdown Whether to include source breakdowns.
+	 * @return array Empty demand metrics.
+	 */
+	private function emptyDemand( bool $search, bool $breakdown = true ): array {
+		$empty = $search ? array(
+			'clicks'      => 0,
+			'impressions' => 0,
+			'position'    => 0.0,
+		) : array(
+			'sessions'  => 0,
+			'pageviews' => 0,
+		);
+		return $breakdown ? array_merge(
+			$empty,
+			array(
+				'archive' => $empty,
+				'events'  => $empty,
+			)
+		) : $empty;
+	}
+
+	/**
+	 * Combine source metrics; positions are impression-weighted, never summed.
+	 *
+	 * @param array $rows Analytics rows grouped by source.
+	 * @param array $markets Event slug to market slugs.
+	 * @param bool  $search Whether to aggregate GSC metrics.
+	 * @return array Demand by location slug.
+	 */
+	private function aggregateDemand( array $rows, array $markets, bool $search ): array {
+		$data = array();
+		foreach ( array( 'archive', 'events' ) as $source ) {
+			$source_rows = $rows[ $source ];
+			foreach ( $source_rows as $row ) {
+				$slugs = 'events' === $source
+					? array_keys( $markets[ $this->eventSlug( $row['path'] ) ?? '' ] ?? array() )
+					: array_filter( array( $this->extractCitySlugFromPath( $row['path'] ) ) );
+				foreach ( $slugs as $slug ) {
+					$data[ $slug ] ??= $this->emptyDemand( $search );
+					foreach ( array( 'total', $source ) as $target ) {
+						$metrics =& $data[ $slug ];
+						if ( 'total' !== $target ) {
+							$metrics =& $data[ $slug ][ $target ];
+						}
+						if ( $search ) {
+							$impressions            = (int) ( $row['impressions'] ?? 0 );
+							$total                  = $metrics['impressions'] + $impressions;
+							$metrics['position']    = $total > 0 ? ( $metrics['position'] * $metrics['impressions'] + (float) ( $row['position'] ?? 0 ) * $impressions ) / $total : 0.0;
+							$metrics['impressions'] = $total;
+							$metrics['clicks']     += (int) ( $row['clicks'] ?? 0 );
+						} else {
+							$metrics['sessions']  += (int) ( $row['sessions'] ?? 0 );
+							$metrics['pageviews'] += (int) ( $row['screenPageViews'] ?? 0 );
+						}
+						unset( $metrics );
+					}
+				}
+			}
+		}
 		return $data;
 	}
 
 	/**
-	 * Get GSC impressions/clicks for location pages.
+	 * Preserve measured zeroes, but never represent a failed request as zero.
 	 *
-	 * @param int $days Number of days.
-	 * @return array Map of location slug => { clicks, impressions, position }.
+	 * @param array $data Aggregated metrics.
+	 * @param array $coverage Coverage by source.
+	 * @return array Metrics with unavailable sources and totals set to null.
 	 */
-	private function getGSCDataForLocations( int $days ): array {
-		$gsc = wp_get_ability( 'datamachine/google-search-console' );
-
-		if ( ! $gsc ) {
-			return array();
-		}
-
-		$end   = gmdate( 'Y-m-d' );
-		$start = gmdate( 'Y-m-d', (int) strtotime( "-{$days} days" ) );
-
-		$result = $gsc->execute(
-			array(
-				'action'     => 'page_stats',
-				'start_date' => $start,
-				'end_date'   => $end,
-				'url_filter' => 'events.extrachill.com/location/',
-				'limit'      => 200,
-			)
-		);
-
-		$data = array();
-
-		if ( ! empty( $result['success'] ) && ! empty( $result['results'] ) ) {
-			foreach ( $result['results'] as $row ) {
-				// GSC keys is an array, e.g. ["https://events.extrachill.com/location/..."].
-				$url  = is_array( $row['keys'] ) ? ( $row['keys'][0] ?? '' ) : ( $row['keys'] ?? '' );
-				$slug = $this->extractCitySlugFromUrl( $url );
-				if ( $slug ) {
-					if ( ! isset( $data[ $slug ] ) ) {
-						$data[ $slug ] = array(
-							'clicks'      => 0,
-							'impressions' => 0,
-							'position'    => 0,
-						);
-					}
-					$data[ $slug ]['clicks']      += (int) ( $row['clicks'] ?? 0 );
-					$data[ $slug ]['impressions'] += (int) ( $row['impressions'] ?? 0 );
-					// Weighted average position.
-					$new_imp = (int) ( $row['impressions'] ?? 0 );
-					if ( $new_imp > 0 ) {
-						$old_imp = $data[ $slug ]['impressions'] - $new_imp;
-						if ( $old_imp > 0 ) {
-							$data[ $slug ]['position'] = (
-								$data[ $slug ]['position'] * $old_imp + ( $row['position'] ?? 0 ) * $new_imp
-							) / $data[ $slug ]['impressions'];
-						} else {
-							$data[ $slug ]['position'] = (float) ( $row['position'] ?? 0 );
-						}
-					}
-				}
+	private function applyCoverage( array $data, array $coverage ): array {
+		foreach ( $coverage as $source => $details ) {
+			if ( 'unavailable' !== $details['status'] ) {
+				continue;
+			}
+			foreach ( $data[ $source ] as $metric => $value ) {
+				$data[ $source ][ $metric ] = null;
+				$data[ $metric ]            = null;
 			}
 		}
-
 		return $data;
 	}
 
@@ -615,20 +753,6 @@ class MarketReportAbilities {
 	}
 
 	/**
-	 * Extract city slug from a GSC URL like https://events.extrachill.com/location/usa/texas/austin.
-	 *
-	 * @param string $url Full URL.
-	 * @return string|null City slug or null.
-	 */
-	private function extractCitySlugFromUrl( string $url ): ?string {
-		$path = wp_parse_url( $url, PHP_URL_PATH );
-		if ( ! $path ) {
-			return null;
-		}
-		return $this->extractCitySlugFromPath( $path );
-	}
-
-	/**
 	 * Calculate opportunity score for a location.
 	 *
 	 * High score = market with strong signals (traffic, impressions, events)
@@ -643,9 +767,10 @@ class MarketReportAbilities {
 	 * @return float Opportunity score.
 	 */
 	private function calculateOpportunityScore( int $events, int $venues, array $flows, array $ga, array $gsc ): float {
-		$scrapers    = $flows['venue_scrapers'];
-		$sessions    = $ga['sessions'];
-		$impressions = $gsc['impressions'];
+		$scrapers = $flows['venue_scrapers'];
+		// Rank on the available signals; coverage identifies missing analytics.
+		$sessions    = $ga['sessions'] ?? 0;
+		$impressions = $gsc['impressions'] ?? 0;
 
 		// Demand signal: weighted combination of traffic + search interest + existing events.
 		$demand = ( $sessions * 5 ) + ( $impressions * 0.5 ) + ( $events * 0.1 );
