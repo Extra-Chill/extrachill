@@ -46,7 +46,7 @@ const OBSERVE = `(() => {
   const smallTargets = controls.filter((e) => { const r = e.getBoundingClientRect(); return r.width < 24 || r.height < 24; }).slice(0, 15).map((e) => ({ el: label(e), w: Math.round(e.getBoundingClientRect().width), h: Math.round(e.getBoundingClientRect().height), text: (e.innerText || e.value || '').trim().slice(0, 30) }));
   const unlabeled = controls.filter((e) => !(e.innerText || '').trim() && !e.getAttribute('aria-label') && !e.getAttribute('title') && !e.getAttribute('aria-labelledby') && !(e.id && d.querySelector('label[for="' + e.id + '"]')) && !e.querySelector('img[alt]:not([alt=""]), svg title, .screen-reader-text') && !e.getAttribute('placeholder') && !e.value).slice(0, 10).map(label);
   const emptyLinks = [...d.querySelectorAll('a[href="#"], a[href=""]')].filter(visible).map((e) => ({ el: label(e), text: (e.innerText || '').trim().slice(0, 40) })).slice(0, 10);
-  return { url: location.pathname + location.search + location.hash, title: d.title, viewport: vw + 'x' + innerHeight, docHeight: de.scrollHeight, hscroll, scrollWidth: de.scrollWidth, overflowing, brokenImages, notices, phpNoise, jsErrors: (window.__wpCodeboxBrowserErrors || []).map((e) => String(e.message || e).slice(0, 200)).slice(0, 5), h1: [...d.querySelectorAll('h1')].map((h) => h.innerText.trim()).slice(0, 3), smallTargets, smallTargetCount: controls.filter((e) => { const r = e.getBoundingClientRect(); return r.width < 24 || r.height < 24; }).length, unlabeled, emptyLinks };
+  return { url: location.pathname + location.search + location.hash, title: d.title, viewport: vw + 'x' + innerHeight, docHeight: de.scrollHeight, hscroll, scrollWidth: de.scrollWidth, overflowing, brokenImages, notices, phpNoise, jsErrors: (window.__ffErrors || []).map((e) => String(e.message || e).slice(0, 200)).slice(0, 5), h1: [...d.querySelectorAll('h1')].map((h) => h.innerText.trim()).slice(0, 3), smallTargets, smallTargetCount: controls.filter((e) => { const r = e.getBoundingClientRect(); return r.width < 24 || r.height < 24; }).length, unlabeled, emptyLinks };
 })()`;
 const observe = (name) => peek(sink(name, OBSERVE));
 
@@ -115,13 +115,16 @@ const steps = [
     path: '/t/tuesday-rooms/',
     steps: [nav('/t/tuesday-rooms/'), wait(1500), observe('anon-busy-topic-p1'), shot('anon-busy-topic-p1'),
       { kind: 'scroll', position: 'bottom' }, shot('anon-busy-topic-bottom', false),
-      click('.bbp-pagination-links a.next, .bbp-pagination-links a:has-text("2") >> nth=0'), wait(2000),
+      click('.extrachill-pagination a.next, .extrachill-pagination a:has-text("2") >> nth=0'), wait(2000),
       observe('anon-busy-topic-p2'), shot('anon-busy-topic-p2')],
   }),
   step('anon-stress-topic', {
     path: '/t/long-title-recs/',
+    // Long replies are only truncated in feeds (Recent), not on the topic itself.
     steps: [nav('/t/long-title-recs/'), wait(1500), observe('anon-stress-topic'), shot('anon-stress-topic'),
-      click('.read-more-toggle >> nth=0'), wait(800), observe('anon-stress-expanded'), shot('anon-stress-expanded')],
+      nav('/recent/'), wait(1500), observe('anon-recent-feed'),
+      click('.read-more-toggle >> nth=0'), wait(800), observe('anon-recent-expanded'), shot('anon-recent-expanded'),
+      peek(sink('anon-recent-expand-state', `({ toggles: document.querySelectorAll('.read-more-toggle').length, firstExpanded: !document.querySelector('.reply-content-truncated .content-full')?.classList.contains('collapsed') })`))],
   }),
   step('anon-try-engage', {
     path: '/t/tuesday-rooms/',
@@ -179,6 +182,8 @@ const steps = [
     steps: [nav('/t/tuesday-rooms/page/2/'), wait(2500), observe('member-busy-p2'),
       peek(sink('member-edit-affordances', `({ freshHasEdit: !![...document.querySelectorAll('.bbp-reply-card')].find((c) => c.innerText.includes('Fresh take'))?.querySelector('a[href*="edit"]'), oldHasEdit: !![...document.querySelectorAll('.bbp-reply-card')].find((c) => c.innerText.includes('Old take'))?.querySelector('a[href*="edit"]') })`)),
       click('.bbp-reply-card:has-text("Fresh take") .bbp-reply-user-actions a:has-text("Edit")'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
+      editorShape('member-edit-reply-editor-early'), wait(8000),
+      peek(sink('member-edit-reply-diag', `({ url: location.href, errors: window.__ffErrors || [], textarea: (() => { const t = document.querySelector('#bbp_reply_content'); return t && { cls: t.className, hidden: t.offsetParent === null, len: t.value.length }; })(), beSettingsKeys: Object.keys(window).filter((k) => /blocks.?everywhere/i.test(k)), beScripts: [...document.scripts].map((s) => s.src).filter((s) => /blocks-everywhere|gutenberg\/build\/scripts\/(block-editor|blocks)\b/.test(s)).map((s) => s.split('?')[0].split('/').slice(-3).join('/')), container: (() => { const c = document.querySelector('.blocks-everywhere'); return c && { children: [...c.children].map((e) => e.tagName + '.' + e.className).slice(0, 6), htmlLen: c.innerHTML.length }; })() })`)),
       editorShape('member-edit-reply-editor'), observe('member-edit-reply-form'), shot('member-edit-reply-form'),
       ...append(' (edited: bringing a friend)'), shot('member-edit-reply-typed', false),
       click('#bbp_reply_submit'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
@@ -189,8 +194,8 @@ const steps = [
   step('member-edit-topic', {
     path: '/t/fuzz-fan-intro/', member: true,
     steps: [nav('/t/fuzz-fan-intro/'), wait(2500),
-      click('.is-lead-topic .bbp-reply-user-actions a:has-text("Edit")'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
-      observe('member-edit-topic-form'), shot('member-edit-topic-form'),
+      click('.is-lead-topic .bbp-reply-user-actions a:has-text("Edit")'), { kind: 'waitFor', waitFor: 'load' }, wait(4000),
+      editorShape('member-edit-topic-editor'), peek(sink('member-edit-topic-errors', `({ errors: window.__ffErrors || [] })`)), observe('member-edit-topic-form'), shot('member-edit-topic-form'),
       fill('#bbp_topic_title', 'Fuzz Fan here, new to the scene (bassist, say hi)'),
       click('#bbp_topic_submit'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
       observe('member-edit-topic-after'), shot('member-edit-topic-after'),
@@ -222,7 +227,7 @@ const steps = [
   step('member-profile-view', {
     path: '/u/fuzzfan/', member: true,
     steps: [nav('/u/fuzzfan/'), wait(3000), observe('member-profile-view'), shot('member-profile-view'),
-      peek(sink('member-profile-view-content', `({ title: document.body.innerText.includes('Bass & Fuzz'), bio: document.body.innerText.includes('Moved here for the scene'), bioLineBreak: document.body.innerText.includes('scene, and Tuesday shows.\\nSecond line'), showsOwnTopic: document.body.innerText.includes('new to the scene') })`)),
+      peek(sink('member-profile-view-content', `({ title: document.body.innerText.includes('Bass & Fuzz'), bio: document.body.innerText.includes('Moved here for the scene'), bioLineBreak: document.body.innerText.includes('Tuesday shows.\\nSecond line'), showsOwnTopic: document.body.innerText.includes('new to the scene') })`)),
       nav('/settings/'), wait(4000), observe('member-settings'), shot('member-settings')],
   }),
 

@@ -165,7 +165,10 @@ function forum_fuzz_seed_content() {
 	$ff_quiet     = $ff_topic( $ff_artists, 814, 'Anyone recording at home on a budget?', $ff_para( 'What is the cheapest interface that does not suck?' ), 5 * HOUR_IN_SECONDS, 'budget-home-recording' );
 
 	// A reply that mentions the member, so notifications have something in them.
-	$ff_reply( $ff_artists, $ff_own_topic, 812, $ff_para( 'Welcome @fuzzfan! Come out to the Tuesday show.' ), 30 );
+	// bbp_insert_reply() skips bbp_new_reply, so fire it like a real post would
+	// (mention + reply notifications, points).
+	$ff_mention = $ff_reply( $ff_artists, $ff_own_topic, 812, $ff_para( 'Welcome @fuzzfan! Come out to the Tuesday show.' ), 30 );
+	do_action( 'bbp_new_reply', $ff_mention, $ff_own_topic, $ff_artists, array(), 812, false, 0 );
 
 
 	$fixture = (array) get_site_option( 'ec_rig_journey_fixture_forum_fuzz', array() );
@@ -185,6 +188,14 @@ function forum_fuzz_seed_content() {
 		)
 	);
 }
+// Capture JS errors from the first byte, so sinks can report them per page.
+add_action(
+	'wp_head',
+	static function () {
+		echo "<script>window.__ffErrors=[];addEventListener('error',function(e){window.__ffErrors.push(String(e.message||e.type)+' @'+(e.filename||'').split('?')[0].split('/').slice(-2).join('/')+':'+(e.lineno||''))});addEventListener('unhandledrejection',function(e){window.__ffErrors.push('rejection: '+String(e.reason&&e.reason.message||e.reason))});</script>\n";
+	},
+	-1000
+);
 add_action(
 	'wp_loaded',
 	static function () {
