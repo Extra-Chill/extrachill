@@ -60,11 +60,15 @@ function extrachill_docs_render_homepage_cards() {
 				if ( empty( $recent_docs ) ) {
 					continue;
 				}
+				$description = extrachill_docs_get_section_description( $platform->post_name );
+				if ( empty( $description ) ) {
+					$description = $platform->post_excerpt;
+				}
 				?>
 				<div class="docs-category-card">
 					<h2><?php echo esc_html( $platform->post_title ); ?></h2>
-					<?php if ( ! empty( $platform->post_excerpt ) ) : ?>
-						<p class="docs-category-description"><?php echo esc_html( $platform->post_excerpt ); ?></p>
+					<?php if ( '' !== $description ) : ?>
+						<p class="docs-category-description"><?php echo esc_html( $description ); ?></p>
 					<?php endif; ?>
 					<ul class="docs-recent-list">
 						<?php foreach ( array_slice( $recent_docs, 0, 3 ) as $doc ) : ?>
