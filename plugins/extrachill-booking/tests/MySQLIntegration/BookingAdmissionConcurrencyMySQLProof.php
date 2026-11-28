@@ -420,15 +420,14 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingSecondSessionMy
 				'config_revision' => $config['revision'],
 				'message'         => 'Please consider us.',
 				// VenueBookingConfig::starter_intake_fields() marks
-				// played_area_before and listen_link required by default;
+				// listen_link required by default;
 				// this proof's venue never customizes intake.fields, so it
 				// inherits that default and must satisfy it or every admit()
 				// call fails validation before the concurrency proof even
 				// begins (#884 — this test was previously trapped and had
 				// never executed for real until now).
 				'fields'          => array(
-					'played_area_before' => 'Yes',
-					'listen_link'        => 'https://example.test/concurrent-inquiry',
+					'listen_link' => 'https://example.test/concurrent-inquiry',
 				),
 				'consent'         => array(
 					'id'       => 'booking-privacy',

@@ -15,7 +15,7 @@ Your settings apply to your own account. You must be signed in to change them.
 
 The unread-notification email digest brings unread account notifications together in an email. Turn off notification emails in your settings if you do not want these summaries. A one-click unsubscribe link in an email is another way to stop the digest. You can turn email notifications back on in your settings.
 
-The digest is a summary, not an instant alert. New activity may appear first in the site's **Notifications** area.
+The digest is a summary, not an instant alert. New activity may appear first in the site's **Notifications** area. A notification is included only once; if it was already included in an earlier digest, it will not trigger another digest by itself.
 
 ## Weekly Local Scene digest
 

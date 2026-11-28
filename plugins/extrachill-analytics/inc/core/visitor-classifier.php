@@ -29,6 +29,8 @@
  *      request that is otherwise an interactive web request is treated as
  *      NON-human (suspect) by the default verdict, because a human who reached
  *      a search box or deep page has loaded a page and minted the cookie.
+ *      The `allow_cookieless` exception lets a validated interactive browser
+ *      that opted out via GPC or DNT count as human without a visitor cookie.
  *
  * AUTHENTICATED-USER OVERRIDE (issue #103): the three signals above were
  * designed for ANONYMOUS front-end traffic, where rest/cli/cron == "no browser
@@ -69,6 +71,25 @@ function extrachill_analytics_is_browser_fetch() {
 }
 
 /**
+ * Check the browser and origin signals shared by pageviews and browser events.
+ *
+ * Same-origin browser REST fetches count as interactive because front-end
+ * signup, newsletter, and registration forms submit through REST (#275, #302).
+ * Server-to-server REST requests send no Sec-Fetch-Site header, so they stay
+ * non-human under the anonymous-traffic policy.
+ *
+ * @param string $ua_class         Classified user agent.
+ * @param string $request_origin   Detected origin, or 'web' for an admitted browser beacon.
+ * @param bool   $is_browser_fetch Whether a REST request is an interactive fetch.
+ * @return bool
+ */
+function extrachill_analytics_is_interactive_browser( $ua_class, $request_origin, $is_browser_fetch = false ) {
+	return 'browser' === $ua_class && (
+		'web' === $request_origin || ( 'rest' === $request_origin && $is_browser_fetch )
+	);
+}
+
+/**
  * Classify the current request (or an explicit context) as human or bot, and
  * return the evidence signals the verdict was derived from.
  *
@@ -79,14 +100,11 @@ function extrachill_analytics_is_browser_fetch() {
  *         - request_origin === 'web', OR request_origin === 'rest' AND
  *           the request is a same-origin browser fetch (#275, #302)
  *         - ua_class === 'browser'          (not 'bot' and not 'empty')
- *         - has_visitor_cookie === true     (a real browser minted ec_vid)
- *   Otherwise is_human = FALSE (is_bot = TRUE).
- *
- * In other words: an authenticated user is always human. For ANONYMOUS traffic,
- * programmatic context OR a crawler/empty UA OR a cookieless request all
- * classify as non-human; present cookie + browser UA + web origin is the
- * strongest anonymous human signal and the only anonymous combination treated
- * as human.
+ *         - has_visitor_cookie === true     (a real browser minted ec_vid),
+ *           or the caller sets `allow_cookieless` for a validated browser
+ *           that opted out via GPC or DNT and has no visitor cookie.
+ *   Otherwise is_human = FALSE (is_bot = TRUE). Turnstile rejection overrides
+ *   either path.
  *
  * @param array $context {
  *     Optional. Override the request-derived signals (useful for tests and for
@@ -97,6 +115,9 @@ function extrachill_analytics_is_browser_fetch() {
  *     @type bool|null $has_visitor_cookie  Whether a valid ec_vid cookie is
  *                                          present. Defaults to reading the
  *                                          cookie via the read-only resolver.
+ *     @type bool      $allow_cookieless     Skip the cookie requirement for
+ *                                          an admitted privacy-opted-out beacon.
+ *                                          Default false.
  *     @type string    $request_origin      One of 'web'|'rest'|'cron'|'cli'.
  *                                          Defaults to auto-detection.
  *     @type bool|null $is_authenticated    Whether the request is from a
@@ -163,23 +184,12 @@ function extrachill_analytics_classify_request( $context = array() ) {
 	// An authenticated logged-in user is human regardless of origin/UA/cookie
 	// (issue #103): their server-side-captured actions (e.g. a Roadie tool call
 	// inside a REST request, cookieless) must not inherit the anonymous-traffic
-	// bot verdict. For everyone else, the anonymous-traffic policy applies: web
-	// origin + browser UA + minted ec_vid cookie is the only human combination.
-	//
-	// A REST request counts as interactive when it is a same-origin fetch
-	// issued by a page the visitor loaded (#275, #302): front-end forms such
-	// as signup, newsletter and registration submit through REST, so treating
-	// every REST call as programmatic stamped 100% of real registrations as
-	// bot. The same browser-UA + minted-cookie bar still applies, so this is
-	// no weaker than the plain web-origin rule. Server-to-server REST calls
-	// carry no Sec-Fetch-Site header and stay non-human.
-	$interactive_origin = 'web' === $request_origin
-		|| ( 'rest' === $request_origin && $is_browser_fetch );
-
+	// bot verdict. Anonymous traffic needs an interactive browser and a cookie
+	// unless the caller explicitly allowed a cookieless beacon. Same-site REST
+	// fetches can be interactive (#275, #302); server-to-server calls are not.
 	$is_human = $is_authenticated || (
-		$interactive_origin
-		&& 'browser' === $ua_class
-		&& $has_visitor_cookie
+		extrachill_analytics_is_interactive_browser( $ua_class, $request_origin, $is_browser_fetch )
+		&& ( $has_visitor_cookie || ! empty( $context['allow_cookieless'] ) )
 	);
 
 	if ( function_exists( 'extrachill_analytics_request_turnstile_rejected' )

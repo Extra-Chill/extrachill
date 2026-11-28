@@ -1,8 +1,56 @@
 <?php
 /** Ticket abilities. Public checkout is admitted only by the protected API adapter. */
 defined( 'ABSPATH' ) || exit;
+/** Public inventory count; order and buyer details stay private. */
+function extrachill_shop_get_event_ticket_holds( array $input ): array {
+	return extrachill_shop_held_ticket_quantities( (int) $input['event'] );
+}
+
 add_action( 'wp_abilities_api_init', 'extrachill_shop_register_ticket_abilities' );
 function extrachill_shop_register_ticket_abilities() {
+	wp_register_ability( 'extrachill/get-event-ticket-holds', array(
+		'label'               => 'Get event ticket holds',
+		'description'         => 'Read the quantity of tickets held in checkout for an event.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'required'             => array( 'event' ),
+			'properties'           => array(
+				'event' => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+			),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'required'   => array( 'held' ),
+			'properties' => array(
+				'held'    => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				// Held tickets per ticket type ID.
+				'by_type' => array(
+					'type'                 => 'object',
+					'additionalProperties' => array(
+						'type'    => 'integer',
+						'minimum' => 0,
+					),
+				),
+			),
+		),
+		'permission_callback' => '__return_true',
+		'execute_callback'    => 'extrachill_shop_get_event_ticket_holds',
+		'meta'                => array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'   => true,
+				'idempotent' => true,
+			),
+		),
+	) );
 	wp_register_ability( 'extrachill/start-ticket-checkout', array(
 		'label'               => 'Start ticket checkout',
 		'description'         => 'Start seller-settled Stripe ticket checkout.',
@@ -11,29 +59,40 @@ function extrachill_shop_register_ticket_abilities() {
 			'type'                 => 'object',
 			'required'             => array( 'event', 'quantity', 'name', 'email' ),
 			'properties'           => array(
-				'event'          => array(
+				'event'              => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'quantity'       => array(
+				'quantity'           => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 					'maximum' => 10,
 				),
-				'name'           => array(
+				'name'               => array(
 					'type'      => 'string',
 					'minLength' => 1,
 					'maxLength' => 200,
 				),
-				'email'          => array(
+				'email'              => array(
 					'type'   => 'string',
 					'format' => 'email',
 				),
 				// Optional in the schema so a missing answer returns the
 				// dedicated terms_required error instead of a schema failure.
-				'terms_accepted' => array(
+				'venue_show_updates' => array( 'type' => 'boolean' ),
+				'terms_accepted'     => array(
 					'type'        => 'boolean',
 					'description' => 'The buyer agreed to the Terms of Service. Must be true.',
+				),
+				'ticket_type'        => array(
+					'type'        => 'string',
+					'maxLength'   => 40,
+					'description' => 'Ticket type ID. Optional when the show sells one type.',
+				),
+				'code'               => array(
+					'type'        => 'string',
+					'maxLength'   => 32,
+					'description' => 'Discount or access code the buyer entered.',
 				),
 			),
 			'additionalProperties' => false,
@@ -98,6 +157,59 @@ function extrachill_shop_register_ticket_abilities() {
 		'permission_callback' => 'extrachill_shop_event_ticket_refund_permission',
 		'execute_callback'    => 'extrachill_shop_refund_event_ticket_orders',
 		'meta'                => array( 'show_in_rest' => true ),
+	) );
+	wp_register_ability( 'extrachill/get-event-ticket-order-report', array(
+		'label'               => 'Get a show\'s ticket order report',
+		'description'         => 'Every paid ticket order for a show with its buyer, ticket type, code and money split, for the sales report. Requires managing the show\'s seller.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'required'             => array( 'event_id' ),
+			'properties'           => array(
+				'event_id' => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+			),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'required'   => array( 'orders' ),
+			'properties' => array(
+				'orders' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'order_reference'   => array( 'type' => 'string' ),
+							'name'              => array( 'type' => 'string' ),
+							'email'             => array( 'type' => 'string' ),
+							'ticket_type'       => array( 'type' => 'string' ),
+							'code'              => array( 'type' => 'string' ),
+							'quantity'          => array( 'type' => 'integer' ),
+							'subtotal_minor'    => array( 'type' => 'integer' ),
+							'service_fee_minor' => array( 'type' => 'integer' ),
+							'discount_minor'    => array( 'type' => 'integer' ),
+							'total_minor'       => array( 'type' => 'integer' ),
+							'fees_minor'        => array( 'type' => 'integer' ),
+							'refunded_minor'    => array( 'type' => 'integer' ),
+							'currency'          => array( 'type' => 'string' ),
+							'state'             => array( 'type' => 'string' ),
+						),
+					),
+				),
+			),
+		),
+		'permission_callback' => 'extrachill_shop_event_ticket_refund_permission',
+		'execute_callback'    => 'extrachill_shop_get_event_ticket_order_report',
+		'meta'                => array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'   => true,
+				'idempotent' => true,
+			),
+		),
 	) );
 	wp_register_ability( 'extrachill/list-my-ticket-orders', array(
 		'label'               => 'List my ticket orders',

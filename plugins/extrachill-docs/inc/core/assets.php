@@ -28,7 +28,7 @@ function extrachill_docs_enqueue_styles() {
 			'extrachill-docs',
 			EXTRACHILL_DOCS_PLUGIN_URL . 'assets/css/docs.css',
 			array(),
-			filemtime( $css_path )
+			(string) filemtime( $css_path )
 		);
 	}
 
@@ -40,7 +40,7 @@ function extrachill_docs_enqueue_styles() {
 				'extrachill-single-post',
 				get_stylesheet_directory_uri() . '/assets/css/single-post.css',
 				array( 'extrachill-root', 'extrachill-style' ),
-				filemtime( $single_post_css )
+				(string) filemtime( $single_post_css )
 			);
 		}
 
@@ -50,7 +50,7 @@ function extrachill_docs_enqueue_styles() {
 				'extrachill-docs-toc',
 				EXTRACHILL_DOCS_PLUGIN_URL . 'assets/js/docs-toc.js',
 				array(),
-				filemtime( $toc_js ),
+				(string) filemtime( $toc_js ),
 				true
 			);
 		}

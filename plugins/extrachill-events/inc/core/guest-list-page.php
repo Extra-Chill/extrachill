@@ -7,11 +7,14 @@
  * permalink (add_rewrite_endpoint), so every event gets one with no slug
  * to keep in sync. The page asks only for the password, shows the QR pass
  * on screen, and offers an optional email copy. The event page itself stays
- * the public listing; hosts keep the door list there.
+ * the public listing; its one manager control is the "Guest Check-In"
+ * button that opens the host screen here (extrachill#1702).
  *
- * Every event with an enabled perk (any access mode) or tickets has the
- * page; every other event answers 404 at this URL. Hosts get the door view
- * here (extrachill#1246); guests get the claim form in password mode, a
+ * For guests, every event with an enabled perk (any access mode) or tickets
+ * has the page; every other event answers 404 at this URL. Anyone who
+ * manages the event can always open it (extrachill#1702), so the host
+ * screen is reachable before the guest list is turned on. Hosts get the
+ * host screen here (extrachill#1246); guests get the claim form in password mode, a
  * "managed by the host" notice in host_list mode, and pass links open the
  * pass in every mode without a password prompt. The page is never cached
  * (spots left is live) and never indexed.
@@ -53,7 +56,24 @@ function extrachill_events_guest_list_url( int $event_id ): string {
 }
 
 /**
- * Whether an event offers a guest list page.
+ * Host screen URL for a host-tools form redirect (extrachill#1702): the
+ * guest list page with `ec_host_tools` set, so the host tools section
+ * opens on the panel the form came from.
+ *
+ * @param int    $event_id Event post ID.
+ * @param string $anchor   Element ID to land on, without '#'.
+ * @param array  $args     Extra query args (confirmations after a save).
+ * @return string
+ */
+function extrachill_events_guest_list_host_tools_url( int $event_id, string $anchor, array $args = array() ): string {
+	return add_query_arg( array( 'ec_host_tools' => '1' ) + $args, extrachill_events_guest_list_url( $event_id ) ) . '#' . $anchor;
+}
+
+/**
+ * Whether an event offers a guest list page to guests.
+ *
+ * Managers may open the page even when this is false; see
+ * extrachill_events_user_can_reach_guest_list_page().
  *
  * Every enabled perk has one, whatever its access mode (extrachill#1246):
  * hosts add names in every mode, and each added name's pass link opens on
@@ -86,7 +106,8 @@ function extrachill_events_is_guest_list_request(): bool {
 }
 
 /**
- * 404 events without a guest list; keep the page out of caches and search.
+ * 404 events without a guest list (for this viewer); keep the page out of
+ * caches and search.
  *
  * @hook template_redirect
  */
@@ -95,7 +116,7 @@ function extrachill_events_guest_list_template_redirect(): void {
 		return;
 	}
 
-	if ( ! extrachill_events_has_guest_list_page( (int) get_queried_object_id() ) ) {
+	if ( ! extrachill_events_user_can_reach_guest_list_page( (int) get_queried_object_id(), (int) get_current_user_id() ) ) {
 		global $wp_query;
 		$wp_query->set_404();
 		status_header( 404 );
@@ -123,7 +144,7 @@ function extrachill_events_guest_list_template( $template ) {
 		return $template;
 	}
 
-	return extrachill_events_has_guest_list_page( (int) get_queried_object_id() )
+	return extrachill_events_user_can_reach_guest_list_page( (int) get_queried_object_id(), (int) get_current_user_id() )
 		? EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/guest-list.php'
 		: $template;
 }

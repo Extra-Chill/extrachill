@@ -12,7 +12,7 @@ function extrachill_events_filter_datamachine_settings( array $filtered, array $
 	$settings     = $filtered['settings'] ?? array();
 	$handled_keys = $filtered['handled_keys'] ?? array();
 
-	foreach ( array( 'dme_qualify_digest_enabled', 'extrachill_local_scene_digest_enabled' ) as $key ) {
+	foreach ( array( 'dme_qualify_digest_enabled', 'extrachill_local_scene_digest_enabled', 'extrachill_venue_show_updates_enabled' ) as $key ) {
 		if ( ! array_key_exists( $key, $input ) || ! is_bool( $input[ $key ] ) ) {
 			continue;
 		}

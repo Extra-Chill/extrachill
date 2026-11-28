@@ -11,6 +11,7 @@ namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
 	define( 'HOUR_IN_SECONDS', 3600 );
 	define( 'MINUTE_IN_SECONDS', 60 );
+	define( 'MB_IN_BYTES', 1024 * 1024 );
 	$GLOBALS['bootstrap_matrix_hooks'] = array();
 	$GLOBALS['bootstrap_matrix_blog']  = 'unrelated' === ( $argv[1] ?? '' ) ? 2 : 7;
 	$GLOBALS['bootstrap_matrix_fail']  = 'provider-throwing' === ( $argv[1] ?? '' );
@@ -96,6 +97,13 @@ namespace {
 
 	function ec_get_blog_id( $site ) {
 		return 'events' === $site ? 7 : null;
+	}
+
+	// extrachill-users is a required plugin (Requires Plugins header) and loads
+	// first in production; venue providers and abilities compose its team
+	// primitives, so the isolated runtime loads the same class files.
+	foreach ( array( 'TeamMembershipRepository', 'TeamInvitationToken', 'TeamOnboardingAdapter', 'TeamOnboardingAdapters', 'TeamOnboardingRepository', 'TeamOnboardingService' ) as $users_team_class ) {
+		require_once dirname( __DIR__, 3 ) . '/extrachill-users/inc/teams/' . $users_team_class . '.php';
 	}
 
 	if ( 'cli' === ( $argv[1] ?? '' ) ) {

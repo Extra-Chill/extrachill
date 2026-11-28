@@ -179,6 +179,71 @@ final class SchemaEventBuildTest extends TestCase {
 		$this->assertSame( 'Various Artists', $schema['performer']['name'] );
 	}
 
+	public function test_artist_terms_emit_individual_acts_in_billing_hint_order(): void {
+		$post = $this->make_post( array( 'post_title' => 'Carolina Reefer, Gator Food, Royal Tide, Tales of an Old Soul' ) );
+		$names = array( 'Tales of an Old Soul', 'Royal Tide', 'Gator Food', 'Carolina Reefer', 'Unlisted Z', 'Unlisted A' );
+		$terms = array();
+		foreach ( $names as $index => $name ) {
+			$terms[] = new WP_Term( array( 'term_id' => $index + 1, 'name' => $name, 'slug' => 'act-' . $index, 'taxonomy' => 'artist' ) );
+		}
+		TermRegistry::set( $post->ID, 'artist', $terms );
+		$attrs = array(
+			'startDate' => '2026-04-20',
+			'performer' => 'Carolina Reefer, Royal Tide, Tales of an Old Soul',
+			'performerType' => 'InvalidType',
+		);
+		$schema = ec_seo_build_event_schema( $post, $attrs );
+		$this->assertSame(
+			array( 'Carolina Reefer', 'Royal Tide', 'Tales of an Old Soul', 'Gator Food', 'Unlisted A', 'Unlisted Z' ),
+			array_column( $schema['performer'], 'name' )
+		);
+		foreach ( $schema['performer'] as $entity ) {
+			$this->assertSame( 'MusicGroup', $entity['@type'] );
+			$this->assertStringContainsString( '/artist/act-', $entity['url'] );
+		}
+		TermRegistry::set( $post->ID, 'artist', array_reverse( $terms ) );
+		$this->assertSame( $schema['performer'], ec_seo_build_event_schema( $post, $attrs )['performer'] );
+
+		unset( $attrs['performer'] );
+		$this->assertSame(
+			array( 'Carolina Reefer', 'Gator Food', 'Royal Tide', 'Tales of an Old Soul', 'Unlisted A', 'Unlisted Z' ),
+			array_column( ec_seo_build_event_schema( $post, $attrs )['performer'], 'name' )
+		);
+	}
+
+	public function test_terms_without_legacy_text_use_title_order_and_only_exact_case_insensitive_deduplication(): void {
+		$post = $this->make_post( array( 'post_title' => 'Shoreline Mafia with Capolow 304 and Capolow' ) );
+		$terms = array();
+		foreach ( array( 'Capolow', 'capolow', 'Capolow 304', 'Shoreline Mafia' ) as $index => $name ) {
+			$terms[] = new WP_Term( array( 'term_id' => $index + 1, 'name' => $name, 'taxonomy' => 'artist' ) );
+		}
+		TermRegistry::set( $post->ID, 'artist', $terms );
+		$schema = ec_seo_build_event_schema( $post, array( 'startDate' => '2026-04-20', 'performerType' => 'Person' ) );
+		$this->assertSame( array( 'Shoreline Mafia', 'Capolow', 'Capolow 304' ), array_column( $schema['performer'], 'name' ) );
+		$this->assertSame( array( 'Person', 'Person', 'Person' ), array_column( $schema['performer'], '@type' ) );
+	}
+
+	public function test_single_artist_term_remains_an_array_when_archive_link_fails(): void {
+		$post = $this->make_post();
+		TermRegistry::set( $post->ID, 'artist', array( new WP_Term( array( 'term_id' => 1, 'name' => 'Solo Act', 'taxonomy' => 'artist' ) ) ) );
+		$GLOBALS['ec_seo_test_term_link_error'] = true;
+		try {
+			$schema = ec_seo_build_event_schema( $post, array( 'startDate' => '2026-04-20' ) );
+			$this->assertSame( array( array( '@type' => 'MusicGroup', 'name' => 'Solo Act' ) ), $schema['performer'] );
+		} finally {
+			unset( $GLOBALS['ec_seo_test_term_link_error'] );
+		}
+	}
+
+	public function test_legacy_comma_separated_text_is_not_split(): void {
+		$schema = ec_seo_build_event_schema( $this->make_post(), array(
+			'startDate' => '2026-04-20',
+			'performer' => '  First Act, Second Act  ',
+			'performerType' => 'InvalidType',
+		) );
+		$this->assertSame( array( '@type' => 'MusicGroup', 'name' => 'First Act, Second Act' ), $schema['performer'] );
+	}
+
 	public function test_performer_omitted_when_empty(): void {
 		$post   = $this->make_post();
 		$schema = ec_seo_build_event_schema( $post, array( 'startDate' => '2026-04-20' ) );

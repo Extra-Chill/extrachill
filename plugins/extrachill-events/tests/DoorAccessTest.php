@@ -18,14 +18,15 @@ require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/DoorAccessService.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/DoorAccessAbilities.php';
 
+require_once __DIR__ . '/Support/post-fixtures.php';
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $post_id ) {
-		return $GLOBALS['event_management_test']['posts'][ $post_id ] ?? null;
+		return ec_events_test_fixture_post( $post_id );
 	}
 }
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
 	function wp_get_post_terms( $post_id, $taxonomy ) {
-		return $GLOBALS['event_management_test']['terms'][ $post_id ][ $taxonomy ] ?? array();
+		return ec_events_test_fixture_post_terms( $post_id, $taxonomy );
 	}
 }
 if ( ! function_exists( 'get_users' ) ) {

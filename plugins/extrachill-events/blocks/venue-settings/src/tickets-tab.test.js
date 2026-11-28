@@ -76,7 +76,7 @@ jest.mock( '@extrachill/components', () => {
 						)
 					),
 	};
-} );
+}, { virtual: true } );
 
 const show = ( orders ) => ( {
 	event_id: 9,

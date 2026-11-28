@@ -321,23 +321,27 @@ function extrachill_events_owner_list_check_in( int $event_id, array $pass, int 
  */
 function extrachill_events_owner_list_door_row( array $pass, array $owner, ?array $checkin ): array {
 	return array(
-		'pass_id'     => (int) ( $pass['id'] ?? 0 ),
-		'label'       => sprintf(
+		'pass_id'       => (int) ( $pass['id'] ?? 0 ),
+		'label'         => sprintf(
 			/* translators: 1: guest name, 2: "Venue list" or "Promoter list". */
 			__( '%1$s (%2$s)', 'extrachill-events' ),
 			(string) $pass['guest_name'],
 			$owner['label']
 		),
-		'guest_name'  => (string) $pass['guest_name'],
-		'source'      => $owner['label'],
-		'owner_name'  => $owner['owner_name'],
-		'added_by'    => '',
-		'code'        => (string) $pass['code'],
-		'status'      => $checkin ? RsvpPassesTable::STATUS_REDEEMED : RsvpPassesTable::STATUS_ACTIVE,
-		'redeemed_at' => $checkin
+		'guest_name'    => (string) $pass['guest_name'],
+		'source'        => $owner['label'],
+		'owner_name'    => $owner['owner_name'],
+		'added_by'      => '',
+		'code'          => (string) $pass['code'],
+		'status'        => $checkin ? RsvpPassesTable::STATUS_REDEEMED : RsvpPassesTable::STATUS_ACTIVE,
+		'redeemed_at'   => $checkin
 			? mysql2date( (string) get_option( 'time_format' ), get_date_from_gmt( (string) $checkin['checked_in_at'] ) )
 			: '',
-		'owner_list'  => true,
+		'owner_list'    => true,
+		// Read by the door list CSV export (extrachill#1746).
+		'source_kind'   => 'owner_list',
+		'email'         => (string) ( $pass['email'] ?? '' ),
+		'checked_in_at' => $checkin ? (string) $checkin['checked_in_at'] : '',
 	);
 }
 

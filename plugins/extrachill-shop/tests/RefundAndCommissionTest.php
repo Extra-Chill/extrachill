@@ -41,6 +41,14 @@ final class RefundTestOrder {
 	public function get_meta( $key ) {
 		return $this->meta[ $key ] ?? '';
 	}
+
+	public function update_meta_data( $key, $value ) {
+		$this->meta[ $key ] = $value;
+	}
+
+	public function save() {
+		return $this->id;
+	}
 }
 
 final class RefundAndCommissionTest extends TestCase {

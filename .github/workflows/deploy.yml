@@ -68,6 +68,14 @@ on:
 permissions:
   contents: read
 
+# The agent toolchain is not a Homeboy component: the "Upgrade wp-coding-agents
+# and pinned Roadie" step applies it (deploy/wp-coding-agents/upgrade.sh). Its
+# release dispatches component-released like any plugin, and that dispatch runs
+# exactly a schedule tick, so a toolchain release lands within minutes instead
+# of waiting on GitHub's best-effort cron (#243, #1727).
+env:
+  TOOLCHAIN_COMPONENT: wp-coding-agents
+
 # Deploys queue; they never race each other on the same server.
 concurrency:
   group: deploy-main
@@ -111,6 +119,11 @@ jobs:
         run: |
           set -euo pipefail
           deploy="true"
+          if [ "${EVENT}" = "repository_dispatch" ] && [ "${D_COMPONENT:-}" = "${TOOLCHAIN_COMPONENT}" ]; then
+            echo "::notice::Toolchain release ${D_COMPONENT} ${D_VERSION:-} from ${D_REPOSITORY:-unknown repository}: running a poll tick."
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
           # A malformed id is left for Plan to reject loudly; only a
           # well-formed id is looked up, so it is safe to use in a path.
           if [ "${EVENT}" = "repository_dispatch" ] \
@@ -191,6 +204,9 @@ jobs:
             repository_dispatch)
               component="${D_COMPONENT}"; version="${D_VERSION}"; dry_run="${unattended_dry_run}"
               [ -n "${component}" ] && [ -n "${version}" ] || { echo "::error::dispatch payload needs component and version"; exit 1; }
+              # A toolchain release is a schedule tick: poll outdated
+              # components, then the upgrade step applies the toolchain.
+              if [ "${component}" = "${TOOLCHAIN_COMPONENT}" ]; then component=""; version=""; fi
               ;;
             workflow_dispatch)
               component="${M_COMPONENT}"; version="${M_VERSION}"; dry_run="${M_DRY_RUN}"
@@ -401,7 +417,7 @@ jobs:
 
       - name: Set up Node.js for the network rig gate
         if: steps.release_set.outputs.component_count != '0' && steps.plan.outputs.gate_bypassed != 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
 
@@ -554,7 +570,7 @@ jobs:
 
       - name: Upload network rig gate evidence
         if: always() && (steps.gate.outcome == 'success' || steps.gate.outcome == 'failure')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: network-gate-evidence-${{ github.run_id }}
           path: |
@@ -783,6 +799,10 @@ jobs:
             title="Nothing deployed - ${skipped} component(s) misconfigured"
             colour=16098851
             body="Scope: ${SCOPE}. Homeboy did not attempt these because their deploy configuration is incomplete, so they stay behind until it is corrected."
+          elif [ "${JOB_STATUS}" = "success" ] && [ "${deployed}" -eq 0 ] && [ "${skipped}" -eq 0 ] && [ -n "${CODING_AGENTS_REPORT:-}" ]; then
+            title="Agent toolchain upgraded - extrachill.com"
+            colour=3066993
+            body=""
           else
             title="Deployed to extrachill.com"
             colour=3066993
@@ -790,7 +810,7 @@ jobs:
           fi
 
           if [ -n "${CODING_AGENTS_REPORT:-}" ]; then
-            body="${body}"$'\n'"${CODING_AGENTS_REPORT}"
+            body="${body:+${body}$'\n'}${CODING_AGENTS_REPORT}"
           fi
 
           if [ -n "${lines}" ]; then
@@ -813,7 +833,7 @@ jobs:
 
       - name: Upload deploy evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deploy-evidence-${{ github.run_id }}
           path: ${{ env.HOMEBOY_OUTPUT_DIR }}

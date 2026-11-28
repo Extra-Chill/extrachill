@@ -5,234 +5,254 @@ use PHPUnit\Framework\TestCase;
 
 /** Load global WordPress doubles only inside this class's isolated process. */
 function extrachill_events_load_local_scene_digest_test_environment(): void {
-if ( ! class_exists( 'WP_Term' ) ) {
-	class WP_Term {
-		public $term_id;
-		public $slug;
-		public $name;
-		public function __construct( object $term ) {
-			foreach ( get_object_vars( $term ) as $key => $value ) {
-				$this->{$key} = $value;
+	if ( ! class_exists( 'WP_Term' ) ) {
+		class WP_Term {
+			public $term_id;
+			public $slug;
+			public $name;
+			public function __construct( object $term ) {
+				foreach ( get_object_vars( $term ) as $key => $value ) {
+					$this->{$key} = $value;
+				}
 			}
 		}
 	}
-}
-if ( ! class_exists( 'WP_Post' ) ) {
-	class WP_Post {
-		public $ID;
-		public $post_status;
-		public $post_title;
-		public function __construct( array $data ) {
-			foreach ( $data as $key => $value ) {
-				$this->{$key} = $value;
+	if ( ! class_exists( 'WP_Post' ) ) {
+		class WP_Post {
+			public $ID;
+			public $post_status;
+			public $post_title;
+			public function __construct( array $data ) {
+				foreach ( $data as $key => $value ) {
+					$this->{$key} = $value;
+				}
 			}
 		}
 	}
-}
-if ( ! class_exists( 'WP_User' ) ) {
-	class WP_User {
-		public $user_email;
-		public $display_name;
-		public function __construct( string $email, string $name = 'Listener' ) {
-			$this->user_email  = $email;
-			$this->display_name = $name;
+	if ( ! class_exists( 'WP_User' ) ) {
+		class WP_User {
+			public $user_email;
+			public $display_name;
+			public function __construct( string $email, string $name = 'Listener' ) {
+				$this->user_email  = $email;
+				$this->display_name = $name;
+			}
 		}
 	}
-}
-if ( ! class_exists( 'WP_Error' ) ) {
-	class WP_Error {
-		public $code;
-		public $message;
-		public $data;
-		public function __construct( string $code = '', string $message = '', array $data = array() ) {
-			$this->code    = $code;
-			$this->message = $message;
-			$this->data    = $data;
+	if ( ! class_exists( 'WP_Error' ) ) {
+		class WP_Error {
+			public $code;
+			public $message;
+			public $data;
+			public function __construct( string $code = '', string $message = '', array $data = array() ) {
+				$this->code    = $code;
+				$this->message = $message;
+				$this->data    = $data;
+			}
 		}
 	}
-}
-if ( ! function_exists( 'add_action' ) ) {
-	function add_action() {}
-}
-if ( ! function_exists( 'absint' ) ) {
-	function absint( $value ) { return abs( (int) $value ); }
-}
-if ( ! function_exists( 'sanitize_key' ) ) {
-	function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
-}
-if ( ! function_exists( 'sanitize_title' ) ) {
-	function sanitize_title( $value ) { return trim( strtolower( preg_replace( '/[^a-z0-9]+/i', '-', (string) $value ) ), '-' ); }
-}
-if ( ! function_exists( '__' ) ) {
-	function __( $value ) { return $value; }
-}
-if ( ! function_exists( 'esc_html' ) ) {
-	function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
-}
-if ( ! function_exists( 'esc_html__' ) ) {
-	function esc_html__( $value ) { return esc_html( $value ); }
-}
-if ( ! function_exists( 'esc_url' ) ) {
-	function esc_url( $value ) { return (string) $value; }
-}
-if ( ! function_exists( 'esc_attr' ) ) {
-	function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
-}
-if ( ! function_exists( 'apply_filters' ) ) {
-	function apply_filters( $hook, $value ) { return $GLOBALS['local_scene_filters'][ $hook ] ?? $value; }
-}
-if ( ! function_exists( 'wp_timezone' ) ) {
-	function wp_timezone() { return new DateTimeZone( 'America/New_York' ); }
-}
-if ( ! function_exists( 'wp_http_validate_url' ) ) {
-	function wp_http_validate_url( $url ) { return filter_var( $url, FILTER_VALIDATE_URL ) ? $url : false; }
-}
-if ( ! function_exists( 'get_current_blog_id' ) ) {
-	function get_current_blog_id() { return 7; }
-}
-if ( ! function_exists( 'get_the_title' ) ) {
-	function get_the_title( $post ) { return $post->post_title; }
-}
-if ( ! function_exists( 'get_permalink' ) ) {
-	function get_permalink( $post ) {
-		return isset( $GLOBALS['festival_notification_meta'] ) ? 'https://events.example/events/' . $post->ID . '/' : 'https://events.example.com/event/' . $post->ID . '/';
+	if ( ! function_exists( 'add_action' ) ) {
+		function add_action() {}
 	}
-}
-if ( ! function_exists( 'get_term_link' ) ) {
-	function get_term_link( $term ) { return 'https://events.example.com/location/' . $term->slug . '/'; }
-}
-if ( ! function_exists( 'add_query_arg' ) ) {
-	function add_query_arg( $key, $value, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . rawurlencode( $key ) . '=' . rawurlencode( $value ); }
-}
-if ( ! function_exists( 'rest_url' ) ) {
-	function rest_url( $path ) { return 'https://events.example.com/wp-json/' . $path; }
-}
-if ( ! function_exists( 'home_url' ) ) {
-	function home_url() { return 'https://events.example.com/'; }
-}
-if ( ! function_exists( 'wp_salt' ) ) {
-	function wp_salt() { return 'test-secret'; }
-}
-if ( ! function_exists( 'rest_ensure_response' ) ) {
-	function rest_ensure_response( $value ) { return $value; }
-}
-if ( ! function_exists( 'is_wp_error' ) ) {
-	function is_wp_error( $value ) { return $value instanceof WP_Error; }
-}
-if ( ! function_exists( 'is_email' ) ) {
-	function is_email( $value ) { return false !== filter_var( $value, FILTER_VALIDATE_EMAIL ); }
-}
-if ( ! function_exists( 'data_machine_events_query_events' ) ) {
-	function data_machine_events_query_events( array $params ) {
-		$GLOBALS['local_scene_query_params'][] = $params;
-		if ( array_key_exists( 'local_scene_query_result', $GLOBALS ) ) {
-			return $GLOBALS['local_scene_query_result'];
+	if ( ! function_exists( 'absint' ) ) {
+		function absint( $value ) { return abs( (int) $value ); }
+	}
+	if ( ! function_exists( 'sanitize_key' ) ) {
+		function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/', '', (string) $value ) ); }
+	}
+	if ( ! function_exists( 'sanitize_title' ) ) {
+		function sanitize_title( $value ) { return trim( strtolower( preg_replace( '/[^a-z0-9]+/i', '-', (string) $value ) ), '-' ); }
+	}
+	if ( ! function_exists( '__' ) ) {
+		function __( $value ) { return $value; }
+	}
+	if ( ! function_exists( 'esc_html' ) ) {
+		function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
+	}
+	if ( ! function_exists( 'esc_html__' ) ) {
+		function esc_html__( $value ) { return esc_html( $value ); }
+	}
+	if ( ! function_exists( 'esc_url' ) ) {
+		function esc_url( $value ) { return (string) $value; }
+	}
+	if ( ! function_exists( 'esc_attr' ) ) {
+		function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES ); }
+	}
+	if ( ! function_exists( 'apply_filters' ) ) {
+		function apply_filters( $hook, $value ) { return $GLOBALS['local_scene_filters'][ $hook ] ?? $value; }
+	}
+	if ( ! function_exists( 'wp_timezone' ) ) {
+		function wp_timezone() { return new DateTimeZone( 'America/New_York' ); }
+	}
+	if ( ! function_exists( 'wp_http_validate_url' ) ) {
+		function wp_http_validate_url( $url ) { return filter_var( $url, FILTER_VALIDATE_URL ) ? $url : false; }
+	}
+	if ( ! function_exists( 'get_current_blog_id' ) ) {
+		function get_current_blog_id() { return 7; }
+	}
+	if ( ! function_exists( 'get_the_title' ) ) {
+		function get_the_title( $post ) { return $post->post_title; }
+	}
+	if ( ! function_exists( 'get_permalink' ) ) {
+		function get_permalink( $post ) {
+			return isset( $GLOBALS['festival_notification_meta'] ) ? 'https://events.example/events/' . $post->ID . '/' : 'https://events.example.com/event/' . $post->ID . '/';
 		}
-		$posts = $GLOBALS['local_scene_posts'] ?? array();
-		return array( 'posts' => $posts, 'total' => $GLOBALS['local_scene_query_total'] ?? count( $posts ) );
 	}
-}
-if ( ! function_exists( 'data_machine_events_parse_event_data' ) ) {
-	function data_machine_events_parse_event_data( WP_Post $post ): ?array { return $GLOBALS['local_scene_event_data'][ $post->ID ] ?? null; }
-}
-if ( ! function_exists( 'wp_get_post_terms' ) ) {
-	function wp_get_post_terms( $post_id, $taxonomy, $args = array() ) {
-		if ( isset( $GLOBALS['festival_notification_terms'] ) ) {
-			return $GLOBALS['festival_notification_terms'][ $taxonomy ] ?? array();
+	if ( ! function_exists( 'get_term_link' ) ) {
+		function get_term_link( $term ) { return 'https://events.example.com/location/' . $term->slug . '/'; }
+	}
+	if ( ! function_exists( 'add_query_arg' ) ) {
+		function add_query_arg( $key, $value, $url ) { return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . rawurlencode( $key ) . '=' . rawurlencode( $value ); }
+	}
+	if ( ! function_exists( 'rest_url' ) ) {
+		function rest_url( $path ) { return 'https://events.example.com/wp-json/' . $path; }
+	}
+	if ( ! function_exists( 'home_url' ) ) {
+		function home_url() { return 'https://events.example.com/'; }
+	}
+	if ( ! function_exists( 'wp_salt' ) ) {
+		function wp_salt() { return 'test-secret'; }
+	}
+	if ( ! function_exists( 'rest_ensure_response' ) ) {
+		function rest_ensure_response( $value ) { return $value; }
+	}
+	if ( ! function_exists( 'is_wp_error' ) ) {
+		function is_wp_error( $value ) { return $value instanceof WP_Error; }
+	}
+	if ( ! function_exists( 'is_email' ) ) {
+		function is_email( $value ) { return false !== filter_var( $value, FILTER_VALIDATE_EMAIL ); }
+	}
+	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+		function data_machine_events_query_events( array $params ) {
+			$GLOBALS['local_scene_query_params'][] = $params;
+			if ( array_key_exists( 'local_scene_query_result', $GLOBALS ) ) {
+				return $GLOBALS['local_scene_query_result'];
+			}
+			$posts = $GLOBALS['local_scene_posts'] ?? array();
+			return array(
+			'posts' => $posts,
+			'total' => $GLOBALS['local_scene_query_total'] ?? count( $posts )
+			);
 		}
-		return $GLOBALS['local_scene_terms'][ $post_id ][ $taxonomy ] ?? array();
 	}
-}
-if ( ! function_exists( 'extrachill_get_priority_event_ids' ) ) {
-	function extrachill_get_priority_event_ids() { return $GLOBALS['local_scene_priority_events'] ?? array(); }
-}
-if ( ! function_exists( 'ec_get_priority_venue_ids' ) ) {
-	function ec_get_priority_venue_ids() { return $GLOBALS['local_scene_priority_venues'] ?? array(); }
-}
-if ( ! function_exists( 'ec_users_is_event_marked' ) ) {
-	function ec_users_is_event_marked( int $user_id, int $event_id, int $blog_id ): bool {
-		$GLOBALS['local_scene_mark_checks'][] = compact( 'user_id', 'event_id', 'blog_id' );
-		return ! empty( $GLOBALS['local_scene_marks'][ $user_id ][ $event_id ] );
+	if ( ! function_exists( 'data_machine_events_parse_event_data' ) ) {
+		function data_machine_events_parse_event_data( WP_Post $post ): ?array { return $GLOBALS['local_scene_event_data'][ $post->ID ] ?? null; }
 	}
-}
-if ( ! function_exists( 'ec_get_blog_id' ) ) {
-	function ec_get_blog_id( string $site ): int {
-		$GLOBALS['local_scene_blog_requests'][] = $site;
-		return $GLOBALS['local_scene_events_blog_id'] ?? 7;
-	}
-}
-if ( ! function_exists( 'ec_get_network_bot_user_id' ) ) {
-	function ec_get_network_bot_user_id(): int { return 99; }
-}
-if ( ! function_exists( 'get_userdata' ) ) {
-	function get_userdata( $user_id ) {
-		if ( isset( $GLOBALS['ec_test_existing_user_ids'] ) ) {
-			return in_array( (int) $user_id, $GLOBALS['ec_test_existing_user_ids'], true ) ? (object) array( 'ID' => (int) $user_id ) : false;
+	if ( ! function_exists( 'wp_get_post_terms' ) ) {
+		function wp_get_post_terms( $post_id, $taxonomy, $args = array() ) {
+			if ( isset( $GLOBALS['festival_notification_terms'] ) ) {
+				return $GLOBALS['festival_notification_terms'][ $taxonomy ] ?? array();
+			}
+			return $GLOBALS['local_scene_terms'][ $post_id ][ $taxonomy ] ?? array();
 		}
-		return $GLOBALS['local_scene_users'][ $user_id ] ?? null;
 	}
-}
-if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
-	function ec_users_notify_with_receipts( $ids, array $payload ): array {
-		$GLOBALS['local_scene_notifications'][] = compact( 'ids', 'payload' );
-		$status          = array_shift( $GLOBALS['local_scene_receipt_statuses'] );
-		$notification_id = $GLOBALS['local_scene_notification_id'] ?? 123;
-		return array( 'recipients' => array( $ids[0] => array( 'status' => $status ?: 'inserted', 'notification_id' => $notification_id, 'error' => $GLOBALS['local_scene_receipt_error'] ?? null ) ) );
+	if ( ! function_exists( 'extrachill_get_priority_event_ids' ) ) {
+		function extrachill_get_priority_event_ids() { return $GLOBALS['local_scene_priority_events'] ?? array(); }
 	}
-}
-if ( ! function_exists( 'ec_users_release_notification_receipt' ) ) {
-	function ec_users_release_notification_receipt( int $notification_id, int $user_id, string $producer, string $idempotency_key ): bool {
-		$GLOBALS['local_scene_releases'][] = compact( 'notification_id', 'user_id', 'producer', 'idempotency_key' );
-		return $GLOBALS['local_scene_release_result'] ?? true;
+	if ( ! function_exists( 'ec_get_priority_venue_ids' ) ) {
+		function ec_get_priority_venue_ids() { return $GLOBALS['local_scene_priority_venues'] ?? array(); }
 	}
-}
-if ( ! function_exists( 'ec_send_email_queued' ) ) {
-	function ec_send_email_queued( array $args ) {
-		$GLOBALS['local_scene_emails'][] = $args;
-		return $GLOBALS['local_scene_queue_result'] ?? array( 'success' => true );
+	if ( ! function_exists( 'ec_users_is_event_marked' ) ) {
+		function ec_users_is_event_marked( int $user_id, int $event_id, int $blog_id ): bool {
+			$GLOBALS['local_scene_mark_checks'][] = compact( 'user_id', 'event_id', 'blog_id' );
+			return ! empty( $GLOBALS['local_scene_marks'][ $user_id ][ $event_id ] );
+		}
 	}
-}
-if ( ! function_exists( 'get_terms' ) ) {
-	function get_terms() { return $GLOBALS['local_scene_locations'] ?? array(); }
-}
-if ( ! function_exists( 'get_ancestors' ) ) {
-	function get_ancestors() { return array( 2, 1 ); }
-}
-if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) ) {
-	function extrachill_users_entity_subscription_recipients( $producer, $type, $taxonomy, $slug, $delivery = 'notification' ) {
-		if ( isset( $GLOBALS['festival_notification_recipients'] ) ) {
-			$GLOBALS['festival_notification_resolutions'][] = array(
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		function ec_get_blog_id( string $site ): int {
+			$GLOBALS['local_scene_blog_requests'][] = $site;
+			return $GLOBALS['local_scene_events_blog_id'] ?? 7;
+		}
+	}
+	if ( ! function_exists( 'ec_get_network_bot_user_id' ) ) {
+		function ec_get_network_bot_user_id(): int { return 99; }
+	}
+	if ( ! function_exists( 'get_userdata' ) ) {
+		function get_userdata( $user_id ) {
+			if ( isset( $GLOBALS['ec_test_existing_user_ids'] ) ) {
+				return in_array( (int) $user_id, $GLOBALS['ec_test_existing_user_ids'], true ) ? (object) array( 'ID' => (int) $user_id ) : false;
+			}
+			return $GLOBALS['local_scene_users'][ $user_id ] ?? null;
+		}
+	}
+	if ( ! function_exists( 'ec_users_notify_with_receipts' ) ) {
+		function ec_users_notify_with_receipts( $ids, array $payload ): array {
+			$GLOBALS['local_scene_notifications'][] = compact( 'ids', 'payload' );
+			$status          = array_shift( $GLOBALS['local_scene_receipt_statuses'] );
+			$notification_id = $GLOBALS['local_scene_notification_id'] ?? 123;
+			return array(
+			'recipients' => array(
+			$ids[0] => array(
+			'status' => $status ?: 'inserted',
+			'notification_id' => $notification_id,
+			'error' => $GLOBALS['local_scene_receipt_error'] ?? null
+			) ) );
+		}
+	}
+	if ( ! function_exists( 'ec_users_release_notification_receipt' ) ) {
+		function ec_users_release_notification_receipt( int $notification_id, int $user_id, string $producer, string $idempotency_key ): bool {
+			$GLOBALS['local_scene_releases'][] = compact( 'notification_id', 'user_id', 'producer', 'idempotency_key' );
+			return $GLOBALS['local_scene_release_result'] ?? true;
+		}
+	}
+	if ( ! function_exists( 'ec_send_email_queued' ) ) {
+		function ec_send_email_queued( array $args ) {
+			$GLOBALS['local_scene_emails'][] = $args;
+			return $GLOBALS['local_scene_queue_result'] ?? array( 'success' => true );
+		}
+	}
+	if ( ! function_exists( 'get_terms' ) ) {
+		function get_terms() { return $GLOBALS['local_scene_locations'] ?? array(); }
+	}
+	if ( ! function_exists( 'get_ancestors' ) ) {
+		function get_ancestors() { return array( 2, 1 ); }
+	}
+	if ( ! function_exists( 'extrachill_users_entity_subscription_recipients' ) ) {
+		function extrachill_users_entity_subscription_recipients( $producer, $type, $taxonomy, $slug, $delivery = 'notification' ) {
+			if ( isset( $GLOBALS['festival_notification_recipients'] ) ) {
+				$GLOBALS['festival_notification_resolutions'][] = array(
 				'producer'    => $producer,
 				'entity_type' => $type,
 				'taxonomy'    => $taxonomy,
 				'slug'        => $slug,
-			);
-			return $GLOBALS['festival_notification_recipients'][ $slug ] ?? array();
+				);
+				return $GLOBALS['festival_notification_recipients'][ $slug ] ?? array();
+			}
+			$GLOBALS['local_scene_recipient_resolutions'][] = compact( 'producer', 'type', 'taxonomy', 'slug', 'delivery' );
+			if ( isset( $GLOBALS['local_scene_recipients_by_slug'] ) ) {
+				return $GLOBALS['local_scene_recipients_by_slug'][ $slug ][ $delivery ] ?? array();
+			}
+			return $GLOBALS['local_scene_recipients'][ $delivery ] ?? array();
 		}
-		$GLOBALS['local_scene_recipient_resolutions'][] = compact( 'producer', 'type', 'taxonomy', 'slug', 'delivery' );
-		if ( isset( $GLOBALS['local_scene_recipients_by_slug'] ) ) {
-			return $GLOBALS['local_scene_recipients_by_slug'][ $slug ][ $delivery ] ?? array();
+	}
+	if ( ! function_exists( 'extrachill_users_get_local_scene' ) ) {
+		function extrachill_users_get_local_scene( $user_id ) {
+			if ( isset( $GLOBALS['festival_notification_scenes'] ) ) {
+				return $GLOBALS['festival_notification_scenes'][ $user_id ] ?? null;
+			}
+			return $GLOBALS['local_scene_scenes'][ $user_id ] ?? null;
 		}
-		return $GLOBALS['local_scene_recipients'][ $delivery ] ?? array();
 	}
-}
-if ( ! function_exists( 'extrachill_users_get_local_scene' ) ) {
-	function extrachill_users_get_local_scene( $user_id ) {
-		if ( isset( $GLOBALS['festival_notification_scenes'] ) ) {
-			return $GLOBALS['festival_notification_scenes'][ $user_id ] ?? null;
+	if ( ! function_exists( 'extrachill_users_entity_subscription_slugs' ) ) {
+		function extrachill_users_entity_subscription_slugs( $producer, $type, $taxonomy ) {
+			$GLOBALS['local_scene_slug_resolutions'][] = compact( 'producer', 'type', 'taxonomy' );
+			return $GLOBALS['local_scene_subscribed_slugs'] ?? array();
 		}
-		return $GLOBALS['local_scene_scenes'][ $user_id ] ?? null;
 	}
-}
-if ( ! function_exists( 'extrachill_users_unsubscribe_from_entity' ) ) {
-	function extrachill_users_unsubscribe_from_entity( $user, $type, $taxonomy, $slug ) {
-		$GLOBALS['local_scene_unsubscribes'][] = compact( 'user', 'type', 'taxonomy', 'slug' );
-		return array( 'subscribed' => false );
+	if ( ! function_exists( 'get_term_by' ) ) {
+		function get_term_by( $field, $value, $taxonomy ) {
+			return $GLOBALS['local_scene_terms_by_slug'][ $taxonomy ][ $value ] ?? false;
+		}
 	}
-}
+	if ( ! function_exists( 'extrachill_users_unsubscribe_from_entity' ) ) {
+		function extrachill_users_unsubscribe_from_entity( $user, $type, $taxonomy, $slug ) {
+			$GLOBALS['local_scene_unsubscribes'][] = compact( 'user', 'type', 'taxonomy', 'slug' );
+			return array( 'subscribed' => false );
+		}
+	}
 
-require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
-require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
+	require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
+	require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
 }
 
 /**
@@ -260,7 +280,10 @@ class LocalSceneDigestTest extends TestCase {
 		$GLOBALS['local_scene_mark_checks']     = array();
 		$GLOBALS['local_scene_blog_requests']   = array();
 		$GLOBALS['local_scene_events_blog_id']  = 7;
-		$GLOBALS['local_scene_users']           = array( 7 => new WP_User( 'fan@example.com' ), 99 => new WP_User( 'bot@example.com' ) );
+		$GLOBALS['local_scene_users']           = array(
+		7 => new WP_User( 'fan@example.com' ),
+		99 => new WP_User( 'bot@example.com' )
+		);
 		$GLOBALS['local_scene_notifications']   = array();
 		$GLOBALS['local_scene_receipt_statuses'] = array();
 		$GLOBALS['local_scene_notification_id'] = 123;
@@ -271,30 +294,219 @@ class LocalSceneDigestTest extends TestCase {
 		$GLOBALS['local_scene_release_result']  = true;
 		$GLOBALS['local_scene_unsubscribes']    = array();
 		$GLOBALS['local_scene_locations']       = array( $this->location );
-		$GLOBALS['local_scene_recipients']      = array( 'notification' => array(), 'email' => array() );
+		$GLOBALS['local_scene_recipients']      = array(
+		'notification' => array(),
+		'email' => array()
+		);
 		$GLOBALS['local_scene_scenes']          = array();
 		$GLOBALS['local_scene_recipient_resolutions'] = array();
 		$GLOBALS['local_scene_query_params']    = array();
+		$GLOBALS['local_scene_slug_resolutions'] = array();
+		$GLOBALS['local_scene_subscribed_slugs'] = array();
+		$GLOBALS['local_scene_terms_by_slug']    = array();
 		$GLOBALS['test_term_ancestors'] = array( 2, 1 );
 	}
 
 	public function test_specific_entity_mapping_and_producer_authorization_are_bounded(): void {
 		$entities = extrachill_events_local_scene_digest_subscription_entities( array( 'location' => 'location' ) );
 		$this->assertSame( 'location', $entities['local_scene_digest'] );
-		$entity = array( 'entity_type' => 'local_scene_digest', 'taxonomy' => 'location' );
+		$entity = array(
+		'entity_type' => 'local_scene_digest',
+		'taxonomy' => 'location'
+		);
 		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, $entity, 'email' ) );
-		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array( 'entity_type' => 'location', 'taxonomy' => 'location' ), 'email' ) );
-		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array( 'entity_type' => 'artist', 'taxonomy' => 'artist' ), 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array(
+		'entity_type' => 'location',
+		'taxonomy' => 'location'
+		), 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, array(
+		'entity_type' => 'artist',
+		'taxonomy' => 'artist'
+		), 'email' ) );
 		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, 'other', $entity, 'email' ) );
+	}
+
+	public function test_venue_scope_has_its_own_consent_identity_and_producer(): void {
+		$entities = extrachill_events_local_scene_digest_subscription_entities( array() );
+		$this->assertSame( 'location', $entities['local_scene_digest'] );
+		$this->assertSame( 'venue', $entities['venue_show_updates'] );
+
+		$venue_entity = array(
+		'entity_type' => 'venue_show_updates',
+		'taxonomy' => 'venue'
+		);
+		$city_entity  = array(
+		'entity_type' => 'local_scene_digest',
+		'taxonomy' => 'location'
+		);
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'email' ) );
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'notification' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $city_entity, 'email' ), 'The venue producer cannot read city audiences.' );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_LOCAL_SCENE_DIGEST_PRODUCER, $venue_entity, 'email' ), 'The city producer cannot read venue audiences.' );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, array(
+		'entity_type' => 'venue_show_updates',
+		'taxonomy' => 'location'
+		), 'email' ) );
+		$this->assertFalse( extrachill_events_authorize_local_scene_digest_producer( false, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $venue_entity, 'sms' ) );
+		$this->assertTrue( extrachill_events_authorize_local_scene_digest_producer( true, 'someone-else', $venue_entity, 'email' ), 'Other producers pass through untouched.' );
+		$this->assertSame( 'location', extrachill_events_normalize_digest_scope( 'bogus' ) );
+		$this->assertSame( 'venue', extrachill_events_normalize_digest_scope( 'venue' ) );
+	}
+
+	public function test_venue_candidates_keep_only_single_venue_events_at_that_venue(): void {
+		$venue    = $this->term( 300, 'lofi-brewing', 'Lofi Brewing' );
+		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		foreach ( array( 1, 2, 3 ) as $id ) {
+			$GLOBALS['local_scene_posts'][]           = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => 'Show ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ]      = array(
+			'location' => array( 44, 45 ),
+			'venue' => array( $venue ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array(
+			'startDate' => $tomorrow->format( 'Y-m-d' ),
+			'startTime' => '20:00:00',
+			'venueTimezone' => 'America/New_York'
+			);
+		}
+		$GLOBALS['local_scene_terms'][2]['venue'] = array( $this->term( 301, 'elsewhere', 'Elsewhere' ) );
+		$GLOBALS['local_scene_terms'][3]['venue'][] = $this->term( 302, 'co-host', 'Co Host' );
+
+		$result = extrachill_events_local_scene_digest_candidates( $venue, 7, $evidence, 'venue' );
+
+		$this->assertSame( array( 1 ), array_column( $result, 'post_id' ), 'Venue scope ignores the city gate but requires exactly this venue.' );
+		$this->assertSame( array( 'venue' => array( 300 ) ), $GLOBALS['local_scene_query_params'][0]['tax_filters'] );
+	}
+
+	public function test_venue_run_walks_only_subscribed_venues_and_sends_this_week_at_venue(): void {
+		$venue = $this->term( 300, 'lofi-brewing', 'Lofi Brewing' );
+		$GLOBALS['local_scene_terms_by_slug']['venue'] = array( 'lofi-brewing' => $venue );
+		$GLOBALS['local_scene_subscribed_slugs']       = array( 'lofi-brewing', 'gone-venue' );
+		$tomorrow                                      = new DateTimeImmutable( 'tomorrow', wp_timezone() );
+		$GLOBALS['local_scene_posts'][]                = new WP_Post( array(
+		'ID' => 8,
+		'post_status' => 'publish',
+		'post_title' => 'Lofi Night'
+		) );
+		$GLOBALS['local_scene_terms'][8]               = array(
+		'location' => array( 44 ),
+		'venue' => array( $venue ),
+		'artist' => array( 8 )
+		);
+		$GLOBALS['local_scene_event_data'][8]          = array(
+		'startDate' => $tomorrow->format( 'Y-m-d' ),
+		'startTime' => '20:00:00',
+		'venueTimezone' => 'America/New_York'
+		);
+		$GLOBALS['local_scene_recipients']             = array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		);
+
+		$result = extrachill_events_run_venue_show_updates();
+
+		$this->assertSame( array(
+		array(
+		'producer' => EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER,
+		'type' => 'venue_show_updates',
+		'taxonomy' => 'venue'
+		) ), $GLOBALS['local_scene_slug_resolutions'] );
+		$this->assertSame( 1, $result['counts']['venues_scanned'], 'Deleted venues are skipped; the taxonomy is never scanned.' );
+		$this->assertSame( 1, $result['counts']['venues_with_events'] );
+		$this->assertSame( 1, $result['counts']['emails_queued'] );
+		$this->assertSame( array( 'venue_show_updates', 'venue_show_updates' ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'type' ) );
+		$this->assertSame( array( EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER ), array_column( $GLOBALS['local_scene_recipient_resolutions'], 'producer' ) );
+
+		$payload = $GLOBALS['local_scene_notifications'][0]['payload'];
+		$this->assertSame( 'venue_weekly_digest', $payload['type'] );
+		$this->assertSame( EXTRACHILL_EVENTS_VENUE_UPDATES_PRODUCER, $payload['producer'] );
+		$this->assertSame( 'This week at Lofi Brewing', $payload['title'] );
+		$this->assertStringEndsWith( ':lofi-brewing', $payload['idempotency_key'] );
+
+		$email = $GLOBALS['local_scene_emails'][0];
+		$this->assertSame( 'This week at Lofi Brewing', $email['subject'] );
+		$this->assertStringContainsString( 'on at Lofi Brewing this week', $email['context']['body_html'] );
+		$this->assertStringContainsString( 'utm_source=venue_show_updates', $email['context']['body_html'] );
+		$this->assertStringContainsString( 'Unsubscribe from Lofi Brewing show updates', $email['context']['body_html'] );
+		$this->assertStringNotContainsString( 'lofi-brewing', json_encode( $result ) );
+	}
+
+	public function test_venue_run_sends_nothing_without_subscribers_or_shows(): void {
+		$GLOBALS['local_scene_subscribed_slugs'] = array();
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertSame( 0, $result['counts']['venues_scanned'] );
+		$this->assertEmpty( $GLOBALS['local_scene_query_params'] );
+
+		$GLOBALS['local_scene_terms_by_slug']['venue'] = array( 'quiet' => $this->term( 310, 'quiet', 'Quiet' ) );
+		$GLOBALS['local_scene_subscribed_slugs']       = array( 'quiet' );
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertSame( 1, $result['counts']['venues_scanned'] );
+		$this->assertSame( 0, $result['counts']['venues_with_events'] );
+		$this->assertEmpty( $GLOBALS['local_scene_recipient_resolutions'] );
+		$this->assertEmpty( $GLOBALS['local_scene_emails'] );
+
+		$GLOBALS['local_scene_subscribed_slugs'] = new WP_Error( 'entity_subscriptions_read_failed' );
+		$result = extrachill_events_run_venue_show_updates();
+		$this->assertTrue( $result['retryable_failure'] );
+		$this->assertSame( array( 'venue_query_failed' => 1 ), $result['failures'] );
+	}
+
+	public function test_venue_unsubscribe_token_removes_only_venue_consent(): void {
+		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'lofi-brewing', null, 'venue' ), PHP_URL_QUERY ), $params );
+		$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $params );
+		$this->assertSame( 'venue', $verified['scope'] );
+
+		$confirm = extrachill_events_local_scene_digest_unsubscribe_page( $params, false );
+		$this->assertSame( 'confirm', $confirm['status'] );
+		$this->assertStringContainsString( 'venue', $confirm['title'] );
+		$this->assertStringContainsString( 'Unsubscribe from this venue', $confirm['action_html'] );
+		$this->assertEmpty( $GLOBALS['local_scene_unsubscribes'] );
+
+		$done = extrachill_events_local_scene_digest_unsubscribe_page( $params, true );
+		$this->assertSame( 'unsubscribed', $done['status'] );
+		$this->assertSame( array(
+		'user' => 7,
+		'type' => 'venue_show_updates',
+		'taxonomy' => 'venue',
+		'slug' => 'lofi-brewing'
+		), $GLOBALS['local_scene_unsubscribes'][0] );
+
+		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'austin' ), PHP_URL_QUERY ), $city );
+		$this->assertSame( 'location', extrachill_events_verify_local_scene_digest_unsubscribe( $city )['scope'] );
+		$forged = array(
+		'token' => extrachill_sign( 'events.digest_unsubscribe', array(
+		'user_id' => 7,
+		'slug' => 'austin',
+		'scope' => 'artist'
+		), 3600 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $forged ), 'Unknown scopes never fall back to a city unsubscribe.' );
 	}
 
 	public function test_candidates_enforce_venue_local_window_city_status_and_datetime_gates(): void {
 		$austin = new DateTimeZone( 'America/Chicago' );
 		$today  = new DateTimeImmutable( 'tomorrow', $austin );
 		foreach ( range( 1, 13 ) as $id ) {
-			$GLOBALS['local_scene_posts'][] = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => $id < 3 ? 'Same Show!' : 'Show ' . $id ) );
-			$GLOBALS['local_scene_terms'][ $id ] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( $id ) );
-			$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $today->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'endTime' => '22:00:00', 'venueTimezone' => 'America/Chicago', 'performer' => 'Band' );
+			$GLOBALS['local_scene_posts'][] = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => $id < 3 ? 'Same Show!' : 'Show ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ] = array(
+			'location' => array( 44 ),
+			'venue' => array( $this->term( 10, 'club', 'Club' ) ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array(
+			'startDate' => $today->format( 'Y-m-d' ),
+			'startTime' => '20:00:00',
+			'endTime' => '22:00:00',
+			'venueTimezone' => 'America/Chicago',
+			'performer' => 'Band'
+			);
 		}
 		$GLOBALS['local_scene_priority_events']            = array( 2 );
 		$GLOBALS['local_scene_terms'][3]['location']       = array( 55 );
@@ -336,9 +548,21 @@ class LocalSceneDigestTest extends TestCase {
 			4 => $now->modify( '+7 days' ),
 		);
 		foreach ( $dates as $id => $date ) {
-			$GLOBALS['local_scene_posts'][] = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Boundary ' . $id ) );
-			$GLOBALS['local_scene_terms'][ $id ] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
-			$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $date->format( 'Y-m-d' ), 'startTime' => $date->format( 'H:i:s' ), 'venueTimezone' => 'America/Chicago' );
+			$GLOBALS['local_scene_posts'][] = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => 'Boundary ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ] = array(
+			'location' => array( 44 ),
+			'venue' => array( $this->term( 10 + $id, 'club-' . $id, 'Club ' . $id ) ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array(
+			'startDate' => $date->format( 'Y-m-d' ),
+			'startTime' => $date->format( 'H:i:s' ),
+			'venueTimezone' => 'America/Chicago'
+			);
 		}
 		$evidence = array();
 
@@ -355,9 +579,21 @@ class LocalSceneDigestTest extends TestCase {
 		add_filter( 'extrachill_local_scene_digest_now', static fn() => $now->getTimestamp() );
 		add_filter( 'extrachill_local_scene_digest_candidate_cap', static fn() => 20 );
 		foreach ( range( 1, 21 ) as $id ) {
-			$GLOBALS['local_scene_posts'][] = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Capped ' . $id ) );
-			$GLOBALS['local_scene_terms'][ $id ] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 100 + $id, 'venue-' . $id, 'Venue ' . $id ) ), 'artist' => array( $id ) );
-			$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => '2030-07-16', 'startTime' => '20:00:00', 'venueTimezone' => 'America/Chicago' );
+			$GLOBALS['local_scene_posts'][] = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => 'Capped ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ] = array(
+			'location' => array( 44 ),
+			'venue' => array( $this->term( 100 + $id, 'venue-' . $id, 'Venue ' . $id ) ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array(
+			'startDate' => '2030-07-16',
+			'startTime' => '20:00:00',
+			'venueTimezone' => 'America/Chicago'
+			);
 		}
 		$evidence = array();
 
@@ -374,7 +610,10 @@ class LocalSceneDigestTest extends TestCase {
 		$evidence = array();
 
 		$this->assertSame( array(), extrachill_events_local_scene_digest_candidates( $this->location, 7, $evidence ) );
-		$this->assertSame( array( 'failed' => true, 'truncated' => false ), $evidence );
+		$this->assertSame( array(
+		'failed' => true,
+		'truncated' => false
+		), $evidence );
 
 		$run = extrachill_events_run_local_scene_digest();
 		$this->assertSame( 1, $run['counts']['candidate_query_failures'] );
@@ -546,17 +785,45 @@ class LocalSceneDigestTest extends TestCase {
 
 	public function test_aggregate_counts_separate_notification_success_from_email_admission_failure(): void {
 		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
-		$GLOBALS['local_scene_posts'] = array( new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Qualified Show' ) ) );
-		$GLOBALS['local_scene_terms'][8] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( 3 ) );
-		$GLOBALS['local_scene_event_data'][8] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_posts'] = array(
+		new WP_Post( array(
+		'ID' => 8,
+		'post_status' => 'publish',
+		'post_title' => 'Qualified Show'
+		) ) );
+		$GLOBALS['local_scene_terms'][8] = array(
+		'location' => array( 44 ),
+		'venue' => array( $this->term( 10, 'club', 'Club' ) ),
+		'artist' => array( 3 )
+		);
+		$GLOBALS['local_scene_event_data'][8] = array(
+		'startDate' => $tomorrow->format( 'Y-m-d' ),
+		'startTime' => '20:00:00',
+		'venueTimezone' => 'America/New_York'
+		);
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		);
 		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'austin' );
 		$GLOBALS['local_scene_queue_result'] = new WP_Error( 'queue_failed' );
 		add_filter( 'extrachill_local_scene_digest_candidate_cap', static fn() => 20 );
 		foreach ( range( 9, 28 ) as $id ) {
-			$GLOBALS['local_scene_posts'][] = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Extra Show ' . $id ) );
-			$GLOBALS['local_scene_terms'][ $id ] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 100 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
-			$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '21:00:00', 'venueTimezone' => 'America/New_York' );
+			$GLOBALS['local_scene_posts'][] = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => 'Extra Show ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ] = array(
+			'location' => array( 44 ),
+			'venue' => array( $this->term( 100 + $id, 'club-' . $id, 'Club ' . $id ) ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array(
+			'startDate' => $tomorrow->format( 'Y-m-d' ),
+			'startTime' => '21:00:00',
+			'venueTimezone' => 'America/New_York'
+			);
 		}
 
 		$result = extrachill_events_run_local_scene_digest();
@@ -601,10 +868,26 @@ class LocalSceneDigestTest extends TestCase {
 
 	public function test_dry_run_previews_qualified_recipients_without_mutation(): void {
 		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
-		$GLOBALS['local_scene_posts'] = array( new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Qualified Show' ) ) );
-		$GLOBALS['local_scene_terms'][8] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( 3 ) );
-		$GLOBALS['local_scene_event_data'][8] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_posts'] = array(
+		new WP_Post( array(
+		'ID' => 8,
+		'post_status' => 'publish',
+		'post_title' => 'Qualified Show'
+		) ) );
+		$GLOBALS['local_scene_terms'][8] = array(
+		'location' => array( 44 ),
+		'venue' => array( $this->term( 10, 'club', 'Club' ) ),
+		'artist' => array( 3 )
+		);
+		$GLOBALS['local_scene_event_data'][8] = array(
+		'startDate' => $tomorrow->format( 'Y-m-d' ),
+		'startTime' => '20:00:00',
+		'venueTimezone' => 'America/New_York'
+		);
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		);
 		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'austin' );
 
 		$result = extrachill_events_run_local_scene_digest( array( 'dry_run' => true ) );
@@ -629,9 +912,22 @@ class LocalSceneDigestTest extends TestCase {
 
 		$GLOBALS['local_scene_locations'] = array( $this->location );
 		$tomorrow = new DateTimeImmutable( 'tomorrow', wp_timezone() );
-		$GLOBALS['local_scene_posts'] = array( new WP_Post( array( 'ID' => 8, 'post_status' => 'publish', 'post_title' => 'Qualified Show' ) ) );
-		$GLOBALS['local_scene_terms'][8] = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10, 'club', 'Club' ) ), 'artist' => array( 3 ) );
-		$GLOBALS['local_scene_event_data'][8] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		$GLOBALS['local_scene_posts'] = array(
+		new WP_Post( array(
+		'ID' => 8,
+		'post_status' => 'publish',
+		'post_title' => 'Qualified Show'
+		) ) );
+		$GLOBALS['local_scene_terms'][8] = array(
+		'location' => array( 44 ),
+		'venue' => array( $this->term( 10, 'club', 'Club' ) ),
+		'artist' => array( 3 )
+		);
+		$GLOBALS['local_scene_event_data'][8] = array(
+		'startDate' => $tomorrow->format( 'Y-m-d' ),
+		'startTime' => '20:00:00',
+		'venueTimezone' => 'America/New_York'
+		);
 		$GLOBALS['local_scene_recipients']['notification'] = new WP_Error( 'recipient_query_failed' );
 		$recipient_failure = extrachill_events_run_local_scene_digest();
 		$this->assertTrue( $recipient_failure['retryable_failure'] );
@@ -644,16 +940,38 @@ class LocalSceneDigestTest extends TestCase {
 		$day      = $tomorrow->format( 'Y-m-d' );
 		$rows     = array(
 			1 => array( 'endTime' => '23:59' ),
-			2 => array( 'endTime' => '23:59:00', 'endDate' => $day ),
+			2 => array(
+		'endTime' => '23:59:00',
+		'endDate' => $day
+		),
 			3 => array( 'endTime' => '23:59:59' ),
 			4 => array( 'endTime' => '23:30:00' ),
-			5 => array( 'endTime' => '02:00:00', 'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) ),
-			6 => array( 'endTime' => '23:59:00', 'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) ),
+			5 => array(
+		'endTime' => '02:00:00',
+		'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' )
+		),
+			6 => array(
+		'endTime' => '23:59:00',
+		'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' )
+		),
 		);
 		foreach ( $rows as $id => $end ) {
-			$GLOBALS['local_scene_posts'][]           = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Show ' . $id ) );
-			$GLOBALS['local_scene_terms'][ $id ]      = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
-			$GLOBALS['local_scene_event_data'][ $id ] = array_merge( array( 'startDate' => $day, 'startTime' => '20:00:00', 'venueTimezone' => 'America/Chicago', 'performer' => 'Band ' . $id ), $end );
+			$GLOBALS['local_scene_posts'][]           = new WP_Post( array(
+			'ID' => $id,
+			'post_status' => 'publish',
+			'post_title' => 'Show ' . $id
+			) );
+			$GLOBALS['local_scene_terms'][ $id ]      = array(
+			'location' => array( 44 ),
+			'venue' => array( $this->term( 10 + $id, 'club-' . $id, 'Club ' . $id ) ),
+			'artist' => array( $id )
+			);
+			$GLOBALS['local_scene_event_data'][ $id ] = array_merge( array(
+			'startDate' => $day,
+			'startTime' => '20:00:00',
+			'venueTimezone' => 'America/Chicago',
+			'performer' => 'Band ' . $id
+			), $end );
 		}
 
 		$ends = array();
@@ -715,7 +1033,10 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertEmpty( $GLOBALS['local_scene_recipient_resolutions'], 'Empty scenes do not resolve or deliver to an audience.' );
 
 		$this->qualify_show( 8, 44 );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		);
 		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
 
 		$result = extrachill_events_run_local_scene_digest();
@@ -734,7 +1055,10 @@ class LocalSceneDigestTest extends TestCase {
 	 */
 	public function test_guest_subscriber_with_different_local_scene_receives_subscribed_city_digest(): void {
 		$this->qualify_show( 8, 44 );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array( 7 ) );
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		);
 		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
 
 		$result = extrachill_events_run_local_scene_digest();
@@ -760,7 +1084,10 @@ class LocalSceneDigestTest extends TestCase {
 	public function test_member_who_changed_or_cleared_local_scene_keeps_subscribed_city(): void {
 		$this->qualify_show( 8, 44 );
 		$GLOBALS['local_scene_users'][12]  = new WP_User( 'cleared@example.com' );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7, 12 ), 'email' => array( 7, 12 ) );
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7, 12 ),
+		'email' => array( 7, 12 )
+		);
 		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'chicago' );
 		unset( $GLOBALS['local_scene_scenes'][12] );
 
@@ -785,8 +1112,14 @@ class LocalSceneDigestTest extends TestCase {
 		$this->qualify_show( 8, 44 );
 		$this->qualify_show( 9, 55 );
 		$GLOBALS['local_scene_recipients_by_slug'] = array(
-			'austin' => array( 'notification' => array( 7, 7, '7' ), 'email' => array( 7, 7 ) ),
-			'denver' => array( 'notification' => array( 7 ), 'email' => array( 7 ) ),
+			'austin' => array(
+		'notification' => array( 7, 7, '7' ),
+		'email' => array( 7, 7 )
+		),
+			'denver' => array(
+		'notification' => array( 7 ),
+		'email' => array( 7 )
+		),
 		);
 		$GLOBALS['local_scene_scenes'][7] = array( 'slug' => 'austin' );
 
@@ -810,7 +1143,10 @@ class LocalSceneDigestTest extends TestCase {
 	 */
 	public function test_master_email_toggle_off_sends_no_email_for_subscribed_city(): void {
 		$this->qualify_show( 8, 44 );
-		$GLOBALS['local_scene_recipients'] = array( 'notification' => array( 7 ), 'email' => array() );
+		$GLOBALS['local_scene_recipients'] = array(
+		'notification' => array( 7 ),
+		'email' => array()
+		);
 		$GLOBALS['local_scene_scenes'][7]  = array( 'slug' => 'denver' );
 
 		$result = extrachill_events_run_local_scene_digest();
@@ -825,9 +1161,21 @@ class LocalSceneDigestTest extends TestCase {
 
 	private function qualify_show( int $id, int $location_id ): void {
 		$tomorrow                              = new DateTimeImmutable( 'tomorrow', wp_timezone() );
-		$GLOBALS['local_scene_posts'][]        = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Show ' . $id ) );
-		$GLOBALS['local_scene_terms'][ $id ]   = array( 'location' => array( $location_id ), 'venue' => array( $this->term( 100 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
-		$GLOBALS['local_scene_event_data'][ $id ] = array( 'startDate' => $tomorrow->format( 'Y-m-d' ), 'startTime' => '20:00:00', 'venueTimezone' => 'America/New_York' );
+		$GLOBALS['local_scene_posts'][]        = new WP_Post( array(
+		'ID' => $id,
+		'post_status' => 'publish',
+		'post_title' => 'Show ' . $id
+		) );
+		$GLOBALS['local_scene_terms'][ $id ]   = array(
+		'location' => array( $location_id ),
+		'venue' => array( $this->term( 100 + $id, 'club-' . $id, 'Club ' . $id ) ),
+		'artist' => array( $id )
+		);
+		$GLOBALS['local_scene_event_data'][ $id ] = array(
+		'startDate' => $tomorrow->format( 'Y-m-d' ),
+		'startTime' => '20:00:00',
+		'venueTimezone' => 'America/New_York'
+		);
 	}
 
 	public function test_unsubscribe_get_is_scanner_safe_and_post_is_location_scoped(): void {
@@ -841,7 +1189,12 @@ class LocalSceneDigestTest extends TestCase {
 
 		$result  = extrachill_events_local_scene_digest_unsubscribe( $valid );
 		$this->assertSame( array( 'unsubscribed' => true ), $result );
-		$this->assertSame( array( 'user' => 7, 'type' => 'local_scene_digest', 'taxonomy' => 'location', 'slug' => 'austin' ), $GLOBALS['local_scene_unsubscribes'][0] );
+		$this->assertSame( array(
+		'user' => 7,
+		'type' => 'local_scene_digest',
+		'taxonomy' => 'location',
+		'slug' => 'austin'
+		), $GLOBALS['local_scene_unsubscribes'][0] );
 
 		$tampered = $this->unsubscribe_request( 7, 'denver', $expires, hash_hmac( 'sha256', '7|austin|' . $expires, wp_salt( 'auth' ) ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_local_scene_digest_unsubscribe_confirmation( $tampered ) );
@@ -854,10 +1207,19 @@ class LocalSceneDigestTest extends TestCase {
 
 	private function event( int $id, DateTimeImmutable $date, bool $priority_event = false, bool $priority_venue = false, int $completeness = 0, bool $has_price = false ): array {
 		return array(
-			'post_id' => $id, 'title' => 'Show ' . $id, 'url' => 'https://events.example.com/event/' . $id . '/', 'datetime' => $date,
+			'post_id' => $id,
+		'title' => 'Show ' . $id,
+		'url' => 'https://events.example.com/event/' . $id . '/',
+		'datetime' => $date,
 			'end_datetime' => null,
-			'venue_id' => $id, 'venue_name' => 'Venue ' . $id, 'performer_keys' => array( 'term:' . $id ), 'price' => $has_price ? 'Free' : '',
-			'priority_event' => $priority_event, 'priority_venue' => $priority_venue, 'completeness' => $completeness, 'has_price' => $has_price,
+			'venue_id' => $id,
+		'venue_name' => 'Venue ' . $id,
+		'performer_keys' => array( 'term:' . $id ),
+		'price' => $has_price ? 'Free' : '',
+			'priority_event' => $priority_event,
+		'priority_venue' => $priority_venue,
+		'completeness' => $completeness,
+		'has_price' => $has_price,
 		);
 	}
 
@@ -872,7 +1234,11 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertIsArray( extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL - 1 ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL + 1 ) );
-		$wrong = array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 7, 'slug' => 'austin' ), 3600 ) );
+		$wrong = array(
+		'token' => extrachill_sign( 'events.guest_digest_confirm', array(
+		'user_id' => 7,
+		'slug' => 'austin'
+		), 3600 ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $wrong ) );
 	}
 
@@ -900,10 +1266,19 @@ class LocalSceneDigestTest extends TestCase {
 
 	private function unsubscribe_request( int $user, string $slug, int $expires, ?string $signature = null ): array {
 		$signature = $signature ?? hash_hmac( 'sha256', $user . '|' . $slug . '|' . $expires, wp_salt( 'auth' ) );
-		return array( 'user' => $user, 'location' => $slug, 'expires' => $expires, 'signature' => $signature );
+		return array(
+		'user' => $user,
+		'location' => $slug,
+		'expires' => $expires,
+		'signature' => $signature
+		);
 	}
 
 	private function term( int $id, string $slug, string $name ): WP_Term {
-		return new WP_Term( (object) array( 'term_id' => $id, 'slug' => $slug, 'name' => $name ) );
+		return new WP_Term( (object) array(
+		'term_id' => $id,
+		'slug' => $slug,
+		'name' => $name
+		) );
 	}
 }

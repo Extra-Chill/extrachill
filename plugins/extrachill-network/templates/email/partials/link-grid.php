@@ -63,9 +63,6 @@ $help_links = array(
 			<?php
 			$first = true;
 			foreach ( $help_links as $label => $url ) :
-				if ( empty( $url ) ) {
-					continue;
-				}
 				?>
 				<?php echo $first ? '' : '<span style="color:#d1d5db;"> · </span>'; ?><a href="<?php echo esc_url( $url ); ?>" style="color:#0a0a0a;text-decoration:underline;"><?php echo esc_html( $label ); ?></a>
 				<?php

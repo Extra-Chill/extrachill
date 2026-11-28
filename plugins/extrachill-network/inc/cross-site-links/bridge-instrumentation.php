@@ -70,7 +70,7 @@ function extrachill_bridge_enqueue_instrumentation() {
 		'extrachill-bridge-instrumentation',
 		EXTRACHILL_NETWORK_PLUGIN_URL . 'assets/js/bridge-instrumentation.js',
 		array(),
-		filemtime( $js_path ),
+		(string) filemtime( $js_path ),
 		array(
 			'strategy'  => 'defer',
 			'in_footer' => true,

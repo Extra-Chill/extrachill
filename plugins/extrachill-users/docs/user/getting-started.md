@@ -7,7 +7,7 @@ A few choices help make your Extra Chill profile yours and make it easier to fin
 After you create an account, the welcome page asks you to set up your profile.
 
 1. Choose a username. Use 3–60 characters made from letters, numbers, hyphens, or underscores.
-2. Add a **Local Scene** if you want. Search for a city or region. This helps you find people and live music nearby, and you can change it later.
+2. Add a **Local Scene** if you want. Search for a city or region. This helps you find live music nearby, and you can change it later.
 3. Choose whether your Local Scene is **Public** or **Private**.
 4. Answer the optional prompts about what your Link Page is for, if they appear, and whether you are a musician or work in the music industry.
 5. Select **Complete Setup**.

@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function extrachill_docs_generate_sidebar( $post_id ) {
 	$content = get_post_field( 'post_content', $post_id );
 
-	if ( empty( $content ) ) {
+	if ( empty( $content ) || ! is_string( $content ) ) {
 		return '';
 	}
 
@@ -56,7 +56,7 @@ function extrachill_docs_generate_sidebar( $post_id ) {
 		?>
 	</nav>
 	<?php
-	return ob_get_clean();
+	return (string) ob_get_clean();
 }
 
 /**

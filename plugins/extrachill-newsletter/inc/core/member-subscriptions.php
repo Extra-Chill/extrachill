@@ -52,18 +52,6 @@ function extrachill_newsletter_member_signup_list_id(): string {
 }
 
 /**
- * Get the canonical DMB API configuration, never the legacy newsletter copy.
- *
- * @return array
- */
-function extrachill_newsletter_subscription_config(): array {
-	$class = EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS;
-	// DMB is an optional runtime dependency and may be absent from analysis.
-	// @phpstan-ignore function.impossibleType
-	return class_exists( $class ) && method_exists( $class, 'get_campaign_config' ) ? $class::get_campaign_config() : array();
-}
-
-/**
  * Unsubscribe from one list. Sendy's boolean response is 1 on success.
  *
  * @param string $list_id Sendy list ID.

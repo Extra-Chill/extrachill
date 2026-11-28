@@ -2,7 +2,9 @@
 document.addEventListener( 'click', async ( event ) => {
 	const i18n = window.ecGuestListManagement || {};
 	const button = event.target.closest( '[data-copy-guest-list]' );
-	if ( ! button ) return;
+	if ( ! button ) {
+		return;
+	}
 	const container = button.closest( '[data-guest-list-share]' );
 	const input = container.querySelector( 'input' );
 	const status = container.querySelector( '[data-copy-status]' );
@@ -32,9 +34,13 @@ document.addEventListener( 'submit', ( event ) => {
  */
 document.addEventListener( 'input', ( event ) => {
 	const input = event.target.closest( '[data-door-list-filter]' );
-	if ( ! input ) return;
+	if ( ! input ) {
+		return;
+	}
 	const list = document.getElementById( input.getAttribute( 'aria-controls' ) );
-	if ( ! list ) return;
+	if ( ! list ) {
+		return;
+	}
 	const fold = ( text ) =>
 		text
 			.normalize( 'NFD' )

@@ -8,7 +8,7 @@ const EXTRACHILL_DOCS_MDI_LAYOUT = 'extrachill-plugin-docs';
 function extrachill_docs_mdi_source( string $identity ): ?array {
 	foreach ( extrachill_docs_load_platform_map() as $entry ) {
 		$prefix = $entry['repo'] . '/' . trim( ! empty( $entry['docs_subpath'] ) ? $entry['docs_subpath'] : 'docs/user', '/' ) . '/';
-		if ( str_starts_with( $identity, $prefix ) && preg_match( '/^[a-z0-9-]+\.md$/', substr( $identity, strlen( $prefix ) ) ) ) {
+		if ( str_starts_with( $identity, $prefix ) && extrachill_docs_is_publishable_doc_filename( substr( $identity, strlen( $prefix ) ) ) ) {
 			return $entry;
 		}
 	}
@@ -52,7 +52,7 @@ function extrachill_docs_register_mdi_layout(): void {
 add_action( 'init', 'extrachill_docs_register_mdi_layout', 20 );
 
 /** MDI v0.15 has no layout ID in context; scope to our layout import. */
-function extrachill_docs_is_mdi_source( object $source ): bool {
+function extrachill_docs_is_mdi_source( object $source ): bool { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- MDI v0.15 source objects carry no layout ID; the parameter keeps the call sites source-aware for when it does.
 	return ! empty( $GLOBALS['extrachill_docs_mdi_importing'] );
 }
 

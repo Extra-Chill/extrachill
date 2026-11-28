@@ -264,3 +264,30 @@ function switch_to_blog( $id ) {
 function restore_current_blog() {
 	array_pop( $GLOBALS['test_blog_stack'] );
 }
+
+// Post meta doubles (one store for every blog; tests use distinct post IDs).
+// Event fee overrides are post meta on the Events site (#1698).
+if ( ! function_exists( 'get_post_meta' ) ) {
+	function get_post_meta( $post_id, $key, $single = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Mirrors the core signature.
+		return $GLOBALS['test_post_meta'][ $post_id ][ $key ] ?? '';
+	}
+	function update_post_meta( $post_id, $key, $value ) {
+		$GLOBALS['test_post_meta'][ $post_id ][ $key ] = $value;
+		return true;
+	}
+	function delete_post_meta( $post_id, $key ) {
+		unset( $GLOBALS['test_post_meta'][ $post_id ][ $key ] );
+		return true;
+	}
+}
+function get_post_type( $post_id ) {
+	return $GLOBALS['test_post_types'][ (int) $post_id ] ?? false;
+}
+function update_blog_option( $blog_id, $key, $value ) {
+	$GLOBALS['test_blog_options'][ $blog_id ][ $key ] = $value;
+	return true;
+}
+function delete_blog_option( $blog_id, $key ) {
+	unset( $GLOBALS['test_blog_options'][ $blog_id ][ $key ] );
+	return true;
+}

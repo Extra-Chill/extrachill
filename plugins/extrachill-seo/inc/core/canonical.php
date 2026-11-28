@@ -75,7 +75,8 @@ function ec_seo_get_final_canonical_url() {
 	 * Plugins should return a URL string to override the default canonical.
 	 * Return empty string to suppress canonical output entirely.
 	 *
-	 * @param string $canonical Default canonical URL.
+	 * @param mixed $canonical Default canonical URL string. Callbacks may return
+	 *                         any value; non-strings are treated as empty.
 	 */
 	$canonical = apply_filters( 'extrachill_seo_canonical_url', $canonical );
 

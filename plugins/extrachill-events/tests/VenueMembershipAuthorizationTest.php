@@ -2155,6 +2155,11 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		);
 		$this->assertContains( 'logo_attachment_id', $get['output_schema']['required'] );
 		$this->assertContains( 'logo', $get['output_schema']['required'] );
+		// DME's editable `instagram` field is part of the document (extrachill#1693).
+		$this->assertSame( 'string', $get['output_schema']['properties']['instagram']['type'] );
+		$this->assertNotContains( 'instagram', $get['output_schema']['required'] );
+		$this->assertSame( 'string', $update['input_schema']['properties']['profile']['properties']['instagram']['type'] );
+		$this->assertSame( $get['output_schema'], $update['output_schema']['properties']['profile'] );
 
 		$GLOBALS['venue_membership_test']['current_user_id'] = 4;
 		$this->set_current_user( 4 );

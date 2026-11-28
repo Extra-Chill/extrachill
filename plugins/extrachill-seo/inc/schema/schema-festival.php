@@ -31,7 +31,7 @@ function ec_seo_get_festival_single_location_term( $festival_term ) {
 			'post_type'      => $post_types,
 			'post_status'    => 'publish',
 			'fields'         => 'ids',
-			'posts_per_page' => 200,
+			'posts_per_page' => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- Bounded candidate window for resolving a festival's single location.
 			'no_found_rows'  => true,
 			'tax_query'      => array(
 				array(

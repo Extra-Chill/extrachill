@@ -18,10 +18,10 @@ Tickets work alongside the show's guest list, and every ticket is a guest list p
 ## Put Tickets on Sale
 
 1. Log in and open the show's page on the Events Calendar.
-2. Scroll to **Manage guest list**.
+2. Select **Guest Check-In**, then open **Host tools**.
 3. Under **Paid tickets**, check **Enable tickets**.
-4. Enter the **Price per ticket**. This is the full price buyers pay, with any tax included.
-5. Enter a **Quantity**. Enter 0 to use the guest list's spots as your limit.
+4. Under **Ticket types**, enter a **Name** and **Price** for each kind of ticket you sell, like "General admission." The price is the full price buyers pay, with any tax included. One type is all most shows need.
+5. Enter **Total tickets for the show**. Enter 0 to use the guest list's spots as your limit.
 6. Choose the **Seller**: the venue or promoter that gets paid.
 7. Select **Save and enable guest list**.
 
@@ -29,17 +29,54 @@ If you see "This seller has to finish payment setup before tickets can go on sal
 
 Once tickets are on, the show's page has a **Buy tickets** button in place of any outside ticket link.
 
+## Sell More Than One Kind of Ticket
+
+Fill in more rows under **Ticket types** to sell early bird, general admission, VIP, or anything else, each at its own price. You can sell up to 10 types for a show.
+
+- **Quantity** caps one type on its own. When 50 early bird tickets are gone, buyers can still get general admission. Enter 0 to cap it only by the show's total.
+- **Only with a code** keeps a type off the page. Buyers see it only after they enter a code that works on it. Use it for industry, guest, or friends-and-family tickets.
+
+To stop selling a type, clear its name and save. Tickets already sold for it still work at the door.
+
+## Give Out Discount and Access Codes
+
+Under **Codes**, enter a code and choose what it does:
+
+- **Percent off** takes a share off each ticket, up to 99%.
+- **Dollars off each ticket** takes a set amount off each ticket.
+- **Access only** takes nothing off. It shows the types marked **Only with a code**.
+
+**Ticket limit** caps how many tickets can be bought with the code in total. Enter 0 for no limit. Under **Works on**, check the types the code is good for. Leave them all unchecked and it works on every type that isn't marked **Only with a code**.
+
+Codes are 3 to 32 letters, numbers, or dashes, and buyers can type them in any case. You can have up to 50 codes for a show.
+
+A code can't make a ticket free. To let someone in for nothing, put them on the guest list instead.
+
 ## What Buyers Get
 
-Buyers choose up to 10 tickets, enter a name and email, and pay on a secure payment page. Each ticket arrives by email as its own pass. Ticket buyers count toward your guest list spots, and they show up on your door list. Scan their passes at the door like any guest list pass. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door).
+Buyers pick a ticket type when you sell more than one, choose up to 10 tickets, enter a name and email, and pay on a secure payment page. Each ticket arrives by email as its own pass. Ticket buyers count toward your guest list spots, and they show up on your door list. Scan their passes at the door like any guest list pass. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door).
 
 When tickets run out, the page shows **Sold out**. If the last tickets sell while someone is paying, that buyer is refunded automatically.
 
 ## See Your Sales
 
-Owners can see ticket sales in their venue or promoter workspace on the Events Calendar, under **Ticket sales**. Each show lists its orders with the buyer, number of tickets, when they bought, and the status: **Paid**, **Checked in**, or **Refunded**. Select **Guest list and ticket settings** to jump back to a show's ticket settings.
+Owners can see ticket sales in their venue or promoter workspace on the Events Calendar, under **Ticket sales**. Each show lists how many of each ticket type sold, and its orders with the buyer, ticket type, number of tickets, when they bought, and the status: **Paid**, **Checked in**, or **Refunded**. Select **Guest list and ticket settings** to jump back to a show's ticket settings.
 
 Ticket payments and payouts also show in your payout dashboard.
+
+### Sales Report for One Show
+
+For the numbers on one show, open the show's page, select **Guest Check-In**, then open **Host tools**. The **Sales report** shows:
+
+- **Tickets sold** and **Refunded**.
+- **Checked in**: how many ticket holders came through the door, out of the tickets sold, like "Checked in: 45 of 60 tickets (75%)."
+- **Gross** (what buyers paid, service fees included), **Refunds**, **Extra Chill fees**, and **Net** (what's left for you).
+- **By ticket type**: tickets sold, the type's limit, and the revenue from each type.
+- **By code**: tickets bought with each code, its ticket limit, and the discount it gave.
+
+Anyone on the venue's or promoter's team can see the ticket counts. The money and codes show only to people who can manage the seller's payouts.
+
+To get everyone on the door list in a spreadsheet, select **Download door list (CSV)** in the same place. See [Working the Door](https://docs.extrachill.com/events-calendar/working-the-door).
 
 ## Refund Tickets
 
@@ -59,6 +96,6 @@ When the bank decides, we email you again:
 
 ## Fees and Taxes
 
-You keep the full ticket price. Extra Chill takes nothing from it. Buyers pay a service fee of $1 per ticket plus the card processing cost, shown as one **Service fee** line before they pay. That fee covers the card processing on the whole payment, so a $20 ticket gets you $20. The current rates are always shown on the **Payments** tab of the shop manager. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
+You keep the full ticket price. Extra Chill takes nothing from it. When a buyer uses a discount code, you get the discounted price, and the service fee is figured on that lower price. Buyers pay a service fee of $1 per ticket plus the card processing cost, shown as one **Service fee** line before they pay. That fee covers the card processing on the whole payment, so a $20 ticket gets you $20. The current rates are always shown on the **Payments** tab of the shop manager. See [Fees, Payouts, and Taxes](fees-payouts-and-taxes.md).
 
 You set the full price, with tax included. You're responsible for any sales or admissions tax on your tickets.

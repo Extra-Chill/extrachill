@@ -143,7 +143,8 @@ function extrachill_users_sanitize_utm( $raw ) {
  * @return bool Whether the user no longer exists.
  */
 function extrachill_users_rollback_created_user( $user_id ) {
-	if ( ! get_userdata( $user_id ) ) {
+	$existing_user = get_userdata( $user_id );
+	if ( ! $existing_user ) {
 		return true;
 	}
 

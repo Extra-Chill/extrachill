@@ -6,7 +6,7 @@ The show's guest list has to be on before you can invite anyone. See [Hosting a 
 
 ## Send an Invite
 
-1. On the show's page, find **Invite a band** under **Manage guest list**.
+1. On the show's page, tap **Guest Check-In**, open **Host tools**, and find **Invite a band** under **Manage guest list**.
 2. Enter the **Band or management name** and the **Email for the invite link**.
 3. If each band gets a set number of spots, fill in **Spots for this band**.
 4. Tap **Send invite**.
@@ -72,7 +72,7 @@ Each email address can have one request waiting per show. If the venue accepts, 
 
 ## Approving and Declining Requests
 
-When a band asks for something, you get an email and the request appears under **Pending requests** on the show's page. Nothing in a request works at the door until you accept it.
+When a band asks for something, you get an email and the request appears under **Pending requests** in **Host tools** on the show's check-in screen (tap **Guest Check-In** on the show's page). Nothing in a request works at the door until you accept it.
 
 Each request says what the band wants:
 

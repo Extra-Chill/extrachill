@@ -8,9 +8,8 @@
  * unchanged, with explicit clear_password and clear_text; the /guest-list
  * view each viewer gets; and CSV/TXT name parsing.
  *
- * Shims share global keys with sibling files in the rsvp-perks-unit suite
- * (`event_management_test` posts, `event_perk_test` meta), so load order
- * doesn't matter.
+ * Standalone shims share global keys with sibling files in the rsvp-perks-unit
+ * suite. Managed WordPress uses real posts, users, metadata, and capabilities.
  *
  * @package ExtraChillEvents\Tests
  */
@@ -118,7 +117,14 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 }
 
 if ( ! function_exists( 'user_can' ) ) {
+	// Same shape as EventManagementAuthorityTest's stub. In qualify-v2-unit this
+	// file sorts before OwnerGuestListTest, so this stub must also model the
+	// term-scoped promoter capability that owner guest lists check.
 	function user_can( $user_id, $capability, ...$args ) {
+		if ( 'ec_access_promoter' === $capability ) {
+			return class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' )
+				&& is_array( ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->get_active_membership( (int) ( $args[0] ?? 0 ), (int) $user_id ) );
+		}
 		if ( 'edit_post' === $capability ) {
 			$post_id = $args[0] ?? 0;
 			return in_array( (int) $post_id, $GLOBALS['event_management_test']['editable_posts'][ $user_id ] ?? array(), true );
@@ -140,10 +146,14 @@ final class GuestListModeTest extends PHPUnit\Framework\TestCase {
 
 	private EventPerkAbilities $abilities;
 
+	private int $host_id = 38;
+	private int $guest_id = 99;
+	private bool $registered_post_type = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['event_management_test']['posts'][ self::EVENT_ID ] = new WP_Post(
-			array(
+			(object) array(
 				'ID'          => self::EVENT_ID,
 				'post_title'  => 'Mode Show',
 				'post_type'   => 'data_machine_events',
@@ -154,15 +164,52 @@ final class GuestListModeTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['guest_list_mode_test']                             = array( 'user_id' => 0 );
 		// User 38 hosts this show (edit_post); 99 is a logged-in guest.
 		$GLOBALS['event_management_test']['editable_posts'][38] = array( self::EVENT_ID );
-		$this->abilities                                        = new EventPerkAbilities();
+		if ( function_exists( 'wp_insert_post' ) ) {
+			// Core persistence and capabilities do not read the standalone globals.
+			$this->registered_post_type = ! post_type_exists( 'data_machine_events' );
+			if ( $this->registered_post_type ) {
+				register_post_type( 'data_machine_events', array( 'public' => true, 'capability_type' => 'post' ) );
+			}
+			$this->host_id  = wp_insert_user( array( 'user_login' => 'guest-list-mode-host', 'user_pass' => 'test', 'role' => 'editor' ) );
+			$this->guest_id = wp_insert_user( array( 'user_login' => 'guest-list-mode-guest', 'user_pass' => 'test', 'role' => 'subscriber' ) );
+			$post_id = wp_insert_post(
+				array(
+					'import_id'   => self::EVENT_ID,
+					'post_title'  => 'Mode Show',
+					'post_type'   => 'data_machine_events',
+					'post_status' => 'publish',
+					'post_author' => $this->host_id,
+				),
+				true
+			);
+			$this->assertSame( self::EVENT_ID, $post_id );
+		}
+		$this->abilities = new EventPerkAbilities();
 	}
 
 	protected function tearDown(): void {
+		if ( function_exists( 'wp_insert_post' ) ) {
+			wp_delete_post( self::EVENT_ID, true );
+			require_once ABSPATH . 'wp-admin/includes/user.php';
+			if ( is_multisite() ) {
+				wpmu_delete_user( $this->host_id );
+				wpmu_delete_user( $this->guest_id );
+			} else {
+				wp_delete_user( $this->host_id );
+				wp_delete_user( $this->guest_id );
+			}
+			if ( $this->registered_post_type ) {
+				unregister_post_type( 'data_machine_events' );
+			}
+		}
 		unset( $GLOBALS['event_management_test']['posts'][ self::EVENT_ID ], $GLOBALS['event_management_test']['editable_posts'][38], $GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ], $GLOBALS['guest_list_mode_test'] );
 		parent::tearDown();
 	}
 
 	private function meta( string $key ) {
+		if ( function_exists( 'wp_insert_post' ) ) {
+			return metadata_exists( 'post', self::EVENT_ID, $key ) ? get_post_meta( self::EVENT_ID, $key, true ) : null;
+		}
 		return $GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ][ $key ] ?? null;
 	}
 
@@ -199,7 +246,7 @@ final class GuestListModeTest extends PHPUnit\Framework\TestCase {
 	}
 
 	public function test_an_unknown_stored_mode_falls_back_to_the_mapping(): void {
-		$GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ][ EXTRACHILL_EVENTS_PERK_MODE_META ] = 'bogus';
+		update_post_meta( self::EVENT_ID, EXTRACHILL_EVENTS_PERK_MODE_META, 'bogus' );
 
 		$this->assertSame( 'going', extrachill_events_get_perk_mode( self::EVENT_ID ) );
 		$this->assertFalse( extrachill_events_set_perk_mode( self::EVENT_ID, 'bogus' ) );
@@ -333,7 +380,7 @@ final class GuestListModeTest extends PHPUnit\Framework\TestCase {
 	public function test_a_host_gets_the_door_view_in_every_mode(): void {
 		foreach ( array( 'host_list', 'going' ) as $mode ) {
 			extrachill_events_set_perk_mode( self::EVENT_ID, $mode );
-			$this->assertSame( 'door', extrachill_events_guest_list_page_view( self::EVENT_ID, 38 ) );
+			$this->assertSame( 'door', extrachill_events_guest_list_page_view( self::EVENT_ID, $this->host_id ) );
 		}
 	}
 
@@ -343,7 +390,7 @@ final class GuestListModeTest extends PHPUnit\Framework\TestCase {
 
 		extrachill_events_apply_perk_access( self::EVENT_ID, 'host_list', null, false );
 		$this->assertSame( 'host_managed', extrachill_events_guest_list_page_view( self::EVENT_ID, 0 ) );
-		$this->assertSame( 'host_managed', extrachill_events_guest_list_page_view( self::EVENT_ID, 99 ), 'A logged-in non-host is still a guest.' );
+		$this->assertSame( 'host_managed', extrachill_events_guest_list_page_view( self::EVENT_ID, $this->guest_id ), 'A logged-in non-host is still a guest.' );
 
 		extrachill_events_apply_perk_access( self::EVENT_ID, 'password', 'spooky', false );
 		$this->assertSame( 'claim', extrachill_events_guest_list_page_view( self::EVENT_ID, 0 ) );

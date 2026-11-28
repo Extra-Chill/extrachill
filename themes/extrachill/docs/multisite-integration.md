@@ -175,7 +175,6 @@ Used in search results to identify which site results came from.
 **Theme Pattern**: Theme uses canonical helper functions for blog/domain resolution.
 
 - Runtime blog/domain mapping uses `ec_get_blog_id()` / `ec_get_domain_map()` from `extrachill-multisite/inc/core/blog-ids.php`.
-- Numeric mapping is permitted only in `.github/sunrise.php` (executes before WordPress loads).
 
 **Implementation**:
 ```php
@@ -272,7 +271,7 @@ The theme assumes network plugins are active in production and uses function-exi
 **Centralized Helper Library**: Reusable functions eliminate code duplication across widgets
 **Direct Database Access**: Theme directly queries bbPress data for optimal performance
 **WordPress Native Functions**: Uses core multisite functions (no abstraction overhead)
-**Blog ID helpers**: Runtime code uses `ec_get_blog_id()` for clarity and centralized mapping (numeric mapping is reserved for `.github/sunrise.php`).
+**Blog ID helpers**: Runtime code uses `ec_get_blog_id()` for clarity and centralized mapping.
 **Manual URL Construction**: Avoids bbPress function calls for forum URLs
 **Plugin Integration**: Leverages extrachill-users for intelligent profile routing
 **Caching Strategy**: WordPress object cache provides 10-minute cached results
