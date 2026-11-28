@@ -81,7 +81,7 @@ const append = (text) => [
 const reached = (id) =>
   check(`fetch('/?forum_fuzz_reached=${id}', { method: 'POST', credentials: 'same-origin' }).then((r) => r.status === 204)`);
 
-const step = (id, { path, member = false, viewport = DESKTOP, steps }) => ({
+const step = (id, { path, member = false, asUser = MEMBER_ID, viewport = DESKTOP, steps }) => ({
   command: 'wordpress.browser-actions',
   allowFailure: true,
   metadata: { kind: 'journey-browser-step', step: id },
@@ -91,7 +91,7 @@ const step = (id, { path, member = false, viewport = DESKTOP, steps }) => ({
     'network-policy=block',
     `allow-host=${SITE}`,
     `viewport=${viewport}`,
-    ...(member ? ['auth=wordpress-admin', `auth-user-id=${MEMBER_ID}`] : []),
+    ...(member ? ['auth=wordpress-admin', `auth-user-id=${asUser}`] : []),
     'step-timeout=60s',
     'timeout=300s',
     'capture=steps,console,errors,network,screenshot,dom-snapshot',
@@ -182,14 +182,19 @@ const steps = [
     steps: [nav('/t/tuesday-rooms/page/2/'), wait(2500), observe('member-busy-p2'),
       peek(sink('member-edit-affordances', `({ freshHasEdit: !![...document.querySelectorAll('.bbp-reply-card')].find((c) => c.innerText.includes('Fresh take'))?.querySelector('a[href*="edit"]'), oldHasEdit: !![...document.querySelectorAll('.bbp-reply-card')].find((c) => c.innerText.includes('Old take'))?.querySelector('a[href*="edit"]') })`)),
       click('.bbp-reply-card:has-text("Fresh take") .bbp-reply-user-actions a:has-text("Edit")'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
-      editorShape('member-edit-reply-editor-early'), wait(8000),
-      peek(sink('member-edit-reply-diag', `({ url: location.href, errors: window.__ffErrors || [], textarea: (() => { const t = document.querySelector('#bbp_reply_content'); return t && { cls: t.className, hidden: t.offsetParent === null, len: t.value.length }; })(), beSettingsKeys: Object.keys(window).filter((k) => /blocks.?everywhere/i.test(k)), beScripts: [...document.scripts].map((s) => s.src).filter((s) => /blocks-everywhere|gutenberg\/build\/scripts\/(block-editor|blocks)\b/.test(s)).map((s) => s.split('?')[0].split('/').slice(-3).join('/')), container: (() => { const c = document.querySelector('.blocks-everywhere'); return c && { children: [...c.children].map((e) => e.tagName + '.' + e.className).slice(0, 6), htmlLen: c.innerHTML.length }; })() })`)),
+      editorShape('member-edit-reply-editor-early'), wait(10000),
       editorShape('member-edit-reply-editor'), observe('member-edit-reply-form'), shot('member-edit-reply-form'),
       ...append(' (edited: bringing a friend)'), shot('member-edit-reply-typed', false),
       click('#bbp_reply_submit'), { kind: 'waitFor', waitFor: 'load' }, wait(2500),
       observe('member-edit-reply-after'), shot('member-edit-reply-after'),
       peek(sink('member-edit-reply-landing', `({ url: location.href, edited: document.body.innerText.includes('bringing a friend') })`)),
       check(`document.body.innerText.includes('bringing a friend')`)],
+  }),
+  // Same edit screens as a site admin, to split member-only vs. environment failures.
+  step('admin-edit-screens', {
+    path: '/reply/35/edit/', member: true, asUser: 1,
+    steps: [nav('/reply/35/edit/'), wait(12000), editorShape('admin-edit-reply-editor'), shot('admin-edit-reply-form'),
+      nav('/t/fuzz-fan-intro/edit/'), wait(12000), editorShape('admin-edit-topic-editor'), shot('admin-edit-topic-form')],
   }),
   step('member-edit-topic', {
     path: '/t/fuzz-fan-intro/', member: true,

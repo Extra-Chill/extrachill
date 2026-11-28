@@ -30,6 +30,7 @@ $ff_tasks = array(
 	'member_reply'               => 'Member writes and submits a reply and sees it.',
 	'member_reply_to_user'       => 'Member clicks Reply on someone\'s post.',
 	'member_edit_reply'          => 'Member edits their fresh reply and sees the change.',
+	'admin_edit_screens'         => 'Admin opens the same reply and topic edit screens.',
 	'member_edit_topic'          => 'Member edits their topic title and sees the change.',
 	'member_new_topic'           => 'Member starts a new topic from the home modal and lands on it.',
 	'member_profile_edit'        => 'Member saves a custom title and bio.',

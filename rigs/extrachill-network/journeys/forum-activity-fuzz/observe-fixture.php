@@ -196,6 +196,47 @@ add_action(
 	},
 	-1000
 );
+// Edit-page editor diagnostics: error stacks, REST traffic, and entity/editor
+// store state, posted to the observation sink 10s after load.
+add_action(
+	'wp_head',
+	static function () {
+		if ( ! preg_match( '#/(reply|t)/[^?]*edit/?#', (string) ( $_SERVER['REQUEST_URI'] ?? '' ) ) ) { // phpcs:ignore
+			return;
+		}
+		?>
+<script>
+(function () {
+	var D = window.__ffDiag = { errors: [], rest: [] };
+	addEventListener('error', function (e) { D.errors.push({ msg: String(e.message), file: (e.filename || '').split('?')[0].split('/').slice(-3).join('/'), line: e.lineno, col: e.colno, stack: e.error && String(e.error.stack).slice(0, 1500) }); });
+	var of = window.fetch;
+	window.fetch = function (input, init) {
+		var u = String(input && input.url || input);
+		var rec = /wp-json|rest_route/.test(u) ? { url: u.replace(location.origin, '').slice(0, 200), method: (init && init.method) || 'GET' } : null;
+		if (rec) D.rest.push(rec);
+		return of.apply(this, arguments).then(function (r) { if (rec) rec.status = r.status; return r; }, function (err) { if (rec) rec.status = 'ERR ' + err; throw err; });
+	};
+	setTimeout(function () {
+		var out = { url: location.pathname, errors: D.errors, rest: D.rest };
+		try {
+			var be = window.wpBlocksEverywhere || {};
+			out.postEntity = be.postEntity || null;
+			var core = wp.data.select('core');
+			out.entityConfig = !!(be.postEntity && core.getEntityConfig('postType', be.postEntity.type));
+			out.entityRecord = !!(be.postEntity && core.getEntityRecord('postType', be.postEntity.type, be.postEntity.id));
+			out.editorPostId = wp.data.select('core/editor').getCurrentPostId();
+			out.typesKnown = (core.getPostTypes({ per_page: -1 }) || []).map(function (t) { return t.slug; });
+		} catch (err) { out.stateErr = String(err); }
+		out.iframe = !!document.querySelector('iframe[name=editor-canvas]');
+		out.scripts = [].slice.call(document.scripts).map(function (s) { return s.src; }).filter(function (s) { return /blocks-everywhere|\/editor\/index|\/core-data\/|react-dom/.test(s); }).map(function (s) { return s.replace(location.origin, ''); });
+		fetch('/?forum_fuzz_observe=' + encodeURIComponent('edit-diag:' + location.pathname + ':' + (document.body.className.match(/logged-in/) ? 'li' : 'lo')), { method: 'POST', body: JSON.stringify(out) });
+	}, 10000);
+})();
+</script>
+		<?php
+	},
+	-999
+);
 add_action(
 	'wp_loaded',
 	static function () {
