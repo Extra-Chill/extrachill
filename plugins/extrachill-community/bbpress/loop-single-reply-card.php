@@ -41,27 +41,8 @@ $is_lead_topic     = ( $reply_id_check === $topic_id_check ) || ( bbp_get_topic_
 
 		<div class="bbp-reply-header">
 			<div class="bbp-reply-header-content">
-				<?php
-				$user_id       = get_current_user_id();
-				$reply_id      = bbp_get_reply_id();
-				$upvoted_posts = get_user_meta($user_id, 'upvoted_posts', true);
-				$is_upvoted    = is_array($upvoted_posts) && in_array($reply_id, $upvoted_posts, true);
-				$icon_id       = $is_upvoted ? 'circle-up' : 'circle-up-outline';
-
-				$upvote_count         = get_upvote_count($reply_id);
-				$display_upvote_count = (int) $upvote_count + 1;
-				?>
-
 				<div class="upvote-date">
-					<div class="upvote">
-						<span class="upvote-icon"
-								data-post-id="<?php echo esc_attr( (string) $reply_id ); ?>"
-								data-type="reply"
-								data-upvoted="<?php echo $is_upvoted ? 'true' : 'false'; ?>">
-							<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
-						</span>
-						<span class="upvote-count"><?php echo esc_html( (string) $display_upvote_count ); ?></span>
-					</div>
+					<?php extrachill_community_render_upvote( bbp_get_reply_id(), 'reply' ); ?>
 					<a href="<?php bbp_reply_url(); ?>" class="bbp-reply-post-date" id="bbp-reply-permalink">
 	<?php bbp_reply_post_date(); ?>
 </a>
