@@ -126,6 +126,44 @@ function ec_seo_format_event_datetime( string $date, string $time, string $timez
 }
 
 /**
+ * Validate and normalize an offer's sale timestamp without inventing a date.
+ *
+ * Mirrors EventSchemaProvider::isValidValidFrom(): seconds are required,
+ * timezone is optional, and impossible calendar dates are rejected.
+ * Explicit offsets are preserved; naive timestamps use venue/site timezone.
+ *
+ * @param string $value    Stored validFrom attribute.
+ * @param string $timezone Venue timezone, or empty for the site timezone.
+ * @return string Full ISO-8601 timestamp, or empty for invalid input.
+ */
+function ec_seo_format_offer_valid_from( string $value, string $timezone ): string {
+	if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})[Tt ](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3])(?::?[0-5]\d)?)?$/', $value, $matches )
+		|| ! checkdate( (int) $matches[2], (int) $matches[3], (int) $matches[1] ) ) {
+		return '';
+	}
+
+	try {
+		$tz = '' !== $timezone ? new \DateTimeZone( $timezone ) : wp_timezone();
+		$dt = new \DateTimeImmutable( $value, $tz );
+		return $dt->format( 'c' );
+	} catch ( \Exception $e ) {
+		return '';
+	}
+}
+
+/**
+ * Normalize venue/organizer names for exact identity comparison, not fuzzy matching.
+ *
+ * @param string $name Venue or organizer name.
+ * @return string Case-folded letters and numbers only.
+ */
+function ec_seo_normalize_venue_name( string $name ): string {
+	$name = html_entity_decode( $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$name = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name, 'UTF-8' ) : strtolower( $name );
+	return (string) preg_replace( '/[^\p{L}\p{N}]/u', '', $name );
+}
+
+/**
  * Parse a free-text price string into a normalized structure.
  *
  * Handles:
@@ -599,12 +637,24 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		if ( ! in_array( $organizer_type, array( 'Organization', 'Person' ), true ) ) {
 			$organizer_type = 'Organization';
 		}
-		$organizer = array(
+		$organizer     = array(
 			'@type' => $organizer_type,
 			'name'  => $organizer_name,
 		);
-		if ( ! empty( $attrs['organizerUrl'] ) ) {
-			$organizer['url'] = esc_url_raw( (string) $attrs['organizerUrl'] );
+		$organizer_url = trim( (string) ( $attrs['organizerUrl'] ?? '' ) );
+		if ( '' === $organizer_url && is_array( $venue_data ) ) {
+			$normalized = ec_seo_normalize_venue_name( $organizer_name );
+			$term_name  = $venue_term instanceof \WP_Term ? $venue_term->name : '';
+			if ( '' !== $normalized && ( ec_seo_normalize_venue_name( $venue_name ) === $normalized
+				|| ec_seo_normalize_venue_name( $term_name ) === $normalized ) ) {
+				$organizer_url = trim( (string) ( $venue_data['website'] ?? '' ) );
+			}
+		}
+		if ( '' !== $organizer_url ) {
+			$organizer_url = esc_url_raw( $organizer_url );
+			if ( '' !== $organizer_url ) {
+				$organizer['url'] = $organizer_url;
+			}
 		}
 		$schema['organizer'] = $organizer;
 	}
@@ -639,6 +689,11 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 
 		if ( '' !== $ticket_url ) {
 			$offers['url'] = esc_url_raw( ec_seo_resolve_offer_url( $ticket_url, $permalink ) );
+		}
+
+		$valid_from = ec_seo_format_offer_valid_from( (string) ( $attrs['validFrom'] ?? '' ), $timezone );
+		if ( '' !== $valid_from ) {
+			$offers['validFrom'] = $valid_from;
 		}
 
 		$schema['offers'] = $offers;
