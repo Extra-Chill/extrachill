@@ -111,7 +111,7 @@ function ec_events_render_attendance_button( $post_id, $ticket_url, $timing = ''
 		?>
 		<div id="ec-partner-rsvp" class="notice notice-info">
 			<h2><?php esc_html_e( 'RSVP on Extra Chill', 'extrachill-events' ); ?></h2>
-			<p><?php esc_html_e( 'Mark Going to save this event to My Shows. If the organizer requires registration, use their event link too.', 'extrachill-events' ); ?></p>
+			<p><?php esc_html_e( 'Mark Going to save this show to My Shows.', 'extrachill-events' ); ?></p>
 			<?php
 			ec_users_render_attendance_button(
 				$event_id,
